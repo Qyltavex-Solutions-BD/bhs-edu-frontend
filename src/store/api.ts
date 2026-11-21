@@ -255,7 +255,12 @@ export const schoolApi = createApi({
 
     retryAttendanceSms: builder.mutation<unknown, { id: string }>({
       query: (body) => ({ url: '/attendance/sms/retry', method: 'POST', body }),
-      invalidatesTags: ['Attendance'],
+      invalidatesTags: ['Attendance', 'Audit'],
+    }),
+
+    retryAllAttendanceSms: builder.mutation<{ retried: number }, void>({
+      query: () => ({ url: '/attendance/sms/retry-all', method: 'POST', body: {} }),
+      invalidatesTags: ['Attendance', 'Audit'],
     }),
 
     updateAttendanceConfig: builder.mutation<ClassAttendanceMethodConfig, ClassAttendanceMethodConfig>({
@@ -263,7 +268,22 @@ export const schoolApi = createApi({
       invalidatesTags: ['Attendance', 'Audit'],
     }),
 
-    simulateRfidScan: builder.mutation<unknown, { cardNumber: string; direction: 'ENTRY' | 'EXIT' }>({
+    simulateRfidScan: builder.mutation<
+      {
+        id: string;
+        cardNumber: string;
+        studentId: string | null;
+        studentName: string | null;
+        className: string | null;
+        scannedAt: string;
+        deviceLocation: string;
+        direction: 'ENTRY' | 'EXIT';
+        isKnownCard: boolean;
+        recorded?: boolean;
+        message?: string;
+      },
+      { cardNumber: string; direction: 'ENTRY' | 'EXIT'; date?: string }
+    >({
       query: (body) => ({ url: '/attendance/rfid/simulate', method: 'POST', body }),
       invalidatesTags: ['Attendance'],
     }),
@@ -791,6 +811,7 @@ export const {
   useProcessExamResultsMutation,
   useSaveAttendanceBatchMutation,
   useRetryAttendanceSmsMutation,
+  useRetryAllAttendanceSmsMutation,
   useUpdateAttendanceConfigMutation,
   useSimulateRfidScanMutation,
   useCreateNoticeMutation,

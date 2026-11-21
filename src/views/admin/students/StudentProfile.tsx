@@ -7,22 +7,18 @@ import {
   AlertCircle,
   ArrowLeft,
   ArrowUpRight,
-  Award,
   BookOpen,
   Calendar,
   Check,
   Copy,
-  FileText,
   GraduationCap,
   Pencil,
   Phone,
-  Printer,
   User,
 } from 'lucide-react';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
-import { cn, triggerCertificatePrint } from '@/src/lib/utils/cn';
-import { PrintableTestimonialCertificate } from '@/src/components/print/PrintDocuments';
+import { cn } from '@/src/lib/utils/cn';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import {
   Button,
@@ -41,14 +37,12 @@ import {
   BloodGroup,
   CardStatus,
   Gender,
-  RelationshipType,
   Religion,
   StudentStatus,
-  TestimonialType,
 } from '@/src/types/enums';
 import { useUpdateStudentMutation } from '@/src/store/api';
 import type { MockDatabase } from '@/src/mocks/seed';
-import type { Attendance, Student, StudentTestimonial } from '@/src/types/entities';
+import type { Attendance, Student } from '@/src/types/entities';
 import { BLOOD_LABEL, classLabel, errorMessage, studentInitials } from './studentShared';
 
 const WEEKDAYS = [
@@ -61,7 +55,7 @@ const WEEKDAYS = [
   { bn: 'শনি', en: 'Sat' },
 ];
 
-type ProfileTab = 'overview' | 'attendance' | 'academic' | 'testimonial';
+type ProfileTab = 'overview' | 'attendance' | 'academic';
 
 function monthCells(month: string) {
   const [year, mon] = month.split('-').map(Number);
@@ -327,26 +321,9 @@ export function StudentProfile({
     .filter((g) => Boolean(g.parent))
     .sort((a, b) => Number(b.link.isPrimary) - Number(a.link.isPrimary));
   const primaryGuardian = guardians[0];
-  const fatherEntry =
-    guardians.find((g) => g.link.relationship === RelationshipType.FATHER) ?? primaryGuardian;
-  const motherEntry = guardians.find((g) => g.link.relationship === RelationshipType.MOTHER);
-  const fatherDisplayName = fatherEntry?.parent
-    ? locale === 'bn'
-      ? fatherEntry.parent.nameBn || fatherEntry.parent.name
-      : fatherEntry.parent.name
-    : null;
-  const motherDisplayName = motherEntry?.parent
-    ? locale === 'bn'
-      ? motherEntry.parent.nameBn || motherEntry.parent.name
-      : motherEntry.parent.name
-    : null;
 
   const cards = db.rfidCards.filter((item) => item.studentId === student.id);
   const activeCard = cards.find((item) => item.status === CardStatus.ACTIVE) ?? cards[0];
-  const certificates = db.transferCertificates.filter((item) => item.studentId === student.id);
-  const studentTestimonials = db.testimonials
-    .filter((item) => item.studentId === student.id)
-    .sort((a, b) => b.issueDate.localeCompare(a.issueDate) || b.id.localeCompare(a.id));
 
   // Class teacher & optional subject for current enrollment
   const classTeacherLink = section
@@ -565,16 +542,8 @@ export function StudentProfile({
             </div>
           </div>
 
-          {/* Primary Actions (Restrained, single-line) */}
+          {/* Primary Action */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <Button
-              size="sm"
-              variant={activeTab === 'testimonial' ? 'primary' : 'outline'}
-              onClick={() => setActiveTab('testimonial')}
-            >
-              <FileText className="w-3.5 h-3.5" />
-              <span>{pick('প্রত্যয়নপত্র', 'Testimonial')}</span>
-            </Button>
             <Button size="sm" variant="primary" onClick={beginEdit}>
               <Pencil className="w-3.5 h-3.5" />
               <span>{pick('তথ্য সম্পাদনা', 'Edit Profile')}</span>
@@ -699,7 +668,7 @@ export function StudentProfile({
         </div>
       </Card>
 
-      {/* 3. Workspace Navigation Tabs (4 Focused SIS Modules — No Digital ID Card) */}
+      {/* 3. Workspace Navigation Tabs (3 Focused SIS Modules) */}
       <div
         className="flex items-center gap-1 border-b border-border overflow-x-auto"
         role="tablist"
@@ -715,11 +684,6 @@ export function StudentProfile({
             id: 'academic' as const,
             label: pick('একাডেমিক ও ফলাফল', 'Academic & Results'),
             icon: GraduationCap,
-          },
-          {
-            id: 'testimonial' as const,
-            label: pick('প্রত্যয়নপত্র', 'Testimonial'),
-            icon: Award,
           },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -1031,14 +995,14 @@ export function StudentProfile({
               )}
             </Card>
 
-            {/* Administrative Records (RFID & TC — Quiet Metadata, No Mockup Card) */}
+            {/* Administrative Records (RFID Tag) */}
             <Card className="p-5 sm:p-6 space-y-4">
               <h3 className="text-base font-semibold text-foreground">
                 {pick('প্রশাসনিক নথি', 'Administrative Records')}
               </h3>
 
-              <dl className="space-y-3 text-sm divide-y divide-border">
-                <div className="flex items-center justify-between gap-2 pb-3">
+              <dl className="text-sm">
+                <div className="flex items-center justify-between gap-2">
                   <div>
                     <dt className="text-xs text-muted-foreground">
                       {pick('হাজিরা RFID ট্যাগ', 'Attendance RFID Tag')}
@@ -1052,29 +1016,6 @@ export function StudentProfile({
                     className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0"
                   >
                     <span>{pick('ব্যবস্থাপনা', 'Manage')}</span>
-                    <ArrowUpRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-
-                <div className="flex items-center justify-between gap-2 pt-3">
-                  <div>
-                    <dt className="text-xs text-muted-foreground">
-                      {pick('ছাড়পত্র (TC)', 'Transfer Certificates')}
-                    </dt>
-                    <dd className="mt-0.5 text-sm text-foreground tabular-nums">
-                      {certificates.length > 0
-                        ? pick(
-                            `${formatNumber(certificates.length, locale)} টি ইস্যুকৃত (${certificates[0].tcNumber})`,
-                            `${certificates.length} issued (${certificates[0].tcNumber})`
-                          )
-                        : pick('কোনো ছাড়পত্র ইস্যু হয়নি', 'None issued')}
-                    </dd>
-                  </div>
-                  <Link
-                    href="/admin/students/transfers"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0"
-                  >
-                    <span>{pick('ছাড়পত্র ডেস্ক', 'TC Desk')}</span>
                     <ArrowUpRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -1397,115 +1338,6 @@ export function StudentProfile({
           </Card>
         </div>
       )}
-
-      {/* TAB 4: OFFICIAL TESTIMONIAL */}
-      {activeTab === 'testimonial' && (() => {
-        const activeTestimonial: StudentTestimonial = studentTestimonials[0] ?? {
-          id: `preview-${student.id}`,
-          studentId: student.id,
-          enrollmentId: enrollment?.id ?? null,
-          type: TestimonialType.STUDY_CHARACTER,
-          refNumber: `BHS/TEST/${currentYearObj?.name ?? '2026'}/${student.studentId}`,
-          issueDate: today,
-          academicSession: currentYearObj?.name ?? '2026',
-          className: enrollment ? classLabel(db, enrollment.classId, locale) : '—',
-          sectionName: section?.name ?? null,
-          roll: enrollment?.roll ?? null,
-          groupName: group ? (locale === 'bn' ? group.nameBn || group.name : group.name) : null,
-          purpose: pick('অধ্যয়ন ও চারিত্রিক প্রত্যয়নের জন্য', 'For study and character verification'),
-          boardName: null,
-          passingYear: null,
-          boardRoll: null,
-          registrationNo: student.boardRegistrationNo ?? null,
-          gpa: null,
-          letterGrade: null,
-          conductRemarks: pick('উত্তম ও শৃঙ্খলাপরায়ণ', 'Good and disciplined'),
-          remarks: null,
-          createdAt: `${today}T00:00:00Z`,
-          updatedAt: `${today}T00:00:00Z`,
-        };
-
-        return (
-          <Card className="p-5 sm:p-6 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border no-print">
-              <div>
-                <h3 className="text-base font-semibold text-foreground">
-                  {pick('অফিসিয়াল প্রত্যয়নপত্র ও প্রশংসাপত্র', 'Official Student Testimonial')}
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {studentTestimonials.length > 0
-                    ? pick(
-                        `এই শিক্ষার্থীর নামে ${formatNumber(studentTestimonials.length, locale)}টি আনুষ্ঠানিক প্রত্যয়নপত্র ইস্যু রয়েছে। নিচে সর্বশেষ ইস্যুকৃত কপি প্রদর্শিত হচ্ছে।`,
-                        `${studentTestimonials.length} official testimonial issued for this student. Showing the latest issued copy below.`
-                      )
-                    : pick(
-                        'আনুষ্ঠানিক সাদা-কালো প্রিন্ট টেমপ্লেট। দাপ্তরিক স্মারক সহ স্থায়ী রেজিস্টারে সংরক্ষণ করতে প্রত্যয়নপত্র রেজিস্টারে যান।',
-                        'Formal monochrome print template. Use the Testimonial Registry to archive with an official sequential reference number.'
-                      )}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Link href="/admin/students/testimonials">
-                  <Button variant="outline" size="sm">
-                    <Award className="w-4 h-4" />
-                    <span>{pick('প্রত্যয়নপত্র রেজিস্টার', 'Testimonial Registry')}</span>
-                  </Button>
-                </Link>
-                <Link href="/admin/students/transfers">
-                  <Button variant="outline" size="sm">
-                    <FileText className="w-4 h-4" />
-                    <span>{pick('ছাড়পত্র (TC)', 'Transfer (TC)')}</span>
-                  </Button>
-                </Link>
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  onClick={() =>
-                    triggerCertificatePrint({
-                      kind: 'TESTIMONIAL',
-                      school: db.schoolProfile,
-                      testimonial: activeTestimonial,
-                      student,
-                      fatherName: fatherDisplayName,
-                      motherName: motherDisplayName,
-                    })
-                  }
-                >
-                  <Printer className="w-4 h-4" />
-                  <span>{pick('প্রিন্ট করুন', 'Print Certificate')}</span>
-                </Button>
-              </div>
-            </div>
-
-            {studentTestimonials.length > 1 && (
-              <div className="p-3.5 rounded-[var(--radius)] border border-border bg-surface-muted/40 space-y-2 no-print">
-                <p className="text-xs font-semibold text-foreground">
-                  {pick('ইস্যুকৃত প্রত্যয়নপত্রের ইতিহাস', 'Issued Testimonial History')}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {studentTestimonials.map((item) => (
-                    <span
-                      key={item.id}
-                      className="text-xs font-mono px-2.5 py-1 rounded border border-border bg-surface text-foreground tabular-nums"
-                    >
-                      {item.refNumber} · {formatDateShort(`${item.issueDate}T12:00:00`, locale)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <PrintableTestimonialCertificate
-              school={db.schoolProfile}
-              testimonial={activeTestimonial}
-              student={student}
-              fatherName={fatherDisplayName}
-              motherName={motherDisplayName}
-            />
-          </Card>
-        );
-      })()}
 
       {/* Edit Student Profile Modal */}
       <Modal

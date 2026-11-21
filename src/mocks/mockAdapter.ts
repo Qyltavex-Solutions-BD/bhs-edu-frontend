@@ -186,12 +186,19 @@ function refreshFilledPosts() {
   });
 }
 
+function localTodayIso() {
+  const d = new Date();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
 function attendanceDayError(date: string, academicYearId: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return 'তারিখ সঠিক নয়। / The date is not valid.';
   if (!db.academicYears.some((year) => year.id === academicYearId)) {
     return 'শিক্ষাবর্ষ পাওয়া যায়নি। / Academic year was not found.';
   }
-  if (date > new Date().toISOString().slice(0, 10)) {
+  if (date > localTodayIso()) {
     return 'আগামী তারিখে হাজিরা হয় না। / Attendance cannot be marked for a future date.';
   }
   const weekday = new Date(`${date}T12:00:00`).getDay();
@@ -1591,7 +1598,16 @@ export async function handleMockRequest(
         if (existing) {
           existing.status = entry.status;
           existing.method = entry.method;
-          existing.remarks = entry.remarks ?? existing.remarks ?? null;
+          if (entry.remarks !== undefined) {
+            existing.remarks = entry.remarks.trim() ? entry.remarks.trim() : null;
+          }
+          if (entry.status === AttendanceStatus.ABSENT || entry.status === AttendanceStatus.LEAVE) {
+            existing.inTime = null;
+            existing.outTime = null;
+          } else if (!existing.inTime) {
+            existing.inTime =
+              entry.status === AttendanceStatus.LATE ? `${date}T10:25:00` : `${date}T09:55:00`;
+          }
           existing.markedBy = markedBy;
           existing.updatedAt = nowIso();
         } else {
@@ -1600,9 +1616,10 @@ export async function handleMockRequest(
             studentEnrollmentId: entry.studentEnrollmentId,
             date,
             inTime: entry.status === AttendanceStatus.LATE ? `${date}T10:25:00` : entry.status === AttendanceStatus.PRESENT ? `${date}T09:55:00` : null,
+            outTime: null,
             status: entry.status,
             method: entry.method,
-            remarks: entry.remarks ?? null,
+            remarks: entry.remarks?.trim() ? entry.remarks.trim() : null,
             markedBy,
             createdAt: nowIso(),
             updatedAt: nowIso(),
@@ -1621,7 +1638,22 @@ export async function handleMockRequest(
       if (sms.status !== SmsStatus.FAILED) return studentError(400, 'শুধু ব্যর্থ এসএমএস আবার পাঠানো যায়। / Only a failed SMS can be sent again.');
       sms.status = SmsStatus.SENT;
       sms.sentAt = nowIso();
+      addAudit('ATTENDANCE_SMS_RETRY', 'Attendance', `Retried failed attendance SMS (${sms.id}) to ${sms.phone}.`);
       return { data: clone(sms) };
+    }
+
+    if (endpoint === '/attendance/sms/retry-all' && method === 'POST') {
+      const failed = db.attendanceSmsLogs.filter((item) => item.status === SmsStatus.FAILED);
+      if (!failed.length) {
+        return studentError(400, 'পুনরায় পাঠানোর মতো কোনো ব্যর্থ এসএমএস নেই। / There are no failed SMS messages to retry.');
+      }
+      const sentTime = nowIso();
+      failed.forEach((sms) => {
+        sms.status = SmsStatus.SENT;
+        sms.sentAt = sentTime;
+      });
+      addAudit('ATTENDANCE_SMS_RETRY_ALL', 'Attendance', `Retried ${failed.length} failed attendance SMS messages.`);
+      return { data: { retried: failed.length } };
     }
 
     if (endpoint === '/attendance/config' && method === 'PUT') {
@@ -1645,7 +1677,11 @@ export async function handleMockRequest(
     }
 
     if (endpoint === '/attendance/rfid/simulate' && method === 'POST') {
-      const { cardNumber, direction } = body as { cardNumber: string; direction: 'ENTRY' | 'EXIT' };
+      const { cardNumber, direction, date: requestedDate } = body as {
+        cardNumber: string;
+        direction: 'ENTRY' | 'EXIT';
+        date?: string;
+      };
       const number = cardNumber?.trim();
       if (!number || (direction !== 'ENTRY' && direction !== 'EXIT')) {
         return studentError(400, 'কার্ড নম্বর ও প্রবেশ বা প্রস্থান দিন। / Provide a card number and entry or exit.');
@@ -1673,21 +1709,21 @@ export async function handleMockRequest(
         isKnownCard: Boolean(activeCard && student && enrollment),
       };
       db.rfidScans.unshift(scan);
-      if (!card) return { data: clone({ ...scan, message: 'অপরিচিত কার্ড। / Unknown card.' }) };
+      if (!card) return { data: clone({ ...scan, recorded: false, message: 'অপরিচিত কার্ড। / Unknown card.' }) };
       if (card.status !== CardStatus.ACTIVE) {
-        return { data: clone({ ...scan, message: 'এই কার্ড সক্রিয় নয়। / This card is not active.' }) };
+        return { data: clone({ ...scan, recorded: false, message: 'এই কার্ড সক্রিয় নয়। / This card is not active.' }) };
       }
       if (!student || !enrollment || !year) {
-        return { data: clone({ ...scan, message: 'এই কার্ডের চলতি ভর্তি নেই। / This card has no active enrollment.' }) };
+        return { data: clone({ ...scan, recorded: false, message: 'এই কার্ডের চলতি ভর্তি নেই। / This card has no active enrollment.' }) };
       }
       const config = db.classAttendanceConfigs.find((item) => item.classId === enrollment.classId);
       if ((config?.method ?? AttendanceMethod.MANUAL) !== AttendanceMethod.RFID) {
-        return { data: clone({ ...scan, message: 'এই শ্রেণির হাজিরা হাতে নেওয়া হয়। / This class is marked by hand.' }) };
+        return { data: clone({ ...scan, recorded: false, message: 'এই শ্রেণির হাজিরা হাতে নেওয়া হয়। / This class is marked by hand.' }) };
       }
-      const today = new Date().toISOString().slice(0, 10);
-      const closed = attendanceDayError(today, year.id);
-      if (closed) return { data: clone({ ...scan, message: closed }) };
-      const existing = db.attendances.find((item) => item.studentEnrollmentId === enrollment.id && item.date === today);
+      const targetDate = requestedDate?.trim() || localTodayIso();
+      const closed = attendanceDayError(targetDate, year.id);
+      if (closed) return { data: clone({ ...scan, recorded: false, message: closed }) };
+      const existing = db.attendances.find((item) => item.studentEnrollmentId === enrollment.id && item.date === targetDate);
       const now = new Date();
       const [hour, minute] = (config?.lateThresholdTime || '10:15').split(':').map(Number);
       const late = now.getHours() > hour || (now.getHours() === hour && now.getMinutes() > minute);
@@ -1696,8 +1732,8 @@ export async function handleMockRequest(
           existing.outTime = nowIso();
           existing.updatedAt = nowIso();
         }
-        if (config?.autoSmsOnExit && existing) queueAttendanceSms(existing.id, student.id, enrollment.classId, today, 'EXIT');
-        return { data: clone({ ...scan, message: 'প্রস্থান নথিভুক্ত হয়েছে। / Exit recorded.' }) };
+        if (config?.autoSmsOnExit && existing) queueAttendanceSms(existing.id, student.id, enrollment.classId, targetDate, 'EXIT');
+        return { data: clone({ ...scan, recorded: Boolean(existing), message: existing ? 'প্রস্থান নথিভুক্ত হয়েছে। / Exit recorded.' : 'প্রবেশের তথ্য পাওয়া যায়নি, শুধু স্ক্যান লগ হয়েছে। / No prior entry found; scan logged.' }) };
       }
       const status = late ? AttendanceStatus.LATE : AttendanceStatus.PRESENT;
       const attId = existing?.id ?? uid('att');
@@ -1710,8 +1746,9 @@ export async function handleMockRequest(
         db.attendances.push({
           id: attId,
           studentEnrollmentId: enrollment.id,
-          date: today,
+          date: targetDate,
           inTime: nowIso(),
+          outTime: null,
           status,
           method: AttendanceMethod.RFID,
           markedBy: null,
@@ -1719,8 +1756,8 @@ export async function handleMockRequest(
           updatedAt: nowIso(),
         });
       }
-      if (config?.autoSmsOnEntry) queueAttendanceSms(attId, student.id, enrollment.classId, today, 'ENTRY');
-      return { data: clone({ ...scan, message: late ? 'দেরিতে প্রবেশ। / Late entry.' : 'প্রবেশ নথিভুক্ত হয়েছে। / Entry recorded.' }) };
+      if (config?.autoSmsOnEntry) queueAttendanceSms(attId, student.id, enrollment.classId, targetDate, 'ENTRY');
+      return { data: clone({ ...scan, recorded: true, message: late ? 'দেরিতে প্রবেশ নথিভুক্ত হয়েছে। / Late entry recorded.' : 'প্রবেশ নথিভুক্ত হয়েছে। / Entry recorded.' }) };
     }
 
     // 12. Create Notice / Update Notice Status
