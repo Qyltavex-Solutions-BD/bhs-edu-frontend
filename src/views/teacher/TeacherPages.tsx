@@ -760,6 +760,7 @@ export function TeacherAttendancePage() {
     try {
       const res = await saveBatch({
         date,
+        academicYearId: enrollments[0]?.academicYearId ?? db.academicYears.find((year) => year.isActive)?.id ?? '',
         markedBy: auth.user?.id ?? 'user-teacher-1',
         entries: enrollments.map((e) => ({
           studentEnrollmentId: e.id,

@@ -1,7 +1,5 @@
-import { AdminParentsPage, AdminStudentsPage } from '@/src/views/admin/AdminStudentsAndParentsPage';
+import { AdminParentsPage } from '@/src/views/admin/AdminParentOps';
 
 export default function Page() {
-  return (
-    <AdminParentsPage />
-  );
+  return <AdminParentsPage />;
 }

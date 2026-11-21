@@ -8,6 +8,7 @@ import {
   BookOpen,
   Building2,
   Calendar,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ClipboardCheck,
@@ -50,12 +51,21 @@ import { formatDateShort } from '@/src/lib/formatters';
 
 export type PortalKind = 'admin' | 'teacher' | 'parent' | 'student';
 
+interface NavChild {
+  to: string;
+  labelBn: string;
+  labelEn: string;
+  groupBn?: string;
+  groupEn?: string;
+}
+
 interface NavEntry {
   to: string;
   labelBn: string;
   labelEn: string;
   icon: React.ComponentType<{ className?: string }>;
   end?: boolean;
+  children?: NavChild[];
 }
 
 interface NavGroup {
@@ -79,7 +89,22 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
     labelBn: 'একাডেমিক ও অপারেশন',
     labelEn: 'School Operations',
     items: [
-      { to: '/admin/students', labelBn: 'শিক্ষার্থী ও ভর্তি', labelEn: 'Students & Admissions', icon: GraduationCap },
+      {
+        to: '/admin/students',
+        labelBn: 'শিক্ষার্থী',
+        labelEn: 'Students',
+        icon: GraduationCap,
+        children: [
+          { to: '/admin/students', labelBn: 'তালিকা', labelEn: 'Directory', groupBn: 'তালিকা', groupEn: 'Records' },
+          { to: '/admin/students/create', labelBn: 'নতুন ভর্তি', labelEn: 'New admission', groupBn: 'ভর্তি', groupEn: 'Admission' },
+          { to: '/admin/students/admissions', labelBn: 'অনলাইন আবেদন', labelEn: 'Applications' },
+          { to: '/admin/students/import', labelBn: 'CSV আমদানি', labelEn: 'CSV import' },
+          { to: '/admin/students/enrollments', labelBn: 'এনরোলমেন্ট', labelEn: 'Enrollments', groupBn: 'সেশন', groupEn: 'Session' },
+          { to: '/admin/students/promotions', labelBn: 'প্রমোশন', labelEn: 'Promotion' },
+          { to: '/admin/students/transfers', labelBn: 'ছাড়পত্র', labelEn: 'Transfer certificates' },
+          { to: '/admin/students/rfid-cards', labelBn: 'পরিচয়পত্র', labelEn: 'ID cards', groupBn: 'পরিচয়', groupEn: 'Identity' },
+        ],
+      },
       { to: '/admin/parents', labelBn: 'অভিভাবক', labelEn: 'Parents', icon: UsersRound },
       { to: '/admin/staff', labelBn: 'শিক্ষক ও কর্মচারী', labelEn: 'Staff & Teachers', icon: UserCheck },
       { to: '/admin/academic/years', labelBn: 'একাডেমিক ও রুটিন', labelEn: 'Academics & Syllabus', icon: Calendar },
@@ -154,6 +179,18 @@ const STUDENT_NAV: NavEntry[] = [
   { to: '/student/profile', labelBn: 'প্রোফাইল', labelEn: 'Profile', icon: Settings },
 ];
 
+const STUDENT_RESERVED = new Set(['create', 'admissions', 'import', 'enrollments', 'promotions', 'transfers', 'rfid-cards']);
+
+function studentChildActive(pathname: string, to: string) {
+  if (to === '/admin/students') {
+    if (pathname === '/admin/students') return true;
+    if (!pathname.startsWith('/admin/students/')) return false;
+    const first = pathname.slice('/admin/students/'.length).split('/')[0];
+    return Boolean(first) && !STUDENT_RESERVED.has(first);
+  }
+  return pathname === to || pathname.startsWith(`${to}/`);
+}
+
 export function PortalLayout({ portal, children }: { portal: PortalKind; children: React.ReactNode }) {
   const { locale, pick } = useI18n();
   const dispatch = useAppDispatch();
@@ -165,6 +202,7 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
   const [markRead] = useMarkNotificationReadMutation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   // Auto-align demo role when navigating directly into a portal preview if unauthenticated
   // (Real backend integration uses route-level 401 redirect to /login)
@@ -320,25 +358,75 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
           <div className="space-y-0.5">
             {group.items.map((item) => {
               const Icon = item.icon;
+              const selfActive = item.end ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`);
+              const showChildren = Boolean(item.children?.length) && (!sidebarCollapsed || closeOnClick);
+              if (!showChildren) {
+                return (
+                  <Link
+                    key={item.to}
+                    href={item.to}
+                    onClick={() => closeOnClick && setMobileOpen(false)}
+                    className={cn(
+                      'flex items-center gap-2.5 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-colors',
+                      selfActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-foreground/80 hover:bg-surface-muted hover:text-foreground',
+                      sidebarCollapsed && !closeOnClick ? 'justify-center px-2' : ''
+                    )}
+                    title={sidebarCollapsed ? (locale === 'bn' ? item.labelBn : item.labelEn) : undefined}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    {(!sidebarCollapsed || closeOnClick) && (
+                      <span className="truncate">{locale === 'bn' ? item.labelBn : item.labelEn}</span>
+                    )}
+                  </Link>
+                );
+              }
+              const open = openMenus[item.to] ?? selfActive;
               return (
-                <Link
-                  key={item.to}
-                  href={item.to}
-                  onClick={() => closeOnClick && setMobileOpen(false)}
-                  className={cn(
-                    'flex items-center gap-2.5 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-colors',
-                    (item.end ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`))
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-foreground/80 hover:bg-surface-muted hover:text-foreground',
-                    sidebarCollapsed && !closeOnClick ? 'justify-center px-2' : ''
+                <div key={item.to}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenMenus((prev) => ({ ...prev, [item.to]: !open }))}
+                    className={cn(
+                      'flex w-full items-center gap-2.5 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-colors cursor-pointer',
+                      selfActive ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-surface-muted hover:text-foreground'
+                    )}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="truncate flex-1 text-left">{locale === 'bn' ? item.labelBn : item.labelEn}</span>
+                    <ChevronDown className={cn('w-4 h-4 shrink-0 transition-transform', open && 'rotate-180')} />
+                  </button>
+                  {open && (
+                    <div className="mt-0.5 ml-4 pl-2 border-l border-border space-y-0.5">
+                      {item.children!.map((child, index) => {
+                        const previous = item.children![index - 1];
+                        const groupLabel = locale === 'bn' ? child.groupBn : child.groupEn;
+                        const showGroup = Boolean(groupLabel) && groupLabel !== (locale === 'bn' ? previous?.groupBn : previous?.groupEn);
+                        const childActive = studentChildActive(pathname, child.to);
+                        return (
+                          <React.Fragment key={child.to}>
+                            {showGroup && (
+                              <p className="px-2 pt-2 pb-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                                {groupLabel}
+                              </p>
+                            )}
+                            <Link
+                              href={child.to}
+                              onClick={() => closeOnClick && setMobileOpen(false)}
+                              className={cn(
+                                'block px-2 py-1.5 rounded-md text-sm',
+                                childActive ? 'bg-primary text-primary-foreground font-semibold' : 'text-foreground/80 hover:bg-surface-muted'
+                              )}
+                            >
+                              {locale === 'bn' ? child.labelBn : child.labelEn}
+                            </Link>
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
                   )}
-                  title={sidebarCollapsed ? (locale === 'bn' ? item.labelBn : item.labelEn) : undefined}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  {(!sidebarCollapsed || closeOnClick) && (
-                    <span className="truncate">{locale === 'bn' ? item.labelBn : item.labelEn}</span>
-                  )}
-                </Link>
+                </div>
               );
             })}
           </div>

@@ -2,6 +2,6 @@ import { AdminAcademicPage, AdminStaffPage, AdminUsersPage } from '@/src/views/a
 
 export default function Page() {
   return (
-    <AdminAcademicPage defaultTab="classes" />
+    <AdminAcademicPage defaultTab="class-teachers" />
   );
 }
