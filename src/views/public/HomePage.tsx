@@ -649,7 +649,7 @@ export function HomePage() {
               </div>
 
               {/* Masked Slide-Up Display Headline */}
-              <AnimatePresence mode="wait">
+              <AnimatePresence initial={false} mode="wait">
                 <motion.div
                   key={`hero-copy-${currentSlide?.id}`}
                   initial={{ opacity: 0, y: 20 }}

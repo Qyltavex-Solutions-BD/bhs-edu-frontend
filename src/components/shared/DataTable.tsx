@@ -26,6 +26,7 @@ export interface DataTableProps<T extends object> {
   emptyTitle?: string;
   emptyAction?: React.ReactNode;
   pageSize?: number;
+  hideToolbar?: boolean;
   renderMobileCard?: (row: T) => React.ReactNode;
 }
 
@@ -44,6 +45,7 @@ export function DataTable<T extends object>({
   emptyTitle,
   emptyAction,
   pageSize = 10,
+  hideToolbar = false,
   renderMobileCard,
 }: DataTableProps<T>) {
   const { t, locale, pick } = useI18n();
@@ -118,29 +120,31 @@ export function DataTable<T extends object>({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <Input
-            value={globalFilter}
-            onChange={(e) => {
-              setGlobalFilter(e.target.value);
-              setPageIndex(0);
-            }}
-            placeholder={searchPlaceholder ?? t('cta.search')}
-            className="pl-9"
-          />
+      {!hideToolbar && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="relative w-full sm:max-w-xs">
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Input
+              value={globalFilter}
+              onChange={(e) => {
+                setGlobalFilter(e.target.value);
+                setPageIndex(0);
+              }}
+              placeholder={searchPlaceholder ?? t('cta.search')}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {toolbarExtra}
+            {exportFilename && (
+              <Button variant="outline" size="sm" onClick={handleExport} disabled={totalFiltered === 0}>
+                <Download className="w-3.5 h-3.5" />
+                {t('cta.exportCsv')}
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {toolbarExtra}
-          {exportFilename && (
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={totalFiltered === 0}>
-              <Download className="w-3.5 h-3.5" />
-              {t('cta.exportCsv')}
-            </Button>
-          )}
-        </div>
-      </div>
+      )}
 
       {pagedRows.length === 0 ? (
         <EmptyState title={emptyTitle} action={emptyAction} />

@@ -102,6 +102,18 @@ function OfflineBanner() {
   );
 }
 
+function ClientToaster() {
+  const [mounted, setMounted] = useState(false);
+  const theme = useAppSelector((s) => s.ui.theme);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+  return <Toaster richColors position="top-right" theme={theme} />;
+}
+
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <Provider store={store}>
@@ -111,7 +123,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <ScrollToTop />
           <OfflineBanner />
           <CommandPalette />
-          <Toaster richColors position="top-right" />
+          <ClientToaster />
           {children}
         </AppErrorBoundary>
       </I18nProvider>

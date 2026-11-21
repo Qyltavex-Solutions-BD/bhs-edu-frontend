@@ -31,7 +31,7 @@ export function StudentsShell({
     <Select
       value={selectedYear.id}
       onChange={(event) => dispatch(setSelectedAcademicYear(event.target.value))}
-      className="min-w-40"
+      className="w-auto min-w-40 h-9 text-sm"
       aria-label={pick('শিক্ষাবর্ষ', 'Academic year')}
     >
       {years.map((year) => (

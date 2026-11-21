@@ -121,8 +121,11 @@ export function AdminStudentsPage({
 
   const copy: Record<SectionKey, { title: string; description: string; year: boolean }> = {
     directory: {
-      title: pick('শিক্ষার্থী ডিরেক্টরি', 'Student directory'),
-      description: pick('এই শিক্ষাবর্ষের সারাংশ ও তালিকা। চোখের আইকনে ফাইল খোলে।', 'This year’s summary and list. The eye icon opens the file.'),
+      title: pick('শিক্ষার্থী ডিরেক্টরি', 'Student Directory'),
+      description: pick(
+        'নির্বাচিত শিক্ষাবর্ষের ভর্তি শিক্ষার্থী, শ্রেণি ও শাখাভিত্তিক তালিকা, উপস্থিতির হার এবং অভিভাবক যোগাযোগ।',
+        'Enrolled student roster, class and section breakdown, attendance rates, and guardian contacts for the selected session.'
+      ),
       year: true,
     },
     create: {
@@ -161,15 +164,41 @@ export function AdminStudentsPage({
       year: true,
     },
     profile: {
-      title: pick('শিক্ষার্থীর ফাইল', 'Student file'),
-      description: pick('পরিচয়, এই বছরের হাজিরা, অভিভাবক ও কার্ড। হাজিরা এখান থেকে লেখা হয় না।', 'Identity, this year’s attendance, guardian, and card. Attendance is not marked here.'),
+      title: pick('শিক্ষার্থীর প্রোফাইল', 'Student Profile'),
+      description: pick(
+        'শিক্ষার্থীর পূর্ণাঙ্গ একাডেমিক ও ব্যক্তিগত নথি, উপস্থিতি বিশ্লেষণ, পরীক্ষার ফলাফল এবং অভিভাবক তথ্য।',
+        'Complete academic and personal dossier, attendance record, exam results, and guardian contacts.'
+      ),
       year: true,
     },
   };
 
   const page = copy[section];
+  const headerActions =
+    section === 'directory' ? (
+      <>
+        <Link href="/admin/students/import">
+          <Button variant="outline" size="sm">
+            {pick('CSV আমদানি', 'CSV import')}
+          </Button>
+        </Link>
+        <Link href="/admin/students/create">
+          <Button variant="primary" size="sm">
+            {pick('নতুন ভর্তি', 'New admission')}
+          </Button>
+        </Link>
+      </>
+    ) : undefined;
+
   return (
-    <StudentsShell title={page.title} description={page.description} years={db.academicYears} selectedYear={year} showYear={page.year}>
+    <StudentsShell
+      title={page.title}
+      description={page.description}
+      actions={headerActions}
+      years={db.academicYears}
+      selectedYear={year}
+      showYear={page.year}
+    >
       {section === 'directory' && <StudentDirectory db={db} yearId={year.id} />}
       {section === 'create' && <Register db={db} yearId={year.id} />}
       {section === 'admissions' && <Admissions db={db} yearId={year.id} />}

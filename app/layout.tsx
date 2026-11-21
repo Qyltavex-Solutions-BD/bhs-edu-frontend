@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="bn" className={`${hind.variable} ${inter.variable}`} suppressHydrationWarning>
-      <body className="bg-background text-foreground antialiased">
+      <body className="bg-background text-foreground antialiased" suppressHydrationWarning>
         <Providers>
           <Suspense fallback={null}>{children}</Suspense>
         </Providers>
