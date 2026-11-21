@@ -55,8 +55,6 @@ interface NavChild {
   to: string;
   labelBn: string;
   labelEn: string;
-  groupBn?: string;
-  groupEn?: string;
 }
 
 interface NavEntry {
@@ -95,14 +93,14 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
         labelEn: 'Students',
         icon: GraduationCap,
         children: [
-          { to: '/admin/students', labelBn: 'তালিকা', labelEn: 'Directory', groupBn: 'তালিকা', groupEn: 'Records' },
-          { to: '/admin/students/create', labelBn: 'নতুন ভর্তি', labelEn: 'New admission', groupBn: 'ভর্তি', groupEn: 'Admission' },
+          { to: '/admin/students', labelBn: 'তালিকা', labelEn: 'Directory' },
+          { to: '/admin/students/create', labelBn: 'নতুন ভর্তি', labelEn: 'New admission' },
           { to: '/admin/students/admissions', labelBn: 'অনলাইন আবেদন', labelEn: 'Applications' },
           { to: '/admin/students/import', labelBn: 'CSV আমদানি', labelEn: 'CSV import' },
-          { to: '/admin/students/enrollments', labelBn: 'এনরোলমেন্ট', labelEn: 'Enrollments', groupBn: 'সেশন', groupEn: 'Session' },
+          { to: '/admin/students/enrollments', labelBn: 'এনরোলমেন্ট', labelEn: 'Enrollments' },
           { to: '/admin/students/promotions', labelBn: 'প্রমোশন', labelEn: 'Promotion' },
           { to: '/admin/students/transfers', labelBn: 'ছাড়পত্র', labelEn: 'Transfer certificates' },
-          { to: '/admin/students/rfid-cards', labelBn: 'পরিচয়পত্র', labelEn: 'ID cards', groupBn: 'পরিচয়', groupEn: 'Identity' },
+          { to: '/admin/students/rfid-cards', labelBn: 'পরিচয়পত্র', labelEn: 'ID cards' },
         ],
       },
       { to: '/admin/parents', labelBn: 'অভিভাবক', labelEn: 'Parents', icon: UsersRound },
@@ -398,30 +396,23 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
                     <ChevronDown className={cn('w-4 h-4 shrink-0 transition-transform', open && 'rotate-180')} />
                   </button>
                   {open && (
-                    <div className="mt-0.5 ml-4 pl-2 border-l border-border space-y-0.5">
-                      {item.children!.map((child, index) => {
-                        const previous = item.children![index - 1];
-                        const groupLabel = locale === 'bn' ? child.groupBn : child.groupEn;
-                        const showGroup = Boolean(groupLabel) && groupLabel !== (locale === 'bn' ? previous?.groupBn : previous?.groupEn);
+                    <div className="mt-1 ml-4 pl-2 border-l border-border space-y-0.5">
+                      {item.children!.map((child) => {
                         const childActive = studentChildActive(pathname, child.to);
                         return (
-                          <React.Fragment key={child.to}>
-                            {showGroup && (
-                              <p className="px-2 pt-2 pb-0.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                                {groupLabel}
-                              </p>
+                          <Link
+                            key={child.to}
+                            href={child.to}
+                            onClick={() => closeOnClick && setMobileOpen(false)}
+                            className={cn(
+                              'block px-2 py-1.5 rounded-md text-sm transition-colors',
+                              childActive
+                                ? 'bg-primary text-primary-foreground font-semibold'
+                                : 'text-foreground/80 hover:bg-surface-muted hover:text-foreground'
                             )}
-                            <Link
-                              href={child.to}
-                              onClick={() => closeOnClick && setMobileOpen(false)}
-                              className={cn(
-                                'block px-2 py-1.5 rounded-md text-sm',
-                                childActive ? 'bg-primary text-primary-foreground font-semibold' : 'text-foreground/80 hover:bg-surface-muted'
-                              )}
-                            >
-                              {locale === 'bn' ? child.labelBn : child.labelEn}
-                            </Link>
-                          </React.Fragment>
+                          >
+                            {locale === 'bn' ? child.labelBn : child.labelEn}
+                          </Link>
                         );
                       })}
                     </div>
