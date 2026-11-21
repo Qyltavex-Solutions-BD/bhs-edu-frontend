@@ -1,0 +1,424 @@
+# MASTER PROMPT: School Management System & Digital Education Platform (Frontend Only)
+
+> Attach with this prompt: (1) the DBML schema file, (2) the school logo file. Treat the DBML as the source of truth for entities, fields and relationships.
+> If the output is too long for one run, follow Section 21 (Delivery Phases) and build one phase at a time. Never claim a phase is done if it is stubbed.
+
+---
+
+## 1. ROLE
+
+Act as a Senior Product Designer, UI/UX Architect, Senior Frontend Engineer and Design System Specialist.
+
+Design and implement a complete, production-quality **frontend** for a modern School Management System and Digital Education Platform for a secondary school in Bangladesh: **বিঝারী উপসী তারা প্রসন্ন উচ্চ বিদ্যালয় (Bijhari Upashi T.P. High School)**, Upashi, Noria, Shariatpur. Established 1898. Motto: "শিক্ষাই আলো, জ্ঞানই শক্তি". Main students: Class 6 to Class 10.
+
+This is not a landing page or a basic admin template. Build an interconnected ecosystem:
+
+1. Public School Website
+2. Admin Management Dashboard
+3. Teacher Portal
+4. Parent Portal
+5. Student Portal (fully built, but behind a feature flag, off by default — see 9)
+
+It must feel like a professionally designed commercial education SaaS product, not a generic AI-generated dashboard.
+
+**Frontend only. Do NOT implement a backend, database, Prisma schema, or Next.js API routes that pretend to be a backend.**
+
+---
+
+## 2. FIRST: ANALYZE, THEN BUILD
+
+Before writing code:
+1. Inspect the existing project structure, framework, dependencies (`package.json`), routing, components and styling conventions.
+2. Reuse what works. If a working Next.js setup exists, preserve and improve it; if the project is empty, initialize it with the stack below.
+3. Study the attached DBML: map entities, enums, relationships and modules to frontend features and workflows.
+4. Identify missing UI features and write a short implementation plan.
+
+**Do not stop after the analysis or plan. Proceed to the actual implementation.**
+
+---
+
+## 3. TECH STACK
+
+**Core:** Next.js (latest stable compatible with the project), React, TypeScript (strict), App Router.
+**Styling/UI:** Tailwind CSS, shadcn/ui, Radix primitives, lucide-react, CSS variables for design tokens.
+**State:** Redux Toolkit + RTK Query (all server state and API definitions). Redux Persist only where persistence is genuinely needed.
+**Forms:** React Hook Form, Zod, @hookform/resolvers.
+**Data/Visualization:** TanStack Table, Recharts, date-fns (with `bn` locale), calendar and date-picker components.
+**Utilities:** Sonner (toasts), next-themes, next/font, next/image, next-intl (bn/en), nuqs (URL filter state), @dnd-kit (drag-and-drop for banners, gallery order, routine builder), Tiptap (rich text), react-dropzone, react-to-print or @react-pdf/renderer (print/PDF), MSW (mock API).
+**Typography:** Inter (English) + Noto Sans Bengali (Bangla) via `next/font`. Bangla must always render correctly, including in print/PDF.
+
+Use extra libraries only when they provide meaningful value. Set up ESLint, Prettier, `@/` imports, env validation and a README.
+
+---
+
+## 4. DESIGN DIRECTION
+
+### 4.1 Philosophy
+Modern, clean, minimal, premium, trustworthy, institutional. Information-focused, consistent, responsive, accessible, fast.
+
+**Avoid:** excessive gradients, unnecessary animation, too many colors, overcrowded dashboards, giant decorative cards, heavy shadows, random icons, generic AI aesthetics, empty sections, fake statistics presented as real.
+
+### 4.2 Logo and palette (from the school logo)
+The logo (circular emblem) has: deep blue Bangla school name, gold/tan double ring and ribbon, cyan laurel wreath, red candle with rays over an open book and pen, red stars. Save it as `/public/logo.png`. Show it in header, footer, login pages, sidebar, favicon and on every printed document.
+
+The values below are **approximate, estimated from the image**. Sample exact colors from the real logo file and adjust the tokens.
+
+| Token | Approx. | Use |
+|---|---|---|
+| primary | `#1F2A7C` deep navy | buttons, headings, active nav |
+| secondary | `#2F5DA8` professional blue | secondary actions, chart series |
+| accent | `#B8925A` muted gold | thin dividers, badges, small ornaments |
+| info | `#2AA7E0` sky blue | links, info states |
+| destructive | `#D32030` logo red | delete, errors, absent, fail |
+| success | `#1E8E5A` | present, pass, published |
+| warning | `#D98A00` | late, pending, draft |
+| background | `#F7F8FC` soft neutral | app background |
+| surface | `#FFFFFF` | cards |
+| foreground | `#12162B` dark slate | text |
+| muted-foreground | gray | secondary text |
+| border | `#E3E6F0` | borders |
+
+Rules: mostly white + navy; gold and red are small accents (<10% of any screen); WCAG AA contrast; full dark theme (light is default); radius `0.625rem`; subtle shadows; 8px grid; semantic colors used consistently; **status is never conveyed by color alone** (always text/icon too). Chart order: navy, blue, sky, gold, green, red.
+
+### 4.3 Layouts
+Reusable layouts for: Public Website, Admin, Teacher, Parent, Student. All dashboard layouts have: collapsible sidebar (persist the preference), top bar, breadcrumbs, page title/description, contextual actions, notification center, user menu, command palette (Ctrl/Cmd+K), mobile drawer navigation.
+
+### 4.4 Responsive
+Desktop, laptop, tablet, mobile. Mobile layouts must be properly redesigned (tables become cards, filters become sheets), not shrunk desktop layouts.
+
+---
+
+## 5. PUBLIC SCHOOL WEBSITE
+
+Audience: students, parents, applicants, visitors. Show only public-profile information.
+
+### 5.1 Homepage sections (in this order)
+A. **Header/Navigation**: logo, school name in Bangla + English, Home, About Us, Academics, Administration, Admission, Notice Board, News & Events, Gallery, Contact, Portal Login, Language switcher; dropdowns where useful; prominent "Result" and "Admission" buttons.
+B. **Hero**: banner slider (`WebsiteBanner`), intro, tagline, "Admission" and "Explore School" CTAs. Minimal text.
+C. **Quick links** (`QuickLink`): Admission Info, Class Routine, Exam Routine, Academic Calendar, Public Results, Syllabus, Downloads, Portal.
+D. **Latest notices**: title, date, short description, attachment icon, View Details, View All; highlight urgent notices calmly.
+E. **About the school**: short intro, established year, EIIN, mission, vision, Learn More.
+F. **Leadership messages** (`LeadershipMessage`): principal (and chairman separately) with photo, name, designation, Read More.
+G. **Academic information**: Classes 6–10, groups where applicable, subjects, resources, syllabus. Do not hardcode unsupported structures.
+H. **Admission**: current session, announcements, requirements, dates, instructions, download form, Apply Online CTA (online application is built, see 5.3 and 12).
+I. **Teachers & staff preview**: selected teachers (photo, name, designation, department), View All.
+J. **Facilities** (`SchoolFacility`): only configured facilities.
+K. **News & events**: latest news, upcoming events, categories, dates.
+L. **Results & achievements**: published results, achievements, result lookup entry point.
+M. **Gallery preview**: activities, cultural, sports, science fair, annual functions.
+N. **Statistics**: only verified/configured figures (students, teachers, classes, years since 1898). No fabricated counters.
+O. **Contact**: address, phone, email, map, office info.
+P. **Footer**: logo, short description, important and academic links, contact, social, copyright, Privacy Policy, Terms.
+
+### 5.2 Public routes (all must be implemented)
+- General: `/`, `/about`, `/about/history`, `/about/mission-vision`, `/about/facilities`, `/about/leadership`, `/about/management-committee`, `/about/teachers`, `/about/teachers/[id]`
+- Academics: `/academics`, `/academics/classes`, `/academics/classes/[classId]`, `/academics/subjects`, `/academics/syllabus`, `/academics/routines`, `/academics/examination`, `/academics/academic-calendar`, `/academics/resources`, `/academics/library`
+- Admission: `/admission`, `/admission/guidelines`, `/admission/requirements`, `/admission/download-form`, `/admission/apply`, `/admission/status`
+- Notice & news: `/notices`, `/notices/[id]`, `/news`, `/news/[id]`, `/events`, `/events/[id]`
+- Results: `/results`, `/results/[id]`
+- Media: `/gallery`, `/gallery/[id]`, `/publications`, `/achievements`
+- Careers: `/careers`, `/careers/[id]`
+- Other: `/contact`, `/privacy-policy`, `/terms-and-conditions`, `/faq`, 404
+
+Every listing page: search, filters, pagination, empty state. Every detail page: clear content hierarchy. Lists of PDFs use an in-page viewer + download.
+
+### 5.3 Public result search (important)
+Board-style, **no login required**: choose Exam + Class + Roll (or Student ID / Registration no.). Show a printable result card: student info, subject-wise marks, letter grade, GP, GPA, GPA without optional subject, merit position, PASS/FAIL badge.
+- Only **published** results are visible. Draft and withheld results must never appear publicly (show a polite message for withheld).
+- Do not expose private student data (address, NID, birth certificate, parent phone) on public pages.
+
+### 5.4 Online admission application
+Multi-step form mirroring the school's 13-point admission form: student name (Bangla/English), father and mother info (name, occupation, NID), present/permanent address, date of birth, 17-digit birth certificate number, religion, previous exam info (PSC/JSC year, roll, registration, GPA), previous school, new/re-admission, class/section/roll, group, 4th subject, declaration. Include live validation, file upload, review step, success screen with an application number, printable admit card, and an application status check page. (Backend support for applications is not in the current DBML, see Section 12.)
+
+---
+
+## 6. AUTHENTICATION
+
+Routes: `/login`, `/forgot-password`, `/reset-password`, `/verify-account`, `/unauthorized`.
+
+Features: email **or** phone login, password visibility toggle, remember me, validation, loading/error/success states, role-based redirect, session-expired modal. Split-screen layout with logo and motto.
+
+Roles: Super Admin, School Admin, Principal, Teacher, Student, Parent, Accountant (future-ready), Librarian (future-ready), Staff.
+
+The auth layer must be ready for real API integration (access/refresh handling in the RTK Query base query, 401 handling). **Do not pretend frontend checks are real security.** Demo login (per role) must be clearly labeled as demo and not production-secure. Do not store sensitive auth data in localStorage.
+
+---
+
+## 7. ADMIN DASHBOARD (`/admin`)
+
+### 7.1 Overview
+KPIs: total students, teachers, staff, active academic year, today's attendance (present/absent/late), pending marks entry, unpublished results, SMS sent/failed, upcoming exams. Charts (Recharts, with titles, axis labels, tooltips, legends, responsive, empty states): enrollment trend, attendance trend (30 days), class-wise distribution, gender ratio, exam performance trend, result pass-rate by class. Widgets: latest notices, upcoming events, recent activity, pending tasks, quick actions. Use realistic demo data clearly separated from production data.
+
+### 7.2 Institution — `/admin/institution/{profile,content,facilities,administrators,committee,quick-links}`
+School profile (logo upload preview, EIIN, school code, address, contact, mission, vision, social links), history/infrastructure content, facilities, administrators, managing committee, quick links (drag to reorder).
+
+### 7.3 Users & access — `/admin/users`, `/admin/users/[id]`, `/admin/roles`, `/admin/permissions`, `/admin/audit-logs`
+User list, create/edit, activate/deactivate, assign roles, reset password, role management, **permission matrix** (checkbox grid by module), activity/audit logs (filters, details drawer, export). Provide `<Can permission="...">`, `usePermission()` and route guards, but remember client checks are not authorization.
+
+### 7.4 Staff — `/admin/staff`, `/create`, `/[id]`, `/departments`, `/structures`, `/teachers`, `/employees`
+Directory (filters: type, department, status, employment type), teacher and employee views, profile tabs (personal, contact, qualification, employment, assigned classes, routine, documents), department assignment, designation, employment type, joining/leaving dates, status change (resign/retire/terminate), staff structure (total vs filled positions with progress bars), public display order, ID card print, CSV import UI.
+
+### 7.5 Academic — `/admin/academic/{years,groups,classes,sections,subjects,books,class-subjects,teacher-assignments,class-teachers,class-routines,documents,events}`
+- Academic years (exactly one active), Class 6–10, sections, groups, subjects (category, paper number, combined subjects, official code), books, class-subject mapping (per year/class/group, optional flag, display order), teacher assignment (class/section/subject, `canEnterMarks`, assigned/released dates), class teachers, documents, academic calendar/events.
+- **Class routine builder**: visual weekly timetable with drag-and-drop; prevent and clearly explain conflicts (same teacher, section or room in one period); views by class, teacher, room; print/PDF.
+
+### 7.6 Students — `/admin/students`, `/create`, `/[id]`, `/[id]/edit`, `/enrollments`, `/promotions`, `/transfers`, `/rfid-cards`, `/import`, `/admissions`
+- **Directory**: search (Bangla/English name, ID, birth certificate, registration, roll), filters (class, section, year, status, gender, blood group, religion), photo, class, section, roll, status.
+- **Registration (multi-step)**: 1 Basic (English/Bangla name, photo, DOB, gender, blood group, religion) → 2 Personal (birth certificate no., board registration no., addresses) → 3 Parent/Guardian (father, mother, guardian, phone, email, relationship, primary, emergency contact, SMS receiver) → 4 Academic history (admission date, previous school, class, GPA, previous exam info) → 5 Enrollment (year, class, section, group, roll, optional subject, new/re-admission) → 6 Review and submit.
+- **Profile tabs**: Overview, Personal, Guardians, Academic history, Enrollment history, Attendance, Results, RFID cards, Transfer certificates, Documents.
+- **Enrollment**: bulk enroll, roll generation (alphabetical/merit), roll-conflict detection, section shifting. Rules: one enrollment per student per academic year; roll unique per year + class + section.
+- **Promotion wizard**: year → class → result-based preview → per-student override (promoted / retained / double promoted) → confirm.
+- **Transfer certificate**: issue form (TC number, dates, reason, dues cleared, conduct remarks, destination school), preview, print/PDF.
+- **RFID cards**: issue, list, block, mark lost/damaged, reissue (status badges).
+- **Admissions inbox**: online applications (new, under review, approved, rejected, admitted) with one-click "Admit" that prefills the student form; admission test date and admit card.
+- ID card generator (batch print), bulk CSV import with validation report.
+
+### 7.7 Parents — `/admin/parents`, `/create`, `/[id]`
+Directory, profile, occupation, linked students, relationship, primary guardian, emergency contact, SMS receiver preference. One parent can link to multiple students. Merge-duplicates UI.
+
+### 7.8 Attendance — `/admin/attendance`, `/daily`, `/reports`, `/sms-logs`, `/settings`
+- Daily and class/section-wise attendance with fast roll-wise grid (keyboard shortcuts for Present/Absent/Late/Leave, "mark all present"), in/out time, method (MANUAL/RFID/BIOMETRIC).
+- **RFID digital attendance is planned for Class 10 (SSC batch); Classes 5–9 use manual attendance for now.** Make which classes use which method a configurable setting, never hard-coded.
+- RFID and biometric screens are **integration-ready interfaces**, not hardware integrations. A live-feed style page (polling/WebSocket-ready hook) shows latest scans and unknown-card alerts using mock data.
+- Reports: date filters, monthly class matrix (printable), student-wise, percentage, late/absent analytics, export.
+- **SMS logs**: parents with SMS-receiver on get entry/exit/absent SMS. Log page with filters (type/status/date), preview, retry failed; SMS template settings UI.
+
+### 7.9 Examination — `/admin/examinations`, `/create`, `/[id]`, `/subjects`, `/routines`, `/grading-scales`, `/marks-entry`, `/results`, `/consolidated`
+Exam creation (type, class, year, grading scale, dates, status, deadline, weightage, lock, archive), postponement/cancellation, grading scales + grade ranges (overlap validation, preview), exam subjects (full/pass marks; written, MCQ, practical, continuous assessment, each with its own marks; optional/4th subject; group; order), exam routine (date, time, room, instructions, status, conflict warnings), seat plan and admit card print, consolidated exam config (source exams with weightage that must total 100%).
+
+**Marks entry (Admin and Teacher)**: spreadsheet-like grid. Filters: year, exam, class, section, subject. Columns: roll, name, only the enabled mark components, absent toggle, auto-total. Features: keyboard navigation (Tab/Enter/arrows), live validation against full marks with clear errors, save draft, submit, unsaved-changes guard, Excel import UI, locked state with an explanation (locked flag or deadline passed).
+
+### 7.10 Results — `/admin/results`, `/[id]`, `/merit-lists`, `/mark-sheets`, `/publication`
+**Result flow: Teacher enters marks → Admin reviews/locks → Admin processes and publishes → public search becomes available.**
+- Marks review: completeness matrix (subject × section), pending teachers with reminder button, lock/unlock.
+- Processing wizard: calculate → preview → verify → publish / withhold.
+- Tables: subject-wise results, total marks, GPA, GPA without optional subject, letter grade, failed subject count, merit and section merit position, PASS/FAIL/INCOMPLETE.
+- Statuses: draft, published, withheld; clearly distinguish them everywhere. Result locking.
+- Documents: marksheet/progress report, tabulation sheet (landscape), merit list, fail list, class result summary, PDF-ready layouts, bulk print.
+- Analytics: subject-wise pass rate, grade distribution, top performers, class comparison, year-over-year.
+- **GPA, grading, optional-subject bonus and consolidated calculations must follow the configured `GradingScale`/`GradeRange` and school policy. Do not hardcode a grading policy from assumptions.** (The schema notes an optional-subject bonus of grade point minus 2.00 in `bonusGradePoint`; implement the display and calculation helper from configuration and flag the policy for the school to confirm.)
+
+### 7.11 Library — `/admin/library`, `/profile`, `/books`, `/books/create`, `/distributions`
+Overview, profile, book catalog (author, publisher, category, cover), details, textbook/supplementary distribution records.
+
+### 7.12 Digital education — `/admin/digital-education/classrooms`, `/resources`
+Classroom management, resources (smart class videos, online class links, educational videos, multimedia), filter by class/subject/year/type, thumbnail previews, publish/unpublish.
+
+### 7.13 Notices, news, events — `/admin/notices`, `/notices/create`, `/news`, `/events`, `/events/categories`, `/careers`
+Notice composer (Tiptap rich text, attachments, draft → published → archived, publication date, audience targeting, schedule), news, events with categories, careers (circular PDF upload, deadline).
+
+### 7.14 Website CMS — `/admin/website/{banners,leadership,gallery,admission,contact,publications,achievements,attendance-summary}`
+Banners (drag order), leadership messages, gallery + media (multi-upload preview, drag sort), admission content (editor for all default Bangla fields, dates, fee, helpline, PDF form), contact info and map link, publications (school magazine, wall magazine, journal), achievements (institution, student star, notable alumni; student stars subject to consent), public attendance summary. Every CMS module has preview and publish-state controls.
+
+### 7.15 Reports — `/admin/reports`, `/students`, `/attendance`, `/examinations`, `/results`, `/staff`
+Student statistics, enrollment, class-wise, attendance, exam, result summaries, staff. Filters: date, year, class, section. Print-friendly layouts, PDF/CSV export interfaces.
+
+### 7.16 Settings — `/admin/settings`, `/profile`, `/notifications`, `/preferences`, `/security`
+School configuration, profile, language, theme, notification preferences, password change, session management UI, attendance rules, grading defaults, SMS gateway settings UI. **Clearly mark anything that needs backend support.**
+
+---
+
+## 8. TEACHER PORTAL (`/teacher`)
+
+Focused and compact. Teachers never see admin functions they are not authorized to use.
+
+Dashboard: assigned classes/subjects, today's classes (from routine), attendance overview, pending marks entry with deadline countdown, upcoming exams, notices, recent activity. If the teacher is a class teacher: section overview, section merit list, parent contact list, promotion recommendation.
+
+Pages: `/teacher/dashboard`, `/profile`, `/classes`, `/classes/[id]`, `/students`, `/attendance`, `/routines`, `/examinations`, `/marks-entry`, `/results`, `/academic-resources`, `/notices`, `/notifications`.
+
+Capabilities: view assigned classes/subjects and student lists, class routine, mark attendance for authorized classes (manual), enter marks only for assignments with `canEnterMarks`, exam routines, relevant resources, published results, notices, own profile. Student progress view (marks across exams, trend chart).
+
+---
+
+## 9. STUDENT PORTAL (`/student`) — feature flag
+
+Build it fully, but hide it behind `NEXT_PUBLIC_ENABLE_STUDENT_PORTAL` (default `false`), because the initial release plan is three dashboards (Admin, Teacher, Parent) with students checking results via the public result page. Keep it simple, readable and friendly for Class 6–10 students.
+
+Pages: `/student/dashboard`, `/profile`, `/academic-information`, `/routine`, `/attendance`, `/examinations`, `/results`, `/results/[id]`, `/academic-resources`, `/library`, `/notices`, `/notifications`.
+
+Students see only their own private records.
+
+---
+
+## 10. PARENT PORTAL (`/parent`)
+
+Easy to understand, minimal complexity. Multiple children per parent with a child switcher. Parents see only their own linked children's records.
+
+Dashboard: linked children, current year, class/section, **today's status (present/absent/late with entry and exit time)**, attendance overview, recent results, upcoming exams, notices addressed to parents, important announcements.
+
+Pages: `/parent/dashboard`, `/profile`, `/children`, `/children/[id]`, `/attendance` (monthly calendar heat view + list), `/results` (exam-wise, printable marksheet, trend chart), `/routines`, `/examinations`, `/academic-resources`, `/notices`, `/notifications`, `/sms-history`.
+
+---
+
+## 11. COMMON FEATURES FOR ALL PORTALS
+
+- **Common profile management** for every role: view/edit profile, photo upload with crop, change password, active sessions UI, language and theme preference, notification preferences. Role-specific fields appear only where relevant.
+- Notification center (bell + full page): unread count, types (notice, result published, attendance SMS, marks deadline), mark read / all read.
+- Global search / command palette.
+- Global error boundary, 403/404/500 pages, offline banner.
+
+---
+
+## 12. SCHEMA-SUPPORTED vs FUTURE FEATURES
+
+Distinguish clearly:
+
+**A. Supported by the current DBML:** everything in Sections 5–11 that maps to entities in Section 14.
+
+**B. Not in the current DBML (needs future backend work):**
+- Online admission **applications** (DBML stores only admission *content*)
+- Fees, fee structures, invoices, payments (bKash/Nagad/Rocket UI), stipends, finance reports
+- Homework/assignments, class diary, leave applications, staff attendance/payroll
+- Library issue/return/fine
+- Transport, hostel, inventory/assets
+- Complaints/feedback, contact-message inbox, FAQ/testimonial management
+- Notification records and message templates, SMS gateway configuration
+- Parent–teacher messaging, certificates (testimonial, character, bonafide)
+- Syllabus/lesson-plan management, backup/system health
+
+For group B: build clearly labeled **future-ready UI modules** with typed API contracts in `types/proposed/` and a `// BACKEND-PENDING` code comment, behind feature flags and hidden from the main navigation by default (or labeled "Preview"). Do not present them as functional backend features, do not invent API endpoints, and do not claim database support. The only B items that must be visible by default are the ones the public admission flow needs (5.4) and the admissions inbox (7.6), using mock data.
+
+---
+
+## 13. DESIGN SYSTEM AND REUSABLE COMPONENTS
+
+Build once, reuse everywhere; avoid duplicated UI code.
+
+- **Layout:** PublicHeader, PublicFooter, DashboardSidebar, DashboardHeader, MobileNavigation, Breadcrumbs, PageHeader, PageContainer
+- **Data display:** DataTable (server-side-pagination-ready, sorting, filtering, column visibility, row selection, CSV export), DataTableToolbar, Pagination, SearchInput, FilterDropdown, StatusBadge (maps every enum to color + icon + Bangla/English label), StatCard, EmptyState, LoadingSkeleton, ErrorState, ConfirmationDialog
+- **Forms:** FormField, FormInput, FormSelect, FormTextarea, FormDatePicker, FormFileUpload, FormSwitch, FormCheckbox, FormRadioGroup, MultiStepForm, ImageCropper, RichTextEditor, ClassSectionSelect (dependent selects), StudentPicker, StaffPicker
+- **Feedback:** toasts, alert dialogs, confirmation modals, error/success messages, loading indicators, unsaved-changes guard
+- **Specialized:** StudentProfileCard, TeacherProfileCard, NoticeCard, EventCard, ResultCard, AttendanceStatus, RoutineTable, MarksEntryTable, AcademicCalendar, ChartCard, FilePreview, ImageGallery, PermissionGate
+- **Print layouts (A4, school letterhead with logo, signature blocks):** marksheet, tabulation sheet, admit card, seat plan, ID card (student + staff), transfer certificate, class routine, exam routine, attendance report, admission form
+
+---
+
+## 14. DATABASE-TO-FRONTEND MAPPING
+
+Create TypeScript types and Zod schemas for every entity and enum. Field names must match the DBML exactly. Provide Bangla + English labels for all 36 enums in `lib/constants`. Reuse the Bangla `note:` text from the DBML as form labels/help text.
+
+- Auth: User, Role, Permission, UserRole, RolePermission, AuditLog
+- Institution: SchoolProfile, InstitutionContent, SchoolFacility, Administrator, ManagingCommitteeMember, QuickLink
+- Staff: Staff, Department, StaffStructure
+- Academic: AcademicYear, AcademicGroup, SchoolClass, Section, Subject, Book, ClassSubject
+- Students: Student, StudentEnrollment, StudentPromotion, StudentTransferCertificate, StudentRFIDcard
+- Parents: Parent, ParentStudent
+- Teaching: TeacherAssignment, SectionClassTeacher
+- Academic content: AcademicDocument, AcademicEvent, ClassRoutine
+- Attendance: Attendance, AttendanceSmsLog
+- Examination: GradingScale, GradeRange, Exam, ExamSubject, ExamRoutine, Mark, StudentSubjectResult, ResultSummary, ConsolidatedExamConfig
+- Library: LibraryProfile, LibraryBook, LibraryDistributionInfo
+- Digital education: DigitalClassroom, DigitalResource
+- Notice/events: Notice, News, EventCategory, Event, Career
+- Website: WebsiteBanner, LeadershipMessage, Gallery, GalleryMedia, AdmissionContent, ContactInformation, AttendancePublicSummary, Publication, Achievement
+
+**Respect relationships in forms, filters and navigation:** enrollment depends on year + class + section; teacher assignments depend on year + class subjects; attendance depends on enrollment; marks depend on exam subjects + enrollment; result summaries depend on exam + enrollment; parent access depends on the parent–student link. Marks are locked when `isLocked` is true or the `marksEntryDeadline` has passed. Entities with `isDeleted` (GradingScale, GradeRange, Exam, ExamRoutine, StaffStructure) use "archive / move to trash" wording with restore.
+
+---
+
+## 15. ARCHITECTURE
+
+Feature-based and modular; adapt to the existing project if it already has a better structure.
+
+```
+src/
+  app/
+    [locale]/
+      (public)/  (auth)/  admin/  teacher/  student/  parent/
+  components/   ui/  shared/  layout/  forms/  tables/  charts/  public/  print/
+  features/     auth, users, institution, staff, academic, students, parents,
+                attendance, examinations, results, library, digital-education,
+                notices, events, website, reports, settings
+                (each: components, schemas, types, hooks)
+  lib/          api/, utils/, validations/, constants/, permissions/, formatters/
+  store/        index.ts, hooks.ts, slices/, services/ (RTK Query)
+  mocks/        MSW handlers + generators
+  types/        (+ proposed/ for future modules)
+  hooks/  config/  messages/{bn,en}.json
+```
+
+Use Server Components by default and Client Components only for interactivity. No oversized page components; keep business-facing logic separate from presentational components. Strict TypeScript, no `any`, consistent naming.
+
+---
+
+## 16. API-READY FRONTEND AND MOCK DATA
+
+1. No backend, no new database, no Prisma models, no fake backend API routes.
+2. RTK Query services (tag-based invalidation) designed for a future NestJS REST API; base URL from `NEXT_PUBLIC_API_URL`; centralized response/error handling; token refresh in the base query.
+3. Mock data comes from a **clearly separated mock adapter (MSW)** in `mocks/`. Never hardcode data inside components. Switching to the real API must need only an env change plus disabling mocks.
+4. For create/edit/delete, provide coherent workflows against the mock adapter. **Show success feedback only if the (mock or real) operation actually succeeds.**
+5. Mock data must be realistic and varied (not repetitive): Classes 6–10, sections (ক/খ/গ), academic years, groups (Science/Humanities/Business Studies), subjects, Bangladeshi names in Bangla and English, students, teachers, parents, attendance, exams, results with realistic GPA distributions, notices, events, library items, gallery.
+6. **Official school information** (name, EIIN `113585`, school code `6102`, address, established 1898) comes from the DBML defaults and is stored as editable configuration (`SchoolProfile` / `AdmissionContent`), never scattered through components. **People (students, teachers, parents) in demo data are fictional and must be labeled as demo.** Do not fabricate other official facts (results, achievements, statistics, staff names presented as real).
+
+---
+
+## 17. FUNCTIONALITY REQUIREMENTS
+
+Not static screenshots. Working interactions: navigation and transitions, sidebar collapse, search, filters (URL state), pagination, table sorting, tabs, dropdowns, dialogs, form validation, file upload preview, date selection, theme and language switching, toasts, confirmation dialogs, chart filters, academic year / class / section / student selection, result filtering, attendance status selection, profile menu, mobile navigation, command palette.
+
+Every list: skeleton loading, empty state with CTA, error state with retry. Every form: inline validation (messages in the active language), disabled-while-submitting, unsaved-changes warning. Bangla-first: labels, dates (`১৯ নভেম্বর ২০২৬`), numerals and number formatting via helpers. Never show raw UUIDs to users.
+
+---
+
+## 18. SECURITY AND PRIVACY
+
+- Separate role-based layouts; route-level auth integration points; permission-aware menus/buttons.
+- Client-side role checks are **not** authorization; say so in code comments and README.
+- Never expose private student data on public pages; keep NID, birth certificate numbers, addresses and parent phone numbers private.
+- Never expose password hashes or secrets; no sensitive auth data in localStorage.
+- Result visibility only for published state.
+- Confirmation interfaces for sensitive admin actions; file-upload validation UI (type, size).
+- Audit logs visible only to authorized roles.
+
+---
+
+## 19. ACCESSIBILITY AND PERFORMANCE
+
+Semantic HTML, keyboard navigation, accessible labels, focus management and visible focus rings, skip-to-content, sufficient contrast, screen-reader friendly controls, `prefers-reduced-motion`, responsive tables, optimized images with lazy loading, dynamic imports for charts/editor, no avoidable layout shift, no console errors, no broken links, no missing route pages. Public pages: metadata, OpenGraph, sitemap, robots, JSON-LD `EducationalOrganization`.
+
+---
+
+## 20. BANGLADESH-SPECIFIC
+
+Bangla/English with Bangla-friendly typography; Bangla/English numerals; Bangladesh phone formatting; BDT formatting; Asia/Dhaka timezone; DD/MM/YYYY display; local academic terminology. Support Classes 6–10 with configurable groups and optional subjects; do not assume every class has the same groups/subjects; do not hardcode outdated exam names or grading policy. Official institutional information is configurable.
+
+---
+
+## 21. DELIVERY PHASES (follow in order; verify each before starting the next)
+
+1. **Foundation:** project analysis, tokens, typography, i18n, theme, shadcn setup, Redux + RTK Query, MSW, layouts, auth + RBAC integration points, reusable components, all TS types + Zod schemas, mock generators.
+2. **Public website:** all Section 5.2 routes except application and result search.
+3. **Result search, admission application, admit card, public routines/calendar, authentication pages.**
+4. **Admin core:** dashboard, institution, users/roles/audit, staff, academic setup, website CMS, notices/news/events/careers, library, digital education.
+5. **Students module:** students, enrollment, parents, promotion, RFID, transfer certificates, admissions inbox, ID cards.
+6. **Attendance + SMS logs + class routine builder.**
+7. **Examination + marks entry + results + printing + analytics + reports + settings.**
+8. **Teacher portal, Parent portal, Student portal (flagged), notifications, common profile.**
+9. **Future-ready modules (Section 12-B), flagged and labeled.**
+10. **Quality assurance:** responsive testing, route testing, UI consistency, TypeScript and lint checks, production build, accessibility review, console error check, empty/loading/error state review, unit tests (formatters, GPA helpers, Zod schemas) and a few Playwright smoke tests (login, result search, marks entry).
+
+At the end of each phase report: routes created, what is mocked, known gaps. Do not skip phases and do not leave placeholder pages.
+
+---
+
+## 22. DEFINITION OF DONE
+
+- [ ] Every route listed in Sections 5–11 exists, renders and is reachable from navigation; no broken imports, links or TypeScript errors.
+- [ ] Public site is complete and professional; public result search works with published results only.
+- [ ] Admin, Teacher, Parent portals are complete; Student portal is complete but flagged off by default.
+- [ ] Result flow works end to end: teacher marks → admin review → process → publish → public search.
+- [ ] RFID vs manual attendance is configurable; SMS log page works.
+- [ ] bn/en toggle works everywhere; Bangla renders correctly in print/PDF.
+- [ ] Palette follows the logo; design is clean, minimal, consistent; dark theme works.
+- [ ] All forms validated with Zod; tables support search, sorting, filtering; every major page has loading, empty and error states.
+- [ ] All mock data centralized; switching to a real API needs only an env change.
+- [ ] No fake backend integration; no fabricated official school information; future modules clearly labeled.
+- [ ] Production build succeeds.
+
+---
+
+## 23. FINAL INSTRUCTION
+
+Think like a senior product team building a real educational SaaS platform. Prioritize, in order: information architecture, user experience, realistic school workflows, consistent visual design, maintainable architecture, accessibility, responsiveness, future backend integration. Do not chase the number of cards or visual complexity. Do not build everything as one giant page. Do not stop after the homepage or admin dashboard.
+
+**Start by analyzing the existing project, then implement the complete application phase by phase.**

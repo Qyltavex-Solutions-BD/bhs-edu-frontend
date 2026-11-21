@@ -1,0 +1,1605 @@
+// ============================================================================
+// School Management System - Database Schema (DBML Format)
+// Generated for dbdiagram.io
+// Stack: PostgreSQL + Prisma ORM (64 Tables, 36 Enums, 78 Relations)
+// ============================================================================
+
+Project SchoolManagementSystem {
+  database_type: 'PostgreSQL'
+  Note: 'Comprehensive School Management System Database Schema'
+}
+
+// ============================================================================
+// 1. ENUMS (36 Enums)
+// ============================================================================
+
+Enum AcademicDocumentType {
+  CURRICULUM
+  STUDENT_RULES
+  PARENT_GUIDELINES
+  DRESS_CODE
+}
+
+Enum AcademicEventType {
+  HOLIDAY
+  EVENT
+  ADMISSION
+  OTHER
+}
+
+Enum AchievementType {
+  INSTITUTION_ACHIEVEMENT
+  STUDENT_STAR
+  NOTABLE_ALUMNI
+}
+
+Enum AttendanceMethod {
+  MANUAL
+  RFID
+  BIOMETRIC
+}
+
+Enum AttendanceSmsType {
+  ENTRY
+  EXIT
+  ABSENT
+}
+
+Enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  LEAVE
+}
+
+Enum BloodGroup {
+  A_POSITIVE
+  A_NEGATIVE
+  B_POSITIVE
+  B_NEGATIVE
+  O_POSITIVE
+  O_NEGATIVE
+  AB_POSITIVE
+  AB_NEGATIVE
+}
+
+Enum BookType {
+  TEXTBOOK
+  SUPPLEMENTARY
+  GRAMMAR
+  REFERENCE
+}
+
+Enum CardStatus {
+  ACTIVE
+  LOST
+  DAMAGED
+  BLOCKED
+}
+
+Enum DepartmentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+Enum EmploymentType {
+  PERMANENT
+  PROBATIONARY
+  CONTRACTUAL
+  PART_TIME
+}
+
+Enum EnrollmentStatus {
+  ACTIVE
+  PROMOTED
+  TRANSFERRED
+  COMPLETED
+}
+
+Enum EventCategoryType {
+  SPORTS
+  DEBATE
+  SCIENCE_FAIR
+  CULTURAL
+  SCOUTS
+  GIRL_GUIDES
+  TREE_PLANTATION
+  NATIONAL_DAY
+  OTHER
+}
+
+Enum ExamRoutineStatus {
+  SCHEDULED
+  POSTPONED
+  CANCELLED
+  COMPLETED
+}
+
+Enum ExamStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+Enum ExamType {
+  HALF_YEARLY
+  ANNUAL
+  MODEL_TEST
+  SELECTION
+  CONSOLIDATED
+}
+
+Enum FacilityType {
+  LAB
+  LIBRARY
+  PLAYGROUND
+  MULTIMEDIA
+  OTHER
+}
+
+Enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+Enum InstitutionContentType {
+  HISTORY
+  TRADITION
+  INFRASTRUCTURE
+  INTRODUCTION
+}
+
+Enum LeadershipType {
+  PRINCIPAL
+  CHAIRMAN
+}
+
+Enum LibraryDistributionType {
+  BOOK_DISTRIBUTION
+  TEXTBOOK_DISTRIBUTION
+  OTHER
+}
+
+Enum MediaType {
+  IMAGE
+  VIDEO
+}
+
+Enum NoticeStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+Enum PromotionType {
+  PROMOTED
+  RETAINED
+  DOUBLE_PROMOTED
+}
+
+Enum PublicationType {
+  SCHOOL_MAGAZINE
+  WALL_MAGAZINE
+  JOURNAL
+  OTHER
+}
+
+Enum RelationshipType {
+  FATHER
+  MOTHER
+  GUARDIAN
+  OTHER
+}
+
+Enum Religion {
+  ISLAM
+  HINDUISM
+  BUDDHISM
+  CHRISTIANITY
+  OTHER
+}
+
+Enum ResourceType {
+  SMART_CLASS_VIDEO
+  ONLINE_CLASS_LINK
+  EDUCATIONAL_VIDEO
+  MULTIMEDIA_CONTENT
+}
+
+Enum ResultPublicationStatus {
+  DRAFT
+  PUBLISHED
+  WITHHELD
+}
+
+Enum ResultStatus {
+  PASS
+  FAIL
+  INCOMPLETE
+}
+
+Enum SmsStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+Enum StaffStatus {
+  ACTIVE
+  RESIGNED
+  RETIRED
+  TERMINATED
+}
+
+Enum StaffType {
+  TEACHER
+  OFFICER
+  EMPLOYEE
+}
+
+Enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  GRADUATED
+  TRANSFERRED
+}
+
+Enum SubjectCategory {
+  GENERAL
+  LANGUAGE
+  MATHEMATICS
+  SCIENCE
+  SOCIAL_SCIENCE
+  RELIGION
+  COMMERCE
+  TECHNICAL
+}
+
+Enum WeekDay {
+  SATURDAY
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}
+
+// ============================================================================
+// 2. TABLES (64 Tables grouped by module)
+// ============================================================================
+
+// ----------------------------------------------------------------------------
+// Module: Auth
+// ----------------------------------------------------------------------------
+
+Table User {
+  id uuid [pk, default: `uuid()`]
+  name varchar(150) [not null]
+  email varchar(150) [unique]
+  phone varchar(20) [unique]
+  passwordHash varchar(255) [not null]
+  isActive boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+}
+
+Table Role {
+  id uuid [pk, default: `uuid()`]
+  name varchar(50) [not null, unique]
+  description text
+}
+
+Table Permission {
+  id uuid [pk, default: `uuid()`]
+  name varchar(100) [not null, unique]
+  description text
+}
+
+Table UserRole {
+  id uuid [pk, default: `uuid()`]
+  userId uuid [not null]
+  roleId uuid [not null]
+
+  indexes {
+    (userId, roleId) [unique]
+    roleId
+  }
+}
+
+Table RolePermission {
+  id uuid [pk, default: `uuid()`]
+  roleId uuid [not null]
+  permissionId uuid [not null]
+
+  indexes {
+    (roleId, permissionId) [unique]
+    permissionId
+  }
+}
+
+Table AuditLog {
+  id uuid [pk, default: `uuid()`]
+  userId uuid
+  action varchar(100) [not null]
+  module varchar(100) [not null]
+  details text
+  ipAddress varchar(50)
+  createdAt timestamp [not null, default: `now()`]
+
+  indexes {
+    (userId, createdAt)
+    (module, action)
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Module: Institution
+// ----------------------------------------------------------------------------
+
+Table SchoolProfile {
+  id uuid [pk, default: `uuid()`]
+  name varchar(200) [not null]
+  eiin varchar(20) [unique]
+  schoolCode varchar(50)
+  logo text
+  establishedYear integer
+  address text [not null]
+  phone varchar(20)
+  email varchar(150)
+  website varchar(255)
+  description text
+  mission text
+  vision text
+  socialLinks jsonb
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+}
+
+Table InstitutionContent {
+  id uuid [pk, default: `uuid()`]
+  type InstitutionContentType [not null]
+  title varchar(200) [not null]
+  description text [not null]
+  image text
+  isPublished boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (type, isPublished)
+  }
+}
+
+Table SchoolFacility {
+  id uuid [pk, default: `uuid()`]
+  name varchar(150) [not null]
+  type FacilityType [not null]
+  description text
+  image text
+  isActive boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (type, isActive)
+  }
+}
+
+Table Administrator {
+  id uuid [pk, default: `uuid()`]
+  staffId uuid [unique]
+  name varchar(150) [not null]
+  designation varchar(100) [not null]
+  photo text
+  message text
+  startDate date
+  endDate date
+  isActive boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+}
+
+Table ManagingCommitteeMember {
+  id uuid [pk, default: `uuid()`]
+  name varchar(150) [not null]
+  designation varchar(100) [not null]
+  photo text
+  phone varchar(20)
+  startDate date
+  endDate date
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+}
+
+Table QuickLink {
+  id uuid [pk, default: `uuid()`]
+  title varchar(150) [not null]
+  url varchar(255) [not null]
+  isButton boolean [not null, default: false]
+  sortOrder integer [not null, default: 0]
+  isActive boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (isActive, sortOrder)
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Module: Staff
+// ----------------------------------------------------------------------------
+
+Table Staff {
+  id uuid [pk, default: `uuid()`]
+  userId uuid [unique]
+  employeeId varchar(50) [unique, note: 'স্টাফ / শিক্ষক আইডি (যেমন: T-001, EMP-012)']
+  name varchar(150) [not null]
+  photo text
+  designation varchar(100) [not null]
+  qualification varchar(150)
+  staffType StaffType [not null]
+  departmentId uuid
+  staffStructureId uuid
+  employmentType EmploymentType [not null, default: 'PERMANENT']
+  fatherName varchar(150)
+  motherName varchar(150)
+  gender Gender
+  dateOfBirth date
+  nid varchar(20) [unique]
+  bloodGroup BloodGroup
+  religion Religion
+  presentAddress text
+  permanentAddress text
+  emergencyContact varchar(20)
+  phone varchar(20)
+  email varchar(150)
+  joiningDate date
+  leavingDate date [note: 'চাকরি ছাড়ার তারিখ']
+  displayOrder integer [not null, default: 0, note: 'ওয়েবসাইটে পদমর্যাদা অনুযায়ী দেখানোর ক্রম']
+  status StaffStatus [not null, default: 'ACTIVE']
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (staffType, status)
+    departmentId
+    staffStructureId
+    displayOrder
+  }
+}
+
+Table Department {
+  id uuid [pk, default: `uuid()`]
+  name varchar(100) [not null, unique, note: 'যেমন: বিজ্ঞান বিভাগ, Accounts, Office Management']
+  code varchar(20) [unique, note: 'যেমন: SCI, ACC, ADM']
+  description text
+  displayOrder integer [not null, default: 0, note: 'ওয়েবসাইটে বা ড্রপডাউনে প্রদর্শনের ক্রম']
+  status DepartmentStatus [not null, default: 'ACTIVE']
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (status, displayOrder)
+  }
+}
+
+Table StaffStructure {
+  id uuid [pk, default: `uuid()`]
+  designation varchar(100) [not null]
+  staffType StaffType [not null]
+  totalPositions integer [not null]
+  filledPositions integer [not null, default: 0]
+  departmentId uuid
+  isActive boolean [not null, default: true]
+  isDeleted boolean [not null, default: false]
+  deletedAt timestamp
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (designation, staffType) [unique]
+    staffType
+    departmentId
+    (isDeleted, isActive)
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Module: Academic
+// ----------------------------------------------------------------------------
+
+Table AcademicYear {
+  id uuid [pk, default: `uuid()`]
+  name varchar(20) [not null, unique]
+  startDate date [not null]
+  endDate date [not null]
+  isActive boolean [not null, default: false]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    isActive
+  }
+}
+
+Table AcademicGroup {
+  id uuid [pk, default: `uuid()`]
+  name varchar(100) [not null, unique]
+  description text
+  isActive boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    isActive
+  }
+}
+
+Table SchoolClass {
+  id uuid [pk, default: `uuid()`]
+  name varchar(50) [not null, unique]
+  numericValue integer [not null, unique]
+  isActive boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    isActive
+    numericValue
+  }
+}
+
+Table Section {
+  id uuid [pk, default: `uuid()`]
+  classId uuid [not null]
+  name varchar(50) [not null]
+  isActive boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (classId, name) [unique]
+    (id, classId) [unique]
+    (classId, isActive)
+  }
+}
+
+Table Subject {
+  id uuid [pk, default: `uuid()`]
+  name varchar(150) [not null, unique]
+  officialCode varchar(30) [unique]
+  category SubjectCategory [not null, default: 'GENERAL']
+  paperNumber integer
+  description text
+  displayOrder integer [not null, default: 0]
+  isSystemDefault boolean [not null, default: false]
+  isActive boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+  combinedSubjectId uuid
+
+  indexes {
+    (isActive, displayOrder)
+    category
+    combinedSubjectId
+  }
+}
+
+Table Book {
+  id uuid [pk, default: `uuid()`]
+  subjectId uuid [not null]
+  classId uuid [not null]
+  name varchar(200) [not null]
+  bookCode varchar(50)
+  type BookType [not null, default: 'TEXTBOOK']
+  displayOrder integer [not null, default: 0]
+  isActive boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (classId, subjectId, name) [unique]
+    (classId, subjectId)
+    isActive
+  }
+}
+
+Table ClassSubject {
+  id uuid [pk, default: `uuid()`]
+  academicYearId uuid [not null]
+  classId uuid [not null]
+  subjectId uuid [not null]
+  groupId uuid
+  isOptional boolean [not null, default: false]
+  displayOrder integer [not null, default: 0]
+  isActive boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (academicYearId, classId, subjectId, groupId) [unique]
+    (id, academicYearId, classId) [unique]
+    (classId, academicYearId)
+  }
+}
+
+Table Student {
+  id uuid [pk, default: `uuid()`]
+  userId uuid [unique]
+  studentId varchar(50) [not null, unique]
+  birthCertificateNo varchar(20) [unique]
+  boardRegistrationNo varchar(30) [unique]
+  nameEn varchar(150) [not null]
+  nameBn varchar(150)
+  photo text
+  dateOfBirth date
+  gender Gender [not null]
+  bloodGroup BloodGroup
+  religion Religion
+  presentAddress text
+  permanentAddress text
+  admissionDate date [not null]
+  status StudentStatus [not null, default: 'ACTIVE']
+  previousSchoolName varchar(200) [note: 'পূর্বে অধ্যয়নরত বিদ্যালয়ের নাম']
+  previousSchoolAddress varchar(250) [note: 'পূর্বে অধ্যয়নরত বিদ্যালয়ের ঠিকানা']
+  previousGrade varchar(50) [note: 'পূর্ববর্তী শ্রেণিতে প্রাপ্ত গ্রেড']
+  previousGpa decimal(3, 2) [note: 'প্রাপ্ত জিপিএ']
+  prevExamPassingYear integer [note: 'পি.এস.সি/জে.এস.সি পাসের সন']
+  prevExamRoll varchar(50) [note: 'পরীক্ষার রোল নম্বর']
+  prevExamRegistration varchar(50) [note: 'পরীক্ষার রেজিস্ট্রেশন নম্বর']
+  prevExamGpa decimal(3, 2) [note: 'পি.এস.সি/জে.এস.সি তে প্রাপ্ত জিপিএ']
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (status, nameEn)
+    nameBn
+    boardRegistrationNo
+  }
+}
+
+Table StudentRFIDcard {
+  id uuid [pk, default: `uuid()`]
+  studentId uuid [not null]
+  cardNumber varchar(50) [not null, unique]
+  status CardStatus [not null, default: 'ACTIVE']
+  issuedAt timestamp [not null, default: `now()`]
+  remarks text
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (cardNumber, status)
+    (studentId, status)
+  }
+}
+
+Table StudentEnrollment {
+  id uuid [pk, default: `uuid()`]
+  studentId uuid [not null]
+  academicYearId uuid [not null]
+  classId uuid [not null]
+  sectionId uuid [not null]
+  groupId uuid
+  optionalClassSubjectId uuid
+  roll integer [not null]
+  enrollmentDate date [not null]
+  formSerialNo varchar(50) [note: 'ভর্তি ফরমের ক্রমিক নম্বর (যেমন: "৬৮")']
+  isRepeater boolean [not null, default: false, note: 'ড্রপ বা একই শ্রেণিতে পুনরাবৃত্তি কি না']
+  isReadmission boolean [not null, default: false, note: 'নতুন ভর্তি নাকি পুনঃভর্তি (ভর্তি ফর্মের ১০ নম্বর পয়েন্ট)']
+  status EnrollmentStatus [not null, default: 'ACTIVE']
+  remarks text [note: 'বিশেষ কোনো মন্তব্য বা নোট']
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (studentId, academicYearId) [unique]
+    (academicYearId, classId, sectionId, roll) [unique]
+    (id, studentId) [unique]
+    (classId, sectionId, academicYearId)
+    (academicYearId, status)
+  }
+}
+
+Table StudentPromotion {
+  id uuid [pk, default: `uuid()`]
+  studentId uuid [not null]
+  fromEnrollmentId uuid [not null]
+  toEnrollmentId uuid [not null]
+  resultSummaryId uuid
+  promotionType PromotionType [not null, default: 'PROMOTED']
+  promotionDate date [not null]
+  remarks text
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (studentId, promotionDate)
+  }
+}
+
+Table StudentTransferCertificate {
+  id uuid [pk, default: `uuid()`]
+  studentId uuid [not null]
+  enrollmentId uuid
+  tcNumber varchar(50) [not null, unique, note: 'টিসি নম্বর / স্মারক নং (যেমন: TC-2024-001)']
+  issueDate date [not null, note: 'টিসি ইস্যুর তারিখ']
+  leavingDate date [not null, note: 'বিদ্যালয় পরিত্যাগের তারিখ']
+  reason text [not null, note: 'বিদ্যালয় ত্যাগের কারণ']
+  duesCleared boolean [not null, default: true, note: 'সকল বকেয়া পরিশোধিত কিনা']
+  conductRemarks varchar(150) [note: 'আচরণ ও চরিত্র সম্পর্কিত মন্তব্য (যেমন: উত্তম / সন্তোষজনক)']
+  leavingClass varchar(50) [note: 'কোন শ্রেণি থেকে ছাড়পত্র নিচ্ছে']
+  promotedToNextClass boolean [not null, default: false, note: 'পরবর্তী শ্রেণিতে উত্তীর্ণ হয়ে টিসি নিচ্ছে কিনা']
+  destinationSchool varchar(200) [note: 'যে বিদ্যালয়ে ভর্তি হতে যাচ্ছে (যদি থাকে)']
+  documentUrl text [note: 'স্বাক্ষরিত ছাড়পত্রের স্ক্যান কপি বা পিডিএফ ডাউনলোড লিংক']
+  remarks text
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    studentId
+    issueDate
+  }
+}
+
+Table Parent {
+  id uuid [pk, default: `uuid()`]
+  userId uuid [unique]
+  name varchar(150) [not null, note: 'অভিভাবকের নাম (ইংরেজিতে)']
+  nameBn varchar(150) [note: 'অভিভাবকের নাম (বাংলায়)']
+  phone varchar(20) [not null]
+  email varchar(150)
+  nid varchar(30) [note: 'এনআইডি নম্বর']
+  occupation varchar(100)
+  monthlyIncome decimal(10, 2) [note: 'অভিভাবকের মাসিক আয়']
+  photo text [note: 'অভিভাবকের ছবি']
+  address text
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    phone
+    name
+  }
+}
+
+Table ParentStudent {
+  id uuid [pk, default: `uuid()`]
+  parentId uuid [not null]
+  studentId uuid [not null]
+  relationship RelationshipType [not null]
+  isPrimary boolean [not null, default: false]
+  isEmergencyContact boolean [not null, default: false]
+  isSmsReceiver boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (parentId, studentId) [unique]
+    studentId
+  }
+}
+
+Table TeacherAssignment {
+  id uuid [pk, default: `uuid()`]
+  staffId uuid [not null]
+  academicYearId uuid [not null]
+  classId uuid [not null]
+  sectionId uuid [not null]
+  classSubjectId uuid [not null]
+  canEnterMarks boolean [not null, default: true, note: 'শিক্ষক পোর্টালে এই বিষয়ের নম্বর দেওয়ার অনুমতি আছে কি না']
+  assignedDate date [not null, default: `now()`, note: 'দায়িত্ব পাওয়ার তারিখ']
+  releasedDate date [note: 'দায়িত্ব শেষ বা অন্য শিক্ষককে দেওয়ার তারিখ']
+  isActive boolean [not null, default: true, note: 'বর্তমানে কার্যকর দায়িত্ব কি না']
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (academicYearId, sectionId, classSubjectId, staffId)
+    (academicYearId, sectionId, classSubjectId, isActive)
+    (staffId, academicYearId, isActive)
+    (classId, sectionId, academicYearId, isActive)
+  }
+}
+
+Table SectionClassTeacher {
+  id uuid [pk, default: `uuid()`]
+  academicYearId uuid [not null]
+  sectionId uuid [not null]
+  staffId uuid [not null]
+  assignedDate date [not null, default: `now()`]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (academicYearId, sectionId) [unique]
+    (academicYearId, staffId) [unique]
+    staffId
+    (academicYearId, sectionId)
+  }
+}
+
+Table AcademicDocument {
+  id uuid [pk, default: `uuid()`]
+  type AcademicDocumentType [not null]
+  title varchar(200) [not null]
+  description text
+  fileUrl text
+  isPublished boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (type, isPublished)
+  }
+}
+
+Table AcademicEvent {
+  id uuid [pk, default: `uuid()`]
+  academicYearId uuid [not null]
+  title varchar(200) [not null]
+  description text
+  eventType AcademicEventType [not null]
+  startDate date [not null]
+  endDate date [not null]
+
+  indexes {
+    (academicYearId, startDate)
+  }
+}
+
+Table ClassRoutine {
+  id uuid [pk, default: `uuid()`]
+  academicYearId uuid [not null]
+  teacherAssignmentId uuid [not null]
+  staffId uuid [not null]
+  sectionId uuid [not null]
+  day WeekDay [not null]
+  periodNumber integer [not null]
+  startTime time [not null]
+  endTime time [not null]
+  room varchar(50)
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (academicYearId, sectionId, day, periodNumber) [unique]
+    (academicYearId, staffId, day, periodNumber) [unique]
+    (academicYearId, room, day, periodNumber)
+    (staffId, day)
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Module: Attendance
+// ----------------------------------------------------------------------------
+
+Table Attendance {
+  id uuid [pk, default: `uuid()`]
+  studentEnrollmentId uuid [not null]
+  date date [not null]
+  inTime timestamp
+  outTime timestamp
+  status AttendanceStatus [not null]
+  method AttendanceMethod [not null, default: 'MANUAL']
+  remarks text
+  markedBy uuid
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (studentEnrollmentId, date) [unique]
+    (date, status)
+    (date, studentEnrollmentId)
+  }
+}
+
+Table AttendanceSmsLog {
+  id uuid [pk, default: `uuid()`]
+  attendanceId uuid [not null]
+  parentId uuid [not null]
+  smsType AttendanceSmsType [not null, default: 'ABSENT']
+  phone varchar(20) [not null]
+  message text [not null]
+  status SmsStatus [not null, default: 'PENDING']
+  sentAt timestamp
+  createdAt timestamp [not null, default: `now()`]
+
+  indexes {
+    (status, createdAt)
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Module: Examination
+// ----------------------------------------------------------------------------
+
+Table GradingScale {
+  id uuid [pk, default: `uuid()`]
+  name varchar(100) [not null, unique]
+  description text
+  maxGpa decimal(3, 2) [not null, default: 5.00]
+  isDefault boolean [not null, default: false]
+  isSystemDefault boolean [not null, default: false]
+  isActive boolean [not null, default: true]
+  isDeleted boolean [not null, default: false]
+  deletedAt timestamp
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (isDeleted, isActive)
+  }
+}
+
+Table GradeRange {
+  id uuid [pk, default: `uuid()`]
+  gradingScaleId uuid [not null]
+  minPercentage decimal(5, 2) [not null]
+  maxPercentage decimal(5, 2) [not null]
+  letterGrade varchar(5) [not null]
+  gradePoint decimal(3, 2) [not null]
+  remarks varchar(50)
+  isFailGrade boolean [not null, default: false]
+  displayOrder integer [not null, default: 0]
+  isDeleted boolean [not null, default: false]
+  deletedAt timestamp
+
+  indexes {
+    (gradingScaleId, letterGrade)
+    (gradingScaleId, minPercentage, maxPercentage)
+    (gradingScaleId, isDeleted)
+  }
+}
+
+Table Exam {
+  id uuid [pk, default: `uuid()`]
+  academicYearId uuid [not null]
+  classId uuid [not null]
+  gradingScaleId uuid [not null]
+  name varchar(150) [not null]
+  examType ExamType [not null]
+  startDate date [not null]
+  endDate date [not null]
+  status ExamStatus [not null, default: 'UPCOMING']
+  marksEntryDeadline timestamp
+  allowCombinedPass boolean [not null, default: true]
+  weightagePercentage decimal(5, 2)
+  resultStatus ResultPublicationStatus [not null, default: 'DRAFT']
+  publishedAt timestamp
+  isLocked boolean [not null, default: false]
+  isDeleted boolean [not null, default: false]
+  deletedAt timestamp
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (academicYearId, classId, name) [unique]
+    (academicYearId, classId)
+    (academicYearId, classId, isDeleted)
+  }
+}
+
+Table ExamSubject {
+  id uuid [pk, default: `uuid()`]
+  examId uuid [not null]
+  subjectId uuid [not null]
+  groupId uuid
+  fullMarks decimal(7, 2) [not null]
+  passMarks decimal(7, 2) [not null]
+  hasWritten boolean [not null, default: true]
+  writtenFullMarks decimal(7, 2)
+  writtenPassMarks decimal(7, 2)
+  hasMcq boolean [not null, default: false]
+  mcqFullMarks decimal(7, 2)
+  mcqPassMarks decimal(7, 2)
+  hasPractical boolean [not null, default: false]
+  practicalFullMarks decimal(7, 2)
+  practicalPassMarks decimal(7, 2)
+  hasContinuousAssessment boolean [not null, default: false]
+  continuousAssessmentFullMarks decimal(7, 2)
+  continuousAssessmentPassMarks decimal(7, 2)
+  isOptional boolean [not null, default: false, note: 'ঐচ্ছিক / ৪র্থ বিষয় হিসেবে নেওয়া সম্ভব কিনা']
+  displayOrder integer [not null, default: 0, note: 'মার্কশিট, রেজাল্ট কার্ড ও রুটিনে বিষয়ের ক্রম']
+
+  indexes {
+    (examId, subjectId) [unique]
+    (examId, groupId)
+    (examId, displayOrder)
+  }
+}
+
+Table ExamRoutine {
+  id uuid [pk, default: `uuid()`]
+  examId uuid [not null]
+  examSubjectId uuid [not null]
+  sectionId uuid [note: 'ঐচ্ছিক: নির্দিষ্ট সেকশনের জন্য আলাদা রুম হলে']
+  examDate date [not null, note: 'পরীক্ষার তারিখ']
+  startTime time [not null, note: 'শুরু (যেমন: সকাল ১০:০০)']
+  endTime time [not null, note: 'শেষ (যেমন: দুপুর ০১:০০)']
+  roomNo varchar(50) [note: 'পরীক্ষার রুম / হল নম্বর (যেমন: রুম ১০২)']
+  status ExamRoutineStatus [not null, default: 'SCHEDULED', note: 'রুটিন স্ট্যাটাস (SCHEDULED, POSTPONED, CANCELLED, COMPLETED)']
+  instructions text [note: 'বিশেষ নির্দেশনা (যেমন: ক্যালকুলেটর নিষিদ্ধ)']
+  isDeleted boolean [not null, default: false]
+  deletedAt timestamp
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (examId, examSubjectId, sectionId)
+    (examId, isDeleted)
+    (examId, examDate)
+    (examDate, roomNo)
+  }
+}
+
+Table Mark {
+  id uuid [pk, default: `uuid()`]
+  studentEnrollmentId uuid [not null]
+  examSubjectId uuid [not null]
+  writtenMarks decimal(7, 2) [not null, default: 0, note: 'লিখিত পরীক্ষার নম্বর']
+  mcqMarks decimal(7, 2) [not null, default: 0, note: 'MCQ পরীক্ষার নম্বর']
+  practicalMarks decimal(7, 2) [not null, default: 0, note: 'ব্যবহারিক নম্বর (যদি থাকে)']
+  continuousAssessmentMarks decimal(7, 2) [not null, default: 0, note: 'ধারাবাহিক মূল্যায়ন (যদি থাকে)']
+  totalMarks decimal(7, 2) [not null, note: 'মোট নম্বর']
+  isAbsent boolean [not null, default: false, note: 'পরীক্ষায় অনুপস্থিত ছিল কিনা']
+  isLocked boolean [not null, default: false, note: 'রেজাল্ট ফাইনাল হলে লক (এডিট বন্ধ)']
+  enteredBy uuid [not null, note: 'যে শিক্ষক নম্বর ইনপুট দিয়েছেন']
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (studentEnrollmentId, examSubjectId) [unique]
+    (examSubjectId, studentEnrollmentId)
+  }
+}
+
+Table StudentSubjectResult {
+  id uuid [pk, default: `uuid()`]
+  studentEnrollmentId uuid [not null]
+  examId uuid [not null]
+  examSubjectId uuid [not null]
+  totalMarks decimal(7, 2) [not null, note: 'মোট নম্বর']
+  letterGrade varchar(5) [note: 'লেটার গ্রেড (A+, A, B ইত্যাদি)']
+  gradePoint decimal(3, 2) [note: 'গ্রেড পয়েন্ট (৫.০০, ৪.০০ ইত্যাদি)']
+  isPassed boolean [not null, note: 'এই বিষয়ে পাস করেছে কিনা']
+  isOptional boolean [not null, default: false, note: 'এই শিক্ষার্থীর জন্য এটি ৪র্থ/ঐচ্ছিক বিষয় ছিল কিনা']
+  bonusGradePoint decimal(3, 2) [default: 0, note: '৪র্থ বিষয়ের অতিরিক্ত পয়েন্ট যা মূল জিপিএ-তে যুক্ত হয়েছে (পয়েন্ট - ২.০০)']
+  isAbsent boolean [not null, default: false]
+  calculatedAt timestamp [not null, default: `now()`]
+
+  indexes {
+    (studentEnrollmentId, examSubjectId) [unique]
+    (examId, studentEnrollmentId)
+  }
+}
+
+Table ResultSummary {
+  id uuid [pk, default: `uuid()`]
+  studentEnrollmentId uuid [not null]
+  examId uuid [not null]
+  totalFullMarks decimal(9, 2) [not null, note: 'সব বিষয়ের সর্বমোট পূর্ণমান (যেমন: ৯০০ বা ১০০০)']
+  totalMarks decimal(9, 2) [not null, note: 'সব বিষয় মিলিয়ে মোট প্রাপ্ত নম্বর (যেমন: ৭২০)']
+  gpa decimal(3, 2) [note: 'অর্জিত মোট জিপিএ (GPA - ৪র্থ বিষয় সহ)']
+  gpaWithoutOptional decimal(3, 2) [note: '৪র্থ বিষয় ছাড়া জিপিএ (GPA without 4th subject)']
+  letterGrade varchar(5) [note: 'সামগ্রিক গ্রেড (A+, A, F ইত্যাদি)']
+  meritPosition integer [note: 'পুরো ক্লাসের মেধা স্থান (১ম, ২য়, ৩য় ইত্যাদি)']
+  sectionMeritPosition integer [note: 'নিজ সেকশনের মেধা স্থান']
+  failedSubjectCount integer [not null, default: 0, note: 'ফেল করা বিষয়ের সংখ্যা']
+  resultStatus ResultStatus [not null, note: 'চূড়ান্ত অবস্থা (PASS, FAIL, INCOMPLETE)']
+  publishedAt timestamp [note: 'ফলাফল প্রকাশের সময়']
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (studentEnrollmentId, examId) [unique]
+    (examId, meritPosition)
+  }
+}
+
+Table ConsolidatedExamConfig {
+  id uuid [pk, default: `uuid()`]
+  consolidatedExamId uuid [not null]
+  sourceExamId uuid [not null]
+  weightagePercentage decimal(5, 2) [not null, note: 'সমন্বিত ফলাফলে এই পরীক্ষার শতকরা হার (যেমন: ৩০.০০ বা ৭০.০০)']
+  displayOrder integer [not null, default: 0]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (consolidatedExamId, sourceExamId) [unique]
+    sourceExamId
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Module: Library
+// ----------------------------------------------------------------------------
+
+Table LibraryProfile {
+  id uuid [pk, default: `uuid()`]
+  title varchar(150) [not null]
+  description text
+  image text
+  updatedAt timestamp [not null]
+}
+
+Table LibraryBook {
+  id uuid [pk, default: `uuid()`]
+  title varchar(200) [not null]
+  author varchar(150)
+  publisher varchar(150)
+  category varchar(100)
+  description text
+  coverImage text
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    title
+  }
+}
+
+Table LibraryDistributionInfo {
+  id uuid [pk, default: `uuid()`]
+  type LibraryDistributionType [not null]
+  title varchar(200) [not null]
+  description text
+  distributionDate date
+  image text
+  isPublished boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+}
+
+// ----------------------------------------------------------------------------
+// Module: DigitalEducation
+// ----------------------------------------------------------------------------
+
+Table DigitalClassroom {
+  id uuid [pk, default: `uuid()`]
+  name varchar(150) [not null]
+  description text
+  location varchar(150)
+  image text
+  isActive boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+}
+
+Table DigitalResource {
+  id uuid [pk, default: `uuid()`]
+  academicYearId uuid
+  title varchar(200) [not null]
+  description text
+  resourceType ResourceType [not null]
+  subjectId uuid
+  classId uuid
+  url text [not null]
+  thumbnail text
+  isPublished boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (resourceType, isPublished)
+    (classId, subjectId)
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Module: NoticeEvent
+// ----------------------------------------------------------------------------
+
+Table Notice {
+  id uuid [pk, default: `uuid()`]
+  title varchar(200) [not null]
+  description text [not null]
+  attachment text
+  publishedAt timestamp
+  status NoticeStatus [not null, default: 'DRAFT']
+  createdBy uuid [not null]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (status, publishedAt)
+  }
+}
+
+Table News {
+  id uuid [pk, default: `uuid()`]
+  title varchar(200) [not null]
+  description text [not null]
+  image text
+  publishedAt timestamp
+  isPublished boolean [not null, default: false]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (isPublished, publishedAt)
+  }
+}
+
+Table EventCategory {
+  id uuid [pk, default: `uuid()`]
+  name varchar(100) [not null, unique]
+  type EventCategoryType [not null, unique]
+  description text
+}
+
+Table Event {
+  id uuid [pk, default: `uuid()`]
+  categoryId uuid [not null]
+  title varchar(200) [not null]
+  description text
+  startDate date [not null]
+  endDate date
+  image text
+  isPublished boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (startDate, isPublished)
+  }
+}
+
+Table Career {
+  id uuid [pk, default: `uuid()`]
+  title varchar(200) [not null, note: 'নিয়োগ বিজ্ঞপ্তির শিরোনাম']
+  description text [not null, note: 'পদের বিবরণ ও আবেদনের শর্তাবলী']
+  circularFile text [note: 'সার্কুলার পিডিএফ / ফাইল ডাউনলোড লিংক']
+  deadline date [not null, note: 'আবেদনের শেষ তারিখ']
+  isPublished boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (isPublished, deadline)
+  }
+}
+
+// ----------------------------------------------------------------------------
+// Module: WebsiteContent
+// ----------------------------------------------------------------------------
+
+Table WebsiteBanner {
+  id uuid [pk, default: `uuid()`]
+  title varchar(200)
+  subtitle text
+  image text [not null]
+  link text
+  sortOrder integer [not null, default: 0]
+  isActive boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (isActive, sortOrder)
+  }
+}
+
+Table LeadershipMessage {
+  id uuid [pk, default: `uuid()`]
+  personName varchar(150) [not null]
+  designation varchar(100) [not null]
+  photo text
+  message text [not null]
+  type LeadershipType [not null]
+  isPublished boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (type, isPublished)
+  }
+}
+
+Table Gallery {
+  id uuid [pk, default: `uuid()`]
+  title varchar(150) [not null]
+  description text
+  category varchar(100)
+  isPublished boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+}
+
+Table GalleryMedia {
+  id uuid [pk, default: `uuid()`]
+  galleryId uuid [not null]
+  mediaUrl text [not null]
+  mediaType MediaType [not null]
+  caption text
+  sortOrder integer [not null, default: 0]
+  createdAt timestamp [not null, default: `now()`]
+
+  indexes {
+    (galleryId, sortOrder)
+  }
+}
+
+Table AdmissionContent {
+  id uuid [pk, default: `uuid()`]
+  title varchar(200) [not null, default: 'ভর্তির আবেদন ফরম ও নির্দেশিকা']
+  academicSession varchar(50) [note: 'শিক্ষাবর্ষ (যেমন: "২০২৬")']
+  schoolNameBn varchar(200) [default: 'বিঝারী উপসী তারা প্রসন্ন উচ্চ বিদ্যালয়']
+  schoolNameEn varchar(200) [default: 'BIJHARI UPASHI T.P. HIGH SCHOOL']
+  schoolCode varchar(50) [default: '৬১০২']
+  districtCode varchar(50) [default: '৩০']
+  thanaCode varchar(50) [default: '২৪১']
+  eiin varchar(50) [default: '113585']
+  schoolAddress varchar(250) [default: 'ডাকঘর : উপসী, উপজেলা : নড়িয়া, জেলা : শরীয়তপুর। স্থাপিত : ১৮৯৮ খ্রি.']
+  studentNameNotice text [default: '০১. শিক্ষার্থীর নাম (বাংলা ও ইংরেজিতে)']
+  fatherInfoNotice text [default: '০২. পিতার নাম (বাংলা ও ইংরেজিতে), পেশা, পিতার এনআইডি নং']
+  motherInfoNotice text [default: '০৩. মাতার নাম (বাংলা ও ইংরেজিতে), পেশা, মাতার এনআইডি নং']
+  addressInfoNotice text [default: '০৪. বর্তমান ও স্থায়ী ঠিকানা (গ্রাম, ডাকঘর, পোস্ট কোড, উপজেলা, জেলা)']
+  dobNotice text [default: '০৫. শিক্ষার্থীর জন্ম তারিখ']
+  birthCertificateNotice text [default: '০৬. শিক্ষার্থীর ১৭ ডিজিটের ডিজিটাল জন্ম সনদ নং']
+  religionNotice text [default: '০৭. শিক্ষার্থীর ধর্ম']
+  prevExamNotice text [default: '০৮. পি.এস.সি / জে.এস.সি পাসের সন, রোল নম্বর, রেজিঃ নং, প্রাপ্ত জি.পি.এ.']
+  prevSchoolNotice text [default: '০৯. পূর্বে অধ্যয়নরত বিদ্যালয়ের নাম, শ্রেণি, শিক্ষাবর্ষ, প্রাপ্ত গ্রেড, জি.পি.এ. ও ঠিকানা']
+  admissionTypeNotice text [default: '১০. নতুন ভর্তি / পুনঃ ভর্তি (টিক চিহ্ন)']
+  classesAndSections text [default: '১১. ৬ষ্ঠ / ৭ম / ৮ম / ৯ম শ্রেণি : শাখা ক / খ / গ / ঘ, রোল নং']
+  availableGroups text [default: '১২. ৯ম শ্রেণির শাখা : বিজ্ঞান / মানবিক / ব্যবসায় শিক্ষা শাখা']
+  optionalSubjects text [default: '১৩. ৪র্থ বিষয় : উচ্চতর গণিত / কৃষি শিক্ষা / গার্হস্থ্য অর্থনীতি / কম্পিউটার শিক্ষা']
+  declarationText text [default: 'আমি এই মর্মে অঙ্গীকার করিতেছি যে, আমার পুত্র / কন্যা / আত্মীয় অন্য কোন বিদ্যালয়ে ভর্তি হয় নাই। সে অত্র বিদ্যালয়ের সকল প্রকার বিধি-বিধান মানিয়া চলিতে বাধ্য থাকিবে এবং আমার উপরে বর্ণিত সকল তথ্যাবলী সঠিক।']
+  admitCardNotice text [default: 'ভর্তি পরীক্ষার প্রবেশপত্র (রোল নং, পরীক্ষার তারিখ, প্রধান শিক্ষকের স্বাক্ষর)']
+  admissionTestDate date [note: 'ভর্তি পরীক্ষার তারিখ']
+  startDate date [note: 'ফরম বিতরণ শুরুর তারিখ']
+  endDate date [note: 'ফরম জমা দেওয়ার শেষ তারিখ']
+  applicationFee decimal(7, 2) [note: 'ফরমের মূল্য (যদি থাকে)']
+  helplinePhone varchar(50) [note: 'ভর্তি সংক্রান্ত হেল্পলাইন / ফোন নম্বর']
+  formPdfUrl text [note: 'মূল PDF ফরম ডাউনলোড লিংক']
+  isPublished boolean [not null, default: true, note: 'ওয়েবসাইটে প্রদর্শিত হবে কি না']
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    isPublished
+  }
+}
+
+Table ContactInformation {
+  id uuid [pk, default: `uuid()`]
+  address text [not null]
+  phone varchar(20)
+  email varchar(150)
+  mapUrl text
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+}
+
+Table AttendancePublicSummary {
+  id uuid [pk, default: `uuid()`]
+  summaryDate date [not null]
+  title varchar(200) [not null]
+  description text
+  presentCount integer
+  absentCount integer
+  isPublished boolean [not null, default: false]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+}
+
+Table Publication {
+  id uuid [pk, default: `uuid()`]
+  title varchar(200) [not null]
+  type PublicationType [not null]
+  description text
+  coverImage text
+  fileUrl text
+  publishYear integer
+  isPublished boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (type, isPublished)
+  }
+}
+
+Table Achievement {
+  id uuid [pk, default: `uuid()`]
+  title varchar(200) [not null]
+  type AchievementType [not null]
+  personName varchar(150)
+  batch varchar(50)
+  description text
+  image text
+  achievedAt date
+  isPublished boolean [not null, default: true]
+  createdAt timestamp [not null, default: `now()`]
+  updatedAt timestamp [not null]
+
+  indexes {
+    (type, isPublished)
+  }
+}
+
+// ============================================================================
+// 3. RELATIONSHIPS / FOREIGN KEYS (78 References)
+// ============================================================================
+
+Ref: UserRole.userId > User.id [delete: cascade]
+Ref: UserRole.roleId > Role.id [delete: cascade]
+Ref: RolePermission.roleId > Role.id [delete: cascade]
+Ref: RolePermission.permissionId > Permission.id [delete: cascade]
+Ref: AuditLog.userId > User.id [delete: set null]
+Ref: Administrator.staffId - Staff.id [delete: set null]
+Ref: Staff.userId - User.id [delete: set null]
+Ref: Staff.departmentId > Department.id [delete: set null]
+Ref: Staff.staffStructureId > StaffStructure.id [delete: set null]
+Ref: StaffStructure.departmentId > Department.id [delete: set null]
+Ref: Section.classId > SchoolClass.id [delete: restrict]
+Ref: Subject.combinedSubjectId > Subject.id [delete: set null]
+Ref: Book.subjectId > Subject.id [delete: restrict]
+Ref: Book.classId > SchoolClass.id [delete: restrict]
+Ref: ClassSubject.academicYearId > AcademicYear.id [delete: restrict]
+Ref: ClassSubject.classId > SchoolClass.id [delete: restrict]
+Ref: ClassSubject.subjectId > Subject.id [delete: restrict]
+Ref: ClassSubject.groupId > AcademicGroup.id [delete: set null]
+Ref: Student.userId - User.id [delete: set null]
+Ref: StudentRFIDcard.studentId > Student.id [delete: cascade]
+Ref: StudentEnrollment.studentId > Student.id [delete: restrict]
+Ref: StudentEnrollment.academicYearId > AcademicYear.id [delete: restrict]
+Ref: StudentEnrollment.classId > SchoolClass.id [delete: restrict]
+Ref: StudentEnrollment.sectionId > Section.id [delete: restrict]
+Ref: StudentEnrollment.groupId > AcademicGroup.id [delete: set null]
+Ref: StudentEnrollment.optionalClassSubjectId > ClassSubject.id [delete: set null]
+Ref: StudentPromotion.studentId > Student.id [delete: restrict]
+Ref: StudentPromotion.fromEnrollmentId - StudentEnrollment.id [delete: restrict]
+Ref: StudentPromotion.toEnrollmentId - StudentEnrollment.id [delete: restrict]
+Ref: StudentPromotion.resultSummaryId > ResultSummary.id [delete: set null]
+Ref: StudentTransferCertificate.studentId > Student.id [delete: restrict]
+Ref: StudentTransferCertificate.enrollmentId > StudentEnrollment.id [delete: set null]
+Ref: Parent.userId - User.id [delete: set null]
+Ref: ParentStudent.parentId > Parent.id [delete: cascade]
+Ref: ParentStudent.studentId > Student.id [delete: cascade]
+Ref: TeacherAssignment.staffId > Staff.id [delete: restrict]
+Ref: TeacherAssignment.academicYearId > AcademicYear.id [delete: restrict]
+Ref: TeacherAssignment.classId > SchoolClass.id [delete: restrict]
+Ref: TeacherAssignment.sectionId > Section.id [delete: restrict]
+Ref: TeacherAssignment.classSubjectId > ClassSubject.id [delete: restrict]
+Ref: SectionClassTeacher.academicYearId > AcademicYear.id [delete: restrict]
+Ref: SectionClassTeacher.sectionId > Section.id [delete: restrict]
+Ref: SectionClassTeacher.staffId > Staff.id [delete: restrict]
+Ref: AcademicEvent.academicYearId > AcademicYear.id [delete: restrict]
+Ref: ClassRoutine.academicYearId > AcademicYear.id [delete: restrict]
+Ref: ClassRoutine.teacherAssignmentId > TeacherAssignment.id [delete: restrict]
+Ref: ClassRoutine.staffId > Staff.id [delete: restrict]
+Ref: ClassRoutine.sectionId > Section.id [delete: restrict]
+Ref: Attendance.studentEnrollmentId > StudentEnrollment.id [delete: restrict]
+Ref: Attendance.markedBy > User.id [delete: set null]
+Ref: AttendanceSmsLog.attendanceId > Attendance.id [delete: cascade]
+Ref: AttendanceSmsLog.parentId > Parent.id [delete: restrict]
+Ref: GradeRange.gradingScaleId > GradingScale.id [delete: cascade]
+Ref: Exam.academicYearId > AcademicYear.id [delete: restrict]
+Ref: Exam.classId > SchoolClass.id [delete: restrict]
+Ref: Exam.gradingScaleId > GradingScale.id [delete: restrict]
+Ref: ExamSubject.examId > Exam.id [delete: cascade]
+Ref: ExamSubject.subjectId > Subject.id [delete: restrict]
+Ref: ExamSubject.groupId > AcademicGroup.id [delete: set null]
+Ref: ExamRoutine.examId > Exam.id [delete: restrict]
+Ref: ExamRoutine.examSubjectId > ExamSubject.id [delete: restrict]
+Ref: ExamRoutine.sectionId > Section.id [delete: set null]
+Ref: Mark.studentEnrollmentId > StudentEnrollment.id [delete: restrict]
+Ref: Mark.examSubjectId > ExamSubject.id [delete: restrict]
+Ref: Mark.enteredBy > User.id [delete: restrict]
+Ref: StudentSubjectResult.studentEnrollmentId > StudentEnrollment.id [delete: restrict]
+Ref: StudentSubjectResult.examId > Exam.id [delete: restrict]
+Ref: StudentSubjectResult.examSubjectId > ExamSubject.id [delete: restrict]
+Ref: ResultSummary.studentEnrollmentId > StudentEnrollment.id [delete: restrict]
+Ref: ResultSummary.examId > Exam.id [delete: restrict]
+Ref: ConsolidatedExamConfig.consolidatedExamId > Exam.id [delete: cascade]
+Ref: ConsolidatedExamConfig.sourceExamId > Exam.id [delete: restrict]
+Ref: DigitalResource.academicYearId > AcademicYear.id [delete: set null]
+Ref: DigitalResource.subjectId > Subject.id [delete: set null]
+Ref: DigitalResource.classId > SchoolClass.id [delete: set null]
+Ref: Notice.createdBy > User.id [delete: restrict]
+Ref: Event.categoryId > EventCategory.id [delete: restrict]
+Ref: GalleryMedia.galleryId > Gallery.id [delete: cascade]
+
+// ============================================================================
+// 4. TABLE GROUPS (Visual grouping for dbdiagram.io)
+// ============================================================================
+
+TableGroup Auth {
+  User
+  Role
+  Permission
+  UserRole
+  RolePermission
+  AuditLog
+}
+
+TableGroup Institution {
+  SchoolProfile
+  InstitutionContent
+  SchoolFacility
+  Administrator
+  ManagingCommitteeMember
+  QuickLink
+}
+
+TableGroup Staff {
+  Staff
+  Department
+  StaffStructure
+}
+
+TableGroup Academic {
+  AcademicYear
+  AcademicGroup
+  SchoolClass
+  Section
+  Subject
+  Book
+  ClassSubject
+  Student
+  StudentRFIDcard
+  StudentEnrollment
+  StudentPromotion
+  StudentTransferCertificate
+  Parent
+  ParentStudent
+  TeacherAssignment
+  SectionClassTeacher
+  AcademicDocument
+  AcademicEvent
+  ClassRoutine
+}
+
+TableGroup Attendance {
+  Attendance
+  AttendanceSmsLog
+}
+
+TableGroup Examination {
+  GradingScale
+  GradeRange
+  Exam
+  ExamSubject
+  ExamRoutine
+  Mark
+  StudentSubjectResult
+  ResultSummary
+  ConsolidatedExamConfig
+}
+
+TableGroup Library {
+  LibraryProfile
+  LibraryBook
+  LibraryDistributionInfo
+}
+
+TableGroup DigitalEducation {
+  DigitalClassroom
+  DigitalResource
+}
+
+TableGroup NoticeEvent {
+  Notice
+  News
+  EventCategory
+  Event
+  Career
+}
+
+TableGroup WebsiteContent {
+  WebsiteBanner
+  LeadershipMessage
+  Gallery
+  GalleryMedia
+  AdmissionContent
+  ContactInformation
+  AttendancePublicSummary
+  Publication
+  Achievement
+}

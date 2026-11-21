@@ -1,0 +1,255 @@
+// All 36 Enums matching the School Management System DBML Schema exactly
+
+export enum AcademicDocumentType {
+  CURRICULUM = 'CURRICULUM',
+  STUDENT_RULES = 'STUDENT_RULES',
+  PARENT_GUIDELINES = 'PARENT_GUIDELINES',
+  DRESS_CODE = 'DRESS_CODE',
+}
+
+export enum AcademicEventType {
+  HOLIDAY = 'HOLIDAY',
+  EVENT = 'EVENT',
+  ADMISSION = 'ADMISSION',
+  OTHER = 'OTHER',
+}
+
+export enum AchievementType {
+  INSTITUTION_ACHIEVEMENT = 'INSTITUTION_ACHIEVEMENT',
+  STUDENT_STAR = 'STUDENT_STAR',
+  NOTABLE_ALUMNI = 'NOTABLE_ALUMNI',
+}
+
+export enum AttendanceMethod {
+  MANUAL = 'MANUAL',
+  RFID = 'RFID',
+  BIOMETRIC = 'BIOMETRIC',
+}
+
+export enum AttendanceSmsType {
+  ENTRY = 'ENTRY',
+  EXIT = 'EXIT',
+  ABSENT = 'ABSENT',
+}
+
+export enum AttendanceStatus {
+  PRESENT = 'PRESENT',
+  ABSENT = 'ABSENT',
+  LATE = 'LATE',
+  LEAVE = 'LEAVE',
+}
+
+export enum BloodGroup {
+  A_POSITIVE = 'A_POSITIVE',
+  A_NEGATIVE = 'A_NEGATIVE',
+  B_POSITIVE = 'B_POSITIVE',
+  B_NEGATIVE = 'B_NEGATIVE',
+  O_POSITIVE = 'O_POSITIVE',
+  O_NEGATIVE = 'O_NEGATIVE',
+  AB_POSITIVE = 'AB_POSITIVE',
+  AB_NEGATIVE = 'AB_NEGATIVE',
+}
+
+export enum BookType {
+  TEXTBOOK = 'TEXTBOOK',
+  SUPPLEMENTARY = 'SUPPLEMENTARY',
+  GRAMMAR = 'GRAMMAR',
+  REFERENCE = 'REFERENCE',
+}
+
+export enum CardStatus {
+  ACTIVE = 'ACTIVE',
+  LOST = 'LOST',
+  DAMAGED = 'DAMAGED',
+  BLOCKED = 'BLOCKED',
+}
+
+export enum DepartmentStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+}
+
+export enum EmploymentType {
+  PERMANENT = 'PERMANENT',
+  PROBATIONARY = 'PROBATIONARY',
+  CONTRACTUAL = 'CONTRACTUAL',
+  PART_TIME = 'PART_TIME',
+}
+
+export enum EnrollmentStatus {
+  ACTIVE = 'ACTIVE',
+  PROMOTED = 'PROMOTED',
+  TRANSFERRED = 'TRANSFERRED',
+  COMPLETED = 'COMPLETED',
+}
+
+export enum EventCategoryType {
+  SPORTS = 'SPORTS',
+  DEBATE = 'DEBATE',
+  SCIENCE_FAIR = 'SCIENCE_FAIR',
+  CULTURAL = 'CULTURAL',
+  SCOUTS = 'SCOUTS',
+  GIRL_GUIDES = 'GIRL_GUIDES',
+  TREE_PLANTATION = 'TREE_PLANTATION',
+  NATIONAL_DAY = 'NATIONAL_DAY',
+  OTHER = 'OTHER',
+}
+
+export enum ExamRoutineStatus {
+  SCHEDULED = 'SCHEDULED',
+  POSTPONED = 'POSTPONED',
+  CANCELLED = 'CANCELLED',
+  COMPLETED = 'COMPLETED',
+}
+
+export enum ExamStatus {
+  UPCOMING = 'UPCOMING',
+  ONGOING = 'ONGOING',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum ExamType {
+  HALF_YEARLY = 'HALF_YEARLY',
+  ANNUAL = 'ANNUAL',
+  MODEL_TEST = 'MODEL_TEST',
+  SELECTION = 'SELECTION',
+  CONSOLIDATED = 'CONSOLIDATED',
+}
+
+export enum FacilityType {
+  LAB = 'LAB',
+  LIBRARY = 'LIBRARY',
+  PLAYGROUND = 'PLAYGROUND',
+  MULTIMEDIA = 'MULTIMEDIA',
+  OTHER = 'OTHER',
+}
+
+export enum Gender {
+  MALE = 'MALE',
+  FEMALE = 'FEMALE',
+  OTHER = 'OTHER',
+}
+
+export enum InstitutionContentType {
+  HISTORY = 'HISTORY',
+  TRADITION = 'TRADITION',
+  INFRASTRUCTURE = 'INFRASTRUCTURE',
+  INTRODUCTION = 'INTRODUCTION',
+}
+
+export enum LeadershipType {
+  PRINCIPAL = 'PRINCIPAL',
+  CHAIRMAN = 'CHAIRMAN',
+}
+
+export enum LibraryDistributionType {
+  BOOK_DISTRIBUTION = 'BOOK_DISTRIBUTION',
+  TEXTBOOK_DISTRIBUTION = 'TEXTBOOK_DISTRIBUTION',
+  OTHER = 'OTHER',
+}
+
+export enum MediaType {
+  IMAGE = 'IMAGE',
+  VIDEO = 'VIDEO',
+}
+
+export enum NoticeStatus {
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export enum PromotionType {
+  PROMOTED = 'PROMOTED',
+  RETAINED = 'RETAINED',
+  DOUBLE_PROMOTED = 'DOUBLE_PROMOTED',
+}
+
+export enum PublicationType {
+  SCHOOL_MAGAZINE = 'SCHOOL_MAGAZINE',
+  WALL_MAGAZINE = 'WALL_MAGAZINE',
+  JOURNAL = 'JOURNAL',
+  OTHER = 'OTHER',
+}
+
+export enum RelationshipType {
+  FATHER = 'FATHER',
+  MOTHER = 'MOTHER',
+  GUARDIAN = 'GUARDIAN',
+  OTHER = 'OTHER',
+}
+
+export enum Religion {
+  ISLAM = 'ISLAM',
+  HINDUISM = 'HINDUISM',
+  BUDDHISM = 'BUDDHISM',
+  CHRISTIANITY = 'CHRISTIANITY',
+  OTHER = 'OTHER',
+}
+
+export enum ResourceType {
+  SMART_CLASS_VIDEO = 'SMART_CLASS_VIDEO',
+  ONLINE_CLASS_LINK = 'ONLINE_CLASS_LINK',
+  EDUCATIONAL_VIDEO = 'EDUCATIONAL_VIDEO',
+  MULTIMEDIA_CONTENT = 'MULTIMEDIA_CONTENT',
+}
+
+export enum ResultPublicationStatus {
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
+  WITHHELD = 'WITHHELD',
+}
+
+export enum ResultStatus {
+  PASS = 'PASS',
+  FAIL = 'FAIL',
+  INCOMPLETE = 'INCOMPLETE',
+}
+
+export enum SmsStatus {
+  PENDING = 'PENDING',
+  SENT = 'SENT',
+  FAILED = 'FAILED',
+}
+
+export enum StaffStatus {
+  ACTIVE = 'ACTIVE',
+  RESIGNED = 'RESIGNED',
+  RETIRED = 'RETIRED',
+  TERMINATED = 'TERMINATED',
+}
+
+export enum StaffType {
+  TEACHER = 'TEACHER',
+  OFFICER = 'OFFICER',
+  EMPLOYEE = 'EMPLOYEE',
+}
+
+export enum StudentStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  GRADUATED = 'GRADUATED',
+  TRANSFERRED = 'TRANSFERRED',
+}
+
+export enum SubjectCategory {
+  GENERAL = 'GENERAL',
+  LANGUAGE = 'LANGUAGE',
+  MATHEMATICS = 'MATHEMATICS',
+  SCIENCE = 'SCIENCE',
+  SOCIAL_SCIENCE = 'SOCIAL_SCIENCE',
+  RELIGION = 'RELIGION',
+  COMMERCE = 'COMMERCE',
+  TECHNICAL = 'TECHNICAL',
+}
+
+export enum WeekDay {
+  SATURDAY = 'SATURDAY',
+  SUNDAY = 'SUNDAY',
+  MONDAY = 'MONDAY',
+  TUESDAY = 'TUESDAY',
+  WEDNESDAY = 'WEDNESDAY',
+  THURSDAY = 'THURSDAY',
+  FRIDAY = 'FRIDAY',
+}

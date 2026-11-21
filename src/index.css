@@ -1,0 +1,249 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design Tokens — Calibrated Bhojeshwar High School (BHS) Brand System
+ * Faithful to the official BHS Emblem with strict institutional UI/UX restraint:
+ * - 70% Clean neutral canvas (#F9FBFA light / #0A100D dark) & pure #FFFFFF surfaces
+ * - 20% BHS Heritage Forest Green (#0A6E31 primary, #093B1F deep heritage anchors)
+ * - 8%  Quiet BHS Royal Academic Blue (#124B96) for subtle tinted accents & metadata
+ * - 2%  Restrained Crest Crimson (#C81E24) strictly for urgent circulars & errors
+ */
+
+:root {
+  --primary: #0A6E31;
+  --primary-foreground: #FFFFFF;
+  --secondary: #124B96;
+  --secondary-foreground: #FFFFFF;
+  --accent: #0B5D2A;
+  --accent-foreground: #FFFFFF;
+  --info: #124B96;
+  --info-foreground: #FFFFFF;
+  --destructive: #C81E24;
+  --destructive-foreground: #FFFFFF;
+  --success: #0E7A38;
+  --success-foreground: #FFFFFF;
+  --warning: #B45309;
+  --warning-foreground: #FFFFFF;
+
+  --background: #F9FBFA;
+  --surface: #FFFFFF;
+  --surface-muted: #F2F5F3;
+  --foreground: #0F1C15;
+  --muted-foreground: #4B5C53;
+  --border: #E2E8E4;
+  --ring: #0A6E31;
+  --radius: 0.625rem;
+}
+
+.dark {
+  --primary: #2EC46E;
+  --primary-foreground: #042010;
+  --secondary: #60A5FA;
+  --secondary-foreground: #071526;
+  --accent: #34D374;
+  --accent-foreground: #042010;
+  --info: #60A5FA;
+  --info-foreground: #071526;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --success: #2EC46E;
+  --success-foreground: #042010;
+  --warning: #F59E0B;
+  --warning-foreground: #1C1003;
+
+  --background: #0A100D;
+  --surface: #111915;
+  --surface-muted: #18231D;
+  --foreground: #F1F5F3;
+  --muted-foreground: #96A89E;
+  --border: #233229;
+  --ring: #2EC46E;
+}
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --radius-md: var(--radius);
+  --font-sans: var(--font-hind), "Hind Siliguri", system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, monospace;
+
+  /* Calibrated Institutional Typography Scale (12px hard floor, 14px compact UI, 16px primary base) */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.4;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.55;
+  --text-base: 1rem;
+  --text-base--line-height: 1.65;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.5;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.32;
+  --text-3xl: 1.875rem;
+  --text-3xl--line-height: 1.25;
+  --text-4xl: 2.25rem;
+  --text-4xl--line-height: 1.2;
+  --text-5xl: 3rem;
+  --text-5xl--line-height: 1.15;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-hind), "Hind Siliguri", system-ui, sans-serif;
+    font-size: 16px;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-size: 1rem;
+    line-height: 1.65;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  .dark body {
+    letter-spacing: 0.008em;
+  }
+
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+.tabular-nums {
+  font-family: var(--font-inter), "Inter", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Deep Forest-Charcoal Frosted Glass Surfaces (subtle BHS heritage depth, crisp white borders) */
+.glass-dark {
+  background: rgba(7, 34, 19, 0.62);
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 20px 50px -15px rgba(4, 18, 10, 0.55);
+}
+
+.glass-dark-subtle {
+  background: rgba(7, 34, 19, 0.5);
+  backdrop-filter: blur(14px) saturate(125%);
+  -webkit-backdrop-filter: blur(14px) saturate(125%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.glass-light {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid rgba(10, 110, 49, 0.1);
+}
+
+.dark .glass-light {
+  background: rgba(17, 25, 21, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Institutional Notice Ticker Marquee */
+@keyframes notice-marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-notice-marquee {
+  display: flex;
+  width: max-content;
+  animation: notice-marquee 38s linear infinite;
+}
+
+.animate-notice-marquee:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-notice-marquee {
+    animation: none !important;
+    flex-wrap: wrap;
+  }
+}
+
+/* Official A4 Print Styles (Bangla-safe, clean letterhead) */
+@page landscape {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  body {
+    background: #FFFFFF !important;
+    color: #0F172A !important;
+    font-family: var(--font-hind), "Hind Siliguri", sans-serif !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .print-landscape {
+    page: landscape;
+  }
+
+  .print-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+}

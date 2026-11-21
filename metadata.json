@@ -1,0 +1,6 @@
+{
+  "name": "Bijhari Upashi T.P. High School — School Management Platform",
+  "description": "Comprehensive School Management System and Digital Education Platform for Bijhari Upashi T.P. High School (Est. 1898, EIIN 113585), featuring a public school website, Admin Dashboard, Teacher Portal, Parent Portal, and Student Portal.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
