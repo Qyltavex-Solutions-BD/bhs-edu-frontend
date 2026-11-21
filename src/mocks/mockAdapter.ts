@@ -37,6 +37,8 @@ import type {
   Staff,
   TeacherAssignment,
   Student,
+  Parent,
+  ParentStudent,
   Subject,
   StudentEnrollment,
   StudentSubjectResult,
@@ -139,6 +141,122 @@ function identityError(input: { birthCertificateNo?: string | null; boardRegistr
   if (board && db.students.some((student) => student.id !== input.ignoreStudentId && student.boardRegistrationNo === board)) {
     return 'এই বোর্ড রেজিস্ট্রেশন নম্বর আরেকজন শিক্ষার্থীর। / This board registration number is already used.';
   }
+  return null;
+}
+
+function occupiedPosts(designation: string, staffType: string, departmentId: string | null, ignoreId?: string) {
+  return db.staff.filter(
+    (member) =>
+      member.id !== ignoreId &&
+      member.status === StaffStatus.ACTIVE &&
+      member.staffType === staffType &&
+      sameName(member.designation, designation) &&
+      (member.departmentId ?? null) === departmentId
+  ).length;
+}
+
+function postLimitError(designation: string, staffType: string, departmentId: string | null, ignoreId?: string) {
+  const structure = db.staffStructures.find(
+    (row) =>
+      !row.isDeleted &&
+      row.isActive &&
+      row.staffType === staffType &&
+      sameName(row.designation, designation) &&
+      (row.departmentId ?? null) === departmentId
+  );
+  if (!structure) return null;
+  if (occupiedPosts(designation, staffType, departmentId, ignoreId) >= structure.totalPositions) {
+    return 'এই পদের অনুমোদিত আসন পূর্ণ। / Every sanctioned post for this designation is filled.';
+  }
+  return null;
+}
+
+function hasTeachingDuty(staffId: string) {
+  return (
+    db.teacherAssignments.some((row) => row.staffId === staffId && row.isActive) ||
+    db.sectionClassTeachers.some((row) => row.staffId === staffId)
+  );
+}
+
+function refreshFilledPosts() {
+  db.staffStructures.forEach((structure) => {
+    structure.filledPositions = occupiedPosts(structure.designation, structure.staffType, structure.departmentId ?? null);
+  });
+}
+
+function attendanceDayError(date: string, academicYearId: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return 'তারিখ সঠিক নয়। / The date is not valid.';
+  if (!db.academicYears.some((year) => year.id === academicYearId)) {
+    return 'শিক্ষাবর্ষ পাওয়া যায়নি। / Academic year was not found.';
+  }
+  if (date > new Date().toISOString().slice(0, 10)) {
+    return 'আগামী তারিখে হাজিরা হয় না। / Attendance cannot be marked for a future date.';
+  }
+  const weekday = new Date(`${date}T12:00:00`).getDay();
+  if (weekday === 5 || weekday === 6) return 'শুক্র ও শনিবার বিদ্যালয় বন্ধ। / The school is closed on Friday and Saturday.';
+  const holiday = db.academicEvents.find(
+    (event) =>
+      event.academicYearId === academicYearId &&
+      event.eventType === AcademicEventType.HOLIDAY &&
+      event.startDate.slice(0, 10) <= date &&
+      event.endDate.slice(0, 10) >= date
+  );
+  if (holiday) return `ছুটি: ${holiday.title}। / Holiday: ${holiday.title}.`;
+  return null;
+}
+
+function queueAttendanceSms(
+  attendanceId: string,
+  studentId: string,
+  classId: string,
+  date: string,
+  kind: 'ABSENT' | 'ENTRY' | 'EXIT'
+) {
+  const config = db.classAttendanceConfigs.find((item) => item.classId === classId);
+  if (kind === 'ABSENT' && config && !config.autoSmsOnAbsent) return 0;
+  if (kind === 'ENTRY' && !config?.autoSmsOnEntry) return 0;
+  if (kind === 'EXIT' && !config?.autoSmsOnExit) return 0;
+  const student = db.students.find((item) => item.id === studentId);
+  if (!student) return 0;
+  const smsType = kind === 'ENTRY' ? AttendanceSmsType.ENTRY : kind === 'EXIT' ? AttendanceSmsType.EXIT : AttendanceSmsType.ABSENT;
+  let queued = 0;
+  db.parentStudents
+    .filter((link) => link.studentId === studentId && link.isSmsReceiver)
+    .forEach((link) => {
+      const parent = db.parents.find((item) => item.id === link.parentId);
+      if (!parent) return;
+      if (db.attendanceSmsLogs.some((row) => row.attendanceId === attendanceId && row.parentId === parent.id && row.smsType === smsType)) return;
+      const verb = kind === 'ABSENT' ? 'অনুপস্থিত' : kind === 'ENTRY' ? 'প্রবেশ করেছে' : 'প্রস্থান করেছে';
+      db.attendanceSmsLogs.unshift({
+        id: uid('sms'),
+        attendanceId,
+        parentId: parent.id,
+        smsType,
+        phone: parent.phone,
+        message: `প্রিয় অভিভাবক, ${student.nameBn || student.nameEn} আজ (${date}) বিদ্যালয়ে ${verb}। - ভোজেশ্বর উচ্চ বিদ্যালয়`,
+        status: SmsStatus.SENT,
+        sentAt: nowIso(),
+        createdAt: nowIso(),
+      });
+      queued += 1;
+    });
+  return queued;
+}
+
+function parentProfileError(input: { phone: string; nid?: string | null; email?: string | null; ignoreId?: string }) {
+  const phone = input.phone.trim();
+  if (phone.replace(/\D/g, '').length < 11) {
+    return 'মোবাইল কমপক্ষে ১১ সংখ্যার হতে হবে। / Phone must be at least 11 digits.';
+  }
+  if (db.parents.some((item) => item.id !== input.ignoreId && item.phone.trim() === phone)) {
+    return 'এই মোবাইল আরেকজন অভিভাবকের। / This phone already belongs to a guardian.';
+  }
+  const nid = input.nid?.trim();
+  if (nid && db.parents.some((item) => item.id !== input.ignoreId && item.nid === nid)) {
+    return 'এই এনআইডি আরেকজন অভিভাবকের। / This NID is already used.';
+  }
+  const email = input.email?.trim();
+  if (email && !email.includes('@')) return 'ইমেইল সঠিক নয়। / Email is not valid.';
   return null;
 }
 
@@ -1440,9 +1558,10 @@ export async function handleMockRequest(
 
     // 8. Save Daily Attendance Batch + Auto-Dispatch SMS
     if (endpoint === '/attendance/batch' && method === 'POST') {
-      const { date, entries, markedBy } = body as {
+      const { date, entries, markedBy, academicYearId } = body as {
         date: string;
         markedBy: string;
+        academicYearId: string;
         entries: Array<{
           studentEnrollmentId: string;
           status: AttendanceStatus;
@@ -1450,102 +1569,154 @@ export async function handleMockRequest(
           remarks?: string;
         }>;
       };
-
+      const closed = attendanceDayError(date, academicYearId);
+      if (closed) return studentError(400, closed);
+      if (!entries.length) return studentError(400, 'হাজিরার সারি নেই। / There are no attendance rows.');
       let smsQueued = 0;
-      entries.forEach((e) => {
-        const existing = db.attendances.find(
-          (a) => a.studentEnrollmentId === e.studentEnrollmentId && a.date === date
-        );
-        let attId = existing?.id ?? uid('att');
+      for (const entry of entries) {
+        const enrollment = db.enrollments.find((item) => item.id === entry.studentEnrollmentId);
+        if (!enrollment || enrollment.academicYearId !== academicYearId || enrollment.status !== EnrollmentStatus.ACTIVE) {
+          return studentError(400, 'শুধু এই শিক্ষাবর্ষের চলতি ভর্তিতে হাজিরা হয়। / Attendance is only for an active enrollment in this year.');
+        }
+        const student = db.students.find((item) => item.id === enrollment.studentId);
+        if (!student || student.status !== StudentStatus.ACTIVE) {
+          return studentError(400, 'সক্রিয় শিক্ষার্থী ছাড়া হাজিরা হয় না। / Only an active student can be marked.');
+        }
+        const existing = db.attendances.find((item) => item.studentEnrollmentId === entry.studentEnrollmentId && item.date === date);
+        const attId = existing?.id ?? uid('att');
         if (existing) {
-          existing.status = e.status;
-          existing.method = e.method;
-          existing.remarks = e.remarks ?? existing.remarks;
+          existing.status = entry.status;
+          existing.method = entry.method;
+          existing.remarks = entry.remarks ?? existing.remarks ?? null;
           existing.markedBy = markedBy;
           existing.updatedAt = nowIso();
         } else {
           db.attendances.push({
             id: attId,
-            studentEnrollmentId: e.studentEnrollmentId,
+            studentEnrollmentId: entry.studentEnrollmentId,
             date,
-            inTime: e.status === AttendanceStatus.PRESENT ? `${date}T09:55:00` : e.status === AttendanceStatus.LATE ? `${date}T10:25:00` : null,
-            status: e.status,
-            method: e.method,
-            remarks: e.remarks,
+            inTime: entry.status === AttendanceStatus.LATE ? `${date}T10:25:00` : entry.status === AttendanceStatus.PRESENT ? `${date}T09:55:00` : null,
+            status: entry.status,
+            method: entry.method,
+            remarks: entry.remarks ?? null,
             markedBy,
             createdAt: nowIso(),
             updatedAt: nowIso(),
           });
         }
-
-        if (e.status === AttendanceStatus.ABSENT) {
-          const enr = db.enrollments.find((x) => x.id === e.studentEnrollmentId);
-          const stu = enr ? db.students.find((s) => s.id === enr.studentId) : null;
-          const ps = stu ? db.parentStudents.find((p) => p.studentId === stu.id && p.isSmsReceiver) : null;
-          const par = ps ? db.parents.find((p) => p.id === ps.parentId) : null;
-          if (stu && par) {
-            db.attendanceSmsLogs.unshift({
-              id: uid('sms'),
-              attendanceId: attId,
-              parentId: par.id,
-              smsType: AttendanceSmsType.ABSENT,
-              phone: par.phone,
-              message: `প্রিয় অভিভাবক, আপনার সন্তান ${stu.nameBn ?? stu.nameEn} আজ (${date}) বিদ্যালয়ে অনুপস্থিত। - ভোজেশ্বর উচ্চ বিদ্যালয়`,
-              status: SmsStatus.SENT,
-              sentAt: nowIso(),
-              createdAt: nowIso(),
-            });
-            smsQueued++;
-          }
-        }
-      });
-
-      addAudit('ATTENDANCE_MARK', 'Attendance', `Marked attendance for ${entries.length} students on ${date} (${smsQueued} absent SMS queued).`, markedBy);
+        if (entry.status === AttendanceStatus.ABSENT) smsQueued += queueAttendanceSms(attId, enrollment.studentId, enrollment.classId, date, 'ABSENT');
+      }
+      addAudit('ATTENDANCE_MARK', 'Attendance', `Marked attendance for ${entries.length} students on ${date}.`, markedBy);
       return { data: { saved: entries.length, smsQueued } };
     }
 
-    // 9. Retry Failed SMS
     if (endpoint === '/attendance/sms/retry' && method === 'POST') {
       const { id } = body as { id: string };
-      const sms = db.attendanceSmsLogs.find((s) => s.id === id);
-      if (!sms) return { error: { status: 404, message: 'SMS log not found' } };
+      const sms = db.attendanceSmsLogs.find((item) => item.id === id);
+      if (!sms) return studentError(404, 'এসএমএস পাওয়া যায়নি। / SMS was not found.');
+      if (sms.status !== SmsStatus.FAILED) return studentError(400, 'শুধু ব্যর্থ এসএমএস আবার পাঠানো যায়। / Only a failed SMS can be sent again.');
       sms.status = SmsStatus.SENT;
       sms.sentAt = nowIso();
       return { data: clone(sms) };
     }
 
-    // 10. Update Configurable Attendance Method per Class (Class 10 RFID vs Classes 6-9 Manual)
     if (endpoint === '/attendance/config' && method === 'PUT') {
       const updated = body as ClassAttendanceMethodConfig;
-      const idx = db.classAttendanceConfigs.findIndex((c) => c.classId === updated.classId);
-      if (idx >= 0) db.classAttendanceConfigs[idx] = updated;
-      else db.classAttendanceConfigs.push(updated);
-      addAudit('ATTENDANCE_CONFIG', 'Attendance', `Updated attendance method for ${updated.classId} to ${updated.method}.`);
-      return { data: clone(updated) };
+      if (!db.classes.some((item) => item.id === updated.classId)) {
+        return studentError(404, 'শ্রেণি পাওয়া যায়নি। / Class was not found.');
+      }
+      if (updated.method !== AttendanceMethod.MANUAL && updated.method !== AttendanceMethod.RFID) {
+        return studentError(400, 'হাজিরা হয় হাতে অথবা RFID কার্ডে। / Attendance is manual or by RFID card.');
+      }
+      const lateThresholdTime = (updated.lateThresholdTime || '').slice(0, 5);
+      if (!/^\d{2}:\d{2}$/.test(lateThresholdTime)) {
+        return studentError(400, 'দেরির সময় ১০:১৫ এই বিন্যাসে দিন। / Late time must look like 10:15.');
+      }
+      const next = { ...updated, lateThresholdTime, method: updated.method };
+      const idx = db.classAttendanceConfigs.findIndex((item) => item.classId === next.classId);
+      if (idx >= 0) db.classAttendanceConfigs[idx] = next;
+      else db.classAttendanceConfigs.push(next);
+      addAudit('ATTENDANCE_CONFIG', 'Attendance', `Updated attendance method for ${next.classId} to ${next.method}.`);
+      return { data: clone(next) };
     }
 
-    // 11. Simulate Live RFID Scan (Integration-ready mock feed)
     if (endpoint === '/attendance/rfid/simulate' && method === 'POST') {
       const { cardNumber, direction } = body as { cardNumber: string; direction: 'ENTRY' | 'EXIT' };
-      const card = db.rfidCards.find((c) => c.cardNumber === cardNumber && c.status === CardStatus.ACTIVE);
-      const stu = card ? db.students.find((s) => s.id === card.studentId) : null;
-      const enr = stu ? db.enrollments.find((e) => e.studentId === stu.id && e.academicYearId === 'ay-2026') : null;
-      const cls = enr ? db.classes.find((c) => c.id === enr.classId) : null;
-      const sec = enr ? db.sections.find((s) => s.id === enr.sectionId) : null;
-
+      const number = cardNumber?.trim();
+      if (!number || (direction !== 'ENTRY' && direction !== 'EXIT')) {
+        return studentError(400, 'কার্ড নম্বর ও প্রবেশ বা প্রস্থান দিন। / Provide a card number and entry or exit.');
+      }
+      const card = db.rfidCards.find((item) => sameName(item.cardNumber, number));
+      const activeCard = card?.status === CardStatus.ACTIVE ? card : undefined;
+      const student = activeCard ? db.students.find((item) => item.id === activeCard.studentId && item.status === StudentStatus.ACTIVE) : undefined;
+      const year = db.academicYears.find((item) => item.isActive);
+      const enrollment = student
+        ? db.enrollments.find(
+            (item) => item.studentId === student.id && item.academicYearId === year?.id && item.status === EnrollmentStatus.ACTIVE
+          )
+        : undefined;
+      const schoolClass = enrollment ? db.classes.find((item) => item.id === enrollment.classId) : undefined;
+      const section = enrollment ? db.sections.find((item) => item.id === enrollment.sectionId) : undefined;
       const scan = {
         id: uid('scan'),
-        cardNumber,
-        studentId: stu?.id ?? null,
-        studentName: stu?.nameBn ?? stu?.nameEn ?? null,
-        className: cls && sec ? `${cls.nameBn ?? cls.name} (${sec.name})` : null,
+        cardNumber: number,
+        studentId: student?.id ?? null,
+        studentName: student?.nameBn ?? student?.nameEn ?? null,
+        className: schoolClass && section ? `${schoolClass.nameBn ?? schoolClass.name} (${section.name})` : null,
         scannedAt: nowIso(),
         deviceLocation: 'Main Gate Reader #1',
         direction,
-        isKnownCard: Boolean(card && stu),
+        isKnownCard: Boolean(activeCard && student && enrollment),
       };
       db.rfidScans.unshift(scan);
-      return { data: clone(scan) };
+      if (!card) return { data: clone({ ...scan, message: 'অপরিচিত কার্ড। / Unknown card.' }) };
+      if (card.status !== CardStatus.ACTIVE) {
+        return { data: clone({ ...scan, message: 'এই কার্ড সক্রিয় নয়। / This card is not active.' }) };
+      }
+      if (!student || !enrollment || !year) {
+        return { data: clone({ ...scan, message: 'এই কার্ডের চলতি ভর্তি নেই। / This card has no active enrollment.' }) };
+      }
+      const config = db.classAttendanceConfigs.find((item) => item.classId === enrollment.classId);
+      if ((config?.method ?? AttendanceMethod.MANUAL) !== AttendanceMethod.RFID) {
+        return { data: clone({ ...scan, message: 'এই শ্রেণির হাজিরা হাতে নেওয়া হয়। / This class is marked by hand.' }) };
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      const closed = attendanceDayError(today, year.id);
+      if (closed) return { data: clone({ ...scan, message: closed }) };
+      const existing = db.attendances.find((item) => item.studentEnrollmentId === enrollment.id && item.date === today);
+      const now = new Date();
+      const [hour, minute] = (config?.lateThresholdTime || '10:15').split(':').map(Number);
+      const late = now.getHours() > hour || (now.getHours() === hour && now.getMinutes() > minute);
+      if (direction === 'EXIT') {
+        if (existing) {
+          existing.outTime = nowIso();
+          existing.updatedAt = nowIso();
+        }
+        if (config?.autoSmsOnExit && existing) queueAttendanceSms(existing.id, student.id, enrollment.classId, today, 'EXIT');
+        return { data: clone({ ...scan, message: 'প্রস্থান নথিভুক্ত হয়েছে। / Exit recorded.' }) };
+      }
+      const status = late ? AttendanceStatus.LATE : AttendanceStatus.PRESENT;
+      const attId = existing?.id ?? uid('att');
+      if (existing) {
+        existing.status = existing.status === AttendanceStatus.LEAVE ? existing.status : status;
+        existing.inTime = existing.inTime || nowIso();
+        existing.method = AttendanceMethod.RFID;
+        existing.updatedAt = nowIso();
+      } else {
+        db.attendances.push({
+          id: attId,
+          studentEnrollmentId: enrollment.id,
+          date: today,
+          inTime: nowIso(),
+          status,
+          method: AttendanceMethod.RFID,
+          markedBy: null,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        });
+      }
+      if (config?.autoSmsOnEntry) queueAttendanceSms(attId, student.id, enrollment.classId, today, 'ENTRY');
+      return { data: clone({ ...scan, message: late ? 'দেরিতে প্রবেশ। / Late entry.' : 'প্রবেশ নথিভুক্ত হয়েছে। / Entry recorded.' }) };
     }
 
     // 12. Create Notice / Update Notice Status
@@ -1812,6 +1983,155 @@ export async function handleMockRequest(
       return { data: { created: created.length, errors } };
     }
 
+    if (endpoint === '/parents' && method === 'POST') {
+      const p = body as Partial<Parent>;
+      const name = p.name?.trim() ?? '';
+      const phone = p.phone?.trim() ?? '';
+      if (!name || !phone) return studentError(400, 'ইংরেজি নাম ও মোবাইল আবশ্যক। / English name and phone are required.');
+      const profileError = parentProfileError({ phone, nid: p.nid, email: p.email });
+      if (profileError) return studentError(409, profileError);
+      const parent = {
+        id: uid('par'),
+        name,
+        nameBn: p.nameBn?.trim() || null,
+        phone,
+        email: p.email?.trim() || null,
+        nid: p.nid?.trim() || null,
+        occupation: p.occupation?.trim() || null,
+        monthlyIncome: p.monthlyIncome != null && p.monthlyIncome !== ('' as unknown) ? Number(p.monthlyIncome) : null,
+        address: p.address?.trim() || null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      };
+      if (parent.monthlyIncome != null && Number.isNaN(parent.monthlyIncome)) {
+        return studentError(400, 'মাসিক আয় সংখ্যা হতে হবে। / Monthly income must be a number.');
+      }
+      db.parents.unshift(parent);
+      addAudit('PARENT_CREATE', 'Parents', `Added guardian ${parent.name} (${parent.phone}).`);
+      return { data: clone(parent) };
+    }
+
+    if (endpoint === '/parents/update' && method === 'POST') {
+      const p = body as Partial<Parent> & { id: string };
+      const parent = db.parents.find((item) => item.id === p.id);
+      if (!parent) return studentError(404, 'অভিভাবক পাওয়া যায়নি। / Guardian was not found.');
+      const name = (p.name ?? parent.name).trim();
+      const phone = (p.phone ?? parent.phone).trim();
+      if (!name || !phone) return studentError(400, 'ইংরেজি নাম ও মোবাইল আবশ্যক। / English name and phone are required.');
+      const profileError = parentProfileError({ phone, nid: p.nid, email: p.email, ignoreId: parent.id });
+      if (profileError) return studentError(409, profileError);
+      const income = p.monthlyIncome == null || p.monthlyIncome === ('' as unknown as number) ? null : Number(p.monthlyIncome);
+      if (income != null && Number.isNaN(income)) return studentError(400, 'মাসিক আয় সংখ্যা হতে হবে। / Monthly income must be a number.');
+      parent.name = name;
+      parent.nameBn = p.nameBn?.trim() || null;
+      parent.phone = phone;
+      parent.email = p.email?.trim() || null;
+      parent.nid = p.nid?.trim() || null;
+      parent.occupation = p.occupation?.trim() || null;
+      parent.monthlyIncome = income;
+      parent.address = p.address?.trim() || null;
+      parent.updatedAt = nowIso();
+      addAudit('PARENT_UPDATE', 'Parents', `Updated guardian ${parent.name}.`);
+      return { data: clone(parent) };
+    }
+
+    if (endpoint === '/parents/remove' && method === 'POST') {
+      const { id } = body as { id: string };
+      const parent = db.parents.find((item) => item.id === id);
+      if (!parent) return studentError(404, 'অভিভাবক পাওয়া যায়নি। / Guardian was not found.');
+      if (db.parentStudents.some((link) => link.parentId === id)) {
+        return studentError(409, 'সন্তান যুক্ত থাকা অবস্থায় প্রোফাইল মুছা যায় না। আগে সংযোগ সরান। / Unlink every student before deleting this profile.');
+      }
+      db.parents = db.parents.filter((item) => item.id !== id);
+      addAudit('PARENT_REMOVE', 'Parents', `Removed guardian ${parent.name}.`);
+      return { data: { id } };
+    }
+
+    if (endpoint === '/parents/link' && method === 'POST') {
+      const p = body as {
+        parentId: string;
+        studentId: string;
+        relationship: RelationshipType;
+        isPrimary?: boolean;
+        isEmergencyContact?: boolean;
+        isSmsReceiver?: boolean;
+      };
+      const parent = db.parents.find((item) => item.id === p.parentId);
+      const student = db.students.find((item) => item.id === p.studentId);
+      if (!parent || !student) return studentError(404, 'অভিভাবক বা শিক্ষার্থী পাওয়া যায়নি। / Guardian or student was not found.');
+      if (!p.relationship) return studentError(400, 'সম্পর্ক আবশ্যক। / Relationship is required.');
+      if (db.parentStudents.some((link) => link.parentId === p.parentId && link.studentId === p.studentId)) {
+        return studentError(409, 'এই অভিভাবক ইতিমধ্যে এই শিক্ষার্থীর সঙ্গে যুক্ত। / This guardian is already linked to this student.');
+      }
+      const siblings = db.parentStudents.filter((link) => link.studentId === p.studentId);
+      const first = siblings.length === 0;
+      const isPrimary = first || Boolean(p.isPrimary);
+      const isSmsReceiver = first || Boolean(p.isSmsReceiver);
+      const isEmergencyContact = first || Boolean(p.isEmergencyContact);
+      if (isPrimary) siblings.forEach((link) => (link.isPrimary = false));
+      const link = {
+        id: uid('ps'),
+        parentId: p.parentId,
+        studentId: p.studentId,
+        relationship: p.relationship,
+        isPrimary,
+        isEmergencyContact,
+        isSmsReceiver,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      };
+      db.parentStudents.unshift(link);
+      addAudit('PARENT_LINK', 'Parents', `Linked ${parent.name} to ${student.studentId} as ${p.relationship}.`);
+      return { data: clone(link) };
+    }
+
+    if (endpoint === '/parents/link/update' && method === 'POST') {
+      const p = body as Partial<ParentStudent> & { id: string };
+      const link = db.parentStudents.find((item) => item.id === p.id);
+      if (!link) return studentError(404, 'সংযোগ পাওয়া যায়নি। / Link was not found.');
+      const others = db.parentStudents.filter((item) => item.studentId === link.studentId && item.id !== link.id);
+      const nextPrimary = p.isPrimary ?? link.isPrimary;
+      const nextSms = p.isSmsReceiver ?? link.isSmsReceiver;
+      const nextEmergency = p.isEmergencyContact ?? link.isEmergencyContact;
+      if (!nextPrimary && !others.some((item) => item.isPrimary)) {
+        return studentError(400, 'আগে অন্য একজনকে প্রাথমিক অভিভাবক করুন। / Make another guardian primary first.');
+      }
+      if (!nextSms && !others.some((item) => item.isSmsReceiver)) {
+        return studentError(400, 'অন্তত একজনকে SMS প্রাপক রাখতে হবে। / At least one guardian must receive SMS.');
+      }
+      if (!nextEmergency && !others.some((item) => item.isEmergencyContact)) {
+        return studentError(400, 'অন্তত একজন জরুরি যোগাযোগ থাকতে হবে। / At least one emergency contact is required.');
+      }
+      if (nextPrimary) others.forEach((item) => (item.isPrimary = false));
+      if (p.relationship) link.relationship = p.relationship;
+      link.isPrimary = nextPrimary;
+      link.isSmsReceiver = nextSms;
+      link.isEmergencyContact = nextEmergency;
+      link.updatedAt = nowIso();
+      addAudit('PARENT_LINK_UPDATE', 'Parents', `Updated guardian link ${link.id}.`);
+      return { data: clone(link) };
+    }
+
+    if (endpoint === '/parents/unlink' && method === 'POST') {
+      const { id } = body as { id: string };
+      const link = db.parentStudents.find((item) => item.id === id);
+      if (!link) return studentError(404, 'সংযোগ পাওয়া যায়নি। / Link was not found.');
+      const student = db.students.find((item) => item.id === link.studentId);
+      const others = db.parentStudents.filter((item) => item.studentId === link.studentId && item.id !== link.id);
+      if (student?.status === StudentStatus.ACTIVE && others.length === 0) {
+        return studentError(409, 'সক্রিয় শিক্ষার্থীর শেষ অভিভাবক সরানো যায় না। / An active student must keep one guardian.');
+      }
+      if (link.isPrimary && !others.some((item) => item.isPrimary) && others.length) {
+        return studentError(400, 'আগে অন্য একজনকে প্রাথমিক অভিভাবক করুন। / Make another guardian primary first.');
+      }
+      if (link.isSmsReceiver && !others.some((item) => item.isSmsReceiver) && others.length) {
+        return studentError(400, 'আগে অন্য একজনকে SMS প্রাপক করুন। / Choose another SMS receiver first.');
+      }
+      db.parentStudents = db.parentStudents.filter((item) => item.id !== id);
+      addAudit('PARENT_UNLINK', 'Parents', `Unlinked guardian ${link.parentId} from ${link.studentId}.`);
+      return { data: { id } };
+    }
+
     // 14. Issue Transfer Certificate
     if (endpoint === '/students/tc' && method === 'POST') {
       const payload = body as Omit<StudentTransferCertificate, 'id' | 'createdAt' | 'updatedAt'>;
@@ -1932,26 +2252,219 @@ export async function handleMockRequest(
     // 16. Create Staff
     if (endpoint === '/staff' && method === 'POST') {
       const payload = body as Partial<Staff>;
+      const name = payload.name?.trim() ?? '';
+      const designation = payload.designation?.trim() ?? '';
+      if (!name || !designation || !payload.staffType) {
+        return studentError(400, 'নাম, পদবি ও ধরন আবশ্যক। / Name, designation, and type are required.');
+      }
+      const employeeId = payload.employeeId?.trim() || `EMP-${String(db.staff.length + 11).padStart(3, '0')}`;
+      if (db.staff.some((member) => member.employeeId && sameName(member.employeeId, employeeId))) {
+        return studentError(409, 'এই স্টাফ আইডি আগে ব্যবহার হয়েছে। / This staff ID is already used.');
+      }
+      const nid = payload.nid?.trim();
+      if (nid && db.staff.some((member) => member.nid && sameName(member.nid, nid))) {
+        return studentError(409, 'এই এনআইডি আরেকজন স্টাফের। / This NID already belongs to a staff member.');
+      }
+      if (payload.email?.trim() && !payload.email.includes('@')) return studentError(400, 'ইমেইল সঠিক নয়। / Email is not valid.');
+      if (payload.phone?.trim() && payload.phone.replace(/\D/g, '').length < 11) {
+        return studentError(400, 'মোবাইল কমপক্ষে ১১ সংখ্যার হতে হবে। / Phone must be at least 11 digits.');
+      }
+      const departmentId = payload.departmentId || null;
+      if (departmentId) {
+        const department = db.departments.find((item) => item.id === departmentId);
+        if (!department || department.status !== 'ACTIVE') {
+          return studentError(400, 'সক্রিয় বিভাগ বেছে নিন। / Choose an active department.');
+        }
+      }
+      const limit = postLimitError(designation, payload.staffType, departmentId);
+      if (limit) return studentError(409, limit);
       const created: Staff = {
         id: uid('staff'),
-        employeeId: payload.employeeId ?? `T-${db.staff.length + 10}`,
-        name: payload.name ?? '',
-        nameBn: payload.nameBn ?? payload.name ?? '',
-        designation: payload.designation ?? 'সহকারী শিক্ষক',
-        qualification: payload.qualification ?? '',
-        staffType: payload.staffType ?? ('TEACHER' as Staff['staffType']),
-        departmentId: payload.departmentId ?? null,
+        employeeId,
+        name,
+        nameBn: payload.nameBn?.trim() || name,
+        designation,
+        qualification: payload.qualification?.trim() || null,
+        staffType: payload.staffType,
+        departmentId,
         employmentType: payload.employmentType ?? ('PERMANENT' as Staff['employmentType']),
-        phone: payload.phone ?? null,
-        email: payload.email ?? null,
-        joiningDate: payload.joiningDate ?? nowIso().slice(0, 10),
+        phone: payload.phone?.trim() || null,
+        email: payload.email?.trim() || null,
+        nid: nid || null,
+        joiningDate: payload.joiningDate || nowIso().slice(0, 10),
         displayOrder: db.staff.length + 1,
-        status: 'ACTIVE' as Staff['status'],
+        status: StaffStatus.ACTIVE,
         createdAt: nowIso(),
         updatedAt: nowIso(),
       };
       db.staff.unshift(created);
+      refreshFilledPosts();
       addAudit('STAFF_CREATE', 'Staff', `Added staff member ${created.name} (${created.employeeId}).`);
+      return { data: clone(created) };
+    }
+
+    if (endpoint === '/staff/update' && method === 'POST') {
+      const payload = body as Partial<Staff> & { id: string };
+      const member = db.staff.find((item) => item.id === payload.id);
+      if (!member) return studentError(404, 'স্টাফ পাওয়া যায়নি। / Staff member was not found.');
+      const name = (payload.name ?? member.name).trim();
+      const designation = (payload.designation ?? member.designation).trim();
+      const staffType = payload.staffType ?? member.staffType;
+      const departmentId = payload.departmentId === undefined ? member.departmentId ?? null : payload.departmentId || null;
+      const status = payload.status ?? member.status;
+      if (!name || !designation) return studentError(400, 'নাম ও পদবি আবশ্যক। / Name and designation are required.');
+      const employeeId = (payload.employeeId ?? member.employeeId ?? '').trim();
+      if (employeeId && db.staff.some((item) => item.id !== member.id && item.employeeId && sameName(item.employeeId, employeeId))) {
+        return studentError(409, 'এই স্টাফ আইডি আগে ব্যবহার হয়েছে। / This staff ID is already used.');
+      }
+      const nid = payload.nid?.trim() || null;
+      if (nid && db.staff.some((item) => item.id !== member.id && item.nid && sameName(item.nid, nid))) {
+        return studentError(409, 'এই এনআইডি আরেকজন স্টাফের। / This NID already belongs to a staff member.');
+      }
+      if (payload.email?.trim() && !payload.email.includes('@')) return studentError(400, 'ইমেইল সঠিক নয়। / Email is not valid.');
+      if (departmentId) {
+        const department = db.departments.find((item) => item.id === departmentId);
+        if (!department) return studentError(400, 'বিভাগ পাওয়া যায়নি। / Department was not found.');
+      }
+      if (status !== StaffStatus.ACTIVE && hasTeachingDuty(member.id)) {
+        return studentError(409, 'আগে শ্রেণি শিক্ষক ও বিষয় শিক্ষকের দায়িত্ব ছাড়ান। / Release class-teacher and subject-teacher duties first.');
+      }
+      if (status !== StaffStatus.ACTIVE && !payload.leavingDate && !member.leavingDate) {
+        return studentError(400, 'চাকরি ছাড়ার তারিখ আবশ্যক। / A leaving date is required.');
+      }
+      if (status === StaffStatus.ACTIVE) {
+        const limit = postLimitError(designation, staffType, departmentId, member.id);
+        if (limit) return studentError(409, limit);
+      }
+      member.name = name;
+      member.nameBn = payload.nameBn?.trim() || name;
+      member.employeeId = employeeId || null;
+      member.designation = designation;
+      member.staffType = staffType;
+      member.departmentId = departmentId;
+      member.employmentType = payload.employmentType ?? member.employmentType;
+      member.qualification = payload.qualification?.trim() || null;
+      member.phone = payload.phone?.trim() || null;
+      member.email = payload.email?.trim() || null;
+      member.nid = nid;
+      member.gender = payload.gender === undefined ? member.gender ?? null : payload.gender;
+      member.dateOfBirth = payload.dateOfBirth || null;
+      member.bloodGroup = payload.bloodGroup === undefined ? member.bloodGroup ?? null : payload.bloodGroup;
+      member.religion = payload.religion ?? member.religion ?? null;
+      member.fatherName = payload.fatherName?.trim() || null;
+      member.motherName = payload.motherName?.trim() || null;
+      member.presentAddress = payload.presentAddress?.trim() || null;
+      member.permanentAddress = payload.permanentAddress?.trim() || null;
+      member.emergencyContact = payload.emergencyContact?.trim() || null;
+      member.joiningDate = payload.joiningDate || member.joiningDate || null;
+      member.status = status;
+      member.leavingDate = status === StaffStatus.ACTIVE ? null : payload.leavingDate || member.leavingDate || null;
+      member.updatedAt = nowIso();
+      refreshFilledPosts();
+      addAudit('STAFF_UPDATE', 'Staff', `Updated ${member.employeeId ?? member.name}.`);
+      return { data: clone(member) };
+    }
+
+    if (endpoint === '/staff/departments' && method === 'POST') {
+      const payload = body as Partial<(typeof db.departments)[number]> & { id?: string };
+      const name = payload.name?.trim() ?? '';
+      if (!name) return studentError(400, 'বিভাগের নাম আবশ্যক। / Department name is required.');
+      const code = payload.code?.trim() || null;
+      const duplicate = db.departments.find(
+        (item) => item.id !== payload.id && (sameName(item.name, name) || (code && item.code && sameName(item.code, code)))
+      );
+      if (duplicate) return studentError(409, 'এই নাম বা কোডের বিভাগ আছে। / A department with this name or code already exists.');
+      if (payload.id) {
+        const department = db.departments.find((item) => item.id === payload.id);
+        if (!department) return studentError(404, 'বিভাগ পাওয়া যায়নি। / Department was not found.');
+        department.name = name;
+        department.code = code;
+        department.description = payload.description?.trim() || null;
+        department.displayOrder = Number(payload.displayOrder ?? department.displayOrder);
+        department.status = payload.status ?? department.status;
+        department.updatedAt = nowIso();
+        addAudit('DEPARTMENT_UPDATE', 'Staff', `Updated department ${department.name}.`);
+        return { data: clone(department) };
+      }
+      const created = {
+        id: uid('dept'),
+        name,
+        code,
+        description: payload.description?.trim() || null,
+        displayOrder: db.departments.length + 1,
+        status: payload.status ?? ('ACTIVE' as (typeof db.departments)[number]['status']),
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      };
+      db.departments.push(created);
+      addAudit('DEPARTMENT_CREATE', 'Staff', `Added department ${created.name}.`);
+      return { data: clone(created) };
+    }
+
+    if (endpoint === '/staff/departments/remove' && method === 'POST') {
+      const { id } = body as { id: string };
+      if (db.staff.some((member) => member.departmentId === id) || db.staffStructures.some((row) => row.departmentId === id && !row.isDeleted)) {
+        return studentError(409, 'স্টাফ বা পদ থাকলে বিভাগ মুছা যায় না। / Move staff and posts out before deleting this department.');
+      }
+      const department = db.departments.find((item) => item.id === id);
+      if (!department) return studentError(404, 'বিভাগ পাওয়া যায়নি। / Department was not found.');
+      db.departments = db.departments.filter((item) => item.id !== id);
+      addAudit('DEPARTMENT_REMOVE', 'Staff', `Removed department ${department.name}.`);
+      return { data: { id } };
+    }
+
+    if (endpoint === '/staff/structures' && method === 'POST') {
+      const payload = body as Partial<(typeof db.staffStructures)[number]> & { id?: string };
+      const designation = payload.designation?.trim() ?? '';
+      const totalPositions = Number(payload.totalPositions);
+      if (!designation || !payload.staffType || !Number.isInteger(totalPositions) || totalPositions < 1) {
+        return studentError(400, 'পদবি, ধরন ও কমপক্ষে ১টি আসন আবশ্যক। / Designation, type, and at least one post are required.');
+      }
+      const departmentId = payload.departmentId || null;
+      if (departmentId && !db.departments.some((item) => item.id === departmentId)) {
+        return studentError(400, 'বিভাগ পাওয়া যায়নি। / Department was not found.');
+      }
+      const duplicate = db.staffStructures.find(
+        (row) =>
+          !row.isDeleted &&
+          row.id !== payload.id &&
+          row.staffType === payload.staffType &&
+          sameName(row.designation, designation) &&
+          (row.departmentId ?? null) === departmentId
+      );
+      if (duplicate) return studentError(409, 'এই বিভাগে এই পদ আগেই আছে। / This post already exists in that department.');
+      const filled = occupiedPosts(designation, payload.staffType, departmentId);
+      if (totalPositions < filled) {
+        return studentError(400, `এই পদে এখন ${filled} জন আছেন। আসন তার চেয়ে কম হতে পারে না। / ${filled} people already hold this post.`);
+      }
+      if (payload.id) {
+        const structure = db.staffStructures.find((row) => row.id === payload.id);
+        if (!structure) return studentError(404, 'পদ পাওয়া যায়নি। / Post was not found.');
+        structure.designation = designation;
+        structure.staffType = payload.staffType;
+        structure.departmentId = departmentId;
+        structure.totalPositions = totalPositions;
+        structure.isActive = payload.isActive ?? structure.isActive;
+        structure.updatedAt = nowIso();
+        refreshFilledPosts();
+        addAudit('POST_UPDATE', 'Staff', `Updated post ${structure.designation}.`);
+        return { data: clone(structure) };
+      }
+      const created = {
+        id: uid('post'),
+        designation,
+        staffType: payload.staffType,
+        departmentId,
+        totalPositions,
+        filledPositions: filled,
+        isActive: true,
+        isDeleted: false,
+        deletedAt: null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      };
+      db.staffStructures.push(created);
+      addAudit('POST_CREATE', 'Staff', `Added post ${created.designation}.`);
       return { data: clone(created) };
     }
 
@@ -2140,6 +2653,12 @@ export async function handleMockRequest(
         (x) => x.id === id
       );
       if (!target) return { error: { status: 404, message: 'Record not found' } };
+      if (collection === 'staffStructures' && !target.isDeleted) {
+        const structure = db.staffStructures.find((row) => row.id === id);
+        if (structure && occupiedPosts(structure.designation, structure.staffType, structure.departmentId ?? null) > 0) {
+          return studentError(409, 'এই পদে এখনো লোক আছেন। আগে তাঁদের সরিয়ে আর্কাইভ করুন। / People still hold this post.');
+        }
+      }
       target.isDeleted = !target.isDeleted;
       target.deletedAt = target.isDeleted ? nowIso() : null;
       addAudit(target.isDeleted ? 'ARCHIVE' : 'RESTORE', collection, `Toggled archive state for ${id}.`);

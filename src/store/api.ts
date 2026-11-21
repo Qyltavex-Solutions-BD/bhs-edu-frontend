@@ -11,6 +11,7 @@ import type {
   AttendanceStatus,
   NoticeStatus,
   PromotionType,
+  RelationshipType,
 } from '@/src/types/enums';
 import type {
   AcademicDocument,
@@ -20,8 +21,11 @@ import type {
   AdmissionContent,
   Book,
   ClassSubject,
+  Department,
   Exam,
   ClassRoutine,
+  Parent,
+  ParentStudent,
   SchoolClass,
   SchoolProfile,
   Section,
@@ -30,6 +34,7 @@ import type {
   Student,
   StudentEnrollment,
   Staff,
+  StaffStructure,
   TeacherAssignment,
   SyllabusChapterEntry,
   SyllabusFile,
@@ -231,6 +236,7 @@ export const schoolApi = createApi({
       {
         date: string;
         markedBy: string;
+        academicYearId: string;
         entries: Array<{
           studentEnrollmentId: string;
           status: AttendanceStatus;
@@ -413,6 +419,26 @@ export const schoolApi = createApi({
 
     createStaff: builder.mutation<Staff, Partial<Staff>>({
       query: (body) => ({ url: '/staff', method: 'POST', body }),
+      invalidatesTags: ['Staff', 'Audit'],
+    }),
+
+    updateStaff: builder.mutation<Staff, Partial<Staff> & { id: string }>({
+      query: (body) => ({ url: '/staff/update', method: 'POST', body }),
+      invalidatesTags: ['Staff', 'Audit'],
+    }),
+
+    saveDepartment: builder.mutation<Department, Partial<Department>>({
+      query: (body) => ({ url: '/staff/departments', method: 'POST', body }),
+      invalidatesTags: ['Staff', 'Audit'],
+    }),
+
+    removeDepartment: builder.mutation<{ id: string }, { id: string }>({
+      query: (body) => ({ url: '/staff/departments/remove', method: 'POST', body }),
+      invalidatesTags: ['Staff', 'Audit'],
+    }),
+
+    saveStaffStructure: builder.mutation<StaffStructure, Partial<StaffStructure>>({
+      query: (body) => ({ url: '/staff/structures', method: 'POST', body }),
       invalidatesTags: ['Staff', 'Audit'],
     }),
 
@@ -635,6 +661,55 @@ export const schoolApi = createApi({
       query: (body) => ({ url: '/academic/events/remove', method: 'POST', body }),
       invalidatesTags: ['Academic', 'Bootstrap', 'Audit'],
     }),
+
+    saveParent: builder.mutation<Parent, Partial<Parent>>({
+      query: (body) => ({ url: '/parents', method: 'POST', body }),
+      invalidatesTags: ['Students', 'Audit'],
+    }),
+
+    updateParent: builder.mutation<Parent, Partial<Parent> & { id: string }>({
+      query: (body) => ({ url: '/parents/update', method: 'POST', body }),
+      invalidatesTags: ['Students', 'Audit'],
+    }),
+
+    removeParent: builder.mutation<{ id: string }, { id: string }>({
+      query: (body) => ({ url: '/parents/remove', method: 'POST', body }),
+      invalidatesTags: ['Students', 'Audit'],
+    }),
+
+    linkParent: builder.mutation<
+      ParentStudent,
+      {
+        parentId: string;
+        studentId: string;
+        relationship: RelationshipType;
+        isPrimary?: boolean;
+        isEmergencyContact?: boolean;
+        isSmsReceiver?: boolean;
+      }
+    >({
+      query: (body) => ({ url: '/parents/link', method: 'POST', body }),
+      invalidatesTags: ['Students', 'Audit'],
+    }),
+
+    updateParentLink: builder.mutation<
+      ParentStudent,
+      {
+        id: string;
+        relationship?: RelationshipType;
+        isPrimary?: boolean;
+        isEmergencyContact?: boolean;
+        isSmsReceiver?: boolean;
+      }
+    >({
+      query: (body) => ({ url: '/parents/link/update', method: 'POST', body }),
+      invalidatesTags: ['Students', 'Audit'],
+    }),
+
+    unlinkParent: builder.mutation<{ id: string }, { id: string }>({
+      query: (body) => ({ url: '/parents/unlink', method: 'POST', body }),
+      invalidatesTags: ['Students', 'Audit'],
+    }),
   }),
 });
 
@@ -674,6 +749,10 @@ export const {
   useRemoveTeacherAssignmentMutation,
   useAddClassRoutineMutation,
   useCreateStaffMutation,
+  useUpdateStaffMutation,
+  useSaveDepartmentMutation,
+  useRemoveDepartmentMutation,
+  useSaveStaffStructureMutation,
   useUpdateRfidCardStatusMutation,
   useMarkNotificationReadMutation,
   useToggleRolePermissionMutation,
@@ -694,6 +773,12 @@ export const {
   useRemoveSyllabusEntryMutation,
   useSaveAcademicEventMutation,
   useRemoveAcademicEventMutation,
+  useSaveParentMutation,
+  useUpdateParentMutation,
+  useRemoveParentMutation,
+  useLinkParentMutation,
+  useUpdateParentLinkMutation,
+  useUnlinkParentMutation,
   useSaveAcademicDocumentMutation,
   useRemoveAcademicDocumentMutation,
 } = schoolApi;

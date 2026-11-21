@@ -5,28 +5,23 @@ import Link from 'next/link';
 import { useParams } from '@/src/lib/navigation';
 import { toast } from 'sonner';
 import {
-  Archive,
   ArrowDown,
   ArrowUp,
   Download,
   FileText,
   GripVertical,
   Plus,
-  Printer,
-  RotateCcw,
   ShieldCheck,
   Trash2,
   Upload,
 } from 'lucide-react';
 import {
   useAddSyllabusEntryMutation,
-  useCreateStaffMutation,
   useGetBootstrapQuery,
   useRemoveSyllabusEntryMutation,
   useRemoveSyllabusFileMutation,
   useReorderCmsItemsMutation,
   useSaveSyllabusFileMutation,
-  useToggleArchiveMutation,
   useToggleCmsItemMutation,
   useToggleRolePermissionMutation,
   useUpdateSchoolProfileMutation,
@@ -54,8 +49,7 @@ import {
 } from '@/src/components/ui/primitives';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { DataTable } from '@/src/components/shared/DataTable';
-import { EmploymentType, StaffType } from '@/src/types/enums';
-import type { Staff, SyllabusExamTerm } from '@/src/types/entities';
+import type { SyllabusExamTerm } from '@/src/types/entities';
 import {
   AcademicFoundation,
   useAcademicYearSelection,
@@ -541,245 +535,7 @@ export function AdminUsersPage({
   );
 }
 
-// ============================================================================
-// 7.4 STAFF MANAGEMENT (Directory, Departments, Structures, Create & Profile)
-// ============================================================================
-
-export function AdminStaffPage({
-  defaultTab = 'all',
-}: {
-  defaultTab?: 'all' | 'teachers' | 'employees' | 'departments' | 'structures' | 'create';
-}) {
-  const { id: staffIdParam } = useParams();
-  const { data: db, isLoading } = useGetBootstrapQuery();
-  const [createStaff, { isLoading: creating }] = useCreateStaffMutation();
-  const [toggleArchive] = useToggleArchiveMutation();
-  const { locale, pick } = useI18n();
-  const [tab, setTab] = useState(defaultTab);
-  const [createOpen, setCreateOpen] = useState(defaultTab === 'create');
-  const [staffIdPrintOpen, setStaffIdPrintOpen] = useState(false);
-  const [newStaff, setNewStaff] = useState({
-    employeeId: 'T-015',
-    name: '',
-    designation: 'সহকারী শিক্ষক',
-    qualification: '',
-    staffType: StaffType.TEACHER,
-    departmentId: 'dept-sci',
-    employmentType: EmploymentType.PERMANENT,
-    phone: '01711200999',
-    email: '',
-  });
-
-  if (isLoading || !db) return <LoadingSkeleton />;
-
-  const profileStaff = staffIdParam ? db.staff.find((s) => s.id === staffIdParam) : null;
-
-  const filteredStaff = db.staff.filter((s) => {
-    if (tab === 'teachers') return s.staffType === StaffType.TEACHER;
-    if (tab === 'employees') return s.staffType !== StaffType.TEACHER;
-    return true;
-  });
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newStaff.name.trim()) {
-      toast.error(pick('স্টাফের নাম আবশ্যক', 'Staff name is required'));
-      return;
-    }
-    try {
-      await createStaff(newStaff).unwrap();
-      toast.success(pick('নতুন শিক্ষক/কর্মচারী যুক্ত হয়েছে।', 'Staff member added successfully.'));
-      setCreateOpen(false);
-      setNewStaff((s) => ({ ...s, name: '', employeeId: `T-0${db.staff.length + 12}` }));
-    } catch {
-      toast.error(pick('সংরক্ষণে সমস্যা হয়েছে।', 'Failed to create staff.'));
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title={pick('শিক্ষক ও কর্মচারী ব্যবস্থাপনা', 'Staff & Faculty Management')}
-        description={pick('ডিরেক্টরি, বিভাগ, পদ-কাঠামো (Staff Structure) এবং আইডি কার্ড প্রিন্ট।', 'Directory, departments, sanctioned vs filled staff structures, and ID cards.')}
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setStaffIdPrintOpen(true)}>
-              <Printer className="w-4 h-4" /> {pick('স্টাফ আইডি কার্ড', 'Staff ID Cards')}
-            </Button>
-            <Button variant="primary" size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="w-4 h-4" /> {pick('নতুন স্টাফ যুক্ত করুন', 'Add Staff')}
-            </Button>
-          </div>
-        }
-      />
-
-      {profileStaff && (
-        <Card className="p-6 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-foreground">{profileStaff.name}</h2>
-              <p className="text-sm text-primary">{profileStaff.designation} · {profileStaff.employeeId}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setStaffIdPrintOpen(true)}>
-                <Printer className="w-3.5 h-3.5" /> {pick('আইডি কার্ড প্রিন্ট', 'Print ID Card')}
-              </Button>
-              <Link href="/admin/staff"><Button variant="ghost" size="sm">{pick('বন্ধ করুন', 'Close')}</Button></Link>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm text-muted-foreground pt-2 border-t border-border">
-            <p><strong>{pick('যোগ্যতা:', 'Qualification:')}</strong> {profileStaff.qualification ?? '—'}</p>
-            <p className="tabular-nums"><strong>{pick('ফোন:', 'Phone:')}</strong> {profileStaff.phone ?? '—'}</p>
-            <p><strong>{pick('ইমেইল:', 'Email:')}</strong> {profileStaff.email ?? '—'}</p>
-          </div>
-        </Card>
-      )}
-
-      <SegmentedTabs
-        value={tab === 'create' ? 'all' : tab}
-        onChange={(v) => setTab(v)}
-        items={[
-          { value: 'all', label: pick('সকল স্টাফ', 'All Staff'), count: db.staff.length },
-          { value: 'teachers', label: pick('শিক্ষক', 'Teachers') },
-          { value: 'employees', label: pick('কর্মকর্তা ও কর্মচারী', 'Officers & Employees') },
-          { value: 'departments', label: pick('বিভাগসমূহ', 'Departments'), count: db.departments.length },
-          { value: 'structures', label: pick('পদ-কাঠামো', 'Staff Structure'), count: db.staffStructures.length },
-        ]}
-      />
-
-      {(tab === 'all' || tab === 'teachers' || tab === 'employees' || tab === 'create') && (
-        <DataTable<Staff>
-          data={filteredStaff}
-          exportFilename="staff-directory.csv"
-          columns={[
-            { accessorKey: 'employeeId', header: pick('আইডি', 'ID'), cell: ({ row }) => <span className="font-mono text-sm">{row.original.employeeId}</span> },
-            {
-              accessorKey: 'name',
-              header: pick('নাম', 'Name'),
-              cell: ({ row }) => (
-                <Link href={`/admin/staff/${row.original.id}`} className="font-semibold text-primary hover:underline">
-                  {row.original.name}
-                </Link>
-              ),
-            },
-            { accessorKey: 'designation', header: pick('পদবি', 'Designation') },
-            { accessorKey: 'staffType', header: pick('ধরন', 'Type'), cell: ({ row }) => <StatusBadge enumName="StaffType" value={row.original.staffType} /> },
-            { accessorKey: 'employmentType', header: pick('চাকরি', 'Employment'), cell: ({ row }) => <StatusBadge enumName="EmploymentType" value={row.original.employmentType} /> },
-            { accessorKey: 'status', header: pick('অবস্থা', 'Status'), cell: ({ row }) => <StatusBadge enumName="StaffStatus" value={row.original.status} /> },
-          ]}
-        />
-      )}
-
-      {tab === 'departments' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {db.departments.map((d) => (
-            <Card key={d.id} className="p-5 space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-foreground">{d.name}</h3>
-                <span className="font-mono text-xs text-primary">{d.code}</span>
-              </div>
-              <p className="text-sm text-muted-foreground">{d.description}</p>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {tab === 'structures' && (
-        <div className="space-y-3">
-          {db.staffStructures.map((st) => {
-            const pct = Math.min(100, Math.round((st.filledPositions / Math.max(1, st.totalPositions)) * 100));
-            return (
-              <Card key={st.id} className={`p-5 space-y-3 ${st.isDeleted ? 'opacity-60' : ''}`}>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <h3 className="text-base font-bold text-foreground">{st.designation}</h3>
-                    <p className="text-sm text-muted-foreground tabular-nums">
-                      {pick('পূরণকৃত পদ:', 'Filled:')} {formatNumber(st.filledPositions, locale)} / {formatNumber(st.totalPositions, locale)} ({pct}%)
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <StatusBadge enumName="StaffType" value={st.staffType} />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => toggleArchive({ collection: 'staffStructures', id: st.id })}
-                    >
-                      {st.isDeleted ? <RotateCcw className="w-3.5 h-3.5" /> : <Archive className="w-3.5 h-3.5" />}
-                      {st.isDeleted ? pick('পুনরুদ্ধার', 'Restore') : pick('আর্কাইভ', 'Archive')}
-                    </Button>
-                  </div>
-                </div>
-                <div className="w-full h-2 bg-surface-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title={pick('নতুন শিক্ষক / কর্মচারী নিবন্ধন', 'Add Staff Member')}>
-        <form onSubmit={handleCreate} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label={pick('স্টাফ আইডি', 'Employee ID')} required>
-              <Input value={newStaff.employeeId} onChange={(e) => setNewStaff({ ...newStaff, employeeId: e.target.value })} />
-            </FormField>
-            <FormField label={pick('পূর্ণ নাম', 'Full Name')} required>
-              <Input value={newStaff.name} onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })} />
-            </FormField>
-            <FormField label={pick('পদবি', 'Designation')} required>
-              <Input value={newStaff.designation} onChange={(e) => setNewStaff({ ...newStaff, designation: e.target.value })} />
-            </FormField>
-            <FormField label={pick('শিক্ষাগত যোগ্যতা', 'Qualification')}>
-              <Input value={newStaff.qualification} onChange={(e) => setNewStaff({ ...newStaff, qualification: e.target.value })} />
-            </FormField>
-            <FormField label={pick('ধরন', 'Staff Type')}>
-              <Select value={newStaff.staffType} onChange={(e) => setNewStaff({ ...newStaff, staffType: e.target.value as StaffType })}>
-                <option value={StaffType.TEACHER}>{pick('শিক্ষক', 'Teacher')}</option>
-                <option value={StaffType.OFFICER}>{pick('কর্মকর্তা', 'Officer')}</option>
-                <option value={StaffType.EMPLOYEE}>{pick('কর্মচারী', 'Employee')}</option>
-              </Select>
-            </FormField>
-            <FormField label={pick('ফোন নম্বর', 'Phone')}>
-              <Input value={newStaff.phone} onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })} />
-            </FormField>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>{pick('বাতিল', 'Cancel')}</Button>
-            <Button type="submit" variant="primary" disabled={creating}>{pick('সংরক্ষণ করুন', 'Save Staff')}</Button>
-          </div>
-        </form>
-      </Modal>
-
-      <Modal
-        open={staffIdPrintOpen}
-        onClose={() => setStaffIdPrintOpen(false)}
-        title={pick('শিক্ষক ও কর্মচারী পরিচয়পত্র (Staff ID Cards)', 'Staff ID Card Print Sheet')}
-        maxWidth="max-w-5xl"
-      >
-        <div className="space-y-4">
-          <div className="flex justify-end no-print">
-            <Button variant="primary" size="sm" onClick={triggerPrint}>
-              <Printer className="w-4 h-4" /> {pick('প্রিন্ট করুন', 'Print ID Cards')}
-            </Button>
-          </div>
-          <PrintableIdCardSheet
-            school={db.schoolProfile}
-            holderType="STAFF"
-            cards={(profileStaff ? [profileStaff] : filteredStaff).map((st) => ({
-              code: st.employeeId ?? st.id,
-              name: st.name,
-              subline: st.designation,
-              secondaryLine: st.qualification ?? undefined,
-              phone: st.phone,
-              validUntil: '2026–2027',
-            }))}
-          />
-        </div>
-      </Modal>
-    </div>
-  );
-}
+export { AdminStaffPage } from '@/src/views/admin/AdminStaffOps';
 
 // ============================================================================
 // 7.5 ACADEMIC SETUP + VISUAL CLASS ROUTINE BUILDER WITH CONFLICT DETECTION
