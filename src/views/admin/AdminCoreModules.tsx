@@ -61,6 +61,7 @@ import {
   AcademicYearBar,
   useAcademicYearSelection,
 } from '@/src/views/admin/AcademicFoundation';
+import { AcademicCurriculum } from '@/src/views/admin/AcademicCurriculum';
 
 type AcademicTab =
   | 'years'
@@ -995,35 +996,7 @@ export function AdminAcademicPage({
         <AcademicFoundation tab={tab} db={db} />
       )}
 
-      {tab === 'subjects' && (
-        <Card className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-surface-muted text-sm text-muted-foreground">
-              <tr>
-                <th className="p-3 text-left">{pick('কোড', 'Code')}</th>
-                <th className="p-3 text-left">{pick('বিষয়', 'Subject')}</th>
-                <th className="p-3 text-left">{pick('ক্যাটাগরি', 'Category')}</th>
-                <th className="p-3 text-left">{pick('ম্যাপকৃত শ্রেণি', 'Mapped Classes')}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {db.subjects.map((sub) => {
-                const count = db.classSubjects.filter(
-                  (cs) => cs.subjectId === sub.id && cs.academicYearId === selectedYear?.id
-                ).length;
-                return (
-                  <tr key={sub.id}>
-                    <td className="p-3 font-mono text-sm">{sub.officialCode}</td>
-                    <td className="p-3 font-medium">{locale === 'bn' ? sub.nameBn : sub.name}</td>
-                    <td className="p-3"><StatusBadge enumName="SubjectCategory" value={sub.category} /></td>
-                    <td className="p-3 tabular-nums text-sm">{formatNumber(count, locale)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </Card>
-      )}
+      {tab === 'subjects' && selectedYear && <AcademicCurriculum db={db} year={selectedYear} />}
 
       {tab === 'assignments' && (
         <Card className="overflow-x-auto">

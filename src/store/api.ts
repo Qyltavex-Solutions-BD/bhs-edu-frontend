@@ -13,6 +13,8 @@ import type {
   AcademicGroup,
   AcademicYear,
   AdmissionContent,
+  Book,
+  ClassSubject,
   Exam,
   ClassRoutine,
   SchoolClass,
@@ -301,6 +303,29 @@ export const schoolApi = createApi({
       invalidatesTags: ['Academic', 'Bootstrap'],
     }),
 
+    saveClassSubject: builder.mutation<ClassSubject, Partial<ClassSubject>>({
+      query: (body) => ({ url: '/academic/class-subjects', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap'],
+    }),
+
+    removeClassSubject: builder.mutation<{ deletedId: string }, { id: string }>({
+      query: (body) => ({ url: '/academic/class-subjects/remove', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap'],
+    }),
+
+    rolloverClassSubjects: builder.mutation<
+      { copiedCount: number; skippedCount: number },
+      { fromAcademicYearId: string; toAcademicYearId: string }
+    >({
+      query: (body) => ({ url: '/academic/class-subjects/rollover', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap'],
+    }),
+
+    saveBook: builder.mutation<Book, Partial<Book> & { academicYearId?: string }>({
+      query: (body) => ({ url: '/academic/books', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap'],
+    }),
+
     addClassRoutine: builder.mutation<ClassRoutine, Omit<ClassRoutine, 'id' | 'createdAt' | 'updatedAt'>>({
       query: (body) => ({ url: '/academic/routines', method: 'POST', body }),
       invalidatesTags: ['Academic', 'Audit'],
@@ -494,6 +519,10 @@ export const {
   useSaveAcademicGroupMutation,
   useSaveSchoolClassMutation,
   useSaveSectionMutation,
+  useSaveClassSubjectMutation,
+  useRemoveClassSubjectMutation,
+  useRolloverClassSubjectsMutation,
+  useSaveBookMutation,
   useAddClassRoutineMutation,
   useCreateStaffMutation,
   useUpdateRfidCardStatusMutation,

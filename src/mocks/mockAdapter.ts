@@ -3,6 +3,7 @@ import {
   AttendanceMethod,
   AttendanceSmsType,
   AttendanceStatus,
+  BookType,
   CardStatus,
   EnrollmentStatus,
   NoticeStatus,
@@ -16,6 +17,8 @@ import {
 import type {
   AcademicGroup,
   AcademicYear,
+  Book,
+  ClassSubject,
   Exam,
   Mark,
   Notice,
@@ -331,6 +334,215 @@ function saveSection(body: unknown): { data?: Section; error?: { status: number;
   };
   db.sections.push(created);
   addAudit('SECTION_CREATE', 'Academic', `Created section ${created.name} in ${schoolClass.name}.`);
+  return { data: clone(created) };
+}
+
+function classSubjectKey(item: { classId: string; subjectId: string; groupId?: string | null }) {
+  return `${item.classId}|${item.subjectId}|${item.groupId ?? ''}`;
+}
+
+function saveClassSubject(body: unknown): { data?: ClassSubject; error?: { status: number; message: string } } {
+  const payload = body as Partial<ClassSubject>;
+  const year = db.academicYears.find((item) => item.id === payload.academicYearId);
+  const schoolClass = db.classes.find((item) => item.id === payload.classId);
+  const subject = db.subjects.find((item) => item.id === payload.subjectId);
+  if (!year) return { error: { status: 404, message: 'শিক্ষাবর্ষ পাওয়া যায়নি। / Academic year not found.' } };
+  if (!schoolClass) return { error: { status: 404, message: 'শ্রেণি পাওয়া যায়নি। / Class not found.' } };
+  if (!subject || !subject.isActive) {
+    return { error: { status: 404, message: 'বিষয় পাওয়া যায়নি। / Subject not found.' } };
+  }
+
+  const usesGroup = schoolClass.numericValue >= 9;
+  const groupId = usesGroup ? payload.groupId || null : null;
+  if (!usesGroup && payload.groupId) {
+    return {
+      error: {
+        status: 400,
+        message: '৬ষ্ঠ–৮ম শ্রেণিতে বিভাগ বসানো যায় না। / Groups apply only to classes 9 and 10.',
+      },
+    };
+  }
+  if (groupId) {
+    const group = db.academicGroups.find((item) => item.id === groupId && item.isActive);
+    if (!group) return { error: { status: 404, message: 'বিভাগ পাওয়া যায়নি। / Academic group not found.' } };
+  }
+
+  const duplicate = db.classSubjects.find(
+    (item) =>
+      item.id !== payload.id &&
+      item.academicYearId === year.id &&
+      classSubjectKey(item) === classSubjectKey({ classId: schoolClass.id, subjectId: subject.id, groupId })
+  );
+  if (duplicate) {
+    return {
+      error: {
+        status: 409,
+        message: 'এই বিষয় এই শ্রেণি ও বিভাগে আগে থেকে আছে। / This subject is already assigned for this class and group.',
+      },
+    };
+  }
+
+  if (payload.id) {
+    const existing = db.classSubjects.find((item) => item.id === payload.id);
+    if (!existing) return { error: { status: 404, message: 'পাঠ্যক্রমের বিষয় পাওয়া যায়নি। / Class subject not found.' } };
+    existing.isOptional = payload.isOptional ?? existing.isOptional;
+    existing.displayOrder = payload.displayOrder ?? existing.displayOrder;
+    existing.isActive = payload.isActive ?? existing.isActive;
+    existing.updatedAt = nowIso();
+    addAudit('CLASS_SUBJECT_UPDATE', 'Academic', `Updated ${subject.name} on ${schoolClass.name} for ${year.name}.`);
+    return { data: clone(existing) };
+  }
+
+  const created: ClassSubject = {
+    id: uid('cs'),
+    academicYearId: year.id,
+    classId: schoolClass.id,
+    subjectId: subject.id,
+    groupId,
+    isOptional: payload.isOptional ?? false,
+    displayOrder: payload.displayOrder ?? 0,
+    isActive: true,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  };
+  db.classSubjects.push(created);
+  addAudit('CLASS_SUBJECT_ASSIGN', 'Academic', `Assigned ${subject.name} to ${schoolClass.name} for ${year.name}.`);
+  return { data: clone(created) };
+}
+
+function removeClassSubject(body: unknown): { data?: { deletedId: string }; error?: { status: number; message: string } } {
+  const { id } = body as { id?: string };
+  const existing = db.classSubjects.find((item) => item.id === id);
+  if (!existing) return { error: { status: 404, message: 'পাঠ্যক্রমের বিষয় পাওয়া যায়নি। / Class subject not found.' } };
+  const used = db.teacherAssignments.some((item) => item.classSubjectId === existing.id);
+  if (used) {
+    return {
+      error: {
+        status: 400,
+        message: 'এই বিষয়ে শিক্ষক বণ্টন আছে। আগে বণ্টন সরান, অথবা বিষয়টি বন্ধ করুন। / A teacher is assigned to this subject. Remove that assignment, or deactivate the subject.',
+      },
+    };
+  }
+  db.classSubjects = db.classSubjects.filter((item) => item.id !== existing.id);
+  addAudit('CLASS_SUBJECT_REMOVE', 'Academic', `Removed class subject ${existing.id}.`);
+  return { data: { deletedId: existing.id } };
+}
+
+function rolloverClassSubjects(body: unknown): {
+  data?: { copiedCount: number; skippedCount: number };
+  error?: { status: number; message: string };
+} {
+  const { fromAcademicYearId, toAcademicYearId } = body as {
+    fromAcademicYearId?: string;
+    toAcademicYearId?: string;
+  };
+  if (!fromAcademicYearId || !toAcademicYearId || fromAcademicYearId === toAcademicYearId) {
+    return {
+      error: {
+        status: 400,
+        message: 'কপি করার উৎস ও গন্তব্য শিক্ষাবর্ষ আলাদা হতে হবে। / Choose two different academic years.',
+      },
+    };
+  }
+  const fromYear = db.academicYears.find((item) => item.id === fromAcademicYearId);
+  const toYear = db.academicYears.find((item) => item.id === toAcademicYearId);
+  if (!fromYear || !toYear) {
+    return { error: { status: 404, message: 'শিক্ষাবর্ষ পাওয়া যায়নি। / Academic year not found.' } };
+  }
+  const source = db.classSubjects.filter((item) => item.academicYearId === fromYear.id && item.isActive);
+  if (source.length === 0) {
+    return {
+      error: {
+        status: 400,
+        message: `${fromYear.name} বছরে কপি করার মতো সক্রিয় বিষয় নেই। / No active subjects to copy.`,
+      },
+    };
+  }
+  const existingKeys = new Set(
+    db.classSubjects.filter((item) => item.academicYearId === toYear.id).map((item) => classSubjectKey(item))
+  );
+  const toCopy = source.filter((item) => !existingKeys.has(classSubjectKey(item)));
+  toCopy.forEach((item) => {
+    db.classSubjects.push({
+      ...item,
+      id: uid('cs'),
+      academicYearId: toYear.id,
+      isActive: true,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+  });
+  addAudit(
+    'CLASS_SUBJECT_ROLLOVER',
+    'Academic',
+    `Copied ${toCopy.length} subjects from ${fromYear.name} to ${toYear.name}.`
+  );
+  return { data: { copiedCount: toCopy.length, skippedCount: source.length - toCopy.length } };
+}
+
+function saveBook(body: unknown): { data?: Book; error?: { status: number; message: string } } {
+  const payload = body as Partial<Book> & { academicYearId?: string };
+  const name = payload.name?.trim() ?? '';
+  const schoolClass = db.classes.find((item) => item.id === payload.classId);
+  const subject = db.subjects.find((item) => item.id === payload.subjectId);
+  if (!schoolClass) return { error: { status: 404, message: 'শ্রেণি পাওয়া যায়নি। / Class not found.' } };
+  if (!subject) return { error: { status: 404, message: 'বিষয় পাওয়া যায়নি। / Subject not found.' } };
+  if (!name) return { error: { status: 400, message: 'বইয়ের নাম দিন। / Book name is required.' } };
+  if (payload.academicYearId) {
+    const onCurriculum = db.classSubjects.some(
+      (item) =>
+        item.academicYearId === payload.academicYearId &&
+        item.classId === schoolClass.id &&
+        item.subjectId === subject.id &&
+        item.isActive
+    );
+    if (!onCurriculum) {
+      return {
+        error: {
+          status: 400,
+          message: 'আগে এই শ্রেণির পাঠ্যক্রমে বিষয়টি যুক্ত করুন। / Assign this subject to the class for the selected year first.',
+        },
+      };
+    }
+  }
+  const duplicate = db.books.find(
+    (book) =>
+      book.id !== payload.id &&
+      book.classId === schoolClass.id &&
+      book.subjectId === subject.id &&
+      sameName(book.name, name)
+  );
+  if (duplicate) {
+    return {
+      error: { status: 409, message: 'এই শ্রেণি ও বিষয়ে একই নামের বই আছে। / This book is already listed for the class and subject.' },
+    };
+  }
+  const type = Object.values(BookType).includes(payload.type as BookType) ? (payload.type as BookType) : BookType.TEXTBOOK;
+  if (payload.id) {
+    const existing = db.books.find((book) => book.id === payload.id);
+    if (!existing) return { error: { status: 404, message: 'বই পাওয়া যায়নি। / Book not found.' } };
+    existing.name = name;
+    existing.bookCode = payload.bookCode?.trim() || null;
+    existing.type = type;
+    existing.isActive = payload.isActive ?? existing.isActive;
+    existing.updatedAt = nowIso();
+    addAudit('BOOK_UPDATE', 'Academic', `Updated book ${existing.name}.`);
+    return { data: clone(existing) };
+  }
+  const created: Book = {
+    id: uid('bk'),
+    classId: schoolClass.id,
+    subjectId: subject.id,
+    name,
+    bookCode: payload.bookCode?.trim() || null,
+    type,
+    displayOrder: payload.displayOrder ?? 0,
+    isActive: payload.isActive ?? true,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+  };
+  db.books.push(created);
+  addAudit('BOOK_CREATE', 'Academic', `Added book ${created.name} for ${schoolClass.name}.`);
   return { data: clone(created) };
 }
 
@@ -1519,6 +1731,18 @@ export async function handleMockRequest(
     }
     if (endpoint === '/academic/sections' && method === 'POST') {
       return saveSection(body);
+    }
+    if (endpoint === '/academic/class-subjects' && method === 'POST') {
+      return saveClassSubject(body);
+    }
+    if (endpoint === '/academic/class-subjects/remove' && method === 'POST') {
+      return removeClassSubject(body);
+    }
+    if (endpoint === '/academic/class-subjects/rollover' && method === 'POST') {
+      return rolloverClassSubjects(body);
+    }
+    if (endpoint === '/academic/books' && method === 'POST') {
+      return saveBook(body);
     }
 
     return { error: { status: 404, message: `Mock endpoint not implemented: ${method} ${endpoint}` } };
