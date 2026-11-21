@@ -270,6 +270,8 @@ function linkGuardian(
     nid?: string | null;
     address?: string | null;
     relationship?: RelationshipType;
+    sms?: boolean;
+    emergency?: boolean;
   }
 ) {
   const phone = input.phone.trim();
@@ -295,8 +297,8 @@ function linkGuardian(
       studentId,
       relationship: input.relationship ?? RelationshipType.FATHER,
       isPrimary: !db.parentStudents.some((link) => link.studentId === studentId && link.isPrimary),
-      isEmergencyContact: true,
-      isSmsReceiver: true,
+      isEmergencyContact: input.emergency !== false,
+      isSmsReceiver: input.sms !== false,
       createdAt: nowIso(),
       updatedAt: nowIso(),
     });
@@ -1750,11 +1752,29 @@ export async function handleMockRequest(
     if (endpoint === '/students' && method === 'POST') {
       const p = body as Record<string, unknown>;
       const nameEn = String(p.nameEn ?? '').trim();
-      const parentName = String(p.parentName ?? '').trim();
-      const parentPhone = String(p.parentPhone ?? '').trim();
-      if (!nameEn) return studentError(400, 'ইংরেজি নাম আবশ্যক। / English name is required.');
-      if (!parentName || !parentPhone) {
-        return studentError(400, 'অভিভাবকের নাম ও মোবাইল আবশ্যক। / Guardian name and phone are required.');
+      const nameBn = String(p.nameBn ?? '').trim();
+      const fatherName = String(p.fatherNameEn ?? p.parentName ?? '').trim();
+      const fatherNameBn = String(p.fatherNameBn ?? p.parentNameBn ?? '').trim();
+      const motherName = String(p.motherNameEn ?? '').trim();
+      const motherNameBn = String(p.motherNameBn ?? '').trim();
+      const guardianPhone = String(p.guardianPhone ?? p.parentPhone ?? '').trim();
+      if (!nameEn || !nameBn) return studentError(400, 'শিক্ষার্থীর বাংলা ও ইংরেজি নাম আবশ্যক। / Both names are required.');
+      if (!fatherName || !fatherNameBn || !guardianPhone) {
+        return studentError(400, 'পিতার নাম ও অভিভাবকের মোবাইল আবশ্যক। / Father’s name and the guardian phone are required.');
+      }
+      if (!/^(\+?88)?01[3-9]\d{8}$/.test(guardianPhone)) {
+        return studentError(400, 'অভিভাবকের মোবাইল সঠিক নয়। / Guardian phone is not a valid Bangladesh number.');
+      }
+      const motherPhoneRaw = String(p.motherPhone ?? '').trim();
+      if (motherPhoneRaw && !/^(\+?88)?01[3-9]\d{8}$/.test(motherPhoneRaw)) {
+        return studentError(400, 'মাতার মোবাইল সঠিক নয়। / Mother’s phone is not a valid Bangladesh number.');
+      }
+      if (!motherName || !motherNameBn) {
+        return studentError(400, 'মাতার বাংলা ও ইংরেজি নাম আবশ্যক। / Mother’s name is required.');
+      }
+      const birth = p.birthCertificateNo ? String(p.birthCertificateNo).trim() : '';
+      if (birth && !/^\d{17}$/.test(birth)) {
+        return studentError(400, 'জন্ম সনদ ১৭ ডিজিটের হতে হবে। / Birth certificate must be 17 digits.');
       }
       const groupId = p.groupId ? String(p.groupId) : null;
       const placed = placementError({
@@ -1781,10 +1801,10 @@ export async function handleMockRequest(
       const newStudent: Student = {
         id: stuId,
         studentId: `BHS-2026-${String(3000 + db.students.length + 1)}`,
-        birthCertificateNo: p.birthCertificateNo ? String(p.birthCertificateNo).trim() : null,
+        birthCertificateNo: birth || null,
         boardRegistrationNo: p.boardRegistrationNo ? String(p.boardRegistrationNo).trim() : null,
         nameEn,
-        nameBn: p.nameBn ? String(p.nameBn).trim() : null,
+        nameBn,
         dateOfBirth: p.dateOfBirth ? String(p.dateOfBirth) : null,
         gender: p.gender as Student['gender'],
         bloodGroup: (p.bloodGroup as Student['bloodGroup']) || null,
@@ -1794,7 +1814,13 @@ export async function handleMockRequest(
         admissionDate: String(p.admissionDate ?? nowIso().slice(0, 10)),
         status: StudentStatus.ACTIVE,
         previousSchoolName: p.previousSchoolName ? String(p.previousSchoolName) : null,
+        previousSchoolAddress: p.previousSchoolAddress ? String(p.previousSchoolAddress) : null,
+        previousGrade: p.previousGrade ? String(p.previousGrade) : null,
         previousGpa: p.previousGpa ? Number(p.previousGpa) : null,
+        prevExamPassingYear: p.prevExamPassingYear ? Number(p.prevExamPassingYear) : null,
+        prevExamRoll: p.prevExamRoll ? String(p.prevExamRoll) : null,
+        prevExamRegistration: p.prevExamRegistration ? String(p.prevExamRegistration) : null,
+        prevExamGpa: p.prevExamGpa ? Number(p.prevExamGpa) : null,
         createdAt: nowIso(),
         updatedAt: nowIso(),
       };
@@ -1817,13 +1843,26 @@ export async function handleMockRequest(
       };
       db.enrollments.unshift(newEnr);
       linkGuardian(stuId, {
-        name: parentName,
-        nameBn: p.parentNameBn ? String(p.parentNameBn) : null,
-        phone: parentPhone,
-        occupation: p.parentOccupation ? String(p.parentOccupation) : null,
-        nid: p.parentNid ? String(p.parentNid) : null,
+        name: fatherName,
+        nameBn: fatherNameBn,
+        phone: guardianPhone,
+        occupation: p.fatherOccupation ? String(p.fatherOccupation) : p.parentOccupation ? String(p.parentOccupation) : null,
+        nid: p.fatherNid ? String(p.fatherNid) : p.parentNid ? String(p.parentNid) : null,
         address: p.presentAddress ? String(p.presentAddress) : null,
-        relationship: (p.relationship as RelationshipType) || RelationshipType.FATHER,
+        relationship: RelationshipType.FATHER,
+      });
+      const motherPhone = motherPhoneRaw && motherPhoneRaw !== guardianPhone
+        ? motherPhoneRaw
+        : `unused-${String(p.motherNid ?? uid('m')).replace(/\s/g, '')}`;
+      linkGuardian(stuId, {
+        name: motherName,
+        nameBn: motherNameBn,
+        phone: motherPhone,
+        occupation: p.motherOccupation ? String(p.motherOccupation) : null,
+        nid: p.motherNid ? String(p.motherNid) : null,
+        address: p.presentAddress ? String(p.presentAddress) : null,
+        relationship: RelationshipType.MOTHER,
+        sms: false,
       });
       addAudit('STUDENT_CREATE', 'Students', `Registered ${newStudent.nameEn} (${newStudent.studentId}).`);
       return { data: clone({ student: newStudent, enrollment: newEnr }) };

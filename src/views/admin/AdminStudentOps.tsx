@@ -1,10 +1,45 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { toast } from 'sonner';
-import { Printer } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowLeft,
+  Award,
+  Calendar,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Copy,
+  CreditCard,
+  Download,
+  ExternalLink,
+  Eye,
+  FileCheck,
+  FileText,
+  Filter,
+  GraduationCap,
+  Heart,
+  IdCard,
+  LayoutGrid,
+  List,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Printer,
+  QrCode,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  User,
+  UserCheck,
+  Users,
+  X,
+} from 'lucide-react';
 import { useParams } from '@/src/lib/navigation';
 import {
   useCreateStudentMutation,
@@ -23,38 +58,30 @@ import { StudentsShell } from '@/src/views/admin/StudentsShell';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { triggerPrint } from '@/src/lib/utils/cn';
-import { LoadingSkeleton } from '@/src/components/shared/Feedback';
+import { LoadingSkeleton, SchoolEmblem, StatCard } from '@/src/components/shared/Feedback';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
-import { PrintableIdCardSheet, PrintableTransferCertificate } from '@/src/components/print/PrintDocuments';
+import { PrintableTransferCertificate } from '@/src/components/print/PrintDocuments';
 import { Button, Card, FormField, Input, Modal, Select, Textarea } from '@/src/components/ui/primitives';
+import { getEnumMeta } from '@/src/lib/constants/enums';
+import { closedDay, latestOpenDay, localToday } from '@/src/lib/schoolDay';
 import {
+  AttendanceMethod,
+  AttendanceStatus,
   BloodGroup,
   CardStatus,
   EnrollmentStatus,
   Gender,
   PromotionType,
-  RelationshipType,
   Religion,
   StudentStatus,
 } from '@/src/types/enums';
 import type { MockDatabase } from '@/src/mocks/seed';
-import type { Student, StudentEnrollment } from '@/src/types/entities';
+import type { Attendance, Student, StudentEnrollment } from '@/src/types/entities';
 
-function errorMessage(err: unknown, fallback: string) {
-  return (err as { message?: string })?.message || fallback;
-}
-
-const BLOOD_LABEL: Record<string, string> = {
-  A_POSITIVE: 'A+',
-  A_NEGATIVE: 'A−',
-  B_POSITIVE: 'B+',
-  B_NEGATIVE: 'B−',
-  O_POSITIVE: 'O+',
-  O_NEGATIVE: 'O−',
-  AB_POSITIVE: 'AB+',
-  AB_NEGATIVE: 'AB−',
-};
+import { StudentDirectory } from './students/StudentDirectory';
+import { StudentProfile } from './students/StudentProfile';
+import { classLabel, errorMessage, BLOOD_LABEL } from './students/studentShared';
 
 type SectionKey =
   | 'directory'
@@ -95,12 +122,12 @@ export function AdminStudentsPage({
   const copy: Record<SectionKey, { title: string; description: string; year: boolean }> = {
     directory: {
       title: pick('শিক্ষার্থী ডিরেক্টরি', 'Student directory'),
-      description: pick('এই শিক্ষাবর্ষে ভর্তি শিক্ষার্থী। নাম খুলে প্রোফাইল দেখা যায়।', 'Students enrolled in this academic year. Open a name to see the profile.'),
+      description: pick('এই শিক্ষাবর্ষের সারাংশ ও তালিকা। চোখের আইকনে ফাইল খোলে।', 'This year’s summary and list. The eye icon opens the file.'),
       year: true,
     },
     create: {
       title: pick('নতুন ভর্তি', 'New admission'),
-      description: pick('ব্যক্তিগত তথ্য, অভিভাবক, তারপর শ্রেণি ও রোল।', 'Personal details, guardian, then class and roll.'),
+      description: pick('স্কুলের ভর্তি ফরম: শিক্ষার্থী, পিতা-মাতা, তারপর আগের পড়াশোনা ও শ্রেণি।', 'The school admission form: the student, both parents, then previous study and class.'),
       year: false,
     },
     admissions: {
@@ -134,16 +161,16 @@ export function AdminStudentsPage({
       year: true,
     },
     profile: {
-      title: pick('শিক্ষার্থীর প্রোফাইল', 'Student profile'),
-      description: pick('ব্যক্তিগত তথ্য, এই বছরের ভর্তি, অভিভাবক ও ছাড়পত্র।', 'Personal record, this year’s enrollment, guardians, and certificates.'),
-      year: false,
+      title: pick('শিক্ষার্থীর ফাইল', 'Student file'),
+      description: pick('পরিচয়, এই বছরের হাজিরা, অভিভাবক ও কার্ড। হাজিরা এখান থেকে লেখা হয় না।', 'Identity, this year’s attendance, guardian, and card. Attendance is not marked here.'),
+      year: true,
     },
   };
 
   const page = copy[section];
   return (
     <StudentsShell title={page.title} description={page.description} years={db.academicYears} selectedYear={year} showYear={page.year}>
-      {section === 'directory' && <Directory db={db} yearId={year.id} />}
+      {section === 'directory' && <StudentDirectory db={db} yearId={year.id} />}
       {section === 'create' && <Register db={db} yearId={year.id} />}
       {section === 'admissions' && <Admissions db={db} yearId={year.id} />}
       {section === 'enrollments' && <Enrollments db={db} yearId={year.id} />}
@@ -151,148 +178,8 @@ export function AdminStudentsPage({
       {section === 'transfers' && <Transfers db={db} />}
       {section === 'cards' && <Cards db={db} />}
       {section === 'import' && <Importer db={db} yearId={year.id} />}
-      {section === 'profile' && <Profile db={db} studentId={id ?? ''} startEditing={pathname.endsWith('/edit')} />}
+      {section === 'profile' && <StudentProfile db={db} studentId={id ?? ''} yearId={year.id} startEditing={pathname.endsWith('/edit')} />}
     </StudentsShell>
-  );
-}
-
-function classLabel(db: MockDatabase, classId: string, locale: string) {
-  const item = db.classes.find((row) => row.id === classId);
-  if (!item) return '—';
-  return locale === 'bn' ? item.nameBn || item.name : item.name;
-}
-
-function Directory({ db, yearId }: { db: MockDatabase; yearId: string }) {
-  const { locale, pick } = useI18n();
-  const [classId, setClassId] = useState('ALL');
-  const [sectionId, setSectionId] = useState('ALL');
-  const [printOpen, setPrintOpen] = useState(false);
-  const rows = useMemo(() => {
-    return db.enrollments
-      .filter((enrollment) => enrollment.academicYearId === yearId)
-      .map((enrollment) => {
-        const student = db.students.find((item) => item.id === enrollment.studentId);
-        if (!student) return null;
-        const section = db.sections.find((item) => item.id === enrollment.sectionId);
-        const group = enrollment.groupId ? db.academicGroups.find((item) => item.id === enrollment.groupId) : null;
-        const guardian = db.parentStudents
-          .filter((link) => link.studentId === student.id)
-          .map((link) => db.parents.find((parent) => parent.id === link.parentId))
-          .find(Boolean);
-        return {
-          id: student.id,
-          studentId: student.studentId,
-          nameBn: student.nameBn || student.nameEn,
-          nameEn: student.nameEn,
-          classId: enrollment.classId,
-          sectionId: enrollment.sectionId,
-          classLabel: classLabel(db, enrollment.classId, locale),
-          sectionLabel: section?.name ?? '—',
-          groupLabel: group ? (locale === 'bn' ? group.nameBn || group.name : group.name) : '—',
-          roll: enrollment.roll,
-          guardian: guardian ? `${guardian.nameBn || guardian.name} · ${guardian.phone}` : '—',
-          status: student.status,
-          presentAddress: student.presentAddress,
-          bloodGroup: student.bloodGroup,
-        };
-      })
-      .filter((row): row is NonNullable<typeof row> => Boolean(row))
-      .filter((row) => (classId === 'ALL' ? true : row.classId === classId))
-      .filter((row) => (sectionId === 'ALL' ? true : row.sectionId === sectionId))
-      .sort((a, b) => a.classLabel.localeCompare(b.classLabel) || a.sectionLabel.localeCompare(b.sectionLabel) || a.roll - b.roll);
-  }, [db, yearId, locale, classId, sectionId]);
-
-  return (
-    <>
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={() => setPrintOpen(true)} disabled={!rows.length}>
-          <Printer className="w-4 h-4" /> {pick('পরিচয়পত্র প্রিন্ট', 'Print ID cards')}
-        </Button>
-      </div>
-      <DataTable
-        data={rows}
-        exportFilename="students.csv"
-        toolbarExtra={
-          <div className="flex gap-2">
-            <Select
-              value={classId}
-              onChange={(event) => {
-                setClassId(event.target.value);
-                setSectionId('ALL');
-              }}
-              className="w-40 h-9"
-            >
-              <option value="ALL">{pick('সকল শ্রেণি', 'All classes')}</option>
-              {db.classes.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {locale === 'bn' ? item.nameBn || item.name : item.name}
-                </option>
-              ))}
-            </Select>
-            <Select value={sectionId} onChange={(event) => setSectionId(event.target.value)} className="w-36 h-9">
-              <option value="ALL">{pick('সকল শাখা', 'All sections')}</option>
-              {db.sections
-                .filter((item) => classId === 'ALL' || item.classId === classId)
-                .map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-            </Select>
-          </div>
-        }
-        columns={[
-          { accessorKey: 'studentId', header: pick('আইডি', 'ID'), cell: ({ row }) => <span className="font-mono text-sm">{row.original.studentId}</span> },
-          {
-            accessorKey: 'nameBn',
-            header: pick('নাম', 'Name'),
-            cell: ({ row }) => (
-              <Link href={`/admin/students/${row.original.id}`} className="font-semibold text-primary hover:underline">
-                {row.original.nameBn}
-                <span className="block text-xs font-normal text-muted-foreground">{row.original.nameEn}</span>
-              </Link>
-            ),
-          },
-          { accessorKey: 'classLabel', header: pick('শ্রেণি', 'Class') },
-          { accessorKey: 'sectionLabel', header: pick('শাখা', 'Section') },
-          { accessorKey: 'groupLabel', header: pick('বিভাগ', 'Stream') },
-          { accessorKey: 'roll', header: pick('রোল', 'Roll'), cell: ({ row }) => <span className="tabular-nums">{formatNumber(row.original.roll, locale)}</span> },
-          { accessorKey: 'guardian', header: pick('অভিভাবক', 'Guardian') },
-          { accessorKey: 'status', header: pick('অবস্থা', 'Status'), cell: ({ row }) => <StatusBadge enumName="StudentStatus" value={row.original.status} /> },
-        ]}
-        renderMobileCard={(row) => (
-          <div className="space-y-1">
-            <Link href={`/admin/students/${row.id}`} className="font-semibold text-primary">
-              {row.nameBn}
-            </Link>
-            <p className="text-sm text-muted-foreground">
-              {row.studentId} · {row.classLabel} ({row.sectionLabel}) · {pick('রোল', 'Roll')} {row.roll}
-            </p>
-          </div>
-        )}
-      />
-      <Modal open={printOpen} onClose={() => setPrintOpen(false)} title={pick('পরিচয়পত্র', 'ID cards')} maxWidth="max-w-5xl">
-        <div className="space-y-4">
-          <div className="flex justify-end">
-            <Button variant="primary" size="sm" onClick={triggerPrint}>
-              <Printer className="w-4 h-4" /> {pick('প্রিন্ট', 'Print')}
-            </Button>
-          </div>
-          <PrintableIdCardSheet
-            school={db.schoolProfile}
-            holderType="STUDENT"
-            cards={rows.slice(0, 12).map((row) => ({
-              code: row.studentId,
-              name: locale === 'bn' ? row.nameBn : row.nameEn,
-              subline: `${row.classLabel} (${row.sectionLabel}) · ${pick('রোল', 'Roll')} ${formatNumber(row.roll, locale)}`,
-              secondaryLine: row.presentAddress ?? undefined,
-              bloodGroup: row.bloodGroup ? BLOOD_LABEL[row.bloodGroup] || row.bloodGroup : undefined,
-              validUntil: db.academicYears.find((item) => item.id === yearId)?.name,
-            }))}
-          />
-        </div>
-      </Modal>
-    </>
   );
 }
 
@@ -311,14 +198,23 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
     boardRegistrationNo: '',
     presentAddress: '',
     permanentAddress: '',
-    parentName: '',
-    parentNameBn: '',
-    parentPhone: '',
-    parentOccupation: '',
-    parentNid: '',
-    relationship: RelationshipType.FATHER as string,
+    fatherNameEn: '',
+    fatherNameBn: '',
+    fatherOccupation: '',
+    fatherNid: '',
+    guardianPhone: '',
+    motherNameEn: '',
+    motherNameBn: '',
+    motherOccupation: '',
+    motherNid: '',
+    motherPhone: '',
     previousSchoolName: '',
-    previousGpa: '',
+    previousSchoolAddress: '',
+    previousGrade: '',
+    prevExamPassingYear: '',
+    prevExamRoll: '',
+    prevExamRegistration: '',
+    prevExamGpa: '',
     academicYearId: yearId,
     classId: db.classes[0]?.id ?? '',
     sectionId: db.sections.find((item) => item.classId === db.classes[0]?.id)?.id ?? '',
@@ -340,14 +236,36 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
 
   const set = (patch: Partial<typeof form>) => setForm((current) => ({ ...current, ...patch }));
 
+  const phoneOk = (value: string) => /^(\+?88)?01[3-9]\d{8}$/.test(value.trim());
+
   const next = () => {
-    if (step === 1 && !form.nameEn.trim()) {
-      toast.error(pick('ইংরেজি নাম আবশ্যক।', 'English name is required.'));
-      return;
+    if (step === 1) {
+      if (!form.nameBn.trim() || !form.nameEn.trim() || !form.dateOfBirth) {
+        toast.error(pick('নাম ও জন্ম তারিখ আবশ্যক।', 'Name and date of birth are required.'));
+        return;
+      }
+      if (!/^\d{17}$/.test(form.birthCertificateNo.trim())) {
+        toast.error(pick('১৭ ডিজিটের জন্ম সনদ দিন।', 'Enter the 17-digit birth certificate.'));
+        return;
+      }
     }
-    if (step === 3 && (!form.parentName.trim() || !form.parentPhone.trim())) {
-      toast.error(pick('অভিভাবকের নাম ও মোবাইল আবশ্যক।', 'Guardian name and phone are required.'));
-      return;
+    if (step === 2) {
+      if (!form.fatherNameBn.trim() || !form.fatherNameEn.trim() || !form.motherNameBn.trim() || !form.motherNameEn.trim()) {
+        toast.error(pick('পিতা ও মাতার নাম আবশ্যক।', 'Father and mother names are required.'));
+        return;
+      }
+      if (!phoneOk(form.guardianPhone)) {
+        toast.error(pick('অভিভাবকের মোবাইল সঠিক নয়।', 'Guardian phone is not valid.'));
+        return;
+      }
+      if (form.motherPhone.trim() && !phoneOk(form.motherPhone)) {
+        toast.error(pick('মাতার মোবাইল সঠিক নয়।', 'Mother’s phone is not valid.'));
+        return;
+      }
+      if (form.presentAddress.trim().length < 5 || form.permanentAddress.trim().length < 5) {
+        toast.error(pick('বর্তমান ও স্থায়ী ঠিকানা দিন।', 'Present and permanent addresses are required.'));
+        return;
+      }
     }
     setStep((value) => value + 1);
   };
@@ -363,22 +281,34 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
         ...form,
         groupId: needsGroup ? form.groupId : '',
         roll: Number(form.roll),
-        previousGpa: form.previousGpa ? Number(form.previousGpa) : null,
         bloodGroup: form.bloodGroup || null,
+        prevExamPassingYear: form.prevExamPassingYear ? Number(form.prevExamPassingYear) : null,
+        prevExamGpa: form.prevExamGpa ? Number(form.prevExamGpa) : null,
       }).unwrap();
       toast.success(pick('শিক্ষার্থী ভর্তি হয়েছে।', 'Student admitted.'));
       setStep(1);
-      set({ nameEn: '', nameBn: '', birthCertificateNo: '', boardRegistrationNo: '', parentName: '', parentNameBn: '', parentPhone: '', roll: '' });
+      set({
+        nameEn: '',
+        nameBn: '',
+        birthCertificateNo: '',
+        boardRegistrationNo: '',
+        fatherNameEn: '',
+        fatherNameBn: '',
+        motherNameEn: '',
+        motherNameBn: '',
+        guardianPhone: '',
+        motherPhone: '',
+        roll: '',
+      });
     } catch (err) {
       toast.error(errorMessage(err, pick('ভর্তি হয়নি।', 'Admission failed.')));
     }
   };
 
   const steps = [
-    pick('ব্যক্তিগত', 'Personal'),
-    pick('ঠিকানা', 'Address'),
-    pick('অভিভাবক', 'Guardian'),
-    pick('শ্রেণি ও রোল', 'Class & roll'),
+    pick('শিক্ষার্থী', 'Student'),
+    pick('পিতা-মাতা ও ঠিকানা', 'Parents & address'),
+    pick('পূর্বের পড়াশোনা ও শ্রেণি', 'Previous study & class'),
   ];
 
   return (
@@ -396,20 +326,31 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
       <form onSubmit={submit} className="space-y-4">
         {step === 1 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label={pick('বাংলা নাম', 'Name in Bangla')}>
+            <FormField label={pick('০১. শিক্ষার্থীর নাম (বাংলায়)', '01. Student name in Bangla')} required>
               <Input value={form.nameBn} onChange={(event) => set({ nameBn: event.target.value })} />
             </FormField>
-            <FormField label={pick('ইংরেজি নাম', 'Name in English')} required>
+            <FormField label={pick('০১. শিক্ষার্থীর নাম (ইংরেজিতে)', '01. Student name in English')} required>
               <Input value={form.nameEn} onChange={(event) => set({ nameEn: event.target.value })} />
             </FormField>
-            <FormField label={pick('জন্ম তারিখ', 'Date of birth')}>
+            <FormField label={pick('০৫. জন্ম তারিখ', '05. Date of birth')} required>
               <Input type="date" value={form.dateOfBirth} onChange={(event) => set({ dateOfBirth: event.target.value })} />
             </FormField>
-            <FormField label={pick('লিঙ্গ', 'Gender')}>
+            <FormField label={pick('লিঙ্গ', 'Gender')} required>
               <Select value={form.gender} onChange={(event) => set({ gender: event.target.value })}>
                 <option value={Gender.MALE}>{pick('ছাত্র', 'Male')}</option>
                 <option value={Gender.FEMALE}>{pick('ছাত্রী', 'Female')}</option>
-                <option value={Gender.OTHER}>{pick('অন্যান্য', 'Other')}</option>
+              </Select>
+            </FormField>
+            <FormField label={pick('০৬. ১৭ ডিজিটের জন্ম সনদ', '06. 17-digit birth certificate')} required>
+              <Input inputMode="numeric" maxLength={17} value={form.birthCertificateNo} onChange={(event) => set({ birthCertificateNo: event.target.value.replace(/\D/g, '').slice(0, 17) })} />
+            </FormField>
+            <FormField label={pick('০৭. ধর্ম', '07. Religion')} required>
+              <Select value={form.religion} onChange={(event) => set({ religion: event.target.value })}>
+                {Object.values(Religion).map((value) => (
+                  <option key={value} value={value}>
+                    {locale === 'bn' ? getEnumMeta('Religion', value).bn : getEnumMeta('Religion', value).en}
+                  </option>
+                ))}
               </Select>
             </FormField>
             <FormField label={pick('রক্তের গ্রুপ', 'Blood group')}>
@@ -422,18 +363,6 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
                 ))}
               </Select>
             </FormField>
-            <FormField label={pick('ধর্ম', 'Religion')}>
-              <Select value={form.religion} onChange={(event) => set({ religion: event.target.value })}>
-                {Object.values(Religion).map((value) => (
-                  <option key={value} value={value}>
-                    {value}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-            <FormField label={pick('জন্ম সনদ নম্বর', 'Birth certificate')}>
-              <Input value={form.birthCertificateNo} onChange={(event) => set({ birthCertificateNo: event.target.value })} />
-            </FormField>
             <FormField label={pick('বোর্ড রেজিস্ট্রেশন', 'Board registration')}>
               <Input value={form.boardRegistrationNo} onChange={(event) => set({ boardRegistrationNo: event.target.value })} />
             </FormField>
@@ -441,49 +370,73 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
         )}
         {step === 2 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label={pick('বর্তমান ঠিকানা', 'Present address')}>
+            <FormField label={pick('০২. পিতার নাম (বাংলায়)', '02. Father’s name in Bangla')} required>
+              <Input value={form.fatherNameBn} onChange={(event) => set({ fatherNameBn: event.target.value })} />
+            </FormField>
+            <FormField label={pick('পিতার নাম (ইংরেজিতে)', 'Father’s name in English')} required>
+              <Input value={form.fatherNameEn} onChange={(event) => set({ fatherNameEn: event.target.value })} />
+            </FormField>
+            <FormField label={pick('পিতার পেশা', 'Father’s occupation')}>
+              <Input value={form.fatherOccupation} onChange={(event) => set({ fatherOccupation: event.target.value })} />
+            </FormField>
+            <FormField label={pick('পিতার এনআইডি', 'Father’s NID')}>
+              <Input value={form.fatherNid} onChange={(event) => set({ fatherNid: event.target.value })} />
+            </FormField>
+            <FormField label={pick('অভিভাবকের মোবাইল', 'Guardian mobile')} required>
+              <Input value={form.guardianPhone} onChange={(event) => set({ guardianPhone: event.target.value })} placeholder="01XXXXXXXXX" />
+            </FormField>
+            <FormField label={pick('০৩. মাতার নাম (বাংলায়)', '03. Mother’s name in Bangla')} required>
+              <Input value={form.motherNameBn} onChange={(event) => set({ motherNameBn: event.target.value })} />
+            </FormField>
+            <FormField label={pick('মাতার নাম (ইংরেজিতে)', 'Mother’s name in English')} required>
+              <Input value={form.motherNameEn} onChange={(event) => set({ motherNameEn: event.target.value })} />
+            </FormField>
+            <FormField label={pick('মাতার পেশা', 'Mother’s occupation')}>
+              <Input value={form.motherOccupation} onChange={(event) => set({ motherOccupation: event.target.value })} />
+            </FormField>
+            <FormField label={pick('মাতার এনআইডি', 'Mother’s NID')}>
+              <Input value={form.motherNid} onChange={(event) => set({ motherNid: event.target.value })} />
+            </FormField>
+            <FormField label={pick('মাতার মোবাইল', 'Mother’s mobile')}>
+              <Input value={form.motherPhone} onChange={(event) => set({ motherPhone: event.target.value })} placeholder="01XXXXXXXXX" />
+            </FormField>
+            <FormField label={pick('০৪. বর্তমান ঠিকানা', '04. Present address')} required>
               <Textarea value={form.presentAddress} onChange={(event) => set({ presentAddress: event.target.value })} />
             </FormField>
-            <FormField label={pick('স্থায়ী ঠিকানা', 'Permanent address')}>
+            <FormField label={pick('০৪. স্থায়ী ঠিকানা', '04. Permanent address')} required>
               <Textarea value={form.permanentAddress} onChange={(event) => set({ permanentAddress: event.target.value })} />
-            </FormField>
-            <FormField label={pick('পূর্বের বিদ্যালয়', 'Previous school')}>
-              <Input value={form.previousSchoolName} onChange={(event) => set({ previousSchoolName: event.target.value })} />
-            </FormField>
-            <FormField label={pick('পূর্বের জিপিএ', 'Previous GPA')}>
-              <Input value={form.previousGpa} onChange={(event) => set({ previousGpa: event.target.value })} />
             </FormField>
           </div>
         )}
         {step === 3 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label={pick('সম্পর্ক', 'Relationship')}>
-              <Select value={form.relationship} onChange={(event) => set({ relationship: event.target.value })}>
-                <option value={RelationshipType.FATHER}>{pick('পিতা', 'Father')}</option>
-                <option value={RelationshipType.MOTHER}>{pick('মাতা', 'Mother')}</option>
-                <option value={RelationshipType.GUARDIAN}>{pick('অভিভাবক', 'Guardian')}</option>
-                <option value={RelationshipType.OTHER}>{pick('অন্যান্য', 'Other')}</option>
+            <FormField label={pick('০৯. পূর্বের বিদ্যালয়', '09. Previous school')}>
+              <Input value={form.previousSchoolName} onChange={(event) => set({ previousSchoolName: event.target.value })} />
+            </FormField>
+            <FormField label={pick('পূর্বের বিদ্যালয়ের ঠিকানা', 'Previous school address')}>
+              <Input value={form.previousSchoolAddress} onChange={(event) => set({ previousSchoolAddress: event.target.value })} />
+            </FormField>
+            <FormField label={pick('পূর্বের শ্রেণি ও গ্রেড', 'Previous class and grade')}>
+              <Input value={form.previousGrade} onChange={(event) => set({ previousGrade: event.target.value })} />
+            </FormField>
+            <FormField label={pick('০৮. পিএসসি / জেএসসি পাসের সন', '08. PSC / JSC passing year')}>
+              <Input type="number" min={1990} max={2100} value={form.prevExamPassingYear} onChange={(event) => set({ prevExamPassingYear: event.target.value })} />
+            </FormField>
+            <FormField label={pick('পূর্বের পরীক্ষার রোল', 'Previous exam roll')}>
+              <Input value={form.prevExamRoll} onChange={(event) => set({ prevExamRoll: event.target.value })} />
+            </FormField>
+            <FormField label={pick('পূর্বের রেজিস্ট্রেশন', 'Previous registration')}>
+              <Input value={form.prevExamRegistration} onChange={(event) => set({ prevExamRegistration: event.target.value })} />
+            </FormField>
+            <FormField label={pick('পূর্বের জিপিএ', 'Previous GPA')}>
+              <Input type="number" min={0} max={5} step="0.01" value={form.prevExamGpa} onChange={(event) => set({ prevExamGpa: event.target.value })} />
+            </FormField>
+            <FormField label={pick('১০. ভর্তির ধরন', '10. Admission type')}>
+              <Select value={form.isReadmission ? 'READMIT' : 'NEW'} onChange={(event) => set({ isReadmission: event.target.value === 'READMIT' })}>
+                <option value="NEW">{pick('নতুন ভর্তি', 'New admission')}</option>
+                <option value="READMIT">{pick('পুনঃভর্তি', 'Readmission')}</option>
               </Select>
             </FormField>
-            <FormField label={pick('ইংরেজি নাম', 'Name in English')} required>
-              <Input value={form.parentName} onChange={(event) => set({ parentName: event.target.value })} />
-            </FormField>
-            <FormField label={pick('বাংলা নাম', 'Name in Bangla')}>
-              <Input value={form.parentNameBn} onChange={(event) => set({ parentNameBn: event.target.value })} />
-            </FormField>
-            <FormField label={pick('মোবাইল', 'Phone')} required>
-              <Input value={form.parentPhone} onChange={(event) => set({ parentPhone: event.target.value })} />
-            </FormField>
-            <FormField label={pick('পেশা', 'Occupation')}>
-              <Input value={form.parentOccupation} onChange={(event) => set({ parentOccupation: event.target.value })} />
-            </FormField>
-            <FormField label={pick('এনআইডি', 'NID')}>
-              <Input value={form.parentNid} onChange={(event) => set({ parentNid: event.target.value })} />
-            </FormField>
-          </div>
-        )}
-        {step === 4 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label={pick('শিক্ষাবর্ষ', 'Academic year')}>
               <Select value={form.academicYearId} onChange={(event) => set({ academicYearId: event.target.value })}>
                 {db.academicYears.map((item) => (
@@ -493,7 +446,7 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
                 ))}
               </Select>
             </FormField>
-            <FormField label={pick('শ্রেণি', 'Class')}>
+            <FormField label={pick('১১. ভর্তিচ্ছু শ্রেণি', '11. Class')}>
               <Select
                 value={form.classId}
                 onChange={(event) => {
@@ -520,7 +473,7 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
               </Select>
             </FormField>
             {needsGroup && (
-              <FormField label={pick('বিভাগ', 'Stream')} required>
+              <FormField label={pick('১২. বিভাগ', '12. Stream')} required>
                 <Select value={form.groupId} onChange={(event) => set({ groupId: event.target.value, optionalClassSubjectId: '' })}>
                   <option value="">{pick('বেছে নিন', 'Choose')}</option>
                   {db.academicGroups.map((item) => (
@@ -534,7 +487,7 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
             <FormField label={pick('রোল', 'Roll')} required>
               <Input type="number" min={1} value={form.roll} onChange={(event) => set({ roll: event.target.value })} />
             </FormField>
-            <FormField label={pick('ঐচ্ছিক বিষয়', 'Optional subject')}>
+            <FormField label={pick('১৩. ৪র্থ বিষয় (ঐচ্ছিক)', '13. Fourth / optional subject')}>
               <Select value={form.optionalClassSubjectId} onChange={(event) => set({ optionalClassSubjectId: event.target.value })}>
                 <option value="">{pick('নেই', 'None')}</option>
                 {optionals.map((row) => {
@@ -547,18 +500,14 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
                 })}
               </Select>
             </FormField>
-            <label className="flex items-center gap-2 text-sm sm:col-span-2">
-              <input type="checkbox" checked={form.isReadmission} onChange={(event) => set({ isReadmission: event.target.checked })} />
-              {pick('পুনঃভর্তি', 'Readmission')}
-            </label>
           </div>
         )}
         <div className="flex justify-between pt-3 border-t border-border">
-          <Button variant="outline" disabled={step === 1} onClick={() => setStep((value) => value - 1)}>
+          <Button type="button" variant="outline" disabled={step === 1} onClick={() => setStep((value) => value - 1)}>
             {pick('পূর্ববর্তী', 'Back')}
           </Button>
-          {step < 4 ? (
-            <Button variant="primary" onClick={next}>
+          {step < 3 ? (
+            <Button type="button" variant="primary" onClick={next}>
               {pick('পরবর্তী', 'Next')}
             </Button>
           ) : (
@@ -1349,191 +1298,119 @@ function Importer({ db, yearId }: { db: MockDatabase; yearId: string }) {
   );
 }
 
-function Profile({ db, studentId, startEditing }: { db: MockDatabase; studentId: string; startEditing: boolean }) {
-  const { locale, pick } = useI18n();
-  const [updateStudent, { isLoading }] = useUpdateStudentMutation();
-  const student = db.students.find((item) => item.id === studentId);
-  const [open, setOpen] = useState(startEditing);
-  const [form, setForm] = useState<Partial<Student>>({});
+const WEEKDAYS = [
+  { bn: 'রবি', en: 'Sun' },
+  { bn: 'সোম', en: 'Mon' },
+  { bn: 'মঙ্গল', en: 'Tue' },
+  { bn: 'বুধ', en: 'Wed' },
+  { bn: 'বৃহ', en: 'Thu' },
+  { bn: 'শুক্র', en: 'Fri' },
+  { bn: 'শনি', en: 'Sat' },
+];
 
-  if (!student) {
-    return <p className="text-sm text-muted-foreground">{pick('শিক্ষার্থী পাওয়া যায়নি।', 'Student was not found.')}</p>;
-  }
-
-  const enrollments = db.enrollments.filter((item) => item.studentId === student.id);
-  const guardians = db.parentStudents
-    .filter((link) => link.studentId === student.id)
-    .map((link) => ({ link, parent: db.parents.find((item) => item.id === link.parentId) }));
-  const cards = db.rfidCards.filter((item) => item.studentId === student.id);
-  const certificates = db.transferCertificates.filter((item) => item.studentId === student.id);
-
-  const begin = () => {
-    setForm({
-      nameEn: student.nameEn,
-      nameBn: student.nameBn ?? '',
-      dateOfBirth: student.dateOfBirth ?? '',
-      gender: student.gender,
-      bloodGroup: student.bloodGroup ?? undefined,
-      religion: student.religion ?? undefined,
-      birthCertificateNo: student.birthCertificateNo ?? '',
-      boardRegistrationNo: student.boardRegistrationNo ?? '',
-      presentAddress: student.presentAddress ?? '',
-      permanentAddress: student.permanentAddress ?? '',
-      previousSchoolName: student.previousSchoolName ?? '',
-      status: student.status === StudentStatus.TRANSFERRED || student.status === StudentStatus.GRADUATED ? student.status : student.status,
+function monthCells(month: string) {
+  const [year, mon] = month.split('-').map(Number);
+  if (!year || !mon) return [];
+  const pad = new Date(year, mon - 1, 1).getDay();
+  const count = new Date(year, mon, 0).getDate();
+  const cells: ({ date: string; day: number } | null)[] = Array.from({ length: pad }, () => null);
+  for (let day = 1; day <= count; day += 1) {
+    cells.push({
+      date: `${year}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+      day,
     });
-    setOpen(true);
-  };
+  }
+  return cells;
+}
 
-  const save = async (event: React.FormEvent) => {
-    event.preventDefault();
-    try {
-      await updateStudent({
-        id: student.id,
-        nameEn: form.nameEn,
-        nameBn: form.nameBn,
-        dateOfBirth: form.dateOfBirth,
-        gender: form.gender,
-        bloodGroup: form.bloodGroup || null,
-        religion: form.religion || null,
-        birthCertificateNo: form.birthCertificateNo,
-        boardRegistrationNo: form.boardRegistrationNo,
-        presentAddress: form.presentAddress,
-        permanentAddress: form.permanentAddress,
-        previousSchoolName: form.previousSchoolName,
-        status: form.status === StudentStatus.INACTIVE ? StudentStatus.INACTIVE : StudentStatus.ACTIVE,
-      }).unwrap();
-      toast.success(pick('প্রোফাইল হালনাগাদ হয়েছে।', 'Profile updated.'));
-      setOpen(false);
-    } catch (err) {
-      toast.error(errorMessage(err, pick('হালনাগাদ হয়নি।', 'Could not update the profile.')));
-    }
-  };
+function dayTone(status?: AttendanceStatus) {
+  if (status === AttendanceStatus.PRESENT) return 'bg-success/15 text-success border-success/30';
+  if (status === AttendanceStatus.LATE) return 'bg-warning/20 text-warning border-warning/40';
+  if (status === AttendanceStatus.ABSENT) return 'bg-destructive/15 text-destructive border-destructive/30';
+  if (status === AttendanceStatus.LEAVE) return 'bg-info/15 text-info border-info/30';
+  return '';
+}
+
+function AttendanceMonth({
+  month,
+  marks,
+  closedOn,
+  picked,
+  onPick,
+}: {
+  month: string;
+  marks: Attendance[];
+  closedOn: (date: string) => string;
+  picked: string | null;
+  onPick: (date: string) => void;
+}) {
+  const { locale, pick } = useI18n();
+  const today = localToday();
+  const byDate = new Map(marks.map((item) => [item.date, item]));
+  const chosen = picked ? byDate.get(picked) : undefined;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">{student.nameBn || student.nameEn}</h2>
-          <p className="text-sm text-muted-foreground">
-            {student.nameEn} · <span className="font-mono">{student.studentId}</span>
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <StatusBadge enumName="StudentStatus" value={student.status} />
-          <Button size="sm" variant="outline" onClick={begin}>
-            {pick('সম্পাদনা', 'Edit')}
-          </Button>
-          <Link href="/admin/students">
-            <Button size="sm" variant="ghost">
-              {pick('তালিকায়', 'Back to list')}
-            </Button>
-          </Link>
-        </div>
+    <div className="space-y-3">
+      <div className="grid grid-cols-7 gap-1.5 text-center text-[11px] font-medium text-muted-foreground">
+        {WEEKDAYS.map((day) => (
+          <div key={day.en}>{locale === 'bn' ? day.bn : day.en}</div>
+        ))}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="p-4 space-y-1 text-sm">
-          <p className="font-semibold">{pick('ব্যক্তিগত', 'Personal')}</p>
-          <p>{pick('জন্ম', 'Born')}: {student.dateOfBirth || '—'}</p>
-          <p>{pick('জন্ম সনদ', 'Birth certificate')}: {student.birthCertificateNo || '—'}</p>
-          <p>{pick('বোর্ড রেজিস্ট্রেশন', 'Board registration')}: {student.boardRegistrationNo || '—'}</p>
-          <p>{pick('রক্ত', 'Blood')}: {student.bloodGroup ? BLOOD_LABEL[student.bloodGroup] : '—'}</p>
-          <p>{pick('ঠিকানা', 'Address')}: {student.presentAddress || '—'}</p>
-          <p>{pick('পূর্বের বিদ্যালয়', 'Previous school')}: {student.previousSchoolName || '—'}</p>
-        </Card>
-        <Card className="p-4 space-y-2 text-sm">
-          <p className="font-semibold">{pick('অভিভাবক', 'Guardians')}</p>
-          {guardians.length === 0 && <p className="text-muted-foreground">{pick('সংযুক্ত নেই।', 'None linked.')}</p>}
-          {guardians.map(({ link, parent }) => (
-            <p key={link.id}>
-              {parent?.nameBn || parent?.name} · {parent?.phone} · {link.relationship}
-              {link.isSmsReceiver ? ' · SMS' : ''}
-            </p>
-          ))}
-        </Card>
+      <div className="grid grid-cols-7 gap-1.5">
+        {monthCells(month).map((cell, index) => {
+          if (!cell) return <div key={`pad-${index}`} />;
+          const mark = byDate.get(cell.date);
+          const closed = closedOn(cell.date);
+          const tone = dayTone(mark?.status);
+          const quiet = !mark && (Boolean(closed) || cell.date > today);
+          return (
+            <button
+              key={cell.date}
+              type="button"
+              onClick={() => onPick(cell.date)}
+              className={`h-11 rounded-md border text-sm tabular-nums cursor-pointer ${
+                tone || (quiet ? 'border-transparent bg-surface-muted text-muted-foreground' : 'border-border bg-surface')
+              } ${picked === cell.date ? 'ring-2 ring-primary' : ''} ${cell.date === today ? 'font-bold' : ''}`}
+            >
+              {formatNumber(cell.day, locale)}
+            </button>
+          );
+        })}
       </div>
-      <Card className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-muted-foreground">
-            <tr>
-              <th className="p-3 text-left">{pick('শিক্ষাবর্ষ', 'Year')}</th>
-              <th className="p-3 text-left">{pick('শ্রেণি', 'Class')}</th>
-              <th className="p-3 text-left">{pick('শাখা', 'Section')}</th>
-              <th className="p-3 text-left">{pick('রোল', 'Roll')}</th>
-              <th className="p-3 text-left">{pick('অবস্থা', 'Status')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {enrollments.map((item) => (
-              <tr key={item.id}>
-                <td className="p-3">{db.academicYears.find((year) => year.id === item.academicYearId)?.name}</td>
-                <td className="p-3">{classLabel(db, item.classId, locale)}</td>
-                <td className="p-3">{db.sections.find((section) => section.id === item.sectionId)?.name}</td>
-                <td className="p-3 tabular-nums">{item.roll}</td>
-                <td className="p-3"><StatusBadge enumName="EnrollmentStatus" value={item.status} /></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm">
-        <Card className="p-4 space-y-1">
-          <p className="font-semibold">{pick('পরিচয়পত্র', 'Identity cards')}</p>
-          {cards.length === 0 && <p className="text-muted-foreground">{pick('কার্ড নেই।', 'No card.')}</p>}
-          {cards.map((item) => (
-            <p key={item.id} className="font-mono">
-              {item.cardNumber} · {item.status}
-            </p>
-          ))}
-        </Card>
-        <Card className="p-4 space-y-1">
-          <p className="font-semibold">{pick('ছাড়পত্র', 'Transfer certificates')}</p>
-          {certificates.length === 0 && <p className="text-muted-foreground">{pick('নেই।', 'None.')}</p>}
-          {certificates.map((item) => (
-            <p key={item.id}>
-              {item.tcNumber} · {item.issueDate}
-            </p>
-          ))}
-        </Card>
+      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+        <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-success/60" />{pick('উপস্থিত', 'Present')}</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-warning/70" />{pick('দেরি', 'Late')}</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-destructive/60" />{pick('অনুপস্থিত', 'Absent')}</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-info/60" />{pick('ছুটি', 'Leave')}</span>
+        <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-surface-muted border border-border" />{pick('বন্ধ', 'Closed')}</span>
       </div>
-      <Modal open={open} onClose={() => setOpen(false)} title={pick('প্রোফাইল সম্পাদনা', 'Edit profile')}>
-        <form onSubmit={save} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField label={pick('ইংরেজি নাম', 'Name in English')} required>
-            <Input value={form.nameEn ?? ''} onChange={(event) => setForm({ ...form, nameEn: event.target.value })} />
-          </FormField>
-          <FormField label={pick('বাংলা নাম', 'Name in Bangla')}>
-            <Input value={form.nameBn ?? ''} onChange={(event) => setForm({ ...form, nameBn: event.target.value })} />
-          </FormField>
-          <FormField label={pick('জন্ম তারিখ', 'Date of birth')}>
-            <Input type="date" value={form.dateOfBirth ?? ''} onChange={(event) => setForm({ ...form, dateOfBirth: event.target.value })} />
-          </FormField>
-          <FormField label={pick('লিঙ্গ', 'Gender')}>
-            <Select value={form.gender} onChange={(event) => setForm({ ...form, gender: event.target.value as Gender })}>
-              <option value={Gender.MALE}>{pick('ছাত্র', 'Male')}</option>
-              <option value={Gender.FEMALE}>{pick('ছাত্রী', 'Female')}</option>
-            </Select>
-          </FormField>
-          <FormField label={pick('জন্ম সনদ', 'Birth certificate')}>
-            <Input value={form.birthCertificateNo ?? ''} onChange={(event) => setForm({ ...form, birthCertificateNo: event.target.value })} />
-          </FormField>
-          <FormField label={pick('ঠিকানা', 'Address')}>
-            <Textarea value={form.presentAddress ?? ''} onChange={(event) => setForm({ ...form, presentAddress: event.target.value })} />
-          </FormField>
-          {student.status !== StudentStatus.TRANSFERRED && student.status !== StudentStatus.GRADUATED && (
-            <FormField label={pick('অবস্থা', 'Status')}>
-              <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as StudentStatus })}>
-                <option value={StudentStatus.ACTIVE}>{pick('সক্রিয়', 'Active')}</option>
-                <option value={StudentStatus.INACTIVE}>{pick('নিষ্ক্রিয়', 'Inactive')}</option>
-              </Select>
-            </FormField>
-          )}
-          <div className="sm:col-span-2 flex justify-end">
-            <Button type="submit" variant="primary" disabled={isLoading}>
-              {pick('সংরক্ষণ', 'Save')}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      <p className="text-sm">
+        {picked
+          ? <>
+              {formatDateShort(`${picked}T12:00:00`, locale)}
+              {' · '}
+              {chosen ? <StatusBadge enumName="AttendanceStatus" value={chosen.status} /> : closedOn(picked) || pick('এই দিনে হাজিরা নেই।', 'No attendance on this day.')}
+              {chosen?.inTime ? ` · ${chosen.inTime.slice(11, 16)}` : ''}
+            </>
+          : pick('একটা দিন চাপলে সেই দিনের হাজিরা এখানে দেখা যাবে।', 'Press a day to see that day’s attendance.')}
+      </p>
     </div>
   );
+}
+
+function getStudentAge(dob?: string | null, locale = 'bn') {
+  if (!dob) return '—';
+  const birth = new Date(dob);
+  if (isNaN(birth.getTime())) return '—';
+  const now = new Date();
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) {
+    years--;
+    months += 12;
+  }
+  if (locale === 'bn') {
+    return `${formatNumber(years, 'bn')} বছর ${formatNumber(months, 'bn')} মাস`;
+  }
+  return `${years} yrs ${months} mos`;
 }

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
-import { Printer } from 'lucide-react';
+import { Eye, Printer } from 'lucide-react';
 import {
   useGetBootstrapQuery,
   useRetryAttendanceSmsMutation,
@@ -11,6 +12,8 @@ import {
   useUpdateAttendanceConfigMutation,
 } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
+import { useSearchParams } from '@/src/lib/navigation';
+import { closedDay, latestOpenDay, localToday } from '@/src/lib/schoolDay';
 import { useAcademicYearSelection } from '@/src/views/admin/AcademicFoundation';
 import { AttendanceShell } from '@/src/views/admin/AttendanceShell';
 import { useI18n } from '@/src/lib/i18n';
@@ -20,27 +23,12 @@ import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Card, FormField, Input, Modal, Select, Switch } from '@/src/components/ui/primitives';
-import { AcademicEventType, AttendanceMethod, AttendanceStatus, EnrollmentStatus, SmsStatus, StudentStatus } from '@/src/types/enums';
+import { AttendanceMethod, AttendanceStatus, EnrollmentStatus, SmsStatus, StudentStatus } from '@/src/types/enums';
 import type { MockDatabase } from '@/src/mocks/seed';
 import type { ClassAttendanceMethodConfig } from '@/src/types/proposed/future';
 
 function errorMessage(err: unknown, fallback: string) {
   return (err as { message?: string })?.message || fallback;
-}
-
-function closedDay(db: MockDatabase, date: string, yearId: string) {
-  if (!date) return '';
-  if (date > new Date().toISOString().slice(0, 10)) return 'আগামী তারিখে হাজিরা হয় না।';
-  const weekday = new Date(`${date}T12:00:00`).getDay();
-  if (weekday === 5 || weekday === 6) return 'শুক্র ও শনিবার বিদ্যালয় বন্ধ।';
-  const holiday = db.academicEvents.find(
-    (event) =>
-      event.academicYearId === yearId &&
-      event.eventType === AcademicEventType.HOLIDAY &&
-      event.startDate.slice(0, 10) <= date &&
-      event.endDate.slice(0, 10) >= date
-  );
-  return holiday ? `ছুটি: ${holiday.title}` : '';
 }
 
 const STATUS_OPTIONS = [
@@ -86,7 +74,7 @@ export function AdminAttendancePage({
   return (
     <AttendanceShell title={copy.title} description={copy.description} years={db.academicYears} selectedYear={year} showYear={defaultTab !== 'sms' && defaultTab !== 'settings'}>
       {defaultTab === 'daily' && <Register db={db} yearId={year.id} />}
-      {defaultTab === 'gate' && <Gate db={db} />}
+      {defaultTab === 'gate' && <Gate db={db} yearId={year.id} />}
       {defaultTab === 'reports' && <Report db={db} yearId={year.id} />}
       {defaultTab === 'sms' && <SmsLog db={db} />}
       {defaultTab === 'settings' && <Settings db={db} />}
@@ -97,10 +85,14 @@ export function AdminAttendancePage({
 function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
   const { locale, pick } = useI18n();
   const auth = useAppSelector((state) => state.auth);
+  const [params] = useSearchParams();
   const [saveBatch, { isLoading }] = useSaveAttendanceBatchMutation();
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-  const [classId, setClassId] = useState(db.classes[0]?.id ?? '');
-  const [sectionId, setSectionId] = useState(db.sections.find((item) => item.classId === db.classes[0]?.id)?.id ?? '');
+  const today = localToday();
+  const todayClosed = closedDay(db, today, yearId);
+  const [date, setDate] = useState(params.get('date') || (todayClosed ? latestOpenDay(db, yearId, today) : today));
+  const initialClass = params.get('classId') || db.classes[0]?.id || '';
+  const [classId, setClassId] = useState(initialClass);
+  const [sectionId, setSectionId] = useState(params.get('sectionId') || db.sections.find((item) => item.classId === initialClass)?.id || '');
   const [draft, setDraft] = useState<Record<string, AttendanceStatus>>({});
   const sections = db.sections.filter((item) => item.classId === classId);
   const section = sections.some((item) => item.id === sectionId) ? sectionId : sections[0]?.id ?? '';
@@ -131,6 +123,19 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
     if (draft[id]) return draft[id];
     return db.attendances.find((item) => item.studentEnrollmentId === id && item.date === date)?.status;
   };
+
+  const tally = enrollments.reduce(
+    (sum, enrollment) => {
+      const status = statusOf(enrollment.id);
+      if (status === AttendanceStatus.PRESENT) sum.present += 1;
+      else if (status === AttendanceStatus.LATE) sum.late += 1;
+      else if (status === AttendanceStatus.ABSENT) sum.absent += 1;
+      else if (status === AttendanceStatus.LEAVE) sum.leave += 1;
+      else sum.open += 1;
+      return sum;
+    },
+    { present: 0, late: 0, absent: 0, leave: 0, open: 0 }
+  );
 
   const save = async () => {
     const entries = enrollments
@@ -200,6 +205,25 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
         </div>
       </Card>
       {blocked && <p className="text-sm text-destructive">{blocked}</p>}
+      {!blocked && todayClosed && date !== today && (
+        <p className="text-sm text-muted-foreground">
+          {pick(`${todayClosed} নিচে শেষ খোলা দিনের হাজিরা।`, `${todayClosed} Showing the last open school day.`)}
+        </p>
+      )}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
+        {[
+          [pick('উপস্থিত', 'Present'), tally.present],
+          [pick('দেরি', 'Late'), tally.late],
+          [pick('অনুপস্থিত', 'Absent'), tally.absent],
+          [pick('ছুটি', 'Leave'), tally.leave],
+          [manual ? pick('এখনো নয়', 'Not marked') : pick('স্ক্যান হয়নি', 'Not scanned'), tally.open],
+        ].map(([label, value]) => (
+          <div key={String(label)} className="rounded-md border border-border px-3 py-2">
+            <p className="text-muted-foreground">{label}</p>
+            <p className="text-lg font-semibold tabular-nums">{formatNumber(Number(value), locale)}</p>
+          </div>
+        ))}
+      </div>
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-muted-foreground">
@@ -217,7 +241,9 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
                 <tr key={enrollment.id}>
                   <td className="p-3 tabular-nums">{formatNumber(enrollment.roll, locale)}</td>
                   <td className="p-3">
-                    {student?.nameBn || student?.nameEn}
+                    <Link href={`/admin/students/${enrollment.studentId}#attendance`} className="font-semibold text-primary hover:underline">
+                      {student?.nameBn || student?.nameEn}
+                    </Link>
                     <span className="block text-xs text-muted-foreground font-mono">{student?.studentId}</span>
                   </td>
                   <td className="p-3">
@@ -249,10 +275,28 @@ function Register({ db, yearId }: { db: MockDatabase; yearId: string }) {
   );
 }
 
-function Gate({ db }: { db: MockDatabase }) {
-  const { pick } = useI18n();
+function Gate({ db, yearId }: { db: MockDatabase; yearId: string }) {
+  const { locale, pick } = useI18n();
   const [scan, { isLoading }] = useSimulateRfidScanMutation();
   const [cardNumber, setCardNumber] = useState('');
+  const today = localToday();
+  const todayClosed = closedDay(db, today, yearId);
+  const watchDate = todayClosed ? latestOpenDay(db, yearId, today) : today;
+  const missing = db.enrollments
+    .filter((item) => {
+      if (item.academicYearId !== yearId || item.status !== EnrollmentStatus.ACTIVE) return false;
+      const student = db.students.find((row) => row.id === item.studentId);
+      if (!student || student.status !== StudentStatus.ACTIVE) return false;
+      const method = db.classAttendanceConfigs.find((row) => row.classId === item.classId)?.method;
+      if (method !== AttendanceMethod.RFID) return false;
+      const entered = db.rfidScans.some(
+        (row) => row.studentId === item.studentId && row.direction === 'ENTRY' && row.scannedAt.slice(0, 10) === watchDate
+      );
+      if (entered) return false;
+      const mark = db.attendances.find((row) => row.studentEnrollmentId === item.id && row.date === watchDate);
+      return !mark || (mark.status !== AttendanceStatus.PRESENT && mark.status !== AttendanceStatus.LATE);
+    })
+    .sort((a, b) => a.roll - b.roll);
 
   const punch = async (direction: 'ENTRY' | 'EXIT') => {
     try {
@@ -272,6 +316,47 @@ function Gate({ db }: { db: MockDatabase }) {
         </FormField>
         <Button variant="primary" disabled={isLoading || !cardNumber.trim()} onClick={() => punch('ENTRY')}>{pick('প্রবেশ', 'Entry')}</Button>
         <Button variant="outline" disabled={isLoading || !cardNumber.trim()} onClick={() => punch('EXIT')}>{pick('প্রস্থান', 'Exit')}</Button>
+      </Card>
+      <Card className="p-4 space-y-3">
+        <div>
+          <p className="font-semibold">{pick('যাদের প্রবেশ হয়নি', 'No entry yet')}</p>
+          <p className="text-sm text-muted-foreground">
+            {todayClosed
+              ? pick(`${formatDateShort(`${watchDate}T12:00:00`, locale)} শেষ খোলা দিন। আরএফআইডি শ্রেণিতে যাদের প্রবেশ বা উপস্থিতি নেই।`, `${formatDateShort(`${watchDate}T12:00:00`, locale)} is the last open day. RFID classes with no entry or presence.`)
+              : pick('আজকের আরএফআইডি শ্রেণিতে যাদের প্রবেশ বা উপস্থিতি নেই।', 'RFID classes with no entry or presence today.')}
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-muted-foreground">
+              <tr>
+                <th className="py-2 text-left">{pick('শিক্ষার্থী', 'Student')}</th>
+                <th className="py-2 text-left">{pick('শ্রেণি', 'Class')}</th>
+                <th className="py-2 text-left">{pick('রোল', 'Roll')}</th>
+                <th className="py-2 text-left">{pick('অবস্থা', 'Status')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {missing.map((item) => {
+                const student = db.students.find((row) => row.id === item.studentId);
+                const mark = db.attendances.find((row) => row.studentEnrollmentId === item.id && row.date === watchDate);
+                return (
+                  <tr key={item.id}>
+                    <td className="py-2">
+                      <Link href={`/admin/students/${item.studentId}#attendance`} className="font-semibold text-primary hover:underline">
+                        {student?.nameBn || student?.nameEn}
+                      </Link>
+                    </td>
+                    <td className="py-2">{locale === 'bn' ? db.classes.find((row) => row.id === item.classId)?.nameBn : db.classes.find((row) => row.id === item.classId)?.name} · {db.sections.find((row) => row.id === item.sectionId)?.name}</td>
+                    <td className="py-2 tabular-nums">{formatNumber(item.roll, locale)}</td>
+                    <td className="py-2">{mark ? <StatusBadge enumName="AttendanceStatus" value={mark.status} /> : pick('স্ক্যান হয়নি', 'Not scanned')}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {missing.length === 0 && <p className="py-3 text-sm text-muted-foreground">{pick('সবাই প্রবেশ করেছে।', 'Everyone has an entry.')}</p>}
+        </div>
       </Card>
       <div className="space-y-2">
         {db.rfidScans.slice(0, 12).map((item) => (
@@ -306,7 +391,7 @@ function Report({ db, yearId }: { db: MockDatabase; yearId: string }) {
       const leave = marks.filter((item) => item.status === AttendanceStatus.LEAVE).length;
       const student = db.students.find((item) => item.id === enrollment.studentId);
       const rate = marks.length ? Math.round(((present + late) / marks.length) * 100) : 0;
-      return { id: enrollment.id, roll: enrollment.roll, name: student?.nameBn || student?.nameEn || '—', present, late, absent, leave, rate };
+      return { id: enrollment.id, studentId: enrollment.studentId, roll: enrollment.roll, name: student?.nameBn || student?.nameEn || '—', present, late, absent, leave, rate };
     });
 
   return (
@@ -336,12 +421,29 @@ function Report({ db, yearId }: { db: MockDatabase; yearId: string }) {
         exportFilename="attendance.csv"
         columns={[
           { accessorKey: 'roll', header: pick('রোল', 'Roll') },
-          { accessorKey: 'name', header: pick('শিক্ষার্থী', 'Student') },
+          {
+            accessorKey: 'name',
+            header: pick('শিক্ষার্থী', 'Student'),
+            cell: ({ row }) => (
+              <Link href={`/admin/students/${row.original.studentId}#attendance`} className="font-semibold text-primary hover:underline">
+                {row.original.name}
+              </Link>
+            ),
+          },
           { accessorKey: 'present', header: pick('উপস্থিত', 'Present') },
           { accessorKey: 'late', header: pick('দেরি', 'Late') },
           { accessorKey: 'absent', header: pick('অনুপস্থিত', 'Absent') },
           { accessorKey: 'leave', header: pick('ছুটি', 'Leave') },
           { accessorKey: 'rate', header: '%', cell: ({ row }) => `${row.original.rate}%` },
+          {
+            id: 'view',
+            header: '',
+            cell: ({ row }) => (
+              <Link href={`/admin/students/${row.original.studentId}#attendance`} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-primary hover:bg-primary/10" aria-label={pick('হাজিরা', 'Attendance')}>
+                <Eye className="w-4 h-4" />
+              </Link>
+            ),
+          },
         ]}
       />
     </div>

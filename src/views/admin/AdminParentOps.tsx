@@ -26,6 +26,11 @@ function errorMessage(err: unknown, fallback: string) {
   return (err as { message?: string })?.message || fallback;
 }
 
+function shownPhone(phone?: string | null) {
+  if (!phone || phone.startsWith('unused-')) return '';
+  return phone;
+}
+
 const emptyParent = {
   name: '',
   nameBn: '',
@@ -92,6 +97,7 @@ function Directory({ db, createOpen }: { db: MockDatabase; createOpen: boolean }
       .join(', ');
     return {
       ...parent,
+      phone: shownPhone(parent.phone) || '—',
       children: children || '—',
       childCount: links.length,
       smsCount: links.filter((link) => link.isSmsReceiver).length,
@@ -153,7 +159,7 @@ function ParentForm({
         ? {
             name: parent.name,
             nameBn: parent.nameBn ?? '',
-            phone: parent.phone,
+            phone: shownPhone(parent.phone),
             email: parent.email ?? '',
             nid: parent.nid ?? '',
             occupation: parent.occupation ?? '',
@@ -243,7 +249,7 @@ function Profile({ db, parentId }: { db: MockDatabase; parentId: string }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">{parent.nameBn || parent.name}</h2>
-          <p className="text-sm text-muted-foreground">{parent.name} · {parent.phone}</p>
+          <p className="text-sm text-muted-foreground">{parent.name}{shownPhone(parent.phone) ? ` · ${shownPhone(parent.phone)}` : ''}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>{pick('সম্পাদনা', 'Edit')}</Button>
@@ -371,7 +377,7 @@ function LinkModal({
             <Select value={form.parentId} onChange={(event) => setForm({ ...form, parentId: event.target.value })}>
               <option value="">{pick('বেছে নিন', 'Choose')}</option>
               {parents.map((parent) => (
-                <option key={parent.id} value={parent.id}>{parent.nameBn || parent.name} · {parent.phone}</option>
+                <option key={parent.id} value={parent.id}>{parent.nameBn || parent.name}{shownPhone(parent.phone) ? ` · ${shownPhone(parent.phone)}` : ''}</option>
               ))}
             </Select>
           </FormField>
