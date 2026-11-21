@@ -81,6 +81,8 @@ import type { Attendance, Student, StudentEnrollment } from '@/src/types/entitie
 
 import { StudentDirectory } from './students/StudentDirectory';
 import { StudentProfile } from './students/StudentProfile';
+import { StudentEnrollments } from './students/StudentEnrollments';
+import { StudentPromotions } from './students/StudentPromotions';
 import { classLabel, errorMessage, BLOOD_LABEL } from './students/studentShared';
 
 type SectionKey =
@@ -139,13 +141,19 @@ export function AdminStudentsPage({
       year: true,
     },
     enrollments: {
-      title: pick('এনরোলমেন্ট', 'Enrollments'),
-      description: pick('এই বছর কে কোন শাখায়, কোন রোলে, কোন বিভাগে।', 'Who sits in which section, roll, and stream this year.'),
+      title: pick('এনরোলমেন্ট রেজিস্টার', 'Session Enrollments'),
+      description: pick(
+        'নির্বাচিত শিক্ষাবর্ষে প্রতিটি শিক্ষার্থীর শ্রেণি, শাখা, রোল, বিভাগ ও ঐচ্ছিক বিষয়ের তালিকা এবং চলতি সেশনের প্লেসমেন্ট সংশোধন।',
+        'Class, section, roll, stream, and optional subject registry for the selected academic year.'
+      ),
       year: true,
     },
     promotions: {
-      title: pick('প্রমোশন', 'Promotion'),
-      description: pick('চলতি সেশন থেকে পরের শিক্ষাবর্ষে উত্তীর্ণ, অকৃতকার্য, অথবা দশম শ্রেণি সমাপ্ত।', 'Move the current session into the next year: promoted, retained, or class 10 completed.'),
+      title: pick('শ্রেণি উত্তরণ ও প্রমোশন', 'Class Promotion Console'),
+      description: pick(
+        'প্রকাশিত পরীক্ষার ফলাফল ও মেধাক্রম যাচাই করে পরবর্তী শিক্ষাবর্ষে উত্তীর্ণ, অকৃতকার্য (Retained) অথবা দশম শ্রেণি সমাপ্ত করুন।',
+        'Promote, retain, or graduate students into the next academic year with published exam result guidance.'
+      ),
       year: true,
     },
     transfers: {
@@ -202,8 +210,8 @@ export function AdminStudentsPage({
       {section === 'directory' && <StudentDirectory db={db} yearId={year.id} />}
       {section === 'create' && <Register db={db} yearId={year.id} />}
       {section === 'admissions' && <Admissions db={db} yearId={year.id} />}
-      {section === 'enrollments' && <Enrollments db={db} yearId={year.id} />}
-      {section === 'promotions' && <Promotions db={db} yearId={year.id} />}
+      {section === 'enrollments' && <StudentEnrollments db={db} yearId={year.id} />}
+      {section === 'promotions' && <StudentPromotions db={db} yearId={year.id} />}
       {section === 'transfers' && <Transfers db={db} />}
       {section === 'cards' && <Cards db={db} />}
       {section === 'import' && <Importer db={db} yearId={year.id} />}
@@ -674,319 +682,7 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
   );
 }
 
-function Enrollments({ db, yearId }: { db: MockDatabase; yearId: string }) {
-  const { locale, pick } = useI18n();
-  const [updateEnrollment, { isLoading }] = useUpdateEnrollmentMutation();
-  const [classId, setClassId] = useState('ALL');
-  const [editing, setEditing] = useState<StudentEnrollment | null>(null);
-  const [form, setForm] = useState({ sectionId: '', groupId: '', roll: '', optionalClassSubjectId: '', isRepeater: false, isReadmission: false, remarks: '' });
 
-  const rows = db.enrollments
-    .filter((item) => item.academicYearId === yearId && (classId === 'ALL' || item.classId === classId))
-    .map((item) => {
-      const student = db.students.find((row) => row.id === item.studentId);
-      const group = item.groupId ? db.academicGroups.find((row) => row.id === item.groupId) : null;
-      return {
-        ...item,
-        name: student?.nameBn || student?.nameEn || '—',
-        studentCode: student?.studentId ?? '',
-        classLabel: classLabel(db, item.classId, locale),
-        sectionLabel: db.sections.find((row) => row.id === item.sectionId)?.name ?? '—',
-        groupLabel: group ? (locale === 'bn' ? group.nameBn || group.name : group.name) : '—',
-      };
-    })
-    .sort((a, b) => a.classLabel.localeCompare(b.classLabel) || a.roll - b.roll);
-
-  const start = (row: StudentEnrollment) => {
-    setEditing(row);
-    setForm({
-      sectionId: row.sectionId,
-      groupId: row.groupId ?? '',
-      roll: String(row.roll),
-      optionalClassSubjectId: row.optionalClassSubjectId ?? '',
-      isRepeater: row.isRepeater,
-      isReadmission: row.isReadmission,
-      remarks: row.remarks ?? '',
-    });
-  };
-
-  const save = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!editing) return;
-    try {
-      await updateEnrollment({
-        id: editing.id,
-        sectionId: form.sectionId,
-        groupId: form.groupId || null,
-        roll: Number(form.roll),
-        optionalClassSubjectId: form.optionalClassSubjectId || null,
-        isRepeater: form.isRepeater,
-        isReadmission: form.isReadmission,
-        remarks: form.remarks,
-      }).unwrap();
-      toast.success(pick('এনরোলমেন্ট হালনাগাদ হয়েছে।', 'Enrollment updated.'));
-      setEditing(null);
-    } catch (err) {
-      toast.error(errorMessage(err, pick('হালনাগাদ হয়নি।', 'Could not update the enrollment.')));
-    }
-  };
-
-  const needsGroup = (db.classes.find((item) => item.id === editing?.classId)?.numericValue ?? 0) >= 9;
-  const optionals = db.classSubjects.filter(
-    (row) =>
-      editing &&
-      row.isOptional &&
-      row.isActive &&
-      row.academicYearId === editing.academicYearId &&
-      row.classId === editing.classId &&
-      (!row.groupId || row.groupId === form.groupId)
-  );
-
-  return (
-    <>
-      <DataTable
-        data={rows}
-        exportFilename="enrollments.csv"
-        toolbarExtra={
-          <Select value={classId} onChange={(event) => setClassId(event.target.value)} className="w-40 h-9">
-            <option value="ALL">{pick('সকল শ্রেণি', 'All classes')}</option>
-            {db.classes.map((item) => (
-              <option key={item.id} value={item.id}>
-                {locale === 'bn' ? item.nameBn || item.name : item.name}
-              </option>
-            ))}
-          </Select>
-        }
-        columns={[
-          { accessorKey: 'studentCode', header: pick('আইডি', 'ID') },
-          { accessorKey: 'name', header: pick('শিক্ষার্থী', 'Student') },
-          { accessorKey: 'classLabel', header: pick('শ্রেণি', 'Class') },
-          { accessorKey: 'sectionLabel', header: pick('শাখা', 'Section') },
-          { accessorKey: 'groupLabel', header: pick('বিভাগ', 'Stream') },
-          { accessorKey: 'roll', header: pick('রোল', 'Roll') },
-          { accessorKey: 'status', header: pick('অবস্থা', 'Status'), cell: ({ row }) => <StatusBadge enumName="EnrollmentStatus" value={row.original.status} /> },
-          {
-            id: 'edit',
-            header: '',
-            cell: ({ row }) =>
-              row.original.status === EnrollmentStatus.ACTIVE ? (
-                <Button size="sm" variant="ghost" onClick={() => start(row.original)}>
-                  {pick('সম্পাদনা', 'Edit')}
-                </Button>
-              ) : null,
-          },
-        ]}
-      />
-      <Modal open={Boolean(editing)} onClose={() => setEditing(null)} title={pick('এনরোলমেন্ট সম্পাদনা', 'Edit enrollment')}>
-        <form onSubmit={save} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField label={pick('শাখা', 'Section')}>
-            <Select value={form.sectionId} onChange={(event) => setForm({ ...form, sectionId: event.target.value })}>
-              {db.sections
-                .filter((item) => item.classId === editing?.classId)
-                .map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-            </Select>
-          </FormField>
-          {needsGroup && (
-            <FormField label={pick('বিভাগ', 'Stream')}>
-              <Select value={form.groupId} onChange={(event) => setForm({ ...form, groupId: event.target.value })}>
-                {db.academicGroups.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {locale === 'bn' ? item.nameBn || item.name : item.name}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-          )}
-          <FormField label={pick('রোল', 'Roll')}>
-            <Input type="number" min={1} value={form.roll} onChange={(event) => setForm({ ...form, roll: event.target.value })} />
-          </FormField>
-          <FormField label={pick('ঐচ্ছিক বিষয়', 'Optional subject')}>
-            <Select value={form.optionalClassSubjectId} onChange={(event) => setForm({ ...form, optionalClassSubjectId: event.target.value })}>
-              <option value="">{pick('নেই', 'None')}</option>
-              {optionals.map((row) => {
-                const subject = db.subjects.find((item) => item.id === row.subjectId);
-                return (
-                  <option key={row.id} value={row.id}>
-                    {subject?.nameBn || subject?.name}
-                  </option>
-                );
-              })}
-            </Select>
-          </FormField>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={form.isRepeater} onChange={(event) => setForm({ ...form, isRepeater: event.target.checked })} />
-            {pick('পুনরাবৃত্তি', 'Repeater')}
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={form.isReadmission} onChange={(event) => setForm({ ...form, isReadmission: event.target.checked })} />
-            {pick('পুনঃভর্তি', 'Readmission')}
-          </label>
-          <FormField label={pick('মন্তব্য', 'Note')}>
-            <Textarea value={form.remarks} onChange={(event) => setForm({ ...form, remarks: event.target.value })} />
-          </FormField>
-          <div className="sm:col-span-2 flex justify-end">
-            <Button type="submit" variant="primary" disabled={isLoading}>
-              {pick('সংরক্ষণ', 'Save')}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-    </>
-  );
-}
-
-function Promotions({ db, yearId }: { db: MockDatabase; yearId: string }) {
-  const { locale, pick } = useI18n();
-  const [promote, { isLoading }] = usePromoteStudentsMutation();
-  const [classId, setClassId] = useState(db.classes[0]?.id ?? '');
-  const [targetYearId, setTargetYearId] = useState(db.academicYears.find((item) => item.id !== yearId)?.id ?? '');
-  const [choices, setChoices] = useState<Record<string, { decision: string; sectionId: string; roll: string }>>({});
-  const sourceClass = db.classes.find((item) => item.id === classId);
-  const nextClass =
-    db.classes.find((item) => item.numericValue === (sourceClass?.numericValue ?? 0) + 1) ?? sourceClass;
-  const isTop = (sourceClass?.numericValue ?? 0) >= 10;
-
-  const candidates = db.enrollments.filter(
-    (item) => item.academicYearId === yearId && item.classId === classId && item.status === EnrollmentStatus.ACTIVE
-  );
-
-  const choiceFor = (enrollment: StudentEnrollment) => {
-    const existing = choices[enrollment.id];
-    if (existing) return existing;
-    const targetClassId = isTop ? classId : nextClass?.id;
-    const currentSection = db.sections.find((item) => item.id === enrollment.sectionId);
-    const targetSection =
-      db.sections.find((item) => item.classId === targetClassId && item.name === currentSection?.name) ||
-      db.sections.find((item) => item.classId === targetClassId);
-    return { decision: 'SKIP', sectionId: targetSection?.id ?? '', roll: String(enrollment.roll) };
-  };
-
-  const setChoice = (id: string, enrollment: StudentEnrollment, patch: Partial<{ decision: string; sectionId: string; roll: string }>) => {
-    setChoices((current) => ({ ...current, [id]: { ...choiceFor(enrollment), ...current[id], ...patch } }));
-  };
-
-  const run = async () => {
-    const items = candidates
-      .map((enrollment) => ({ enrollment, choice: choiceFor(enrollment) }))
-      .filter((row) => row.choice.decision !== 'SKIP')
-      .map((row) => ({
-        studentId: row.enrollment.studentId,
-        fromEnrollmentId: row.enrollment.id,
-        toClassId: row.choice.decision === 'RETAINED' || row.choice.decision === 'GRADUATED' ? classId : nextClass?.id,
-        toSectionId: row.choice.sectionId,
-        roll: Number(row.choice.roll),
-        promotionType: row.choice.decision as PromotionType | 'GRADUATED',
-      }));
-    if (!items.length) {
-      toast.error(pick('অন্তত একজনের সিদ্ধান্ত বেছে নিন।', 'Choose a decision for at least one student.'));
-      return;
-    }
-    try {
-      const result = await promote({ toAcademicYearId: targetYearId, items }).unwrap();
-      toast.success(
-        pick(
-          `উত্তীর্ণ ${formatNumber(result.promoted, 'bn')}, অকৃতকার্য ${formatNumber(result.retained, 'bn')}, সমাপ্ত ${formatNumber(result.graduated, 'bn')}।`,
-          `Promoted ${result.promoted}, retained ${result.retained}, completed ${result.graduated}.`
-        )
-      );
-      setChoices({});
-    } catch (err) {
-      toast.error(errorMessage(err, pick('প্রমোশন হয়নি।', 'Promotion failed.')));
-    }
-  };
-
-  return (
-    <Card className="p-5 space-y-4">
-      <div className="flex flex-wrap gap-3 items-end">
-        <FormField label={pick('উৎস শ্রেণি', 'From class')}>
-          <Select value={classId} onChange={(event) => { setClassId(event.target.value); setChoices({}); }}>
-            {db.classes.map((item) => (
-              <option key={item.id} value={item.id}>
-                {locale === 'bn' ? item.nameBn || item.name : item.name}
-              </option>
-            ))}
-          </Select>
-        </FormField>
-        <FormField label={pick('পরের শিক্ষাবর্ষ', 'Next year')}>
-          <Select value={targetYearId} onChange={(event) => setTargetYearId(event.target.value)}>
-            {db.academicYears
-              .filter((item) => item.id !== yearId)
-              .map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-          </Select>
-        </FormField>
-        <Button variant="primary" disabled={isLoading} onClick={run}>
-          {pick('নির্বাচিত সিদ্ধান্ত প্রয়োগ', 'Apply selected decisions')}
-        </Button>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="text-muted-foreground">
-            <tr>
-              <th className="p-2 text-left">{pick('রোল', 'Roll')}</th>
-              <th className="p-2 text-left">{pick('শিক্ষার্থী', 'Student')}</th>
-              <th className="p-2 text-left">{pick('সিদ্ধান্ত', 'Decision')}</th>
-              <th className="p-2 text-left">{pick('পরের শাখা', 'Next section')}</th>
-              <th className="p-2 text-left">{pick('পরের রোল', 'Next roll')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {candidates.map((enrollment) => {
-              const student = db.students.find((item) => item.id === enrollment.studentId);
-              const choice = choiceFor(enrollment);
-              const moving = choice.decision === 'PROMOTED' || choice.decision === 'RETAINED';
-              const targetClassId = choice.decision === 'RETAINED' ? classId : nextClass?.id;
-              return (
-                <tr key={enrollment.id}>
-                  <td className="p-2 tabular-nums">{enrollment.roll}</td>
-                  <td className="p-2">{student?.nameBn || student?.nameEn}</td>
-                  <td className="p-2">
-                    <Select value={choice.decision} onChange={(event) => setChoice(enrollment.id, enrollment, { decision: event.target.value })} className="h-9">
-                      <option value="SKIP">{pick('এখন নয়', 'Skip')}</option>
-                      {!isTop && <option value={PromotionType.PROMOTED}>{pick('উত্তীর্ণ', 'Promoted')}</option>}
-                      <option value={PromotionType.RETAINED}>{pick('একই শ্রেণিতে', 'Retained')}</option>
-                      {isTop && <option value="GRADUATED">{pick('সমাপ্ত', 'Completed')}</option>}
-                    </Select>
-                  </td>
-                  <td className="p-2">
-                    {moving ? (
-                      <Select value={choice.sectionId} onChange={(event) => setChoice(enrollment.id, enrollment, { sectionId: event.target.value })} className="h-9">
-                        {db.sections
-                          .filter((item) => item.classId === targetClassId)
-                          .map((item) => (
-                            <option key={item.id} value={item.id}>
-                              {item.name}
-                            </option>
-                          ))}
-                      </Select>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td className="p-2">
-                    {moving ? (
-                      <Input type="number" min={1} value={choice.roll} onChange={(event) => setChoice(enrollment.id, enrollment, { roll: event.target.value })} className="h-9 w-24" />
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {!candidates.length && <p className="p-4 text-sm text-muted-foreground">{pick('এই শ্রেণিতে চলতি ভর্তি নেই।', 'No active enrollment in this class.')}</p>}
-      </div>
-    </Card>
-  );
-}
 
 function Transfers({ db }: { db: MockDatabase }) {
   const { pick } = useI18n();

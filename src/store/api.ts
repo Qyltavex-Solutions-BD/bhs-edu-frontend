@@ -466,7 +466,10 @@ export const schoolApi = createApi({
           fromEnrollmentId: string;
           toClassId?: string;
           toSectionId?: string;
+          toGroupId?: string | null;
           roll?: number;
+          resultSummaryId?: string | null;
+          remarks?: string | null;
           promotionType: PromotionType | 'GRADUATED';
         }>;
       }

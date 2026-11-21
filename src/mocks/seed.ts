@@ -385,8 +385,9 @@ export function createInitialSeed(): MockDatabase {
     { id: 'mc-5', name: 'মিসেস রেহানা বেগম', designation: 'সংরক্ষিত মহিলা অভিভাবক সদস্য', photo: '/images/committee_rehana_portrait_1795170999363.jpg', phone: '01711-300005', startDate: '2024-07-01', endDate: '2026-06-30', createdAt: NOW, updatedAt: NOW },
   ];
 
-  // 4. Academic Setup (2026 active, 2025 previous; Classes 6–10; Sections ক, খ, গ; Groups)
+  // 4. Academic Setup (2027 upcoming, 2026 active, 2025 previous; Classes 6–10; Sections ক, খ, গ; Groups)
   const academicYears: AcademicYear[] = [
+    { id: 'ay-2027', name: '2027', startDate: '2027-01-01', endDate: '2027-12-31', isActive: false, createdAt: NOW, updatedAt: NOW },
     { id: 'ay-2026', name: '2026', startDate: '2026-01-01', endDate: '2026-12-31', isActive: true, createdAt: NOW, updatedAt: NOW },
     { id: 'ay-2025', name: '2025', startDate: '2025-01-01', endDate: '2025-12-31', isActive: false, createdAt: NOW, updatedAt: NOW },
   ];

@@ -1902,6 +1902,9 @@ export async function handleMockRequest(
       const p = body as Partial<StudentEnrollment> & { id: string };
       const enrollment = db.enrollments.find((item) => item.id === p.id);
       if (!enrollment) return studentError(404, 'ভর্তি রেকর্ড পাওয়া যায়নি। / Enrollment was not found.');
+      if (enrollment.status !== EnrollmentStatus.ACTIVE) {
+        return studentError(400, 'শুধুমাত্র সক্রিয় এনরোলমেন্ট সম্পাদনা করা যাবে। / Only active enrollments can be edited.');
+      }
       const groupId = p.groupId ? String(p.groupId) : null;
       const placed = placementError({
         academicYearId: enrollment.academicYearId,
@@ -2584,7 +2587,10 @@ export async function handleMockRequest(
           fromEnrollmentId: string;
           toClassId?: string;
           toSectionId?: string;
+          toGroupId?: string | null;
           roll?: number;
+          resultSummaryId?: string | null;
+          remarks?: string | null;
           promotionType: PromotionType | 'GRADUATED';
         }>;
       };
@@ -2594,6 +2600,7 @@ export async function handleMockRequest(
         from: StudentEnrollment;
         toClassId?: string;
         toSectionId?: string;
+        toGroupId?: string | null;
       }> = [];
       for (const item of items) {
         const from = db.enrollments.find((row) => row.id === item.fromEnrollmentId && row.studentId === item.studentId);
@@ -2616,16 +2623,18 @@ export async function handleMockRequest(
         }
         const toClassId = item.promotionType === PromotionType.RETAINED ? from.classId : item.toClassId || '';
         const toSectionId = item.toSectionId || '';
+        const keepsGroup = (db.classes.find((row) => row.id === toClassId)?.numericValue ?? 0) >= 9;
+        const resolvedGroupId = keepsGroup ? (item.toGroupId ?? from.groupId ?? null) : null;
         const placed = placementError({
           academicYearId: toAcademicYearId,
           classId: toClassId,
           sectionId: toSectionId,
-          groupId: (db.classes.find((row) => row.id === toClassId)?.numericValue ?? 0) >= 9 ? from.groupId ?? null : null,
+          groupId: resolvedGroupId,
           roll: Number(item.roll),
           studentId: item.studentId,
         });
         if (placed) return studentError(400, placed);
-        prepared.push({ item, from, toClassId, toSectionId });
+        prepared.push({ item, from, toClassId, toSectionId, toGroupId: resolvedGroupId });
       }
       const rolls = new Set<string>();
       for (const row of prepared) {
@@ -2646,19 +2655,19 @@ export async function handleMockRequest(
           graduated += 1;
           continue;
         }
-        const keepsGroup = (db.classes.find((item) => item.id === row.toClassId)?.numericValue ?? 0) >= 9;
         const next: StudentEnrollment = {
           id: uid('enr'),
           studentId: row.item.studentId,
           academicYearId: toAcademicYearId,
           classId: row.toClassId!,
           sectionId: row.toSectionId!,
-          groupId: keepsGroup ? row.from.groupId ?? null : null,
+          groupId: row.toGroupId ?? null,
           roll: Number(row.item.roll),
           enrollmentDate: nowIso().slice(0, 10),
           isRepeater: row.item.promotionType === PromotionType.RETAINED,
           isReadmission: false,
           status: EnrollmentStatus.ACTIVE,
+          remarks: row.item.remarks?.trim() || null,
           createdAt: nowIso(),
           updatedAt: nowIso(),
         };
@@ -2670,8 +2679,10 @@ export async function handleMockRequest(
           studentId: row.item.studentId,
           fromEnrollmentId: row.from.id,
           toEnrollmentId: next.id,
+          resultSummaryId: row.item.resultSummaryId ?? null,
           promotionType: row.item.promotionType as PromotionType,
           promotionDate: nowIso().slice(0, 10),
+          remarks: row.item.remarks?.trim() || null,
           createdAt: nowIso(),
           updatedAt: nowIso(),
         });
