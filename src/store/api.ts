@@ -33,6 +33,8 @@ import type {
   SectionClassTeacher,
   Student,
   StudentEnrollment,
+  StudentRFIDcard,
+  StudentTransferCertificate,
   Staff,
   StaffStructure,
   TeacherAssignment,
@@ -307,12 +309,43 @@ export const schoolApi = createApi({
       invalidatesTags: ['Students', 'Audit'],
     }),
 
-    issueRfidCard: builder.mutation<unknown, { studentId: string; cardNumber: string; remarks?: string }>({
+    issueRfidCard: builder.mutation<
+      StudentRFIDcard,
+      { studentId: string; cardNumber: string; remarks?: string | null }
+    >({
       query: (body) => ({ url: '/students/rfid', method: 'POST', body }),
       invalidatesTags: ['Students', 'Audit'],
     }),
 
-    issueTransferCertificate: builder.mutation<unknown, Record<string, unknown>>({
+    replaceRfidCard: builder.mutation<
+      { oldCard: StudentRFIDcard; newCard: StudentRFIDcard },
+      {
+        oldCardId: string;
+        oldCardStatus: CardStatus.LOST | CardStatus.DAMAGED | CardStatus.BLOCKED;
+        newCardNumber: string;
+        remarks?: string | null;
+      }
+    >({
+      query: (body) => ({ url: '/students/rfid/replace', method: 'POST', body }),
+      invalidatesTags: ['Students', 'Audit'],
+    }),
+
+    issueTransferCertificate: builder.mutation<
+      StudentTransferCertificate & { autoBlockedCards?: number },
+      {
+        studentId: string;
+        tcNumber: string;
+        issueDate: string;
+        leavingDate: string;
+        reason: string;
+        duesCleared: boolean;
+        conductRemarks?: string | null;
+        leavingClass?: string | null;
+        promotedToNextClass: boolean;
+        destinationSchool?: string | null;
+        remarks?: string | null;
+      }
+    >({
       query: (body) => ({ url: '/students/tc', method: 'POST', body }),
       invalidatesTags: ['Students', 'Audit'],
     }),
@@ -442,7 +475,10 @@ export const schoolApi = createApi({
       invalidatesTags: ['Staff', 'Audit'],
     }),
 
-    updateRfidCardStatus: builder.mutation<unknown, { id: string; status: CardStatus }>({
+    updateRfidCardStatus: builder.mutation<
+      StudentRFIDcard,
+      { id: string; status: CardStatus; remarks?: string | null }
+    >({
       query: (body) => ({ url: '/students/rfid/status', method: 'POST', body }),
       invalidatesTags: ['Students', 'Audit'],
     }),
@@ -734,6 +770,7 @@ export const {
   useUpdateEnrollmentMutation,
   useImportStudentsMutation,
   useIssueRfidCardMutation,
+  useReplaceRfidCardMutation,
   useIssueTransferCertificateMutation,
   useSaveAcademicYearMutation,
   useSetActiveAcademicYearMutation,

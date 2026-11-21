@@ -334,10 +334,12 @@ export function PrintableTransferCertificate({
   school,
   tc,
   student,
+  fatherName,
 }: {
   school: SchoolProfile;
   tc: StudentTransferCertificate;
   student: Student;
+  fatherName?: string | null;
 }) {
   const { locale, pick } = useI18n();
   return (
@@ -347,23 +349,68 @@ export function PrintableTransferCertificate({
         docTitleBn="বিদ্যালয় পরিত্যাগের ছাড়পত্র (Transfer Certificate)"
         docTitleEn="School Transfer Certificate (TC)"
       />
-      <div className="flex justify-between text-sm text-muted-foreground mb-6 tabular-nums">
-        <span>{pick('টিসি স্মারক নং:', 'TC Number:')} <strong className="text-foreground">{tc.tcNumber}</strong></span>
-        <span>{pick('ইস্যুর তারিখ:', 'Issue Date:')} <strong className="text-foreground">{formatDateLong(tc.issueDate, locale)}</strong></span>
+      <div className="flex flex-wrap justify-between gap-2 text-sm text-muted-foreground mb-6 tabular-nums">
+        <span>
+          {pick('টিসি স্মারক নং:', 'TC Number:')}{' '}
+          <strong className="text-foreground font-mono">{tc.tcNumber}</strong>
+        </span>
+        <span>
+          {pick('ইস্যুর তারিখ:', 'Issue Date:')}{' '}
+          <strong className="text-foreground">{formatDateLong(tc.issueDate, locale)}</strong>
+        </span>
       </div>
       <div className="space-y-4 text-base leading-relaxed">
         <p>
           {pick(
-            `এই মর্মে প্রত্যয়ন করা যাচ্ছে যে, ${student.nameBn || student.nameEn} (${student.nameEn}), শিক্ষার্থী আইডি: ${student.studentId}, অত্র বিদ্যালয়ের ${tc.leavingClass ?? 'অধ্যয়নরত'} শ্রেণির একজন নিয়মিত শিক্ষার্থী ছিল।`,
-            `This is to certify that ${student.nameEn} (Student ID: ${student.studentId}) was a bona fide student of ${tc.leavingClass ?? 'this school'} at ${school.nameEn}.`
+            `এই মর্মে প্রত্যয়ন করা যাচ্ছে যে, ${student.nameBn || student.nameEn} (${student.nameEn})${fatherName ? `, পিতা: ${fatherName}` : ''}, শিক্ষার্থী আইডি: ${student.studentId}, অত্র বিদ্যালয়ের ${tc.leavingClass ?? 'অধ্যয়নরত'} শ্রেণির একজন নিয়মিত শিক্ষার্থী ছিল।`,
+            `This is to certify that ${student.nameEn}${fatherName ? ` (Father: ${fatherName})` : ''}, Student ID: ${student.studentId}, was a bona fide student of ${tc.leavingClass ?? 'this school'} at ${school.nameEn ?? school.name}.`
           )}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 border border-border rounded bg-surface-muted/40 text-sm">
-          <p><span className="text-muted-foreground">{pick('বিদ্যালয় ত্যাগের তারিখ:', 'Leaving Date:')}</span> {formatDateLong(tc.leavingDate, locale)}</p>
-          <p><span className="text-muted-foreground">{pick('বকেয়া অবস্থা:', 'Dues Status:')}</span> {tc.duesCleared ? pick('সকল বকেয়া পরিশোধিত', 'All dues cleared') : pick('অপরিশোধিত', 'Pending')}</p>
-          <p><span className="text-muted-foreground">{pick('আচরণ ও চরিত্র:', 'Conduct:')}</span> {tc.conductRemarks ?? 'উত্তম'}</p>
-          <p><span className="text-muted-foreground">{pick('গন্তব্য বিদ্যালয়:', 'Destination School:')}</span> {tc.destinationSchool ?? '—'}</p>
-          <p className="sm:col-span-2"><span className="text-muted-foreground">{pick('কারণ:', 'Reason:')}</span> {tc.reason}</p>
+          <p>
+            <span className="text-muted-foreground">{pick('জন্ম তারিখ:', 'Date of Birth:')}</span>{' '}
+            <strong className="font-medium text-foreground">
+              {student.dateOfBirth ? formatDateLong(student.dateOfBirth, locale) : '—'}
+            </strong>
+          </p>
+          <p>
+            <span className="text-muted-foreground">{pick('বিদ্যালয় ত্যাগের তারিখ:', 'Leaving Date:')}</span>{' '}
+            <strong className="font-medium text-foreground">{formatDateLong(tc.leavingDate, locale)}</strong>
+          </p>
+          <p>
+            <span className="text-muted-foreground">{pick('শেষ অধ্যয়নরত শ্রেণি:', 'Leaving Class:')}</span>{' '}
+            <strong className="font-medium text-foreground">{tc.leavingClass ?? '—'}</strong>
+          </p>
+          <p>
+            <span className="text-muted-foreground">{pick('পরবর্তী শ্রেণিতে উত্তীর্ণ:', 'Promoted to Next Class:')}</span>{' '}
+            <strong className="font-medium text-foreground">
+              {tc.promotedToNextClass ? pick('হ্যাঁ (উত্তীর্ণ)', 'Yes (Promoted)') : pick('না (মধ্য-সেশন)', 'No (Mid-session)')}
+            </strong>
+          </p>
+          <p>
+            <span className="text-muted-foreground">{pick('বকেয়া অবস্থা:', 'Dues Status:')}</span>{' '}
+            <strong className="font-medium text-foreground">
+              {tc.duesCleared ? pick('সকল বকেয়া পরিশোধিত', 'All dues cleared') : pick('অপরিশোধিত', 'Pending')}
+            </strong>
+          </p>
+          <p>
+            <span className="text-muted-foreground">{pick('আচরণ ও চরিত্র:', 'Conduct:')}</span>{' '}
+            <strong className="font-medium text-foreground">{tc.conductRemarks || pick('উত্তম', 'Good')}</strong>
+          </p>
+          <p className="sm:col-span-2">
+            <span className="text-muted-foreground">{pick('গন্তব্য বিদ্যালয়:', 'Destination School:')}</span>{' '}
+            <strong className="font-medium text-foreground">{tc.destinationSchool || '—'}</strong>
+          </p>
+          <p className="sm:col-span-2">
+            <span className="text-muted-foreground">{pick('বিদ্যালয় ত্যাগের কারণ:', 'Reason for Leaving:')}</span>{' '}
+            {tc.reason}
+          </p>
+          {tc.remarks && (
+            <p className="sm:col-span-2">
+              <span className="text-muted-foreground">{pick('অতিরিক্ত মন্তব্য:', 'Remarks:')}</span>{' '}
+              {tc.remarks}
+            </p>
+          )}
         </div>
         <p>
           {pick(

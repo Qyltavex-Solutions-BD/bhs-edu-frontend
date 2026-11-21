@@ -2192,10 +2192,24 @@ export async function handleMockRequest(
       const enrollment = db.enrollments.find(
         (item) => item.studentId === student.id && item.status === EnrollmentStatus.ACTIVE
       );
+      const enrolledClass = enrollment
+        ? db.classes.find((cls) => cls.id === enrollment.classId)
+        : null;
+      const derivedLeavingClass =
+        payload.leavingClass?.trim() ||
+        enrolledClass?.nameBn ||
+        enrolledClass?.name ||
+        null;
+
       const tc: StudentTransferCertificate = {
         ...payload,
         tcNumber,
         reason: payload.reason.trim(),
+        conductRemarks: payload.conductRemarks?.trim() || null,
+        destinationSchool: payload.destinationSchool?.trim() || null,
+        remarks: payload.remarks?.trim() || null,
+        leavingClass: derivedLeavingClass,
+        promotedToNextClass: Boolean(payload.promotedToNextClass),
         enrollmentId: enrollment?.id ?? payload.enrollmentId ?? null,
         id: uid('tc'),
         createdAt: nowIso(),
@@ -2203,12 +2217,34 @@ export async function handleMockRequest(
       };
       db.transferCertificates.unshift(tc);
       student.status = StudentStatus.TRANSFERRED;
+      student.updatedAt = nowIso();
       if (enrollment) {
         enrollment.status = EnrollmentStatus.TRANSFERRED;
         enrollment.updatedAt = nowIso();
       }
-      addAudit('TC_ISSUE', 'Students', `Issued Transfer Certificate ${tc.tcNumber}.`);
-      return { data: clone(tc) };
+
+      // Automatically block any active RFID cards belonging to the transferred student
+      let autoBlockedCards = 0;
+      db.rfidCards.forEach((card) => {
+        if (card.studentId === student.id && card.status === CardStatus.ACTIVE) {
+          card.status = CardStatus.BLOCKED;
+          card.remarks = `ছাড়পত্র (${tcNumber}) ইস্যু হওয়ায় স্বয়ংক্রিয়ভাবে বন্ধ করা হয়েছে।`;
+          card.updatedAt = nowIso();
+          autoBlockedCards += 1;
+          addAudit(
+            'RFID_AUTO_BLOCK',
+            'Students',
+            `Auto-blocked RFID card ${card.cardNumber} upon TC ${tcNumber} issuance.`
+          );
+        }
+      });
+
+      addAudit(
+        'TC_ISSUE',
+        'Students',
+        `Issued Transfer Certificate ${tc.tcNumber} for ${student.studentId}${autoBlockedCards ? ` (auto-blocked ${autoBlockedCards} RFID card)` : ''}.`
+      );
+      return { data: clone({ ...tc, autoBlockedCards }) };
     }
 
     // 15. Add / Update Class Routine Slot with Conflict Prevention
@@ -2510,18 +2546,28 @@ export async function handleMockRequest(
       return { data: clone(created) };
     }
 
-    // 17. Toggle RFID Card Status
+    // 17. RFID Card Issue, Status Update & Atomic Replacement
     if (endpoint === '/students/rfid' && method === 'POST') {
-      const { studentId, cardNumber, remarks } = body as { studentId: string; cardNumber: string; remarks?: string };
+      const { studentId, cardNumber, remarks } = body as {
+        studentId: string;
+        cardNumber: string;
+        remarks?: string | null;
+      };
       const student = db.students.find((item) => item.id === studentId);
       if (!student) return studentError(404, 'শিক্ষার্থী পাওয়া যায়নি। / Student was not found.');
+      if (student.status !== StudentStatus.ACTIVE) {
+        return studentError(
+          409,
+          'শুধুমাত্র সক্রিয় শিক্ষার্থীকে নতুন কার্ড ইস্যু করা যায়। / RFID cards can only be issued to active students.'
+        );
+      }
       const number = cardNumber?.trim();
       if (!number) return studentError(400, 'কার্ড নম্বর আবশ্যক। / Card number is required.');
       if (db.rfidCards.some((card) => sameName(card.cardNumber, number))) {
         return studentError(409, 'এই কার্ড নম্বর আগে ইস্যু হয়েছে। / This card number is already issued.');
       }
       if (db.rfidCards.some((card) => card.studentId === studentId && card.status === CardStatus.ACTIVE)) {
-        return studentError(409, 'এই শিক্ষার্থীর একটি সক্রিয় কার্ড আছে। আগে সেটি বন্ধ করুন। / This student already has an active card.');
+        return studentError(409, 'এই শিক্ষার্থীর একটি সক্রিয় কার্ড আছে। আগে সেটি বন্ধ বা রিপ্লেস করুন। / This student already has an active card.');
       }
       const card = {
         id: uid('rfid'),
@@ -2539,16 +2585,103 @@ export async function handleMockRequest(
     }
 
     if (endpoint === '/students/rfid/status' && method === 'POST') {
-      const { id, status } = body as { id: string; status: CardStatus };
+      const { id, status, remarks } = body as {
+        id: string;
+        status: CardStatus;
+        remarks?: string | null;
+      };
       const card = db.rfidCards.find((c) => c.id === id);
       if (!card) return studentError(404, 'কার্ড পাওয়া যায়নি। / Card was not found.');
-      if (status === CardStatus.ACTIVE && db.rfidCards.some((item) => item.id !== card.id && item.studentId === card.studentId && item.status === CardStatus.ACTIVE)) {
-        return studentError(409, 'এই শিক্ষার্থীর আরেকটি সক্রিয় কার্ড আছে। / This student already has another active card.');
+      const student = db.students.find((item) => item.id === card.studentId);
+      if (status === CardStatus.ACTIVE) {
+        if (student && student.status !== StudentStatus.ACTIVE) {
+          return studentError(
+            409,
+            'স্থানান্তরিত বা নিষ্ক্রিয় শিক্ষার্থীর কার্ড সক্রিয় করা যায় না। / Cannot activate a card for a non-active student.'
+          );
+        }
+        if (
+          db.rfidCards.some(
+            (item) =>
+              item.id !== card.id &&
+              item.studentId === card.studentId &&
+              item.status === CardStatus.ACTIVE
+          )
+        ) {
+          return studentError(
+            409,
+            'এই শিক্ষার্থীর আরেকটি সক্রিয় কার্ড আছে। / This student already has another active card.'
+          );
+        }
       }
       card.status = status;
+      if (remarks !== undefined) {
+        card.remarks = remarks?.trim() || null;
+      }
       card.updatedAt = nowIso();
       addAudit('RFID_STATUS', 'Students', `Updated RFID card ${card.cardNumber} status to ${status}.`);
       return { data: clone(card) };
+    }
+
+    if (endpoint === '/students/rfid/replace' && method === 'POST') {
+      const { oldCardId, oldCardStatus, newCardNumber, remarks } = body as {
+        oldCardId: string;
+        oldCardStatus: CardStatus.LOST | CardStatus.DAMAGED | CardStatus.BLOCKED;
+        newCardNumber: string;
+        remarks?: string | null;
+      };
+      const oldCard = db.rfidCards.find((c) => c.id === oldCardId);
+      if (!oldCard) return studentError(404, 'পূর্ববর্তী কার্ড পাওয়া যায়নি। / Previous card was not found.');
+      const student = db.students.find((item) => item.id === oldCard.studentId);
+      if (!student) return studentError(404, 'শিক্ষার্থী পাওয়া যায়নি। / Student was not found.');
+      if (student.status !== StudentStatus.ACTIVE) {
+        return studentError(
+          409,
+          'শুধুমাত্র সক্রিয় শিক্ষার্থীর কার্ড রিপ্লেস করা যায়। / Cards can only be replaced for active students.'
+        );
+      }
+      const nextNum = newCardNumber?.trim();
+      if (!nextNum) return studentError(400, 'নতুন কার্ড নম্বর আবশ্যক। / New card number is required.');
+      if (db.rfidCards.some((card) => sameName(card.cardNumber, nextNum))) {
+        return studentError(409, 'এই নতুন কার্ড নম্বরটি আগেই ব্যবহৃত হয়েছে। / This card number is already issued.');
+      }
+      const allowedOldStatuses: CardStatus[] = [
+        CardStatus.LOST,
+        CardStatus.DAMAGED,
+        CardStatus.BLOCKED,
+      ];
+      const finalOldStatus = allowedOldStatuses.includes(oldCardStatus)
+        ? oldCardStatus
+        : CardStatus.BLOCKED;
+
+      // Deactivate old card and any other active card for this student
+      oldCard.status = finalOldStatus;
+      oldCard.remarks = `নতুন কার্ড (${nextNum}) দ্বারা প্রতিস্থাপিত।`;
+      oldCard.updatedAt = nowIso();
+      db.rfidCards.forEach((item) => {
+        if (item.id !== oldCard.id && item.studentId === student.id && item.status === CardStatus.ACTIVE) {
+          item.status = CardStatus.BLOCKED;
+          item.updatedAt = nowIso();
+        }
+      });
+
+      const newCard = {
+        id: uid('rfid'),
+        studentId: student.id,
+        cardNumber: nextNum,
+        status: CardStatus.ACTIVE,
+        issuedAt: nowIso(),
+        remarks: remarks?.trim() || `পূর্বের কার্ড (${oldCard.cardNumber}) এর রিপ্লেসমেন্ট।`,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      };
+      db.rfidCards.unshift(newCard);
+      addAudit(
+        'RFID_REPLACE',
+        'Students',
+        `Replaced RFID card ${oldCard.cardNumber} (${finalOldStatus}) with ${nextNum} for ${student.studentId}.`
+      );
+      return { data: clone({ oldCard, newCard }) };
     }
 
     // 18. Mark Notification(s) Read

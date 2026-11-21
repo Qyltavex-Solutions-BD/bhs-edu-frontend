@@ -622,6 +622,7 @@ export function createInitialSeed(): MockDatabase {
   const parentStudents: ParentStudent[] = [];
 
   studentSeedRows.forEach((row, idx) => {
+    const isSeededTransfer = row.id === 'stu-8-3';
     students.push({
       id: row.id,
       userId: row.userId ?? null,
@@ -637,7 +638,7 @@ export function createInitialSeed(): MockDatabase {
       presentAddress: 'গ্রাম: ভোজেশ্বর, ডাকঘর: ভোজেশ্বর, উপজেলা: নড়িয়া, জেলা: শরীয়তপুর',
       permanentAddress: 'গ্রাম: ভোজেশ্বর, ডাকঘর: ভোজেশ্বর, উপজেলা: নড়িয়া, জেলা: শরীয়তপুর',
       admissionDate: `${2026 - (row.classNum - 6)}-01-10`,
-      status: StudentStatus.ACTIVE,
+      status: isSeededTransfer ? StudentStatus.TRANSFERRED : StudentStatus.ACTIVE,
       previousSchoolName: 'ভোজেশ্বর সরকারি প্রাথমিক বিদ্যালয়',
       previousGpa: 4.75,
       createdAt: NOW,
@@ -664,7 +665,7 @@ export function createInitialSeed(): MockDatabase {
       formSerialNo: String(100 + idx),
       isRepeater: false,
       isReadmission: row.classNum > 6,
-      status: EnrollmentStatus.ACTIVE,
+      status: isSeededTransfer ? EnrollmentStatus.TRANSFERRED : EnrollmentStatus.ACTIVE,
       createdAt: NOW,
       updatedAt: NOW,
     });

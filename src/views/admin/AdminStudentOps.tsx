@@ -1,88 +1,38 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { toast } from 'sonner';
-import {
-  AlertCircle,
-  ArrowLeft,
-  Award,
-  Calendar,
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  Clock,
-  Copy,
-  CreditCard,
-  Download,
-  ExternalLink,
-  Eye,
-  FileCheck,
-  FileText,
-  Filter,
-  GraduationCap,
-  Heart,
-  IdCard,
-  LayoutGrid,
-  List,
-  Mail,
-  MapPin,
-  Pencil,
-  Phone,
-  Printer,
-  QrCode,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  User,
-  UserCheck,
-  Users,
-  X,
-} from 'lucide-react';
 import { useParams } from '@/src/lib/navigation';
 import {
   useCreateStudentMutation,
   useGetBootstrapQuery,
   useImportStudentsMutation,
-  useIssueRfidCardMutation,
-  useIssueTransferCertificateMutation,
-  usePromoteStudentsMutation,
   useUpdateAdmissionStatusMutation,
-  useUpdateEnrollmentMutation,
-  useUpdateRfidCardStatusMutation,
-  useUpdateStudentMutation,
 } from '@/src/store/api';
 import { useAcademicYearSelection } from '@/src/views/admin/AcademicFoundation';
 import { StudentsShell } from '@/src/views/admin/StudentsShell';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
-import { triggerPrint } from '@/src/lib/utils/cn';
-import { LoadingSkeleton, SchoolEmblem, StatCard } from '@/src/components/shared/Feedback';
+import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
-import { PrintableTransferCertificate } from '@/src/components/print/PrintDocuments';
 import { Button, Card, FormField, Input, Modal, Select, Textarea } from '@/src/components/ui/primitives';
 import { getEnumMeta } from '@/src/lib/constants/enums';
-import { closedDay, latestOpenDay, localToday } from '@/src/lib/schoolDay';
 import {
-  AttendanceMethod,
-  AttendanceStatus,
   BloodGroup,
-  CardStatus,
-  EnrollmentStatus,
   Gender,
-  PromotionType,
   Religion,
-  StudentStatus,
 } from '@/src/types/enums';
 import type { MockDatabase } from '@/src/mocks/seed';
-import type { Attendance, Student, StudentEnrollment } from '@/src/types/entities';
 
 import { StudentDirectory } from './students/StudentDirectory';
 import { StudentProfile } from './students/StudentProfile';
 import { StudentEnrollments } from './students/StudentEnrollments';
 import { StudentPromotions } from './students/StudentPromotions';
+import { StudentTransfers } from './students/StudentTransfers';
+import { StudentRfidCards } from './students/StudentRfidCards';
 import { classLabel, errorMessage, BLOOD_LABEL } from './students/studentShared';
 
 type SectionKey =
@@ -157,13 +107,19 @@ export function AdminStudentsPage({
       year: true,
     },
     transfers: {
-      title: pick('ছাড়পত্র', 'Transfer certificates'),
-      description: pick('ইস্যু হলে শিক্ষার্থী স্থানান্তরিত হয় এবং চলতি ভর্তি বন্ধ হয়।', 'Issuing a certificate marks the student transferred and closes the current enrollment.'),
+      title: pick('ছাড়পত্র (TC) রেজিস্টার', 'Transfer Certificates'),
+      description: pick(
+        'অফিসিয়াল ছাড়পত্র ইস্যু, প্রিন্ট ও বকেয়া নিষ্পত্তি। টিসি ইস্যু হলে শিক্ষার্থীর চলতি ভর্তি ও সক্রিয় RFID কার্ড স্বয়ংক্রিয়ভাবে বন্ধ হয়।',
+        'Issue and print official Transfer Certificates. Issuing a TC closes active enrollment and auto-blocks active RFID cards.'
+      ),
       year: false,
     },
     cards: {
-      title: pick('পরিচয়পত্র', 'Identity cards'),
-      description: pick('কার্ড নম্বর ইস্যু ও অবস্থা। হাজিরা এই পাতায় হয় না।', 'Issue a card number and set its status. Attendance is not taken here.'),
+      title: pick('RFID ও পরিচয়পত্র ডেস্ক', 'Identity & RFID Cards'),
+      description: pick(
+        'সক্রিয় শিক্ষার্থীদের স্মার্ট কার্ড ইস্যু, হারানো/ক্ষতিগ্রস্ত কার্ড রিপ্লেসমেন্ট, স্ট্যাটাস নিয়ন্ত্রণ এবং ব্যাচ প্রিন্ট। (হাজিরা গেট পাতা থেকে নেওয়া হয়)',
+        'Issue smart RFID cards, track unassigned students, replace lost or damaged cards, and print ID sheets. Attendance scanning is handled separately.'
+      ),
       year: false,
     },
     import: {
@@ -212,8 +168,8 @@ export function AdminStudentsPage({
       {section === 'admissions' && <Admissions db={db} yearId={year.id} />}
       {section === 'enrollments' && <StudentEnrollments db={db} yearId={year.id} />}
       {section === 'promotions' && <StudentPromotions db={db} yearId={year.id} />}
-      {section === 'transfers' && <Transfers db={db} />}
-      {section === 'cards' && <Cards db={db} />}
+      {section === 'transfers' && <StudentTransfers db={db} />}
+      {section === 'cards' && <StudentRfidCards db={db} />}
       {section === 'import' && <Importer db={db} yearId={year.id} />}
       {section === 'profile' && <StudentProfile db={db} studentId={id ?? ''} yearId={year.id} startEditing={pathname.endsWith('/edit')} />}
     </StudentsShell>
@@ -684,242 +640,7 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
 
 
 
-function Transfers({ db }: { db: MockDatabase }) {
-  const { pick } = useI18n();
-  const [issue, { isLoading }] = useIssueTransferCertificateMutation();
-  const [open, setOpen] = useState(false);
-  const [printId, setPrintId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    studentId: '',
-    tcNumber: '',
-    issueDate: new Date().toISOString().slice(0, 10),
-    leavingDate: new Date().toISOString().slice(0, 10),
-    reason: '',
-    duesCleared: true,
-    conductRemarks: '',
-    leavingClass: '',
-    promotedToNextClass: false,
-    destinationSchool: '',
-  });
 
-  const activeStudents = db.students.filter((item) => item.status === StudentStatus.ACTIVE);
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    try {
-      await issue(form).unwrap();
-      toast.success(pick('ছাড়পত্র ইস্যু হয়েছে।', 'Transfer certificate issued.'));
-      setOpen(false);
-      setForm({ ...form, studentId: '', tcNumber: '', reason: '', destinationSchool: '' });
-    } catch (err) {
-      toast.error(errorMessage(err, pick('ইস্যু হয়নি।', 'Could not issue the certificate.')));
-    }
-  };
-  const printed = db.transferCertificates.find((item) => item.id === printId);
-  const printedStudent = printed ? db.students.find((item) => item.id === printed.studentId) : null;
-
-  return (
-    <>
-      <div className="flex justify-end">
-        <Button variant="primary" size="sm" onClick={() => setOpen(true)}>
-          {pick('নতুন ছাড়পত্র', 'Issue certificate')}
-        </Button>
-      </div>
-      <DataTable
-        data={db.transferCertificates.map((item) => {
-          const student = db.students.find((row) => row.id === item.studentId);
-          return { ...item, name: student?.nameBn || student?.nameEn || '—' };
-        })}
-        exportFilename="transfer-certificates.csv"
-        columns={[
-          { accessorKey: 'tcNumber', header: pick('টিসি নম্বর', 'TC number'), cell: ({ row }) => <span className="font-mono">{row.original.tcNumber}</span> },
-          { accessorKey: 'name', header: pick('শিক্ষার্থী', 'Student') },
-          { accessorKey: 'issueDate', header: pick('ইস্যু', 'Issued') },
-          { accessorKey: 'reason', header: pick('কারণ', 'Reason') },
-          { accessorKey: 'destinationSchool', header: pick('গন্তব্য', 'Destination') },
-          {
-            id: 'print',
-            header: '',
-            cell: ({ row }) => (
-              <Button size="sm" variant="outline" onClick={() => setPrintId(row.original.id)}>
-                {pick('প্রিন্ট', 'Print')}
-              </Button>
-            ),
-          },
-        ]}
-      />
-      <Modal open={open} onClose={() => setOpen(false)} title={pick('ছাড়পত্র ইস্যু', 'Issue transfer certificate')}>
-        <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField label={pick('শিক্ষার্থী', 'Student')} required>
-            <Select value={form.studentId} onChange={(event) => setForm({ ...form, studentId: event.target.value })}>
-              <option value="">{pick('বেছে নিন', 'Choose')}</option>
-              {activeStudents.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.nameBn || item.nameEn} ({item.studentId})
-                </option>
-              ))}
-            </Select>
-          </FormField>
-          <FormField label={pick('টিসি নম্বর', 'TC number')} required>
-            <Input value={form.tcNumber} onChange={(event) => setForm({ ...form, tcNumber: event.target.value })} />
-          </FormField>
-          <FormField label={pick('ইস্যুর তারিখ', 'Issue date')}>
-            <Input type="date" value={form.issueDate} onChange={(event) => setForm({ ...form, issueDate: event.target.value })} />
-          </FormField>
-          <FormField label={pick('ত্যাগের তারিখ', 'Leaving date')}>
-            <Input type="date" value={form.leavingDate} onChange={(event) => setForm({ ...form, leavingDate: event.target.value })} />
-          </FormField>
-          <FormField label={pick('কারণ', 'Reason')} required>
-            <Textarea value={form.reason} onChange={(event) => setForm({ ...form, reason: event.target.value })} />
-          </FormField>
-          <FormField label={pick('গন্তব্য বিদ্যালয়', 'Destination school')}>
-            <Input value={form.destinationSchool} onChange={(event) => setForm({ ...form, destinationSchool: event.target.value })} />
-          </FormField>
-          <FormField label={pick('আচরণ', 'Conduct')}>
-            <Input value={form.conductRemarks} onChange={(event) => setForm({ ...form, conductRemarks: event.target.value })} />
-          </FormField>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={form.duesCleared} onChange={(event) => setForm({ ...form, duesCleared: event.target.checked })} />
-            {pick('বকেয়া পরিশোধিত', 'Dues cleared')}
-          </label>
-          <div className="sm:col-span-2 flex justify-end">
-            <Button type="submit" variant="primary" disabled={isLoading}>
-              {pick('ইস্যু', 'Issue')}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-      <Modal open={Boolean(printed && printedStudent)} onClose={() => setPrintId(null)} title={pick('ছাড়পত্র', 'Transfer certificate')} maxWidth="max-w-3xl">
-        {printed && printedStudent && (
-          <div className="space-y-4">
-            <div className="flex justify-end">
-              <Button variant="primary" size="sm" onClick={triggerPrint}>
-                <Printer className="w-4 h-4" /> {pick('প্রিন্ট', 'Print')}
-              </Button>
-            </div>
-            <PrintableTransferCertificate school={db.schoolProfile} tc={printed} student={printedStudent} />
-          </div>
-        )}
-      </Modal>
-    </>
-  );
-}
-
-function Cards({ db }: { db: MockDatabase }) {
-  const { pick } = useI18n();
-  const [issue, { isLoading: issuing }] = useIssueRfidCardMutation();
-  const [updateStatus, { isLoading: updating }] = useUpdateRfidCardStatusMutation();
-  const [open, setOpen] = useState(false);
-  const [statusId, setStatusId] = useState<string | null>(null);
-  const [status, setStatus] = useState<CardStatus>(CardStatus.ACTIVE);
-  const [form, setForm] = useState({ studentId: '', cardNumber: '', remarks: '' });
-  const card = db.rfidCards.find((item) => item.id === statusId);
-
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    try {
-      await issue(form).unwrap();
-      toast.success(pick('কার্ড ইস্যু হয়েছে।', 'Card issued.'));
-      setOpen(false);
-      setForm({ studentId: '', cardNumber: '', remarks: '' });
-    } catch (err) {
-      toast.error(errorMessage(err, pick('ইস্যু হয়নি।', 'Could not issue the card.')));
-    }
-  };
-
-  const saveStatus = async () => {
-    if (!card) return;
-    try {
-      await updateStatus({ id: card.id, status }).unwrap();
-      toast.success(pick('কার্ডের অবস্থা হালনাগাদ হয়েছে।', 'Card status updated.'));
-      setStatusId(null);
-    } catch (err) {
-      toast.error(errorMessage(err, pick('হালনাগাদ হয়নি।', 'Could not update the card.')));
-    }
-  };
-
-  return (
-    <>
-      <div className="flex justify-end">
-        <Button variant="primary" size="sm" onClick={() => setOpen(true)}>
-          {pick('কার্ড ইস্যু', 'Issue card')}
-        </Button>
-      </div>
-      <DataTable
-        data={db.rfidCards.map((item) => {
-          const student = db.students.find((row) => row.id === item.studentId);
-          return { ...item, name: student?.nameBn || student?.nameEn || '—', studentCode: student?.studentId ?? '' };
-        })}
-        exportFilename="identity-cards.csv"
-        columns={[
-          { accessorKey: 'cardNumber', header: pick('কার্ড নম্বর', 'Card number'), cell: ({ row }) => <span className="font-mono">{row.original.cardNumber}</span> },
-          { accessorKey: 'name', header: pick('শিক্ষার্থী', 'Student') },
-          { accessorKey: 'studentCode', header: pick('আইডি', 'ID') },
-          { accessorKey: 'status', header: pick('অবস্থা', 'Status'), cell: ({ row }) => <StatusBadge enumName="CardStatus" value={row.original.status} /> },
-          {
-            id: 'status',
-            header: '',
-            cell: ({ row }) => (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setStatusId(row.original.id);
-                  setStatus(row.original.status);
-                }}
-              >
-                {pick('অবস্থা', 'Status')}
-              </Button>
-            ),
-          },
-        ]}
-      />
-      <Modal open={open} onClose={() => setOpen(false)} title={pick('কার্ড ইস্যু', 'Issue card')}>
-        <form onSubmit={submit} className="space-y-4">
-          <FormField label={pick('শিক্ষার্থী', 'Student')} required>
-            <Select value={form.studentId} onChange={(event) => setForm({ ...form, studentId: event.target.value })}>
-              <option value="">{pick('বেছে নিন', 'Choose')}</option>
-              {db.students
-                .filter((item) => item.status === StudentStatus.ACTIVE)
-                .map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.nameBn || item.nameEn} ({item.studentId})
-                  </option>
-                ))}
-            </Select>
-          </FormField>
-          <FormField label={pick('কার্ড নম্বর', 'Card number')} required>
-            <Input value={form.cardNumber} onChange={(event) => setForm({ ...form, cardNumber: event.target.value })} />
-          </FormField>
-          <FormField label={pick('মন্তব্য', 'Note')}>
-            <Input value={form.remarks} onChange={(event) => setForm({ ...form, remarks: event.target.value })} />
-          </FormField>
-          <div className="flex justify-end">
-            <Button type="submit" variant="primary" disabled={issuing}>
-              {pick('ইস্যু', 'Issue')}
-            </Button>
-          </div>
-        </form>
-      </Modal>
-      <Modal open={Boolean(card)} onClose={() => setStatusId(null)} title={card?.cardNumber ?? ''}>
-        <div className="space-y-4">
-          <FormField label={pick('অবস্থা', 'Status')}>
-            <Select value={status} onChange={(event) => setStatus(event.target.value as CardStatus)}>
-              <option value={CardStatus.ACTIVE}>{pick('সক্রিয়', 'Active')}</option>
-              <option value={CardStatus.LOST}>{pick('হারিয়ে গেছে', 'Lost')}</option>
-              <option value={CardStatus.DAMAGED}>{pick('ক্ষতিগ্রস্ত', 'Damaged')}</option>
-              <option value={CardStatus.BLOCKED}>{pick('বন্ধ', 'Blocked')}</option>
-            </Select>
-          </FormField>
-          <div className="flex justify-end">
-            <Button variant="primary" disabled={updating} onClick={saveStatus}>
-              {pick('সংরক্ষণ', 'Save')}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-    </>
-  );
-}
 
 function Importer({ db, yearId }: { db: MockDatabase; yearId: string }) {
   const { pick } = useI18n();
@@ -1021,121 +742,4 @@ function Importer({ db, yearId }: { db: MockDatabase; yearId: string }) {
       )}
     </Card>
   );
-}
-
-const WEEKDAYS = [
-  { bn: 'রবি', en: 'Sun' },
-  { bn: 'সোম', en: 'Mon' },
-  { bn: 'মঙ্গল', en: 'Tue' },
-  { bn: 'বুধ', en: 'Wed' },
-  { bn: 'বৃহ', en: 'Thu' },
-  { bn: 'শুক্র', en: 'Fri' },
-  { bn: 'শনি', en: 'Sat' },
-];
-
-function monthCells(month: string) {
-  const [year, mon] = month.split('-').map(Number);
-  if (!year || !mon) return [];
-  const pad = new Date(year, mon - 1, 1).getDay();
-  const count = new Date(year, mon, 0).getDate();
-  const cells: ({ date: string; day: number } | null)[] = Array.from({ length: pad }, () => null);
-  for (let day = 1; day <= count; day += 1) {
-    cells.push({
-      date: `${year}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-      day,
-    });
-  }
-  return cells;
-}
-
-function dayTone(status?: AttendanceStatus) {
-  if (status === AttendanceStatus.PRESENT) return 'bg-success/15 text-success border-success/30';
-  if (status === AttendanceStatus.LATE) return 'bg-warning/20 text-warning border-warning/40';
-  if (status === AttendanceStatus.ABSENT) return 'bg-destructive/15 text-destructive border-destructive/30';
-  if (status === AttendanceStatus.LEAVE) return 'bg-info/15 text-info border-info/30';
-  return '';
-}
-
-function AttendanceMonth({
-  month,
-  marks,
-  closedOn,
-  picked,
-  onPick,
-}: {
-  month: string;
-  marks: Attendance[];
-  closedOn: (date: string) => string;
-  picked: string | null;
-  onPick: (date: string) => void;
-}) {
-  const { locale, pick } = useI18n();
-  const today = localToday();
-  const byDate = new Map(marks.map((item) => [item.date, item]));
-  const chosen = picked ? byDate.get(picked) : undefined;
-
-  return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-7 gap-1.5 text-center text-[11px] font-medium text-muted-foreground">
-        {WEEKDAYS.map((day) => (
-          <div key={day.en}>{locale === 'bn' ? day.bn : day.en}</div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-1.5">
-        {monthCells(month).map((cell, index) => {
-          if (!cell) return <div key={`pad-${index}`} />;
-          const mark = byDate.get(cell.date);
-          const closed = closedOn(cell.date);
-          const tone = dayTone(mark?.status);
-          const quiet = !mark && (Boolean(closed) || cell.date > today);
-          return (
-            <button
-              key={cell.date}
-              type="button"
-              onClick={() => onPick(cell.date)}
-              className={`h-11 rounded-md border text-sm tabular-nums cursor-pointer ${
-                tone || (quiet ? 'border-transparent bg-surface-muted text-muted-foreground' : 'border-border bg-surface')
-              } ${picked === cell.date ? 'ring-2 ring-primary' : ''} ${cell.date === today ? 'font-bold' : ''}`}
-            >
-              {formatNumber(cell.day, locale)}
-            </button>
-          );
-        })}
-      </div>
-      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-success/60" />{pick('উপস্থিত', 'Present')}</span>
-        <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-warning/70" />{pick('দেরি', 'Late')}</span>
-        <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-destructive/60" />{pick('অনুপস্থিত', 'Absent')}</span>
-        <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-info/60" />{pick('ছুটি', 'Leave')}</span>
-        <span className="inline-flex items-center gap-1"><span className="h-2.5 w-2.5 rounded-sm bg-surface-muted border border-border" />{pick('বন্ধ', 'Closed')}</span>
-      </div>
-      <p className="text-sm">
-        {picked
-          ? <>
-              {formatDateShort(`${picked}T12:00:00`, locale)}
-              {' · '}
-              {chosen ? <StatusBadge enumName="AttendanceStatus" value={chosen.status} /> : closedOn(picked) || pick('এই দিনে হাজিরা নেই।', 'No attendance on this day.')}
-              {chosen?.inTime ? ` · ${chosen.inTime.slice(11, 16)}` : ''}
-            </>
-          : pick('একটা দিন চাপলে সেই দিনের হাজিরা এখানে দেখা যাবে।', 'Press a day to see that day’s attendance.')}
-      </p>
-    </div>
-  );
-}
-
-function getStudentAge(dob?: string | null, locale = 'bn') {
-  if (!dob) return '—';
-  const birth = new Date(dob);
-  if (isNaN(birth.getTime())) return '—';
-  const now = new Date();
-  let years = now.getFullYear() - birth.getFullYear();
-  let months = now.getMonth() - birth.getMonth();
-  if (months < 0 || (months === 0 && now.getDate() < birth.getDate())) {
-    years--;
-    months += 12;
-  }
-  if (locale === 'bn') {
-    return `${formatNumber(years, 'bn')} বছর ${formatNumber(months, 'bn')} মাস`;
-  }
-  return `${years} yrs ${months} mos`;
 }
