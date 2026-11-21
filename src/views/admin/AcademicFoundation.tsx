@@ -13,7 +13,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import { setSelectedAcademicYear } from '@/src/store/slices/uiSlice';
 import { useI18n } from '@/src/lib/i18n';
-import { Button, Card, FormField, Input, Select, Switch, Textarea } from '@/src/components/ui/primitives';
+import { Button, Card, FormField, Input, Modal, Select, Switch, Textarea } from '@/src/components/ui/primitives';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import type { AcademicGroup, AcademicYear, SchoolClass, Section } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
@@ -108,11 +108,19 @@ function YearsPanel({ years }: { years: AcademicYear[] }) {
   const [saveYear, { isLoading: saving }] = useSaveAcademicYearMutation();
   const [setActive, { isLoading: activating }] = useSetActiveAcademicYearMutation();
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyYear);
 
   const startCreate = () => {
     setEditingId(null);
     setForm(emptyYear);
+    setOpen(true);
+  };
+
+  const close = () => {
+    setEditingId(null);
+    setForm(emptyYear);
+    setOpen(false);
   };
 
   const startEdit = (year: AcademicYear) => {
@@ -123,6 +131,7 @@ function YearsPanel({ years }: { years: AcademicYear[] }) {
       endDate: year.endDate,
       isActive: year.isActive,
     });
+    setOpen(true);
   };
 
   const handleSave = async (event: React.FormEvent) => {
@@ -140,7 +149,7 @@ function YearsPanel({ years }: { years: AcademicYear[] }) {
           ? pick('শিক্ষাবর্ষ হালনাগাদ হয়েছে।', 'Academic year updated.')
           : pick('নতুন শিক্ষাবর্ষ যুক্ত হয়েছে।', 'Academic year created.')
       );
-      startCreate();
+      close();
     } catch (err) {
       toast.error(errorMessage(err, pick('শিক্ষাবর্ষ সংরক্ষণ হয়নি।', 'Could not save the academic year.')));
     }
@@ -156,18 +165,56 @@ function YearsPanel({ years }: { years: AcademicYear[] }) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="p-5 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-bold">
-            {editingId ? pick('শিক্ষাবর্ষ সম্পাদনা', 'Edit academic year') : pick('নতুন শিক্ষাবর্ষ', 'New academic year')}
-          </h3>
-          {editingId && (
-            <Button type="button" variant="outline" size="sm" onClick={startCreate}>
-              <Plus className="w-4 h-4" /> {pick('নতুন', 'New')}
-            </Button>
-          )}
-        </div>
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button type="button" variant="primary" onClick={startCreate}>
+          <Plus className="w-4 h-4" /> {pick('নতুন শিক্ষাবর্ষ', 'New academic year')}
+        </Button>
+      </div>
+      <Card className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-surface-muted text-muted-foreground">
+            <tr>
+              <th className="p-3 text-left">{pick('শিক্ষাবর্ষ', 'Year')}</th>
+              <th className="p-3 text-left">{pick('সময়কাল', 'Dates')}</th>
+              <th className="p-3 text-left">{pick('অবস্থা', 'Status')}</th>
+              <th className="p-3 text-right">{pick('কাজ', 'Actions')}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {years.map((year) => (
+              <tr key={year.id}>
+                <td className="p-3 font-semibold tabular-nums">{year.name}</td>
+                <td className="p-3 text-muted-foreground tabular-nums">{year.startDate} — {year.endDate}</td>
+                <td className="p-3">
+                  <StatusBadge
+                    value={year.isActive ? 'ACTIVE' : 'INACTIVE'}
+                    customLabel={year.isActive ? pick('চলতি', 'Current') : pick('বন্ধ', 'Inactive')}
+                    customTone={year.isActive ? 'success' : 'neutral'}
+                  />
+                </td>
+                <td className="p-3 text-right whitespace-nowrap">
+                  {!year.isActive && (
+                    <Button type="button" variant="outline" size="sm" disabled={activating} onClick={() => handleActivate(year.id)}>
+                      {pick('চলতি করুন', 'Make current')}
+                    </Button>
+                  )}
+                  <Button type="button" variant="ghost" size="sm" onClick={() => startEdit(year)}>
+                    <Pencil className="w-4 h-4" />
+                    {pick('সম্পাদনা', 'Edit')}
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+      <Modal
+        open={open}
+        onClose={close}
+        title={editingId ? pick('শিক্ষাবর্ষ সম্পাদনা', 'Edit academic year') : pick('নতুন শিক্ষাবর্ষ', 'New academic year')}
+        description={pick('শুরুর তারিখ শেষ তারিখের আগে হতে হবে। একটি বছর চলতি থাকবে।', 'The start date must be before the end date. One year stays current.')}
+      >
         <form onSubmit={handleSave} className="space-y-3">
           <FormField label={pick('নাম', 'Name')}>
             <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="2027" />
@@ -183,43 +230,16 @@ function YearsPanel({ years }: { years: AcademicYear[] }) {
           <Switch
             checked={form.isActive}
             onChange={(isActive) => setForm({ ...form, isActive })}
-            label={pick('এটিকে সক্রিয় শিক্ষাবর্ষ করুন', 'Make this the active year')}
+            label={pick('এটিকে চলতি শিক্ষাবর্ষ করুন', 'Make this the current year')}
           />
-          <Button type="submit" variant="primary" disabled={saving}>
-            {saving ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save')}
-          </Button>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={close}>{pick('বাতিল', 'Cancel')}</Button>
+            <Button type="submit" variant="primary" disabled={saving}>
+              {saving ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save')}
+            </Button>
+          </div>
         </form>
-      </Card>
-      <Card className="p-5 space-y-1">
-        <h3 className="text-base font-bold mb-2">{pick('সব শিক্ষাবর্ষ', 'All academic years')}</h3>
-        <div className="divide-y divide-border">
-          {years.map((year) => (
-            <div key={year.id} className="py-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="font-bold text-foreground tabular-nums">{year.name}</p>
-                <p className="text-sm text-muted-foreground tabular-nums">
-                  {year.startDate} — {year.endDate}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <StatusBadge
-                  value={year.isActive ? 'ACTIVE' : 'INACTIVE'}
-                  customLabel={year.isActive ? pick('সক্রিয়', 'Active') : pick('বন্ধ', 'Inactive')}
-                  customTone={year.isActive ? 'success' : 'neutral'}
-                />
-                {!year.isActive && (
-                  <Button type="button" variant="outline" size="sm" disabled={activating} onClick={() => handleActivate(year.id)}>
-                    {pick('সক্রিয় করুন', 'Set active')}
-                  </Button>
-                )}
-                <Button type="button" variant="outline" size="sm" onClick={() => startEdit(year)}>
-                  <Pencil className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
+      </Modal>
     </div>
   );
 }
