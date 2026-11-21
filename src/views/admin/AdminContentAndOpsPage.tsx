@@ -33,11 +33,6 @@ import {
   useUpdateAdmissionContentMutation,
   useUpsertCmsItemMutation,
 } from '@/src/store/api';
-import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
-import {
-  setEnableFutureModules,
-  setEnableStudentPortal,
-} from '@/src/store/slices/uiSlice';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
@@ -1228,64 +1223,19 @@ export function AdminReportsPage() {
   );
 }
 
-// 7.16 Settings, Profile & Feature Flags
+// 7.16 Settings & Profile
 export function AdminSettingsPage() {
-  const dispatch = useAppDispatch();
-  const { enableStudentPortal, enableFutureModules } = useAppSelector((s) => s.ui);
   const { pick } = useI18n();
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('সিস্টেম সেটিংস, ফিচার ফ্ল্যাগ ও প্রোফাইল', 'System Settings, Feature Flags & Profile')}
+        title={pick('সিস্টেম সেটিংস ও প্রোফাইল', 'System Settings & Profile')}
         description={pick(
-          'প্রোফাইল, পাসওয়ার্ড, সক্রিয় সেশন, থিম ও ফিচার ফ্ল্যাগ কনফিগার করুন।',
-          'Configure profile, password policy, active sessions, appearance, language, and release feature flags.'
+          'প্রোফাইল, পাসওয়ার্ড, সক্রিয় সেশন, থিম ও ভাষা কনফিগার করুন।',
+          'Configure profile, password policy, active sessions, appearance, and language.'
         )}
       />
-
-      <Card className="p-6 space-y-5">
-        <h3 className="text-base font-bold text-foreground">{pick('প্রাথমিক রিলিজ ফিচার ফ্ল্যাগ', 'Release Feature Flags')}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold">{pick('শিক্ষার্থী পোর্টাল (/student)', 'Student Portal (/student)')}</p>
-              <p className="text-sm text-muted-foreground">
-                {pick(
-                  'ডিফল্টভাবে বন্ধ (Section 9)। চালু করলে /student/dashboard অ্যাক্সেস করা যাবে।',
-                  'Off by default (VITE_ENABLE_STUDENT_PORTAL=false). Toggle to preview the complete Student Portal.'
-                )}
-              </p>
-            </div>
-            <Switch
-              checked={enableStudentPortal}
-              onChange={(v) => {
-                dispatch(setEnableStudentPortal(v));
-                toast.success(v ? pick('শিক্ষার্থী পোর্টাল চালু হয়েছে', 'Student Portal enabled') : pick('শিক্ষার্থী পোর্টাল বন্ধ করা হয়েছে', 'Student Portal disabled'));
-              }}
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold">{pick('ভবিষ্যৎ মডিউল প্রিভিউ (Section 12-B)', 'Future Modules Preview (Section 12-B)')}</p>
-              <p className="text-sm text-muted-foreground">
-                {pick(
-                  'ফি/বিকাশ, হোমওয়ার্ক, ছুটি, লাইব্রেরি ইস্যু — ব্যাকএন্ড-পেন্ডিং প্রিভিউ মডিউল।',
-                  'Fees/bKash, Homework, Leave, Library Loans — clearly marked BACKEND-PENDING.'
-                )}
-              </p>
-            </div>
-            <Switch
-              checked={enableFutureModules}
-              onChange={(v) => {
-                dispatch(setEnableFutureModules(v));
-                toast.success(v ? pick('ভবিষ্যৎ মডিউল মেনুতে যুক্ত হয়েছে', 'Future Modules preview enabled') : pick('ভবিষ্যৎ মডিউল লুকানো হয়েছে', 'Future Modules hidden'));
-              }}
-            />
-          </div>
-        </div>
-      </Card>
 
       <CommonProfilePanel
         roleLabel={pick('প্রধান প্রশাসক (Admin / Head Teacher)', 'School Administrator / Head Teacher')}
