@@ -38,6 +38,7 @@ import {
 } from '@/src/components/shared/Feedback';
 import { Button, Card, Input, Modal, Select } from '@/src/components/ui/primitives';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
+import { getTodayWeekDay, PERIOD_META } from '@/src/lib/classRoutine';
 import { triggerPrint } from '@/src/lib/utils/cn';
 import {
   AcademicDocumentType,
@@ -51,26 +52,6 @@ import type { SyllabusExamTerm, SyllabusFile } from '@/src/types/entities';
 /* ────────────────────────────────────────────────────────────────────────── *
  * Helpers & Authentic Institutional Document Content
  * ────────────────────────────────────────────────────────────────────────── */
-
-const PERIOD_META = [
-  { period: 1, labelBn: '১ম পিরিয়ড', labelEn: 'Period 1', timeBn: '১০:০০ – ১০:৪৫', timeEn: '10:00 – 10:45 AM' },
-  { period: 2, labelBn: '২য় পিরিয়ড', labelEn: 'Period 2', timeBn: '১০:৪৫ – ১১:৩০', timeEn: '10:45 – 11:30 AM' },
-  { period: 3, labelBn: '৩য় পিরিয়ড', labelEn: 'Period 3', timeBn: '১১:৩০ – ১২:১৫', timeEn: '11:30 AM – 12:15 PM' },
-  { period: 4, labelBn: '৪র্থ পিরিয়ড', labelEn: 'Period 4', timeBn: '১২:৪৫ – ১:৩০', timeEn: '12:45 – 01:30 PM' },
-] as const;
-
-function getTodayWeekDay(): WeekDay | null {
-  const map: Record<number, WeekDay> = {
-    0: WeekDay.SUNDAY,
-    1: WeekDay.MONDAY,
-    2: WeekDay.TUESDAY,
-    3: WeekDay.WEDNESDAY,
-    4: WeekDay.THURSDAY,
-    5: WeekDay.FRIDAY,
-    6: WeekDay.SATURDAY,
-  };
-  return map[new Date().getDay()] ?? null;
-}
 
 function getWeekdayLabel(dateStr: string, locale: 'bn' | 'en'): string {
   const d = new Date(dateStr);
@@ -1780,14 +1761,17 @@ export function PublicRoutinesPage() {
 
   const activeClass = db.classes.find((c) => c.id === validClassId);
   const activeSection = classSections.find((s) => s.id === effectiveSecId);
+  const activeYear = db.academicYears.find((year) => year.isActive) ?? db.academicYears[0];
   const sct = db.sectionClassTeachers.find(
-    (t) => t.sectionId === effectiveSecId && t.academicYearId === 'ay-2026'
+    (t) => t.sectionId === effectiveSecId && t.academicYearId === activeYear?.id
   );
   const classTeacher = sct ? db.staff.find((st) => st.id === sct.staffId) : null;
 
   const days = [WeekDay.SUNDAY, WeekDay.MONDAY, WeekDay.TUESDAY, WeekDay.WEDNESDAY, WeekDay.THURSDAY];
   const todayDay = getTodayWeekDay();
-  const routines = db.classRoutines.filter((r) => r.sectionId === effectiveSecId);
+  const routines = db.classRoutines.filter(
+    (r) => r.sectionId === effectiveSecId && r.academicYearId === activeYear?.id
+  );
 
   const handleClassChange = (newClassId: string) => {
     setSelectedClassId(newClassId);
@@ -1806,7 +1790,7 @@ export function PublicRoutinesPage() {
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <div className="no-print">
         <PageHeader
-          title={pick('সাপ্তাহিক ক্লাস রুটিন ২০২৬', 'Weekly Class Routine 2026')}
+          title={pick(`সাপ্তাহিক ক্লাস রুটিন ${activeYear?.name ?? ''}`, `Weekly Class Routine ${activeYear?.name ?? ''}`)}
           description={pick(
             'শ্রেণি ও শাখা নির্বাচন করে রবি থেকে বৃহস্পতিবারের পাঠদানের সময়সূচি দেখুন ও প্রিন্ট করুন।',
             'Select class and section to view or print the Sunday–Thursday classroom timetable.'
@@ -1862,8 +1846,8 @@ export function PublicRoutinesPage() {
             </h1>
             <p className="text-xs text-muted-foreground">
               {pick(
-                `সাপ্তাহিক ক্লাস রুটিন ২০২৬ · ${activeClass?.nameBn ?? ''} (শাখা: ${activeSection?.name ?? ''})`,
-                `Weekly Class Routine 2026 · ${activeClass?.name ?? ''} (Section: ${activeSection?.name ?? ''})`
+                `সাপ্তাহিক ক্লাস রুটিন ${activeYear?.name ?? ''} · ${activeClass?.nameBn ?? ''} (শাখা: ${activeSection?.name ?? ''})`,
+                `Weekly Class Routine ${activeYear?.name ?? ''} · ${activeClass?.name ?? ''} (Section: ${activeSection?.name ?? ''})`
               )}
             </p>
           </div>

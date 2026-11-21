@@ -4,15 +4,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
   useRemoveClassSubjectMutation,
+  useRemoveMasterSubjectMutation,
   useRolloverClassSubjectsMutation,
   useSaveBookMutation,
   useSaveClassSubjectMutation,
+  useSaveMasterSubjectMutation,
 } from '@/src/store/api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
-import { Button, Card, FormField, Input, Select, Switch } from '@/src/components/ui/primitives';
+import { Button, Card, FormField, Input, Modal, Select, Switch } from '@/src/components/ui/primitives';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
-import { BookType } from '@/src/types/enums';
+import { BookType, SubjectCategory } from '@/src/types/enums';
 import type { AcademicYear, ClassSubject } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
 
@@ -23,7 +25,15 @@ function errorMessage(err: unknown, fallback: string) {
   return fallback;
 }
 
-export function AcademicCurriculum({ db, year }: { db: MockDatabase; year: AcademicYear }) {
+export function AcademicCurriculum({
+  db,
+  year,
+  section,
+}: {
+  db: MockDatabase;
+  year: AcademicYear;
+  section: 'curriculum' | 'books' | 'catalog';
+}) {
   const { locale, pick } = useI18n();
   const [saveSubject, { isLoading: savingSubject }] = useSaveClassSubjectMutation();
   const [removeSubject, { isLoading: removing }] = useRemoveClassSubjectMutation();
@@ -160,6 +170,8 @@ export function AcademicCurriculum({ db, year }: { db: MockDatabase; year: Acade
 
   return (
     <div className="space-y-6">
+      {section === 'curriculum' && (
+      <>
       <Card className="p-5 flex flex-wrap items-end gap-3">
         <FormField label={pick(`${year.name} এ কপি করবেন যে বছর থেকে`, `Copy into ${year.name} from`)}>
           <Select value={fromYearId} onChange={(event) => setFromYearId(event.target.value)} className="min-w-40">
@@ -319,15 +331,22 @@ export function AcademicCurriculum({ db, year }: { db: MockDatabase; year: Acade
           </tbody>
         </table>
       </Card>
+      </>
+      )}
 
+      {section === 'books' && (
       <Card className="p-5 space-y-4">
-        <h3 className="text-base font-bold">{pick('পাঠ্যবই', 'Textbooks')}</h3>
-        <p className="text-sm text-muted-foreground">
-          {pick(
-            'বই শ্রেণি ও বিষয়ের সাথে থাকে। শুধু এই বছরের সক্রিয় পাঠ্যক্রমের বিষয়ে বই যোগ করা যায়।',
-            'A book belongs to a class and subject. You can add one only for a subject active on this year.'
-          )}
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <FormField label={pick('শ্রেণি', 'Class')}>
+            <Select value={classId} onChange={(event) => setClassId(event.target.value)} className="min-w-44">
+              {db.classes.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {classLabel(item.id)}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+        </div>
         <form onSubmit={handleBook} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
           <FormField label={pick('বিষয়', 'Subject')}>
             <Select value={bookSubjectId} onChange={(event) => setBookSubjectId(event.target.value)}>
@@ -370,6 +389,203 @@ export function AcademicCurriculum({ db, year }: { db: MockDatabase; year: Acade
             </div>
           ))}
         </div>
+      </Card>
+      )}
+
+      {section === 'catalog' && <SubjectCatalog db={db} />}
+    </div>
+  );
+}
+
+const EMPTY_SUBJECT = {
+  id: '',
+  name: '',
+  nameBn: '',
+  officialCode: '',
+  category: SubjectCategory.GENERAL,
+  description: '',
+  isActive: true,
+};
+
+function SubjectCatalog({ db }: { db: MockDatabase }) {
+  const { locale, pick } = useI18n();
+  const [saveSubject, { isLoading: saving }] = useSaveMasterSubjectMutation();
+  const [removeSubject, { isLoading: removing }] = useRemoveMasterSubjectMutation();
+  const [form, setForm] = useState(EMPTY_SUBJECT);
+  const [open, setOpen] = useState(false);
+
+  const subjects = [...db.subjects].sort((a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name));
+
+  const onSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    try {
+      await saveSubject({
+        id: form.id || undefined,
+        name: form.name.trim(),
+        nameBn: form.nameBn.trim(),
+        officialCode: form.officialCode.trim() || null,
+        category: form.category,
+        description: form.description.trim() || null,
+        isActive: form.isActive,
+      }).unwrap();
+      toast.success(form.id ? pick('বিষয় আপডেট হয়েছে।', 'Subject updated.') : pick('নতুন বিষয় ক্যাটালগে যুক্ত হয়েছে।', 'Subject added to the catalog.'));
+      setForm(EMPTY_SUBJECT);
+      setOpen(false);
+    } catch (err) {
+      toast.error(errorMessage(err, pick('বিষয় সংরক্ষণ হয়নি।', 'Could not save the subject.')));
+    }
+  };
+
+  const onRemove = async (id: string) => {
+    try {
+      await removeSubject({ id }).unwrap();
+      if (form.id === id) setForm(EMPTY_SUBJECT);
+      toast.success(pick('বিষয় ক্যাটালগ থেকে মুছে ফেলা হয়েছে।', 'Subject removed from the catalog.'));
+    } catch (err) {
+      toast.error(errorMessage(err, pick('বিষয় মোছা যায়নি।', 'Could not remove the subject.')));
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="primary"
+          onClick={() => {
+            setForm(EMPTY_SUBJECT);
+            setOpen(true);
+          }}
+        >
+          {pick('নতুন বিষয়', 'New subject')}
+        </Button>
+      </div>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={form.id ? pick('বিষয় সম্পাদনা', 'Edit subject') : pick('নতুন বিষয়', 'New subject')}
+        description={pick(
+          'এরপর বিষয়টি শ্রেণির পাঠ্যক্রমে বসাতে হবে। ব্যবহৃত বিষয় মুছা যায় না।',
+          'Place the subject on a class curriculum afterwards. A subject in use cannot be deleted.'
+        )}
+      >
+      <form onSubmit={onSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+        <FormField label={pick('ইংরেজি নাম', 'English name')}>
+          <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required />
+        </FormField>
+        <FormField label={pick('বাংলা নাম', 'Bangla name')}>
+          <Input value={form.nameBn} onChange={(event) => setForm({ ...form, nameBn: event.target.value })} required />
+        </FormField>
+        <FormField label={pick('বোর্ড কোড', 'Board code')}>
+          <Input value={form.officialCode} onChange={(event) => setForm({ ...form, officialCode: event.target.value })} placeholder="101" />
+        </FormField>
+        <FormField label={pick('ধরন', 'Category')}>
+          <Select value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value as SubjectCategory })}>
+            {Object.values(SubjectCategory).map((category) => (
+              <option key={category} value={category}>
+                {pick(
+                  {
+                    GENERAL: 'সাধারণ',
+                    LANGUAGE: 'ভাষা',
+                    MATHEMATICS: 'গণিত',
+                    SCIENCE: 'বিজ্ঞান',
+                    SOCIAL_SCIENCE: 'সমাজবিজ্ঞান',
+                    RELIGION: 'ধর্ম ও নৈতিক শিক্ষা',
+                    COMMERCE: 'ব্যবসায় শিক্ষা',
+                    TECHNICAL: 'তথ্য ও কারিগরি',
+                  }[category],
+                  category.replaceAll('_', ' ')
+                )}
+              </option>
+            ))}
+          </Select>
+        </FormField>
+        <FormField label={pick('বিবরণ', 'Description')}>
+          <Input value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
+        </FormField>
+        <div className="flex gap-2">
+          <Button type="submit" variant="primary" disabled={saving}>
+            {form.id ? pick('আপডেট', 'Update') : pick('তালিকায় যুক্ত করুন', 'Add to catalog')}
+          </Button>
+          {form.id && (
+            <Button type="button" variant="outline" onClick={() => setForm(EMPTY_SUBJECT)}>
+              {pick('বাতিল', 'Cancel')}
+            </Button>
+          )}
+        </div>
+      </form>
+      </Modal>
+      <Card className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-surface-muted text-muted-foreground">
+            <tr>
+              <th className="p-3 text-left">{pick('কোড', 'Code')}</th>
+              <th className="p-3 text-left">{pick('বিষয়', 'Subject')}</th>
+              <th className="p-3 text-left">{pick('ধরন', 'Category')}</th>
+              <th className="p-3 text-left">{pick('অবস্থা', 'Status')}</th>
+              <th className="p-3 text-right">{pick('কাজ', 'Actions')}</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {subjects.map((subject) => (
+              <tr key={subject.id}>
+                <td className="p-3 tabular-nums text-muted-foreground">{subject.officialCode || '—'}</td>
+                <td className="p-3 font-medium">{locale === 'bn' ? subject.nameBn || subject.name : subject.name}</td>
+                <td className="p-3">
+                  <StatusBadge enumName="SubjectCategory" value={subject.category} />
+                </td>
+                <td className="p-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      saveSubject({
+                        id: subject.id,
+                        name: subject.name,
+                        nameBn: subject.nameBn || subject.name,
+                        officialCode: subject.officialCode,
+                        category: subject.category,
+                        description: subject.description,
+                        isActive: !subject.isActive,
+                      })
+                        .unwrap()
+                        .catch((err) => toast.error(errorMessage(err, pick('হালনাগাদ হয়নি।', 'Could not update the subject.'))))
+                    }
+                  >
+                    <StatusBadge
+                      value={subject.isActive ? 'ACTIVE' : 'INACTIVE'}
+                      customLabel={subject.isActive ? pick('সক্রিয়', 'Active') : pick('বন্ধ', 'Inactive')}
+                      customTone={subject.isActive ? 'success' : 'neutral'}
+                    />
+                  </button>
+                </td>
+                <td className="p-3 text-right whitespace-nowrap">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setForm({
+                        id: subject.id,
+                        name: subject.name,
+                        nameBn: subject.nameBn || '',
+                        officialCode: subject.officialCode || '',
+                        category: subject.category,
+                        description: subject.description || '',
+                        isActive: subject.isActive,
+                      });
+                      setOpen(true);
+                    }}
+                  >
+                    {pick('সম্পাদনা', 'Edit')}
+                  </Button>
+                  <Button type="button" variant="ghost" size="sm" disabled={removing} onClick={() => onRemove(subject.id)}>
+                    {pick('মুছুন', 'Remove')}
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </Card>
     </div>
   );

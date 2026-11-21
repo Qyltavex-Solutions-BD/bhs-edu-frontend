@@ -3,6 +3,9 @@ import { handleMockRequest } from '@/src/mocks/mockAdapter';
 import type { MockDatabase } from '@/src/mocks/seed';
 import type { RootState } from './index';
 import type {
+  AcademicDocumentType,
+  AcademicEventType,
+  SubjectCategory,
   CardStatus,
   AttendanceMethod,
   AttendanceStatus,
@@ -10,6 +13,8 @@ import type {
   PromotionType,
 } from '@/src/types/enums';
 import type {
+  AcademicDocument,
+  AcademicEvent,
   AcademicGroup,
   AcademicYear,
   AdmissionContent,
@@ -20,7 +25,10 @@ import type {
   SchoolClass,
   SchoolProfile,
   Section,
+  Subject,
+  SectionClassTeacher,
   Staff,
+  TeacherAssignment,
   SyllabusChapterEntry,
   SyllabusFile,
 } from '@/src/types/entities';
@@ -303,6 +311,27 @@ export const schoolApi = createApi({
       invalidatesTags: ['Academic', 'Bootstrap'],
     }),
 
+    saveMasterSubject: builder.mutation<
+      Subject,
+      {
+        id?: string;
+        name: string;
+        nameBn: string;
+        officialCode?: string | null;
+        category: SubjectCategory;
+        description?: string | null;
+        isActive?: boolean;
+      }
+    >({
+      query: (body) => ({ url: '/academic/subjects', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap', 'Audit'],
+    }),
+
+    removeMasterSubject: builder.mutation<{ id: string }, { id: string }>({
+      query: (body) => ({ url: '/academic/subjects/remove', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap', 'Audit'],
+    }),
+
     saveClassSubject: builder.mutation<ClassSubject, Partial<ClassSubject>>({
       query: (body) => ({ url: '/academic/class-subjects', method: 'POST', body }),
       invalidatesTags: ['Academic', 'Bootstrap'],
@@ -323,6 +352,32 @@ export const schoolApi = createApi({
 
     saveBook: builder.mutation<Book, Partial<Book> & { academicYearId?: string }>({
       query: (body) => ({ url: '/academic/books', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap'],
+    }),
+
+    saveClassTeacher: builder.mutation<
+      SectionClassTeacher,
+      { academicYearId: string; sectionId: string; staffId: string }
+    >({
+      query: (body) => ({ url: '/academic/class-teachers', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap'],
+    }),
+
+    removeClassTeacher: builder.mutation<{ deletedId: string }, { id: string }>({
+      query: (body) => ({ url: '/academic/class-teachers/remove', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap'],
+    }),
+
+    saveTeacherAssignment: builder.mutation<
+      TeacherAssignment,
+      { academicYearId: string; sectionId: string; classSubjectId: string; staffId: string }
+    >({
+      query: (body) => ({ url: '/academic/teacher-assignments', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap'],
+    }),
+
+    removeTeacherAssignment: builder.mutation<{ deletedId: string }, { id: string }>({
+      query: (body) => ({ url: '/academic/teacher-assignments/remove', method: 'POST', body }),
       invalidatesTags: ['Academic', 'Bootstrap'],
     }),
 
@@ -481,6 +536,11 @@ export const schoolApi = createApi({
       invalidatesTags: ['Academic', 'Audit'],
     }),
 
+    removeClassRoutine: builder.mutation<{ id: string }, { id: string }>({
+      query: (body) => ({ url: '/academic/routines/remove', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap', 'Audit'],
+    }),
+
     saveSyllabusFile: builder.mutation<
       SyllabusFile,
       Omit<SyllabusFile, 'id' | 'createdAt' | 'updatedAt'>
@@ -494,6 +554,57 @@ export const schoolApi = createApi({
       Omit<SyllabusChapterEntry, 'id'>
     >({
       query: (body) => ({ url: '/academic/syllabus/entries', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap', 'Audit'],
+    }),
+
+    removeSyllabusFile: builder.mutation<{ id: string }, { id: string }>({
+      query: (body) => ({ url: '/academic/syllabus/files/remove', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap', 'Audit'],
+    }),
+
+    removeSyllabusEntry: builder.mutation<{ id: string }, { id: string }>({
+      query: (body) => ({ url: '/academic/syllabus/entries/remove', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap', 'Audit'],
+    }),
+
+    saveAcademicEvent: builder.mutation<
+      AcademicEvent,
+      {
+        id?: string;
+        academicYearId: string;
+        title: string;
+        description?: string | null;
+        eventType: AcademicEventType;
+        startDate: string;
+        endDate: string;
+      }
+    >({
+      query: (body) => ({ url: '/academic/events', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap', 'Audit'],
+    }),
+
+    saveAcademicDocument: builder.mutation<
+      AcademicDocument,
+      {
+        id?: string;
+        type: AcademicDocumentType;
+        title: string;
+        description?: string | null;
+        fileUrl?: string | null;
+        isPublished?: boolean;
+      }
+    >({
+      query: (body) => ({ url: '/academic/documents', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap', 'Audit'],
+    }),
+
+    removeAcademicDocument: builder.mutation<{ id: string }, { id: string }>({
+      query: (body) => ({ url: '/academic/documents/remove', method: 'POST', body }),
+      invalidatesTags: ['Academic', 'Bootstrap', 'Audit'],
+    }),
+
+    removeAcademicEvent: builder.mutation<{ id: string }, { id: string }>({
+      query: (body) => ({ url: '/academic/events/remove', method: 'POST', body }),
       invalidatesTags: ['Academic', 'Bootstrap', 'Audit'],
     }),
   }),
@@ -519,10 +630,16 @@ export const {
   useSaveAcademicGroupMutation,
   useSaveSchoolClassMutation,
   useSaveSectionMutation,
+  useSaveMasterSubjectMutation,
+  useRemoveMasterSubjectMutation,
   useSaveClassSubjectMutation,
   useRemoveClassSubjectMutation,
   useRolloverClassSubjectsMutation,
   useSaveBookMutation,
+  useSaveClassTeacherMutation,
+  useRemoveClassTeacherMutation,
+  useSaveTeacherAssignmentMutation,
+  useRemoveTeacherAssignmentMutation,
   useAddClassRoutineMutation,
   useCreateStaffMutation,
   useUpdateRfidCardStatusMutation,
@@ -538,6 +655,13 @@ export const {
   useCreateExamMutation,
   useReorderCmsItemsMutation,
   useMoveClassRoutineSlotMutation,
+  useRemoveClassRoutineMutation,
   useSaveSyllabusFileMutation,
+  useRemoveSyllabusFileMutation,
   useAddSyllabusEntryMutation,
+  useRemoveSyllabusEntryMutation,
+  useSaveAcademicEventMutation,
+  useRemoveAcademicEventMutation,
+  useSaveAcademicDocumentMutation,
+  useRemoveAcademicDocumentMutation,
 } = schoolApi;
