@@ -27,6 +27,8 @@ import type {
   Section,
   Subject,
   SectionClassTeacher,
+  Student,
+  StudentEnrollment,
   Staff,
   TeacherAssignment,
   SyllabusChapterEntry,
@@ -185,7 +187,7 @@ export const schoolApi = createApi({
 
     updateAdmissionStatus: builder.mutation<
       OnlineAdmissionApplication,
-      { id: string; status: AdmissionApplicationStatus }
+      { id: string; status: AdmissionApplicationStatus; sectionId?: string; roll?: number; academicYearId?: string }
     >({
       query: (body) => ({ url: '/admin/admissions/status', method: 'POST', body }),
       invalidatesTags: ['Admissions', 'Students', 'Audit'],
@@ -278,6 +280,29 @@ export const schoolApi = createApi({
 
     createStudent: builder.mutation<unknown, Record<string, unknown>>({
       query: (body) => ({ url: '/students', method: 'POST', body }),
+      invalidatesTags: ['Students', 'Audit'],
+    }),
+
+    updateStudent: builder.mutation<Student, Partial<Student> & { id: string }>({
+      query: (body) => ({ url: '/students/update', method: 'POST', body }),
+      invalidatesTags: ['Students', 'Audit'],
+    }),
+
+    updateEnrollment: builder.mutation<StudentEnrollment, Partial<StudentEnrollment> & { id: string }>({
+      query: (body) => ({ url: '/students/enrollments', method: 'POST', body }),
+      invalidatesTags: ['Students', 'Audit'],
+    }),
+
+    importStudents: builder.mutation<
+      { created: number; errors: { row: number; message: string }[] },
+      { academicYearId: string; rows: Array<Record<string, string>> }
+    >({
+      query: (body) => ({ url: '/students/import', method: 'POST', body }),
+      invalidatesTags: ['Students', 'Audit'],
+    }),
+
+    issueRfidCard: builder.mutation<unknown, { studentId: string; cardNumber: string; remarks?: string }>({
+      query: (body) => ({ url: '/students/rfid', method: 'POST', body }),
       invalidatesTags: ['Students', 'Audit'],
     }),
 
@@ -407,13 +432,16 @@ export const schoolApi = createApi({
     }),
 
     promoteStudents: builder.mutation<
-      { promotedCount: number },
+      { promoted: number; retained: number; graduated: number },
       {
+        toAcademicYearId: string;
         items: Array<{
           studentId: string;
           fromEnrollmentId: string;
-          toClassId: string;
-          promotionType: PromotionType;
+          toClassId?: string;
+          toSectionId?: string;
+          roll?: number;
+          promotionType: PromotionType | 'GRADUATED';
         }>;
       }
     >({
@@ -624,6 +652,10 @@ export const {
   useSimulateRfidScanMutation,
   useCreateNoticeMutation,
   useCreateStudentMutation,
+  useUpdateStudentMutation,
+  useUpdateEnrollmentMutation,
+  useImportStudentsMutation,
+  useIssueRfidCardMutation,
   useIssueTransferCertificateMutation,
   useSaveAcademicYearMutation,
   useSetActiveAcademicYearMutation,

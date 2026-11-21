@@ -76,6 +76,115 @@ function sameName(a: string, b: string) {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
+function studentError(status: number, message: string) {
+  return { error: { status, message } };
+}
+
+function placementError(input: {
+  academicYearId: string;
+  classId: string;
+  sectionId: string;
+  groupId?: string | null;
+  roll: number;
+  studentId?: string;
+  ignoreEnrollmentId?: string;
+}) {
+  if (!db.academicYears.some((year) => year.id === input.academicYearId)) {
+    return 'শিক্ষাবর্ষ পাওয়া যায়নি। / Academic year was not found.';
+  }
+  const schoolClass = db.classes.find((item) => item.id === input.classId);
+  if (!schoolClass) return 'শ্রেণি পাওয়া যায়নি। / Class was not found.';
+  const section = db.sections.find((item) => item.id === input.sectionId);
+  if (!section || section.classId !== input.classId) {
+    return 'শাখা এই শ্রেণির নয়। / That section does not belong to this class.';
+  }
+  if (schoolClass.numericValue >= 9) {
+    if (!input.groupId) return 'নবম ও দশম শ্রেণিতে বিভাগ আবশ্যক। / A stream is required for classes 9 and 10.';
+    if (!db.academicGroups.some((group) => group.id === input.groupId)) {
+      return 'বিভাগ পাওয়া যায়নি। / Stream was not found.';
+    }
+  } else if (input.groupId) {
+    return 'ষষ্ঠ থেকে অষ্টম শ্রেণিতে বিভাগ নেই। / Classes 6 to 8 do not use a stream.';
+  }
+  if (!Number.isInteger(input.roll) || input.roll < 1) {
+    return 'রোল ১ বা তার বেশি হতে হবে। / Roll must be 1 or greater.';
+  }
+  const rollTaken = db.enrollments.some(
+    (row) =>
+      row.id !== input.ignoreEnrollmentId &&
+      row.academicYearId === input.academicYearId &&
+      row.classId === input.classId &&
+      row.sectionId === input.sectionId &&
+      row.roll === input.roll
+  );
+  if (rollTaken) return `রোল ${input.roll} এই শাখায় আছে। / Roll ${input.roll} is already used in this section.`;
+  if (input.studentId) {
+    const yearTaken = db.enrollments.some(
+      (row) =>
+        row.id !== input.ignoreEnrollmentId &&
+        row.studentId === input.studentId &&
+        row.academicYearId === input.academicYearId
+    );
+    if (yearTaken) return 'এই শিক্ষার্থী এই শিক্ষাবর্ষে ইতিমধ্যে ভর্তি। / This student is already enrolled in that year.';
+  }
+  return null;
+}
+
+function identityError(input: { birthCertificateNo?: string | null; boardRegistrationNo?: string | null; ignoreStudentId?: string }) {
+  const birth = input.birthCertificateNo?.trim();
+  if (birth && db.students.some((student) => student.id !== input.ignoreStudentId && student.birthCertificateNo === birth)) {
+    return 'এই জন্ম সনদ নম্বর আরেকজন শিক্ষার্থীর। / This birth certificate number is already used.';
+  }
+  const board = input.boardRegistrationNo?.trim();
+  if (board && db.students.some((student) => student.id !== input.ignoreStudentId && student.boardRegistrationNo === board)) {
+    return 'এই বোর্ড রেজিস্ট্রেশন নম্বর আরেকজন শিক্ষার্থীর। / This board registration number is already used.';
+  }
+  return null;
+}
+
+function linkGuardian(
+  studentId: string,
+  input: {
+    name: string;
+    nameBn?: string | null;
+    phone: string;
+    occupation?: string | null;
+    nid?: string | null;
+    address?: string | null;
+    relationship?: RelationshipType;
+  }
+) {
+  const phone = input.phone.trim();
+  let parent = db.parents.find((item) => item.phone === phone);
+  if (!parent) {
+    parent = {
+      id: uid('par'),
+      name: input.name.trim(),
+      nameBn: input.nameBn?.trim() || null,
+      phone,
+      occupation: input.occupation?.trim() || null,
+      nid: input.nid?.trim() || null,
+      address: input.address?.trim() || null,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    };
+    db.parents.unshift(parent);
+  }
+  if (!db.parentStudents.some((link) => link.parentId === parent.id && link.studentId === studentId)) {
+    db.parentStudents.unshift({
+      id: uid('ps'),
+      parentId: parent.id,
+      studentId,
+      relationship: input.relationship ?? RelationshipType.FATHER,
+      isPrimary: !db.parentStudents.some((link) => link.studentId === studentId && link.isPrimary),
+      isEmergencyContact: true,
+      isSmsReceiver: true,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    });
+  }
+}
+
 function activeClassSubjects(yearId: string, classId: string) {
   return db.classSubjects.filter(
     (row) => row.isActive && row.academicYearId === yearId && row.classId === classId
@@ -1003,82 +1112,92 @@ export async function handleMockRequest(
 
     // 4. Update Admission Application Status / One-Click Admit into Students
     if (endpoint === '/admin/admissions/status' && method === 'POST') {
-      const { id, status } = body as { id: string; status: AdmissionApplicationStatus };
+      const { id, status, sectionId, roll, academicYearId } = body as {
+        id: string;
+        status: AdmissionApplicationStatus;
+        sectionId?: string;
+        roll?: number;
+        academicYearId?: string;
+      };
       const app = db.onlineAdmissions.find((a) => a.id === id);
-      if (!app) return { error: { status: 404, message: 'Application not found' } };
-      app.status = status;
-
-      if (status === 'ADMITTED') {
-        const stuId = uid('stu');
-        const nextNum = db.students.length + 1;
-        const newStudent: Student = {
-          id: stuId,
-          studentId: `BHS-2026-${String(2000 + nextNum)}`,
-          birthCertificateNo: app.birthCertificateNo,
-          nameEn: app.studentNameEn,
-          nameBn: app.studentNameBn,
-          dateOfBirth: app.dateOfBirth,
-          gender: app.gender,
-          religion: app.religion,
-          presentAddress: app.presentAddress,
-          permanentAddress: app.permanentAddress,
-          admissionDate: nowIso().slice(0, 10),
-          status: StudentStatus.ACTIVE,
-          previousSchoolName: app.previousSchoolName,
-          previousGrade: app.previousGrade,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        };
-        db.students.unshift(newStudent);
-
-        const targetSection =
-          db.sections.find((s) => s.classId === app.targetClassId) ?? db.sections[0];
-        const existingRolls = db.enrollments
-          .filter((e) => e.classId === app.targetClassId && e.sectionId === targetSection.id)
-          .map((e) => e.roll);
-        const nextRoll = existingRolls.length ? Math.max(...existingRolls) + 1 : 1;
-
-        db.enrollments.unshift({
-          id: uid('enr'),
-          studentId: stuId,
-          academicYearId: 'ay-2026',
-          classId: app.targetClassId,
-          sectionId: targetSection.id,
-          groupId: app.targetGroupId ?? null,
-          roll: nextRoll,
-          enrollmentDate: nowIso().slice(0, 10),
-          isRepeater: false,
-          isReadmission: app.isReadmission,
-          status: EnrollmentStatus.ACTIVE,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-
-        const parId = uid('par');
-        db.parents.unshift({
-          id: parId,
-          name: app.fatherNameEn,
-          nameBn: app.fatherNameBn,
-          phone: app.guardianPhone,
-          nid: app.fatherNid,
-          occupation: app.fatherOccupation,
-          address: app.presentAddress,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-        db.parentStudents.unshift({
-          id: uid('ps'),
-          parentId: parId,
-          studentId: stuId,
-          relationship: RelationshipType.FATHER,
-          isPrimary: true,
-          isEmergencyContact: true,
-          isSmsReceiver: true,
-          createdAt: nowIso(),
-          updatedAt: nowIso(),
-        });
-        addAudit('ADMISSION_ADMIT', 'Students', `Admitted applicant ${app.applicationNumber} (${app.studentNameEn}) with roll ${nextRoll}.`);
+      if (!app) return studentError(404, 'আবেদন পাওয়া যায়নি। / Application was not found.');
+      if (app.status === 'ADMITTED') {
+        return studentError(409, 'এই আবেদন আগেই ভর্তি করা হয়েছে। / This application is already admitted.');
       }
+      if (status !== 'ADMITTED') {
+        app.status = status;
+        addAudit('ADMISSION_STATUS', 'Students', `Set ${app.applicationNumber} to ${status}.`);
+        return { data: clone(app) };
+      }
+      const yearId = academicYearId || db.academicYears.find((year) => year.isActive)?.id || '';
+      const section =
+        db.sections.find((item) => item.id === sectionId && item.classId === app.targetClassId) ||
+        db.sections.find(
+          (item) => item.classId === app.targetClassId && app.preferredSection && sameName(item.name, app.preferredSection)
+        );
+      if (!section) return studentError(400, 'ভর্তির শাখা বেছে নিন। / Choose a section for this admission.');
+      const nextRoll = Number(roll);
+      const placed = placementError({
+        academicYearId: yearId,
+        classId: app.targetClassId,
+        sectionId: section.id,
+        groupId: app.targetGroupId ?? null,
+        roll: nextRoll,
+      });
+      if (placed) return studentError(400, placed);
+      const identity = identityError({ birthCertificateNo: app.birthCertificateNo });
+      if (identity) return studentError(409, identity);
+      const stuId = uid('stu');
+      const newStudent: Student = {
+        id: stuId,
+        studentId: `BHS-2026-${String(3000 + db.students.length + 1)}`,
+        birthCertificateNo: app.birthCertificateNo,
+        nameEn: app.studentNameEn,
+        nameBn: app.studentNameBn,
+        dateOfBirth: app.dateOfBirth,
+        gender: app.gender,
+        religion: app.religion,
+        presentAddress: app.presentAddress,
+        permanentAddress: app.permanentAddress,
+        admissionDate: nowIso().slice(0, 10),
+        status: StudentStatus.ACTIVE,
+        previousSchoolName: app.previousSchoolName ?? null,
+        previousSchoolAddress: app.previousSchoolAddress ?? null,
+        previousGrade: app.previousGrade ?? null,
+        prevExamPassingYear: app.prevExamPassingYear ?? null,
+        prevExamRoll: app.prevExamRoll ?? null,
+        prevExamRegistration: app.prevExamRegistration ?? null,
+        prevExamGpa: app.prevExamGpa ?? null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      };
+      db.students.unshift(newStudent);
+      db.enrollments.unshift({
+        id: uid('enr'),
+        studentId: stuId,
+        academicYearId: yearId,
+        classId: app.targetClassId,
+        sectionId: section.id,
+        groupId: app.targetGroupId ?? null,
+        roll: nextRoll,
+        enrollmentDate: nowIso().slice(0, 10),
+        isRepeater: false,
+        isReadmission: app.isReadmission,
+        status: EnrollmentStatus.ACTIVE,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      });
+      linkGuardian(stuId, {
+        name: app.fatherNameEn,
+        nameBn: app.fatherNameBn,
+        phone: app.guardianPhone,
+        occupation: app.fatherOccupation,
+        nid: app.fatherNid,
+        address: app.presentAddress,
+        relationship: RelationshipType.FATHER,
+      });
+      app.status = 'ADMITTED';
+      addAudit('ADMISSION_ADMIT', 'Students', `Admitted ${app.applicationNumber} as ${newStudent.studentId}, roll ${nextRoll}.`);
       return { data: clone(app) };
     }
 
@@ -1459,37 +1578,48 @@ export async function handleMockRequest(
     // 13. Register Student + Enrollment + Parent (6-step wizard)
     if (endpoint === '/students' && method === 'POST') {
       const p = body as Record<string, unknown>;
-      // Roll conflict detection
-      const conflict = db.enrollments.find(
-        (e) =>
-          e.academicYearId === p.academicYearId &&
-          e.classId === p.classId &&
-          e.sectionId === p.sectionId &&
-          e.roll === Number(p.roll)
-      );
-      if (conflict) {
-        return {
-          error: {
-            status: 409,
-            message: `রোল নম্বর ${p.roll} এই শ্রেণি ও শাখায় ইতিমধ্যেই বরাদ্দ করা আছে।`,
-          },
-        };
+      const nameEn = String(p.nameEn ?? '').trim();
+      const parentName = String(p.parentName ?? '').trim();
+      const parentPhone = String(p.parentPhone ?? '').trim();
+      if (!nameEn) return studentError(400, 'ইংরেজি নাম আবশ্যক। / English name is required.');
+      if (!parentName || !parentPhone) {
+        return studentError(400, 'অভিভাবকের নাম ও মোবাইল আবশ্যক। / Guardian name and phone are required.');
       }
-
+      const groupId = p.groupId ? String(p.groupId) : null;
+      const placed = placementError({
+        academicYearId: String(p.academicYearId ?? ''),
+        classId: String(p.classId ?? ''),
+        sectionId: String(p.sectionId ?? ''),
+        groupId,
+        roll: Number(p.roll),
+      });
+      if (placed) return studentError(400, placed);
+      const identity = identityError({
+        birthCertificateNo: p.birthCertificateNo ? String(p.birthCertificateNo) : null,
+        boardRegistrationNo: p.boardRegistrationNo ? String(p.boardRegistrationNo) : null,
+      });
+      if (identity) return studentError(409, identity);
+      const optionalId = p.optionalClassSubjectId ? String(p.optionalClassSubjectId) : null;
+      if (optionalId) {
+        const optional = db.classSubjects.find((row) => row.id === optionalId && row.isOptional && row.isActive);
+        if (!optional || optional.classId !== String(p.classId) || optional.academicYearId !== String(p.academicYearId)) {
+          return studentError(400, 'ঐচ্ছিক বিষয় এই শ্রেণির পাঠ্যতালিকায় নেই। / That optional subject is not on this class curriculum.');
+        }
+      }
       const stuId = uid('stu');
       const newStudent: Student = {
         id: stuId,
         studentId: `BHS-2026-${String(3000 + db.students.length + 1)}`,
-        birthCertificateNo: String(p.birthCertificateNo ?? ''),
-        boardRegistrationNo: p.boardRegistrationNo ? String(p.boardRegistrationNo) : null,
-        nameEn: String(p.nameEn),
-        nameBn: String(p.nameBn ?? ''),
-        dateOfBirth: String(p.dateOfBirth ?? ''),
+        birthCertificateNo: p.birthCertificateNo ? String(p.birthCertificateNo).trim() : null,
+        boardRegistrationNo: p.boardRegistrationNo ? String(p.boardRegistrationNo).trim() : null,
+        nameEn,
+        nameBn: p.nameBn ? String(p.nameBn).trim() : null,
+        dateOfBirth: p.dateOfBirth ? String(p.dateOfBirth) : null,
         gender: p.gender as Student['gender'],
         bloodGroup: (p.bloodGroup as Student['bloodGroup']) || null,
         religion: (p.religion as Student['religion']) || null,
-        presentAddress: String(p.presentAddress ?? ''),
-        permanentAddress: String(p.permanentAddress ?? ''),
+        presentAddress: p.presentAddress ? String(p.presentAddress) : null,
+        permanentAddress: p.permanentAddress ? String(p.permanentAddress) : null,
         admissionDate: String(p.admissionDate ?? nowIso().slice(0, 10)),
         status: StudentStatus.ACTIVE,
         previousSchoolName: p.previousSchoolName ? String(p.previousSchoolName) : null,
@@ -1498,14 +1628,14 @@ export async function handleMockRequest(
         updatedAt: nowIso(),
       };
       db.students.unshift(newStudent);
-
       const newEnr: StudentEnrollment = {
         id: uid('enr'),
         studentId: stuId,
         academicYearId: String(p.academicYearId),
         classId: String(p.classId),
         sectionId: String(p.sectionId),
-        groupId: p.groupId ? String(p.groupId) : null,
+        groupId,
+        optionalClassSubjectId: optionalId,
         roll: Number(p.roll),
         enrollmentDate: nowIso().slice(0, 10),
         isRepeater: false,
@@ -1515,47 +1645,206 @@ export async function handleMockRequest(
         updatedAt: nowIso(),
       };
       db.enrollments.unshift(newEnr);
-
-      const parId = uid('par');
-      db.parents.unshift({
-        id: parId,
-        name: String(p.parentName),
+      linkGuardian(stuId, {
+        name: parentName,
         nameBn: p.parentNameBn ? String(p.parentNameBn) : null,
-        phone: String(p.parentPhone),
+        phone: parentPhone,
         occupation: p.parentOccupation ? String(p.parentOccupation) : null,
         nid: p.parentNid ? String(p.parentNid) : null,
-        address: String(p.presentAddress ?? ''),
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
+        address: p.presentAddress ? String(p.presentAddress) : null,
+        relationship: (p.relationship as RelationshipType) || RelationshipType.FATHER,
       });
-      db.parentStudents.unshift({
-        id: uid('ps'),
-        parentId: parId,
-        studentId: stuId,
-        relationship: RelationshipType.FATHER,
-        isPrimary: true,
-        isEmergencyContact: true,
-        isSmsReceiver: true,
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
-      });
-
-      addAudit('STUDENT_CREATE', 'Students', `Registered new student ${newStudent.nameEn} (${newStudent.studentId}).`);
+      addAudit('STUDENT_CREATE', 'Students', `Registered ${newStudent.nameEn} (${newStudent.studentId}).`);
       return { data: clone({ student: newStudent, enrollment: newEnr }) };
+    }
+
+    if (endpoint === '/students/update' && method === 'POST') {
+      const p = body as Partial<Student> & { id: string };
+      const student = db.students.find((item) => item.id === p.id);
+      if (!student) return studentError(404, 'শিক্ষার্থী পাওয়া যায়নি। / Student was not found.');
+      const nameEn = (p.nameEn ?? student.nameEn).trim();
+      if (!nameEn) return studentError(400, 'ইংরেজি নাম আবশ্যক। / English name is required.');
+      const identity = identityError({
+        birthCertificateNo: p.birthCertificateNo,
+        boardRegistrationNo: p.boardRegistrationNo,
+        ignoreStudentId: student.id,
+      });
+      if (identity) return studentError(409, identity);
+      student.nameEn = nameEn;
+      student.nameBn = p.nameBn?.trim() || null;
+      student.dateOfBirth = p.dateOfBirth || null;
+      if (p.gender) student.gender = p.gender;
+      student.bloodGroup = p.bloodGroup || null;
+      student.religion = p.religion || null;
+      student.presentAddress = p.presentAddress?.trim() || null;
+      student.permanentAddress = p.permanentAddress?.trim() || null;
+      student.birthCertificateNo = p.birthCertificateNo?.trim() || null;
+      student.boardRegistrationNo = p.boardRegistrationNo?.trim() || null;
+      student.previousSchoolName = p.previousSchoolName?.trim() || null;
+      student.previousGpa = p.previousGpa ?? null;
+      if (p.status === StudentStatus.ACTIVE || p.status === StudentStatus.INACTIVE) student.status = p.status;
+      student.updatedAt = nowIso();
+      addAudit('STUDENT_UPDATE', 'Students', `Updated ${student.studentId}.`);
+      return { data: clone(student) };
+    }
+
+    if (endpoint === '/students/enrollments' && method === 'POST') {
+      const p = body as Partial<StudentEnrollment> & { id: string };
+      const enrollment = db.enrollments.find((item) => item.id === p.id);
+      if (!enrollment) return studentError(404, 'ভর্তি রেকর্ড পাওয়া যায়নি। / Enrollment was not found.');
+      const groupId = p.groupId ? String(p.groupId) : null;
+      const placed = placementError({
+        academicYearId: enrollment.academicYearId,
+        classId: enrollment.classId,
+        sectionId: String(p.sectionId ?? enrollment.sectionId),
+        groupId,
+        roll: Number(p.roll ?? enrollment.roll),
+        studentId: enrollment.studentId,
+        ignoreEnrollmentId: enrollment.id,
+      });
+      if (placed) return studentError(400, placed);
+      const optionalId = p.optionalClassSubjectId ? String(p.optionalClassSubjectId) : null;
+      if (optionalId) {
+        const optional = db.classSubjects.find((row) => row.id === optionalId && row.isOptional && row.isActive);
+        if (
+          !optional ||
+          optional.academicYearId !== enrollment.academicYearId ||
+          optional.classId !== enrollment.classId ||
+          (optional.groupId && optional.groupId !== groupId)
+        ) {
+          return studentError(400, 'ঐচ্ছিক বিষয় এই শ্রেণি ও বিভাগের নয়। / That optional subject does not match this class and stream.');
+        }
+      }
+      enrollment.sectionId = String(p.sectionId ?? enrollment.sectionId);
+      enrollment.groupId = groupId;
+      enrollment.roll = Number(p.roll ?? enrollment.roll);
+      enrollment.optionalClassSubjectId = optionalId;
+      enrollment.isRepeater = Boolean(p.isRepeater);
+      enrollment.isReadmission = Boolean(p.isReadmission);
+      enrollment.remarks = p.remarks?.trim() || null;
+      enrollment.updatedAt = nowIso();
+      addAudit('ENROLLMENT_UPDATE', 'Students', `Updated enrollment ${enrollment.id}.`);
+      return { data: clone(enrollment) };
+    }
+
+    if (endpoint === '/students/import' && method === 'POST') {
+      const { academicYearId, rows } = body as {
+        academicYearId: string;
+        rows: Array<Record<string, string>>;
+      };
+      const created: string[] = [];
+      const errors: { row: number; message: string }[] = [];
+      rows.forEach((row, index) => {
+        const schoolClass = db.classes.find(
+          (item) => sameName(item.name, row.className || '') || sameName(item.nameBn || '', row.className || '')
+        );
+        const section = schoolClass
+          ? db.sections.find((item) => item.classId === schoolClass.id && sameName(item.name, row.sectionName || ''))
+          : undefined;
+        const group = row.groupName
+          ? db.academicGroups.find((item) => sameName(item.name, row.groupName) || sameName(item.nameBn || '', row.groupName))
+          : undefined;
+        const snapshot = {
+          students: db.students.length,
+          enrollments: db.enrollments.length,
+          parents: db.parents.length,
+          links: db.parentStudents.length,
+        };
+        const result = (() => {
+          const nameEn = (row.nameEn || '').trim();
+          const parentName = (row.parentName || '').trim();
+          const parentPhone = (row.parentPhone || '').trim();
+          if (!nameEn || !parentName || !parentPhone || !schoolClass || !section) {
+            return 'নাম, অভিভাবক, শ্রেণি ও শাখা মিলছে না। / Name, guardian, class, or section did not match.';
+          }
+          const placed = placementError({
+            academicYearId,
+            classId: schoolClass.id,
+            sectionId: section.id,
+            groupId: group?.id ?? null,
+            roll: Number(row.roll),
+          });
+          if (placed) return placed;
+          const identity = identityError({ birthCertificateNo: row.birthCertificateNo });
+          if (identity) return identity;
+          const stuId = uid('stu');
+          db.students.unshift({
+            id: stuId,
+            studentId: `BHS-2026-${String(3000 + db.students.length + 1)}`,
+            birthCertificateNo: row.birthCertificateNo?.trim() || null,
+            nameEn,
+            nameBn: row.nameBn?.trim() || null,
+            dateOfBirth: row.dateOfBirth || null,
+            gender: (row.gender as Student['gender']) || ('MALE' as Student['gender']),
+            admissionDate: nowIso().slice(0, 10),
+            status: StudentStatus.ACTIVE,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          });
+          db.enrollments.unshift({
+            id: uid('enr'),
+            studentId: stuId,
+            academicYearId,
+            classId: schoolClass.id,
+            sectionId: section.id,
+            groupId: group?.id ?? null,
+            roll: Number(row.roll),
+            enrollmentDate: nowIso().slice(0, 10),
+            isRepeater: false,
+            isReadmission: false,
+            status: EnrollmentStatus.ACTIVE,
+            createdAt: nowIso(),
+            updatedAt: nowIso(),
+          });
+          linkGuardian(stuId, { name: parentName, phone: parentPhone, relationship: RelationshipType.GUARDIAN });
+          created.push(stuId);
+          return null;
+        })();
+        if (result) {
+          db.students.splice(0, db.students.length - snapshot.students);
+          db.enrollments.splice(0, db.enrollments.length - snapshot.enrollments);
+          db.parents.splice(0, db.parents.length - snapshot.parents);
+          db.parentStudents.splice(0, db.parentStudents.length - snapshot.links);
+          errors.push({ row: index + 1, message: result });
+        }
+      });
+      addAudit('STUDENT_IMPORT', 'Students', `Imported ${created.length} students, ${errors.length} rows skipped.`);
+      return { data: { created: created.length, errors } };
     }
 
     // 14. Issue Transfer Certificate
     if (endpoint === '/students/tc' && method === 'POST') {
       const payload = body as Omit<StudentTransferCertificate, 'id' | 'createdAt' | 'updatedAt'>;
+      const student = db.students.find((item) => item.id === payload.studentId);
+      if (!student) return studentError(404, 'শিক্ষার্থী পাওয়া যায়নি। / Student was not found.');
+      if (student.status !== StudentStatus.ACTIVE) {
+        return studentError(409, 'শুধু সক্রিয় শিক্ষার্থীর ছাড়পত্র ইস্যু হয়। / A transfer certificate can only be issued for an active student.');
+      }
+      const tcNumber = payload.tcNumber?.trim();
+      if (!tcNumber || !payload.reason?.trim() || !payload.issueDate || !payload.leavingDate) {
+        return studentError(400, 'টিসি নম্বর, তারিখ ও কারণ আবশ্যক। / TC number, dates, and reason are required.');
+      }
+      if (db.transferCertificates.some((item) => sameName(item.tcNumber, tcNumber))) {
+        return studentError(409, 'এই টিসি নম্বর আগে ব্যবহার হয়েছে। / This TC number is already used.');
+      }
+      const enrollment = db.enrollments.find(
+        (item) => item.studentId === student.id && item.status === EnrollmentStatus.ACTIVE
+      );
       const tc: StudentTransferCertificate = {
         ...payload,
+        tcNumber,
+        reason: payload.reason.trim(),
+        enrollmentId: enrollment?.id ?? payload.enrollmentId ?? null,
         id: uid('tc'),
         createdAt: nowIso(),
         updatedAt: nowIso(),
       };
       db.transferCertificates.unshift(tc);
-      const stu = db.students.find((s) => s.id === tc.studentId);
-      if (stu) stu.status = StudentStatus.TRANSFERRED;
+      student.status = StudentStatus.TRANSFERRED;
+      if (enrollment) {
+        enrollment.status = EnrollmentStatus.TRANSFERRED;
+        enrollment.updatedAt = nowIso();
+      }
       addAudit('TC_ISSUE', 'Students', `Issued Transfer Certificate ${tc.tcNumber}.`);
       return { data: clone(tc) };
     }
@@ -1667,10 +1956,40 @@ export async function handleMockRequest(
     }
 
     // 17. Toggle RFID Card Status
+    if (endpoint === '/students/rfid' && method === 'POST') {
+      const { studentId, cardNumber, remarks } = body as { studentId: string; cardNumber: string; remarks?: string };
+      const student = db.students.find((item) => item.id === studentId);
+      if (!student) return studentError(404, 'শিক্ষার্থী পাওয়া যায়নি। / Student was not found.');
+      const number = cardNumber?.trim();
+      if (!number) return studentError(400, 'কার্ড নম্বর আবশ্যক। / Card number is required.');
+      if (db.rfidCards.some((card) => sameName(card.cardNumber, number))) {
+        return studentError(409, 'এই কার্ড নম্বর আগে ইস্যু হয়েছে। / This card number is already issued.');
+      }
+      if (db.rfidCards.some((card) => card.studentId === studentId && card.status === CardStatus.ACTIVE)) {
+        return studentError(409, 'এই শিক্ষার্থীর একটি সক্রিয় কার্ড আছে। আগে সেটি বন্ধ করুন। / This student already has an active card.');
+      }
+      const card = {
+        id: uid('rfid'),
+        studentId,
+        cardNumber: number,
+        status: CardStatus.ACTIVE,
+        issuedAt: nowIso(),
+        remarks: remarks?.trim() || null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      };
+      db.rfidCards.unshift(card);
+      addAudit('RFID_ISSUE', 'Students', `Issued card ${number} to ${student.studentId}.`);
+      return { data: clone(card) };
+    }
+
     if (endpoint === '/students/rfid/status' && method === 'POST') {
       const { id, status } = body as { id: string; status: CardStatus };
       const card = db.rfidCards.find((c) => c.id === id);
-      if (!card) return { error: { status: 404, message: 'RFID card not found' } };
+      if (!card) return studentError(404, 'কার্ড পাওয়া যায়নি। / Card was not found.');
+      if (status === CardStatus.ACTIVE && db.rfidCards.some((item) => item.id !== card.id && item.studentId === card.studentId && item.status === CardStatus.ACTIVE)) {
+        return studentError(409, 'এই শিক্ষার্থীর আরেকটি সক্রিয় কার্ড আছে। / This student already has another active card.');
+      }
       card.status = status;
       card.updatedAt = nowIso();
       addAudit('RFID_STATUS', 'Students', `Updated RFID card ${card.cardNumber} status to ${status}.`);
@@ -1706,33 +2025,109 @@ export async function handleMockRequest(
 
     // 20. Promote Students Wizard
     if (endpoint === '/students/promote' && method === 'POST') {
-      const { items } = body as {
+      const { toAcademicYearId, items } = body as {
+        toAcademicYearId: string;
         items: Array<{
           studentId: string;
           fromEnrollmentId: string;
-          toClassId: string;
-          promotionType: PromotionType;
+          toClassId?: string;
+          toSectionId?: string;
+          roll?: number;
+          promotionType: PromotionType | 'GRADUATED';
         }>;
       };
-      items.forEach((item) => {
+      if (!items.length) return studentError(400, 'কোনো শিক্ষার্থী নির্বাচিত নয়। / No students were selected.');
+      const prepared: Array<{
+        item: (typeof items)[number];
+        from: StudentEnrollment;
+        toClassId?: string;
+        toSectionId?: string;
+      }> = [];
+      for (const item of items) {
+        const from = db.enrollments.find((row) => row.id === item.fromEnrollmentId && row.studentId === item.studentId);
+        if (!from || from.status !== EnrollmentStatus.ACTIVE) {
+          return studentError(400, 'শুধু চলতি ভর্তি থেকে উত্তরণ হয়। / Only an active enrollment can be moved.');
+        }
+        const student = db.students.find((row) => row.id === item.studentId);
+        if (!student || student.status !== StudentStatus.ACTIVE) {
+          return studentError(400, 'সক্রিয় শিক্ষার্থী ছাড়া উত্তরণ হয় না। / Only an active student can be moved.');
+        }
+        if (db.promotions.some((row) => row.fromEnrollmentId === from.id)) {
+          return studentError(409, 'এই ভর্তি আগেই প্রক্রিয়া হয়েছে। / This enrollment was already processed.');
+        }
+        if (item.promotionType === 'GRADUATED') {
+          prepared.push({ item, from });
+          continue;
+        }
+        if (!toAcademicYearId || toAcademicYearId === from.academicYearId) {
+          return studentError(400, 'পরের শিক্ষাবর্ষ আলাদা হতে হবে। / Choose a different academic year.');
+        }
+        const toClassId = item.promotionType === PromotionType.RETAINED ? from.classId : item.toClassId || '';
+        const toSectionId = item.toSectionId || '';
+        const placed = placementError({
+          academicYearId: toAcademicYearId,
+          classId: toClassId,
+          sectionId: toSectionId,
+          groupId: (db.classes.find((row) => row.id === toClassId)?.numericValue ?? 0) >= 9 ? from.groupId ?? null : null,
+          roll: Number(item.roll),
+          studentId: item.studentId,
+        });
+        if (placed) return studentError(400, placed);
+        prepared.push({ item, from, toClassId, toSectionId });
+      }
+      const rolls = new Set<string>();
+      for (const row of prepared) {
+        if (!row.toClassId || !row.toSectionId) continue;
+        const key = `${row.toClassId}|${row.toSectionId}|${row.item.roll}`;
+        if (rolls.has(key)) return studentError(409, 'একই শাখায় একই রোল দুইজনকে দেওয়া হয়েছে। / Two students were given the same roll.');
+        rolls.add(key);
+      }
+      let promoted = 0;
+      let retained = 0;
+      let graduated = 0;
+      for (const row of prepared) {
+        if (row.item.promotionType === 'GRADUATED') {
+          row.from.status = EnrollmentStatus.COMPLETED;
+          row.from.updatedAt = nowIso();
+          const student = db.students.find((item) => item.id === row.item.studentId);
+          if (student) student.status = StudentStatus.GRADUATED;
+          graduated += 1;
+          continue;
+        }
+        const keepsGroup = (db.classes.find((item) => item.id === row.toClassId)?.numericValue ?? 0) >= 9;
+        const next: StudentEnrollment = {
+          id: uid('enr'),
+          studentId: row.item.studentId,
+          academicYearId: toAcademicYearId,
+          classId: row.toClassId!,
+          sectionId: row.toSectionId!,
+          groupId: keepsGroup ? row.from.groupId ?? null : null,
+          roll: Number(row.item.roll),
+          enrollmentDate: nowIso().slice(0, 10),
+          isRepeater: row.item.promotionType === PromotionType.RETAINED,
+          isReadmission: false,
+          status: EnrollmentStatus.ACTIVE,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        };
+        db.enrollments.unshift(next);
+        row.from.status = row.item.promotionType === PromotionType.RETAINED ? EnrollmentStatus.COMPLETED : EnrollmentStatus.PROMOTED;
+        row.from.updatedAt = nowIso();
         db.promotions.unshift({
           id: uid('promo'),
-          studentId: item.studentId,
-          fromEnrollmentId: item.fromEnrollmentId,
-          toEnrollmentId: uid('enr-next'),
-          promotionType: item.promotionType,
+          studentId: row.item.studentId,
+          fromEnrollmentId: row.from.id,
+          toEnrollmentId: next.id,
+          promotionType: row.item.promotionType as PromotionType,
           promotionDate: nowIso().slice(0, 10),
-          remarks: 'প্রমোশন উইজার্ডের মাধ্যমে প্রক্রিয়াকৃত',
           createdAt: nowIso(),
           updatedAt: nowIso(),
         });
-        const oldEnr = db.enrollments.find((e) => e.id === item.fromEnrollmentId);
-        if (oldEnr && item.promotionType !== PromotionType.RETAINED) {
-          oldEnr.status = EnrollmentStatus.PROMOTED;
-        }
-      });
-      addAudit('STUDENT_PROMOTION', 'Students', `Processed promotion for ${items.length} students.`);
-      return { data: { promotedCount: items.length } };
+        if (row.item.promotionType === PromotionType.RETAINED) retained += 1;
+        else promoted += 1;
+      }
+      addAudit('STUDENT_PROMOTION', 'Students', `Promotion run: ${promoted} promoted, ${retained} retained, ${graduated} graduated.`);
+      return { data: { promoted, retained, graduated } };
     }
 
     // 21. Archive / Restore Soft-Deletable Entity (Exam, GradingScale, StaffStructure)
