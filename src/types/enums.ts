@@ -253,3 +253,8 @@ export enum WeekDay {
   THURSDAY = 'THURSDAY',
   FRIDAY = 'FRIDAY',
 }
+
+export enum TestimonialType {
+  STUDY_CHARACTER = 'STUDY_CHARACTER',
+  SSC_GRADUATE = 'SSC_GRADUATE',
+}

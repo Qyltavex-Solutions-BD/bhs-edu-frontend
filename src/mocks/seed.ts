@@ -34,6 +34,7 @@ import {
   StaffType,
   StudentStatus,
   SubjectCategory,
+  TestimonialType,
   WeekDay,
 } from '@/src/types/enums';
 import type {
@@ -95,6 +96,7 @@ import type {
   StudentPromotion,
   StudentRFIDcard,
   StudentSubjectResult,
+  StudentTestimonial,
   StudentTransferCertificate,
   Subject,
   SyllabusChapterEntry,
@@ -146,6 +148,7 @@ export interface MockDatabase {
   enrollments: StudentEnrollment[];
   promotions: StudentPromotion[];
   transferCertificates: StudentTransferCertificate[];
+  testimonials: StudentTestimonial[];
   parents: Parent[];
   parentStudents: ParentStudent[];
   teacherAssignments: TeacherAssignment[];
@@ -743,6 +746,49 @@ export function createInitialSeed(): MockDatabase {
       leavingClass: '৮ম শ্রেণি',
       promotedToNextClass: false,
       destinationSchool: 'মিরপুর গার্লস আইডিয়াল স্কুল, ঢাকা',
+      createdAt: NOW,
+      updatedAt: NOW,
+    },
+  ];
+
+  const testimonials: StudentTestimonial[] = [
+    {
+      id: 'test-1',
+      studentId: 'stu-10-1',
+      enrollmentId: 'enr-stu-10-1',
+      refNumber: 'BHS/TEST/2026/001',
+      type: TestimonialType.STUDY_CHARACTER,
+      issueDate: '2026-09-12',
+      academicSession: '2026',
+      className: '১০ম শ্রেণি',
+      sectionName: 'ক',
+      roll: 1,
+      groupName: 'বিজ্ঞান',
+      purpose: 'উপবৃত্তি ও মেধাবৃত্তি আবেদনের জন্য',
+      conductRemarks: 'উত্তম, বিনয়ী ও শৃঙ্খলাপরায়ণ',
+      createdAt: NOW,
+      updatedAt: NOW,
+    },
+    {
+      id: 'test-2',
+      studentId: 'stu-10-2',
+      enrollmentId: 'enr-stu-10-2',
+      refNumber: 'BHS/TEST/2026/002',
+      type: TestimonialType.SSC_GRADUATE,
+      issueDate: '2026-06-20',
+      academicSession: '2024–2025',
+      className: '১০ম শ্রেণি (এসএসসি)',
+      sectionName: 'ক',
+      roll: 2,
+      groupName: 'বিজ্ঞান',
+      purpose: 'উচ্চ মাধ্যমিক (একাদশ শ্রেণি) ভর্তির জন্য',
+      conductRemarks: 'উত্তম ও প্রশংসনীয়',
+      boardName: 'মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড, ঢাকা',
+      passingYear: '2026',
+      boardRoll: '145829',
+      registrationNo: '2110865411',
+      gpa: '5.00',
+      letterGrade: 'A+',
       createdAt: NOW,
       updatedAt: NOW,
     },
@@ -1940,6 +1986,7 @@ export function createInitialSeed(): MockDatabase {
     enrollments,
     promotions,
     transferCertificates,
+    testimonials,
     parents,
     parentStudents,
     teacherAssignments,

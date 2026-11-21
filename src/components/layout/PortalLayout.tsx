@@ -100,6 +100,7 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
           { to: '/admin/students/enrollments', labelBn: 'এনরোলমেন্ট', labelEn: 'Enrollments' },
           { to: '/admin/students/promotions', labelBn: 'প্রমোশন', labelEn: 'Promotion' },
           { to: '/admin/students/transfers', labelBn: 'ছাড়পত্র', labelEn: 'Transfer certificates' },
+          { to: '/admin/students/testimonials', labelBn: 'প্রত্যয়নপত্র', labelEn: 'Testimonials' },
           { to: '/admin/students/rfid-cards', labelBn: 'পরিচয়পত্র', labelEn: 'ID cards' },
         ],
       },
@@ -177,7 +178,7 @@ const STUDENT_NAV: NavEntry[] = [
   { to: '/student/profile', labelBn: 'প্রোফাইল', labelEn: 'Profile', icon: Settings },
 ];
 
-const STUDENT_RESERVED = new Set(['create', 'admissions', 'import', 'enrollments', 'promotions', 'transfers', 'rfid-cards']);
+const STUDENT_RESERVED = new Set(['create', 'admissions', 'import', 'enrollments', 'promotions', 'transfers', 'testimonials', 'rfid-cards']);
 
 function studentChildActive(pathname: string, to: string) {
   if (to === '/admin/students') {

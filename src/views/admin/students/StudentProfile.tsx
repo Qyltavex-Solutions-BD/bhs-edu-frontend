@@ -21,8 +21,8 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
-import { cn, triggerPrint } from '@/src/lib/utils/cn';
-import { SchoolEmblem } from '@/src/components/shared/Feedback';
+import { cn, triggerCertificatePrint } from '@/src/lib/utils/cn';
+import { PrintableTestimonialCertificate } from '@/src/components/print/PrintDocuments';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import {
   Button,
@@ -41,12 +41,14 @@ import {
   BloodGroup,
   CardStatus,
   Gender,
+  RelationshipType,
   Religion,
   StudentStatus,
+  TestimonialType,
 } from '@/src/types/enums';
 import { useUpdateStudentMutation } from '@/src/store/api';
 import type { MockDatabase } from '@/src/mocks/seed';
-import type { Attendance, Student } from '@/src/types/entities';
+import type { Attendance, Student, StudentTestimonial } from '@/src/types/entities';
 import { BLOOD_LABEL, classLabel, errorMessage, studentInitials } from './studentShared';
 
 const WEEKDAYS = [
@@ -325,10 +327,26 @@ export function StudentProfile({
     .filter((g) => Boolean(g.parent))
     .sort((a, b) => Number(b.link.isPrimary) - Number(a.link.isPrimary));
   const primaryGuardian = guardians[0];
+  const fatherEntry =
+    guardians.find((g) => g.link.relationship === RelationshipType.FATHER) ?? primaryGuardian;
+  const motherEntry = guardians.find((g) => g.link.relationship === RelationshipType.MOTHER);
+  const fatherDisplayName = fatherEntry?.parent
+    ? locale === 'bn'
+      ? fatherEntry.parent.nameBn || fatherEntry.parent.name
+      : fatherEntry.parent.name
+    : null;
+  const motherDisplayName = motherEntry?.parent
+    ? locale === 'bn'
+      ? motherEntry.parent.nameBn || motherEntry.parent.name
+      : motherEntry.parent.name
+    : null;
 
   const cards = db.rfidCards.filter((item) => item.studentId === student.id);
   const activeCard = cards.find((item) => item.status === CardStatus.ACTIVE) ?? cards[0];
   const certificates = db.transferCertificates.filter((item) => item.studentId === student.id);
+  const studentTestimonials = db.testimonials
+    .filter((item) => item.studentId === student.id)
+    .sort((a, b) => b.issueDate.localeCompare(a.issueDate) || b.id.localeCompare(a.id));
 
   // Class teacher & optional subject for current enrollment
   const classTeacherLink = section
@@ -1381,86 +1399,113 @@ export function StudentProfile({
       )}
 
       {/* TAB 4: OFFICIAL TESTIMONIAL */}
-      {activeTab === 'testimonial' && (
-        <Card className="p-5 sm:p-6 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border">
-            <div>
-              <h3 className="text-base font-semibold text-foreground">
-                {pick('অফিসিয়াল চারিত্রিক ও অধ্যয়ন প্রত্যয়নপত্র', 'Official Student Testimonial')}
-              </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {pick(
-                  'বিদ্যালয়ের লেটারহেডে মুদ্রণযোগ্য চারিত্রিক ও শিক্ষার্থী প্রত্যয়নপত্র।',
-                  'Print-ready institutional certificate on official school letterhead.'
-                )}
-              </p>
-            </div>
-            <Button variant="primary" size="sm" onClick={triggerPrint}>
-              <Printer className="w-4 h-4" />
-              <span>{pick('প্রিন্ট করুন', 'Print Testimonial')}</span>
-            </Button>
-          </div>
+      {activeTab === 'testimonial' && (() => {
+        const activeTestimonial: StudentTestimonial = studentTestimonials[0] ?? {
+          id: `preview-${student.id}`,
+          studentId: student.id,
+          enrollmentId: enrollment?.id ?? null,
+          type: TestimonialType.STUDY_CHARACTER,
+          refNumber: `BHS/TEST/${currentYearObj?.name ?? '2026'}/${student.studentId}`,
+          issueDate: today,
+          academicSession: currentYearObj?.name ?? '2026',
+          className: enrollment ? classLabel(db, enrollment.classId, locale) : '—',
+          sectionName: section?.name ?? null,
+          roll: enrollment?.roll ?? null,
+          groupName: group ? (locale === 'bn' ? group.nameBn || group.name : group.name) : null,
+          purpose: pick('অধ্যয়ন ও চারিত্রিক প্রত্যয়নের জন্য', 'For study and character verification'),
+          boardName: null,
+          passingYear: null,
+          boardRoll: null,
+          registrationNo: student.boardRegistrationNo ?? null,
+          gpa: null,
+          letterGrade: null,
+          conductRemarks: pick('উত্তম ও শৃঙ্খলাপরায়ণ', 'Good and disciplined'),
+          remarks: null,
+          createdAt: `${today}T00:00:00Z`,
+          updatedAt: `${today}T00:00:00Z`,
+        };
 
-          <div className="max-w-2xl mx-auto p-6 sm:p-10 rounded-[var(--radius)] border border-border bg-surface text-foreground space-y-6">
-            <div className="text-center space-y-1.5 border-b border-border pb-5">
-              <div className="flex justify-center mb-2">
-                <SchoolEmblem size={52} />
-              </div>
-              <h2 className="text-xl font-bold text-foreground">{db.schoolProfile.name}</h2>
-              <p className="text-xs text-muted-foreground">
-                {db.schoolProfile.address} · EIIN: {db.schoolProfile.eiin ?? '113585'} ·{' '}
-                {pick('স্থাপিত: ১৮৯৮ খ্রি.', 'Est. 1898')}
-              </p>
-              <p className="pt-2 text-sm font-semibold text-primary tracking-wide">
-                {pick('প্রত্যয়নপত্র / প্রশংসাপত্র', 'TO WHOM IT MAY CONCERN · TESTIMONIAL')}
-              </p>
-            </div>
-
-            <div className="space-y-4 text-sm leading-relaxed text-justify">
-              <p>
-                এই মর্মে প্রত্যয়ন করা যাইতেছে যে,{' '}
-                <strong>{student.nameBn || student.nameEn}</strong>
-                {primaryGuardian?.parent && (
-                  <>
-                    , অভিভাবক:{' '}
-                    <strong>{primaryGuardian.parent.nameBn || primaryGuardian.parent.name}</strong>
-                  </>
-                )}
-                , অত্র বিদ্যালয়ের{' '}
-                <strong>{classLabel(db, enrollment?.classId ?? '', 'bn')}</strong> শ্রেণির শাখা:{' '}
-                <strong>{section?.name ?? '—'}</strong>, রোল নং:{' '}
-                <strong className="font-mono">
-                  {enrollment ? formatNumber(enrollment.roll, 'bn') : '—'}
-                </strong>
-                -এর একজন নিয়মিত শিক্ষার্থী।
-              </p>
-              <p>
-                আমার জানামতে সে রাষ্ট্রবিরোধী কিংবা বিদ্যালয়ের শৃঙ্খলা পরিপন্থী কোনো কার্যকলাপে
-                কখনো লিপ্ত ছিল না। তাহার স্বভাব ও চারিত্রিক বৈশিষ্ট্য প্রশংসনীয় এবং নৈতিক গুণাবলী
-                উত্তম।
-              </p>
-              <p>
-                আমি তাহার সার্বিক সুস্বাস্থ্য, দীর্ঘায়ু এবং জীবনের উত্তরোত্তর সাফল্য কামনা করি।
-              </p>
-            </div>
-
-            <div className="pt-10 flex flex-wrap items-end justify-between gap-4 text-xs border-t border-border">
-              <div className="space-y-0.5 text-muted-foreground">
-                <p>তারিখ: {formatDateShort(`${today}T12:00:00`, locale)}</p>
-                <p className="font-mono">
-                  স্মারক নং: BHS/TEST/{currentYearObj?.name ?? '2026'}/{student.studentId}
+        return (
+          <Card className="p-5 sm:p-6 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border no-print">
+              <div>
+                <h3 className="text-base font-semibold text-foreground">
+                  {pick('অফিসিয়াল প্রত্যয়নপত্র ও প্রশংসাপত্র', 'Official Student Testimonial')}
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {studentTestimonials.length > 0
+                    ? pick(
+                        `এই শিক্ষার্থীর নামে ${formatNumber(studentTestimonials.length, locale)}টি আনুষ্ঠানিক প্রত্যয়নপত্র ইস্যু রয়েছে। নিচে সর্বশেষ ইস্যুকৃত কপি প্রদর্শিত হচ্ছে।`,
+                        `${studentTestimonials.length} official testimonial issued for this student. Showing the latest issued copy below.`
+                      )
+                    : pick(
+                        'আনুষ্ঠানিক সাদা-কালো প্রিন্ট টেমপ্লেট। দাপ্তরিক স্মারক সহ স্থায়ী রেজিস্টারে সংরক্ষণ করতে প্রত্যয়নপত্র রেজিস্টারে যান।',
+                        'Formal monochrome print template. Use the Testimonial Registry to archive with an official sequential reference number.'
+                      )}
                 </p>
               </div>
-              <div className="text-center space-y-1">
-                <div className="w-40 border-b border-foreground/70 pb-1 font-medium text-foreground">
-                  {pick('প্রধান শিক্ষক', 'Head Teacher')}
-                </div>
-                <p className="text-muted-foreground">{db.schoolProfile.name}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link href="/admin/students/testimonials">
+                  <Button variant="outline" size="sm">
+                    <Award className="w-4 h-4" />
+                    <span>{pick('প্রত্যয়নপত্র রেজিস্টার', 'Testimonial Registry')}</span>
+                  </Button>
+                </Link>
+                <Link href="/admin/students/transfers">
+                  <Button variant="outline" size="sm">
+                    <FileText className="w-4 h-4" />
+                    <span>{pick('ছাড়পত্র (TC)', 'Transfer (TC)')}</span>
+                  </Button>
+                </Link>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() =>
+                    triggerCertificatePrint({
+                      kind: 'TESTIMONIAL',
+                      school: db.schoolProfile,
+                      testimonial: activeTestimonial,
+                      student,
+                      fatherName: fatherDisplayName,
+                      motherName: motherDisplayName,
+                    })
+                  }
+                >
+                  <Printer className="w-4 h-4" />
+                  <span>{pick('প্রিন্ট করুন', 'Print Certificate')}</span>
+                </Button>
               </div>
             </div>
-          </div>
-        </Card>
-      )}
+
+            {studentTestimonials.length > 1 && (
+              <div className="p-3.5 rounded-[var(--radius)] border border-border bg-surface-muted/40 space-y-2 no-print">
+                <p className="text-xs font-semibold text-foreground">
+                  {pick('ইস্যুকৃত প্রত্যয়নপত্রের ইতিহাস', 'Issued Testimonial History')}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {studentTestimonials.map((item) => (
+                    <span
+                      key={item.id}
+                      className="text-xs font-mono px-2.5 py-1 rounded border border-border bg-surface text-foreground tabular-nums"
+                    >
+                      {item.refNumber} · {formatDateShort(`${item.issueDate}T12:00:00`, locale)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <PrintableTestimonialCertificate
+              school={db.schoolProfile}
+              testimonial={activeTestimonial}
+              student={student}
+              fatherName={fatherDisplayName}
+              motherName={motherDisplayName}
+            />
+          </Card>
+        );
+      })()}
 
       {/* Edit Student Profile Modal */}
       <Modal

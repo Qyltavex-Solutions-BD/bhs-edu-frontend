@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
-import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
+import { cn, exportToCsv, triggerCertificatePrint } from '@/src/lib/utils/cn';
 import { localToday } from '@/src/lib/schoolDay';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { PrintableTransferCertificate } from '@/src/components/print/PrintDocuments';
@@ -31,7 +31,7 @@ import {
   Textarea,
 } from '@/src/components/ui/primitives';
 import { useIssueTransferCertificateMutation } from '@/src/store/api';
-import { CardStatus, EnrollmentStatus, Gender, StudentStatus } from '@/src/types/enums';
+import { CardStatus, EnrollmentStatus, Gender, RelationshipType, StudentStatus } from '@/src/types/enums';
 import type { MockDatabase } from '@/src/mocks/seed';
 import type { StudentTransferCertificate } from '@/src/types/entities';
 import { classLabel, errorMessage, studentInitials } from './studentShared';
@@ -341,7 +341,29 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
   const printedStudent = printedTc
     ? db.students.find((item) => item.id === printedTc.studentId) ?? null
     : null;
-  const printedGuardian = printedStudent ? getPrimaryGuardian(printedStudent.id) : null;
+  const printedParents = useMemo(() => {
+    if (!printedStudent) return { fatherName: null, motherName: null };
+    const links = db.parentStudents.filter((ps) => ps.studentId === printedStudent.id);
+    const fatherLink =
+      links.find((l) => l.relationship === RelationshipType.FATHER) ??
+      links.find((l) => l.isPrimary) ??
+      links[0];
+    const motherLink = links.find((l) => l.relationship === RelationshipType.MOTHER);
+    const father = fatherLink ? db.parents.find((p) => p.id === fatherLink.parentId) : null;
+    const mother = motherLink ? db.parents.find((p) => p.id === motherLink.parentId) : null;
+    return {
+      fatherName: father ? (locale === 'bn' ? father.nameBn || father.name : father.name) : null,
+      motherName: mother ? (locale === 'bn' ? mother.nameBn || mother.name : mother.name) : null,
+    };
+  }, [printedStudent, db.parentStudents, db.parents, locale]);
+  const printedEnrollment = printedStudent
+    ? db.enrollments
+        .filter((e) => e.studentId === printedStudent.id)
+        .sort((a, b) => b.id.localeCompare(a.id))[0] ?? null
+    : null;
+  const printedSection = printedEnrollment
+    ? db.sections.find((s) => s.id === printedEnrollment.sectionId) ?? null
+    : null;
 
   return (
     <div className="space-y-5">
@@ -916,7 +938,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
             ? `${pick('অফিসিয়াল ছাড়পত্র', 'Official Transfer Certificate')} · ${printedTc.tcNumber}`
             : pick('ছাড়পত্র', 'Transfer Certificate')
         }
-        maxWidth="max-w-3xl"
+        maxWidth="max-w-4xl"
       >
         {printedTc && printedStudent && (
           <div className="space-y-4">
@@ -928,21 +950,35 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
                 <Eye className="w-3.5 h-3.5" />
                 <span>{pick('শিক্ষার্থীর সংরক্ষিত প্রোফাইল দেখুন', 'Open archived student dossier')}</span>
               </Link>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPrintId(null)}>
-                  {pick('বন্ধ করুন', 'Close')}
-                </Button>
-                <Button variant="primary" size="sm" onClick={triggerPrint}>
-                  <Printer className="w-4 h-4" />
-                  <span>{pick('প্রিন্ট করুন', 'Print Certificate')}</span>
-                </Button>
-              </div>
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() =>
+                  triggerCertificatePrint({
+                    kind: 'TC',
+                    school: db.schoolProfile,
+                    tc: printedTc,
+                    student: printedStudent,
+                    fatherName: printedParents.fatherName,
+                    motherName: printedParents.motherName,
+                    sectionName: printedSection?.name ?? null,
+                    roll: printedEnrollment?.roll ?? null,
+                  })
+                }
+              >
+                <Printer className="w-4 h-4" />
+                <span>{pick('প্রিন্ট করুন', 'Print Certificate')}</span>
+              </Button>
             </div>
             <PrintableTransferCertificate
               school={db.schoolProfile}
               tc={printedTc}
               student={printedStudent}
-              fatherName={printedGuardian?.name}
+              fatherName={printedParents.fatherName}
+              motherName={printedParents.motherName}
+              sectionName={printedSection?.name ?? null}
+              roll={printedEnrollment?.roll ?? null}
             />
           </div>
         )}

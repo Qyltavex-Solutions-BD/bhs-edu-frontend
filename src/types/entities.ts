@@ -34,6 +34,7 @@ import {
   StaffType,
   StudentStatus,
   SubjectCategory,
+  TestimonialType,
   WeekDay,
 } from './enums';
 
@@ -408,6 +409,31 @@ export interface StudentTransferCertificate {
   promotedToNextClass: boolean;
   destinationSchool?: string | null;
   documentUrl?: string | null;
+  remarks?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StudentTestimonial {
+  id: string;
+  studentId: string;
+  enrollmentId?: string | null;
+  refNumber: string;
+  type: TestimonialType;
+  issueDate: string;
+  academicSession: string;
+  className: string;
+  sectionName?: string | null;
+  roll?: number | null;
+  groupName?: string | null;
+  purpose?: string | null;
+  conductRemarks?: string | null;
+  boardName?: string | null;
+  passingYear?: string | null;
+  boardRoll?: string | null;
+  registrationNo?: string | null;
+  gpa?: string | null;
+  letterGrade?: string | null;
   remarks?: string | null;
   createdAt: string;
   updatedAt: string;

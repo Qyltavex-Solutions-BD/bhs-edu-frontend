@@ -18,6 +18,7 @@ import {
   StaffType,
   SubjectCategory,
   StudentStatus,
+  TestimonialType,
 } from '@/src/types/enums';
 import type {
   AcademicDocument,
@@ -42,6 +43,7 @@ import type {
   Subject,
   StudentEnrollment,
   StudentSubjectResult,
+  StudentTestimonial,
   StudentTransferCertificate,
   ClassRoutine,
   SyllabusChapterEntry,
@@ -2245,6 +2247,79 @@ export async function handleMockRequest(
         `Issued Transfer Certificate ${tc.tcNumber} for ${student.studentId}${autoBlockedCards ? ` (auto-blocked ${autoBlockedCards} RFID card)` : ''}.`
       );
       return { data: clone({ ...tc, autoBlockedCards }) };
+    }
+
+    // 14b. Issue Student Testimonial / Character Certificate
+    if (endpoint === '/students/testimonials' && method === 'POST') {
+      const payload = body as Omit<StudentTestimonial, 'id' | 'createdAt' | 'updatedAt'>;
+      const student = db.students.find((item) => item.id === payload.studentId);
+      if (!student) return studentError(404, 'শিক্ষার্থী পাওয়া যায়নি। / Student was not found.');
+      const refNumber = payload.refNumber?.trim();
+      if (!refNumber || !payload.issueDate) {
+        return studentError(400, 'স্মারক নম্বর ও ইস্যুর তারিখ আবশ্যক। / Reference number and issue date are required.');
+      }
+      if (db.testimonials.some((item) => sameName(item.refNumber, refNumber))) {
+        return studentError(409, 'এই স্মারক নম্বরটি আগেই ব্যবহৃত হয়েছে। / This reference number is already used.');
+      }
+      const type =
+        payload.type === TestimonialType.SSC_GRADUATE
+          ? TestimonialType.SSC_GRADUATE
+          : TestimonialType.STUDY_CHARACTER;
+
+      if (type === TestimonialType.SSC_GRADUATE && (!payload.passingYear?.trim() || !payload.boardRoll?.trim())) {
+        return studentError(
+          400,
+          'এসএসসি প্রশংসাপত্রের জন্য পাসের সন ও বোর্ড রোল আবশ্যক। / Passing year and board roll are required for an SSC testimonial.'
+        );
+      }
+
+      const enrollment =
+        db.enrollments.find(
+          (item) => item.studentId === student.id && item.status === EnrollmentStatus.ACTIVE
+        ) ??
+        db.enrollments
+          .filter((item) => item.studentId === student.id)
+          .sort((a, b) => b.enrollmentDate.localeCompare(a.enrollmentDate))[0];
+
+      const cls = enrollment ? db.classes.find((c) => c.id === enrollment.classId) : null;
+      const sec = enrollment ? db.sections.find((s) => s.id === enrollment.sectionId) : null;
+      const grp = enrollment?.groupId
+        ? db.academicGroups.find((g) => g.id === enrollment.groupId)
+        : null;
+      const activeYear = db.academicYears.find((y) => y.isActive) ?? db.academicYears[0];
+
+      const testimonial: StudentTestimonial = {
+        id: uid('test'),
+        studentId: student.id,
+        enrollmentId: enrollment?.id ?? payload.enrollmentId ?? null,
+        refNumber,
+        type,
+        issueDate: payload.issueDate,
+        academicSession: payload.academicSession?.trim() || activeYear?.name || '2026',
+        className: payload.className?.trim() || cls?.nameBn || cls?.name || 'অধ্যয়নরত',
+        sectionName: payload.sectionName?.trim() || sec?.name || null,
+        roll: payload.roll ?? enrollment?.roll ?? null,
+        groupName: payload.groupName?.trim() || grp?.nameBn || grp?.name || null,
+        purpose: payload.purpose?.trim() || null,
+        conductRemarks: payload.conductRemarks?.trim() || 'উত্তম ও শৃঙ্খলাপরায়ণ',
+        boardName: payload.boardName?.trim() || null,
+        passingYear: payload.passingYear?.trim() || null,
+        boardRoll: payload.boardRoll?.trim() || null,
+        registrationNo: payload.registrationNo?.trim() || student.boardRegistrationNo || null,
+        gpa: payload.gpa?.trim() || null,
+        letterGrade: payload.letterGrade?.trim() || null,
+        remarks: payload.remarks?.trim() || null,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+      };
+
+      db.testimonials.unshift(testimonial);
+      addAudit(
+        'TESTIMONIAL_ISSUE',
+        'Students',
+        `Issued ${type} testimonial ${testimonial.refNumber} for ${student.studentId}.`
+      );
+      return { data: clone(testimonial) };
     }
 
     // 15. Add / Update Class Routine Slot with Conflict Prevention

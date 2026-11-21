@@ -207,24 +207,51 @@
   }
 }
 
-/* Official A4 Print Styles (Bangla-safe, clean letterhead) */
+/* Official A4 Print Styles (Bangla-safe, clean letterhead & isolated certificates) */
 @page landscape {
   size: A4 landscape;
   margin: 10mm;
 }
 
+#certificate-print-mount {
+  display: none;
+}
+
 @media print {
   @page {
     size: A4 portrait;
-    margin: 12mm;
+    margin: 10mm;
   }
 
+  html,
   body {
     background: #FFFFFF !important;
-    color: #0F172A !important;
+    color: #111111 !important;
     font-family: var(--font-hind), "Hind Siliguri", sans-serif !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html.printing-certificate,
+  body.printing-certificate {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: #FFFFFF !important;
+  }
+
+  body.printing-certificate > *:not(#certificate-print-mount) {
+    display: none !important;
+  }
+
+  body.printing-certificate > #certificate-print-mount {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #FFFFFF !important;
   }
 
   .no-print {
@@ -245,5 +272,19 @@
     padding: 0 !important;
     margin: 0 !important;
     max-width: 100% !important;
+  }
+
+  /* Print ONLY the crisp inner double-border certificate frame cleanly on A4 */
+  .certificate-paper {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    background: #FFFFFF !important;
+    color: #111111 !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 }

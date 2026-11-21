@@ -32,6 +32,7 @@ import { StudentProfile } from './students/StudentProfile';
 import { StudentEnrollments } from './students/StudentEnrollments';
 import { StudentPromotions } from './students/StudentPromotions';
 import { StudentTransfers } from './students/StudentTransfers';
+import { StudentTestimonials } from './students/StudentTestimonials';
 import { StudentRfidCards } from './students/StudentRfidCards';
 import { classLabel, errorMessage, BLOOD_LABEL } from './students/studentShared';
 
@@ -42,6 +43,7 @@ type SectionKey =
   | 'enrollments'
   | 'promotions'
   | 'transfers'
+  | 'testimonials'
   | 'cards'
   | 'import'
   | 'profile';
@@ -53,6 +55,7 @@ const TAB_SECTION: Record<string, SectionKey> = {
   enrollments: 'enrollments',
   promotions: 'promotions',
   transfers: 'transfers',
+  testimonials: 'testimonials',
   rfid: 'cards',
   import: 'import',
 };
@@ -114,6 +117,14 @@ export function AdminStudentsPage({
       ),
       year: false,
     },
+    testimonials: {
+      title: pick('প্রত্যয়নপত্র ও প্রশংসাপত্র (Testimonial)', 'Testimonial Certificates'),
+      description: pick(
+        'অধ্যয়ন ও চারিত্রিক প্রত্যয়নপত্র এবং এসএসসি প্রশংসাপত্র ইস্যু, স্মারক সংরক্ষণ ও আনুষ্ঠানিক A4 প্রিন্ট।',
+        'Issue, track, and print official Study & Character certificates and SSC Graduate testimonials.'
+      ),
+      year: false,
+    },
     cards: {
       title: pick('RFID ও পরিচয়পত্র ডেস্ক', 'Identity & RFID Cards'),
       description: pick(
@@ -169,6 +180,7 @@ export function AdminStudentsPage({
       {section === 'enrollments' && <StudentEnrollments db={db} yearId={year.id} />}
       {section === 'promotions' && <StudentPromotions db={db} yearId={year.id} />}
       {section === 'transfers' && <StudentTransfers db={db} />}
+      {section === 'testimonials' && <StudentTestimonials db={db} />}
       {section === 'cards' && <StudentRfidCards db={db} />}
       {section === 'import' && <Importer db={db} yearId={year.id} />}
       {section === 'profile' && <StudentProfile db={db} studentId={id ?? ''} yearId={year.id} startEditing={pathname.endsWith('/edit')} />}

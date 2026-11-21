@@ -12,6 +12,7 @@ import type {
   NoticeStatus,
   PromotionType,
   RelationshipType,
+  TestimonialType,
 } from '@/src/types/enums';
 import type {
   AcademicDocument,
@@ -34,6 +35,7 @@ import type {
   Student,
   StudentEnrollment,
   StudentRFIDcard,
+  StudentTestimonial,
   StudentTransferCertificate,
   Staff,
   StaffStructure,
@@ -347,6 +349,33 @@ export const schoolApi = createApi({
       }
     >({
       query: (body) => ({ url: '/students/tc', method: 'POST', body }),
+      invalidatesTags: ['Students', 'Audit'],
+    }),
+
+    issueTestimonial: builder.mutation<
+      StudentTestimonial,
+      {
+        studentId: string;
+        refNumber: string;
+        type: TestimonialType;
+        issueDate: string;
+        academicSession: string;
+        className: string;
+        sectionName?: string | null;
+        roll?: number | null;
+        groupName?: string | null;
+        purpose?: string | null;
+        conductRemarks?: string | null;
+        boardName?: string | null;
+        passingYear?: string | null;
+        boardRoll?: string | null;
+        registrationNo?: string | null;
+        gpa?: string | null;
+        letterGrade?: string | null;
+        remarks?: string | null;
+      }
+    >({
+      query: (body) => ({ url: '/students/testimonials', method: 'POST', body }),
       invalidatesTags: ['Students', 'Audit'],
     }),
 
@@ -772,6 +801,7 @@ export const {
   useIssueRfidCardMutation,
   useReplaceRfidCardMutation,
   useIssueTransferCertificateMutation,
+  useIssueTestimonialMutation,
   useSaveAcademicYearMutation,
   useSetActiveAcademicYearMutation,
   useSaveAcademicGroupMutation,

@@ -234,6 +234,10 @@ export const ENUM_LABELS: Record<string, Record<string, EnumMeta>> = {
     REJECTED: { bn: 'প্রত্যাখ্যাত', en: 'Rejected', tone: 'destructive' },
     ADMITTED: { bn: 'ভর্তি সম্পন্ন', en: 'Admitted', tone: 'success' },
   },
+  TestimonialType: {
+    STUDY_CHARACTER: { bn: 'অধ্যয়ন ও চারিত্রিক', en: 'Study & Character', tone: 'neutral' },
+    SSC_GRADUATE: { bn: 'এসএসসি প্রশংসাপত্র', en: 'SSC Testimonial', tone: 'primary' },
+  },
 };
 
 export function getEnumMeta(enumName: string, value: string): EnumMeta {
