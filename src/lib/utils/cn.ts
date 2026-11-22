@@ -6,6 +6,8 @@ import type {
   StudentTestimonial,
   StudentTransferCertificate,
 } from '@/src/types/entities';
+import type { OnlineAdmissionApplication } from '@/src/types/proposed/future';
+import type { UnifiedAdmissionFormValues } from '@/src/features/admission/schema';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -48,6 +50,25 @@ export function exportToCsv<T extends Record<string, unknown>>(
   URL.revokeObjectURL(url);
 }
 
+export interface AdmissionFormPrintData {
+  school: SchoolProfile;
+  values: UnifiedAdmissionFormValues;
+  targetClassNameBn: string;
+  targetClassNameEn: string;
+  numericClass: number;
+  groupNameBn?: string | null;
+  groupNameEn?: string | null;
+  optionalSubjectLabel?: string | null;
+  sessionLabel: string;
+  declarationText?: string | null;
+  submittedMeta: {
+    applicationNumber: string;
+    submittedAt: string;
+    admissionTestRoll?: string;
+    admissionTestDate?: string;
+  };
+}
+
 export type CertificatePrintPayload =
   | {
       kind: 'TC';
@@ -66,6 +87,17 @@ export type CertificatePrintPayload =
       student: Student;
       fatherName?: string | null;
       motherName?: string | null;
+    }
+  | {
+      kind: 'ADMISSION_FORM';
+      data: AdmissionFormPrintData;
+    }
+  | {
+      kind: 'ADMIT_CARD';
+      school: SchoolProfile;
+      application: OnlineAdmissionApplication;
+      targetClassName: string;
+      groupName?: string | null;
     };
 
 export const CERT_PRINT_STORAGE_PREFIX = 'bhs_cert_print_';
@@ -122,7 +154,39 @@ function openStandaloneCertificatePrintView(payload: CertificatePrintPayload) {
     // Continue with URL hash transport even if storage is restricted
   }
 
-  const hashData = encodeCertificatePrintPayload(payload);
+  // Keep URL hash compact (omit large base64 dataUrls from hash while preserving them in localStorage)
+  const hashPayload =
+    payload.kind === 'ADMISSION_FORM'
+      ? {
+          ...payload,
+          data: {
+            ...payload.data,
+            values: {
+              ...payload.data.values,
+              photoPreview:
+                payload.data.values.photoPreview &&
+                payload.data.values.photoPreview.length < 4000
+                  ? payload.data.values.photoPreview
+                  : '',
+              attachments: {},
+            },
+          },
+        }
+      : payload.kind === 'ADMIT_CARD'
+        ? {
+            ...payload,
+            application: {
+              ...payload.application,
+              photoPreview:
+                payload.application.photoPreview &&
+                payload.application.photoPreview.length < 4000
+                  ? payload.application.photoPreview
+                  : undefined,
+            },
+          }
+        : payload;
+
+  const hashData = encodeCertificatePrintPayload(hashPayload);
   const link = document.createElement('a');
   link.href = `/print-certificate?key=${encodeURIComponent(key)}#p=${hashData}`;
   link.target = '_blank';
@@ -370,4 +434,37 @@ export function triggerPrint(): boolean {
 
   window.print();
   return true;
+}
+
+/**
+ * Prints an exact official A4 DOM element using the isolated #certificate-print-mount
+ * (with automatic /print-certificate or /print-document standalone fallback inside sandboxed iframes),
+ * and sets document.title so Save-as-PDF uses the official document filename.
+ */
+export function printDocumentNode(
+  node: HTMLElement | null,
+  docTitle?: string,
+  fallbackPayload?: CertificatePrintPayload
+): boolean {
+  if (typeof window === 'undefined') return false;
+  const previousTitle = document.title;
+  if (docTitle) {
+    document.title = docTitle;
+  }
+  const restoreTitle = () => {
+    document.title = previousTitle;
+    window.removeEventListener('afterprint', restoreTitle);
+  };
+  window.addEventListener('afterprint', restoreTitle);
+
+  const targetNode =
+    node?.matches('[data-certificate-print-root="true"]')
+      ? node
+      : node?.querySelector<HTMLElement>('[data-certificate-print-root="true"]') ?? node;
+
+  const ok = printCertificateNode(targetNode, fallbackPayload);
+  if (!ok) {
+    document.title = previousTitle;
+  }
+  return ok;
 }
