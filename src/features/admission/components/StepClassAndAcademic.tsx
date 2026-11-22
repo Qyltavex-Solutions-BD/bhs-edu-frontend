@@ -87,7 +87,15 @@ export function StepClassAndAcademic({
     const nextRules = getClassAdmissionRules(nextNum);
     setValue('targetClassId', newClassId, { shouldValidate: true });
 
-    if (!nextRules.allowedAdmissionTypes.includes(admissionType)) {
+    if (nextNum === 10) {
+      // Class 10 strictly defaults to Transfer (e-TC)
+      setValue('admissionType', 'TRANSFER', { shouldValidate: true });
+    } else if (numericClass === 10) {
+      // Returning from Class 10 to any lower class (6-9): strictly revert to New Admission default
+      setValue('admissionType', nextRules.defaultAdmissionType, {
+        shouldValidate: true,
+      });
+    } else if (!nextRules.allowedAdmissionTypes.includes(admissionType)) {
       setValue('admissionType', nextRules.defaultAdmissionType, {
         shouldValidate: true,
       });

@@ -165,8 +165,8 @@ export function getClassAdmissionRules(numericClass: number): ClassAdmissionRule
       showBoardRegistration: false,
       requiresBoardRegistration: false,
       isTransferOrReadmissionOnly: false,
-      allowedAdmissionTypes: ['TRANSFER', 'NEW', 'READMISSION'],
-      defaultAdmissionType: 'TRANSFER',
+      allowedAdmissionTypes: ['NEW', 'TRANSFER', 'READMISSION'],
+      defaultAdmissionType: 'NEW',
       requiresParentNid: false,
       showStudentPhone: false,
       showPreviousSchoolEiin: true,
@@ -177,8 +177,8 @@ export function getClassAdmissionRules(numericClass: number): ClassAdmissionRule
       defaultPreviousClassEn: prevEn,
       previousSchoolLabelBn: `${prevBn} অধ্যয়নরত বিদ্যালয়ের নাম`,
       previousSchoolLabelEn: `Previous School Name (${prevEn})`,
-      policyNoteBn: `${numericClass === 7 ? '৭ম' : '৮ম'} শ্রেণি: অন্য বিদ্যালয় থেকে বদলির ক্ষেত্রে মূল ছাড়পত্র (TC) ও বার্ষিক ফলাফল বিবরণী প্রযোজ্য।`,
-      policyNoteEn: `Class ${numericClass}: Original Transfer Certificate (TC) and annual exam result apply for transfers.`,
+      policyNoteBn: `${numericClass === 7 ? '৭ম' : '৮ম'} শ্রেণি: নতুন ভর্তি অথবা অন্য বিদ্যালয় থেকে বদলির ক্ষেত্রে মূল ছাড়পত্র (TC) ও ফলাফল বিবরণী প্রযোজ্য।`,
+      policyNoteEn: `Class ${numericClass}: New admission or original Transfer Certificate (TC) and academic transcript apply.`,
     };
   }
 
