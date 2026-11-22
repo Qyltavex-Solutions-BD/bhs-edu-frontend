@@ -15,13 +15,12 @@ import { toast } from 'sonner';
 import { useGetBootstrapQuery, useSaveResultRemarkMutation } from '@/src/store/api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
-import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
+import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { ExamType, ResultStatus } from '@/src/types/enums';
 import {
   EmptyState,
   LoadingSkeleton,
   PageHeader,
-  StatCard,
 } from '@/src/components/shared/Feedback';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import {
@@ -448,28 +447,77 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
         </div>
       </Card>
 
-      {/* KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label={pick('মোট ফলাফল (ফিল্টারকৃত)', 'Filtered Examinees')}
-          value={formatNumber(stats.total, locale)}
-          meta={activeSectionLabel}
-        />
-        <StatCard
-          label={pick('উত্তীর্ণ ও পাসের হার', 'Passed & Pass Rate')}
-          value={`${formatNumber(stats.passed, locale)} (${formatNumber(stats.passRate, locale)}%)`}
-          accent="success"
-        />
-        <StatCard
-          label={pick('জিপিএ ৫.০০ (A+)', 'GPA 5.00 (A+)')}
-          value={formatNumber(stats.gpa5, locale)}
-          accent="primary"
-        />
-        <StatCard
-          label={pick('অনুত্তীর্ণ শিক্ষার্থী', 'Failed Examinees')}
-          value={formatNumber(stats.failed, locale)}
-          accent={stats.failed > 0 ? 'destructive' : 'default'}
-        />
+      {/* 4-Column Hairline-Divided KPI Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('মোট ফলাফল (ফিল্টারকৃত)', 'Filtered Examinees')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {formatNumber(stats.total, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums truncate">
+            {activeSectionLabel}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('উত্তীর্ণ ও পাসের হার', 'Passed & Pass Rate')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-success">
+            {formatNumber(stats.passed, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">({formatNumber(stats.passRate, locale)}%)</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `উত্তীর্ণ ${formatNumber(stats.passed, 'bn')} · অনুত্তীর্ণ ${formatNumber(stats.failed, 'bn')}`,
+              `Passed ${stats.passed} · Failed ${stats.failed}`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('জিপিএ ৫.০০ (A+)', 'GPA 5.00 (A+)')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+            {formatNumber(stats.gpa5, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {stats.total > 0
+              ? pick(
+                  `মোট পরীক্ষার্থীর ${formatNumber(Math.round((stats.gpa5 / stats.total) * 100), locale)}%`,
+                  `${Math.round((stats.gpa5 / stats.total) * 100)}% of total`
+                )
+              : pick('কোনো ফলাফল নেই', 'No results')}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('অনুত্তীর্ণ শিক্ষার্থী', 'Failed Examinees')}
+          </p>
+          <p
+            className={cn(
+              'mt-1 text-2xl font-bold tabular-nums',
+              stats.failed > 0 ? 'text-destructive' : 'text-foreground'
+            )}
+          >
+            {formatNumber(stats.failed, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {stats.failed > 0
+              ? pick(
+                  `ফেলের হার: ${formatNumber(stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0, locale)}%`,
+                  `Failure rate: ${stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0}%`
+                )
+              : pick('শতভাগ পাস অর্জিত', '100% pass achieved')}
+          </p>
+        </div>
       </div>
 
       {/* Main Merit List Table */}
