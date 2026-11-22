@@ -161,10 +161,12 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
         labelEn: 'Examinations',
         icon: FileSpreadsheet,
         children: [
-          { to: '/admin/examinations', labelBn: 'পরীক্ষা তালিকা', labelEn: 'Exams' },
-          { to: '/admin/examinations/routines', labelBn: 'পরীক্ষার রুটিন', labelEn: 'Exam routines' },
-          { to: '/admin/examinations/marks-entry', labelBn: 'নম্বর এন্ট্রি শিট', labelEn: 'Marks entry' },
-          { to: '/admin/examinations/grading-scales', labelBn: 'গ্রেডিং স্কেল', labelEn: 'Grading scale' },
+          { to: '/admin/examinations', labelBn: 'পরীক্ষা ও বিষয়', labelEn: 'Exams & Subjects' },
+          { to: '/admin/examinations/routines', labelBn: 'পরীক্ষার রুটিন', labelEn: 'Exam Routines' },
+          { to: '/admin/examinations/admit-cards', labelBn: 'প্রবেশপত্র (Admit)', labelEn: 'Admit Cards' },
+          { to: '/admin/examinations/seat-plan', labelBn: 'আসন ও হল হাজিরা', labelEn: 'Seat Plan & Hall' },
+          { to: '/admin/examinations/marks-entry', labelBn: 'নম্বর এন্ট্রি ও ইম্পোর্ট', labelEn: 'Marks Entry' },
+          { to: '/admin/examinations/grading-scales', labelBn: 'গ্রেডিং স্কেল ও নীতি', labelEn: 'Grading Scales' },
         ],
       },
       {
@@ -173,8 +175,8 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
         labelEn: 'Results & Marksheets',
         icon: FileBarChart2,
         children: [
-          { to: '/admin/results/publication', labelBn: 'প্রক্রিয়াকরণ ও প্রকাশ', labelEn: 'Process & publish' },
-          { to: '/admin/results/merit-list', labelBn: 'মেধাতালিকা ও মার্কশিট', labelEn: 'Merit & marksheets' },
+          { to: '/admin/results/publication', labelBn: 'প্রক্রিয়াকরণ ও প্রকাশ', labelEn: 'Process & Publish' },
+          { to: '/admin/results/merit-list', labelBn: 'মেধাতালিকা ও মার্কশিট', labelEn: 'Merit & Marksheets' },
           { to: '/admin/results/consolidated', labelBn: 'সমন্বিত ফলাফল', labelEn: 'Consolidated' },
         ],
       },
@@ -248,7 +250,7 @@ const STUDENT_NAV: NavEntry[] = [
 
 const STUDENT_RESERVED = new Set(['create', 'admissions', 'import', 'enrollments', 'promotions', 'transfers', 'testimonials', 'rfid-cards']);
 const STAFF_RESERVED = new Set(['teachers', 'employees', 'departments', 'structures']);
-const EXAM_RESERVED = new Set(['routines', 'marks-entry', 'grading-scales', 'consolidated', 'results', 'subjects']);
+const EXAM_RESERVED = new Set(['routines', 'admit-cards', 'seat-plan', 'marks-entry', 'grading-scales', 'consolidated', 'results']);
 
 function studentChildActive(pathname: string, to: string) {
   if (to === '/admin/students') {
@@ -280,16 +282,35 @@ function studentChildActive(pathname: string, to: string) {
     return ['/admin/academic/documents', '/admin/academic/policies'].includes(pathname);
   }
   if (to === '/admin/examinations') {
-    if (pathname === '/admin/examinations' || pathname === '/admin/examinations/create') return true;
+    if (
+      pathname === '/admin/examinations' ||
+      pathname === '/admin/examinations/create' ||
+      pathname === '/admin/examinations/subjects'
+    ) {
+      return true;
+    }
     if (!pathname.startsWith('/admin/examinations/')) return false;
     const first = pathname.slice('/admin/examinations/'.length).split('/')[0];
     return Boolean(first) && !EXAM_RESERVED.has(first);
   }
   if (to === '/admin/results/merit-list') {
-    return pathname === '/admin/results/merit-list' || pathname === '/admin/results/merit-lists' || pathname === '/admin/results/mark-sheets';
+    return (
+      pathname === '/admin/results/merit-list' ||
+      pathname === '/admin/results/merit-lists' ||
+      pathname === '/admin/results/mark-sheets' ||
+      (pathname.startsWith('/admin/results/') &&
+        !['/admin/results/publication', '/admin/results/consolidated'].includes(pathname))
+    );
   }
   if (to === '/admin/results/publication') {
-    return pathname === '/admin/results' || pathname === '/admin/results/publication';
+    return (
+      pathname === '/admin/results' ||
+      pathname === '/admin/results/publication' ||
+      pathname === '/admin/examinations/results'
+    );
+  }
+  if (to === '/admin/results/consolidated') {
+    return pathname === '/admin/results/consolidated' || pathname === '/admin/examinations/consolidated';
   }
   return pathname === to || pathname.startsWith(`${to}/`);
 }

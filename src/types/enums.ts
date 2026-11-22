@@ -30,6 +30,7 @@ export enum AttendanceSmsType {
   ENTRY = 'ENTRY',
   EXIT = 'EXIT',
   ABSENT = 'ABSENT',
+  RESULT = 'RESULT',
 }
 
 export enum AttendanceStatus {

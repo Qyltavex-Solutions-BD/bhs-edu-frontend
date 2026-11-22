@@ -378,18 +378,56 @@ export function HomePage() {
 
   const galleryShowcase = useMemo(() => {
     if (!db) return [];
-    const baseItems = db.galleries
-      .filter((g) => g.isPublished)
-      .map((gal) => {
-        const media = db.galleryMedia.find((m) => m.galleryId === gal.id);
-        return {
-          id: gal.id,
-          title: gal.title,
-          category: gal.category ?? pick('ক্যাম্পাস', 'Campus'),
-          variant: media?.mediaUrl ?? 'campus-heritage',
-          to: `/gallery/${gal.id}`,
-        };
+    const publishedGalleries = db.galleries.filter((g) => g.isPublished);
+    if (publishedGalleries.length === 0) return [];
+
+    const combined: Array<{
+      id: string;
+      title: string;
+      category: string;
+      variant: string;
+      to: string;
+    }> = [];
+    const usedMediaIds = new Set<string>();
+
+    // 1. Primary cover image from each published photo album (ordered by sortOrder)
+    for (const gal of publishedGalleries) {
+      const albumImages = [...db.galleryMedia.filter((m) => m.galleryId === gal.id && m.mediaType === 'IMAGE')].sort(
+        (a, b) => a.sortOrder - b.sortOrder
+      );
+      const cover = albumImages[0];
+      if (!cover) continue;
+      usedMediaIds.add(cover.id);
+      combined.push({
+        id: gal.id,
+        title: gal.title,
+        category: gal.category ?? pick('ক্যাম্পাস', 'Campus'),
+        variant: cover.mediaUrl,
+        to: `/gallery/${gal.id}`,
       });
+    }
+
+    // 2. Additional published photos from published albums before static fallbacks
+    if (combined.length < 5) {
+      for (const gal of publishedGalleries) {
+        const extraAlbumImages = [
+          ...db.galleryMedia.filter(
+            (m) => m.galleryId === gal.id && m.mediaType === 'IMAGE' && !usedMediaIds.has(m.id)
+          ),
+        ].sort((a, b) => a.sortOrder - b.sortOrder);
+        for (const media of extraAlbumImages) {
+          if (combined.length >= 5) break;
+          usedMediaIds.add(media.id);
+          combined.push({
+            id: media.id,
+            title: media.caption || gal.title,
+            category: gal.category ?? pick('ক্যাম্পাস', 'Campus'),
+            variant: media.mediaUrl,
+            to: `/gallery/${gal.id}`,
+          });
+        }
+      }
+    }
 
     const extraVisuals = [
       {
@@ -422,12 +460,11 @@ export function HomePage() {
       },
     ];
 
-    const used = new Set(baseItems.map((i) => i.variant));
-    const combined = [...baseItems];
+    const usedVariants = new Set(combined.map((i) => i.variant));
     for (const item of extraVisuals) {
-      if (!used.has(item.variant) && combined.length < 5) {
+      if (!usedVariants.has(item.variant) && combined.length < 5) {
         combined.push(item);
-        used.add(item.variant);
+        usedVariants.add(item.variant);
       }
     }
     return combined;
@@ -1968,12 +2005,18 @@ export function HomePage() {
             <div className="space-y-3.5">
               {db.achievements
                 .filter((a) => a.isPublished)
+                .slice(0, 4)
                 .map((ach) => (
                   <div
                     key={ach.id}
                     className="pb-3.5 border-b border-border last:border-none last:pb-0"
                   >
                     <h3 className="text-base font-semibold text-foreground">{ach.title}</h3>
+                    {(ach.personName || ach.batch) && (
+                      <p className="text-xs font-medium text-primary mt-0.5 tabular-nums">
+                        {[ach.personName, ach.batch].filter(Boolean).join(' · ')}
+                      </p>
+                    )}
                     <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                       {ach.description}
                     </p>

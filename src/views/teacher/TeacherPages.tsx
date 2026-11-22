@@ -47,7 +47,7 @@ import {
   formatDateShort,
   formatNumber,
   formatTime12h,
-  resolveGradeFromScale,
+  evaluateExamSubjectMark,
 } from '@/src/lib/formatters';
 import { ENUM_LABELS } from '@/src/lib/constants/enums';
 import { triggerPrint } from '@/src/lib/utils/cn';
@@ -1246,12 +1246,16 @@ export function TeacherMarksEntryPage() {
                   const stu = db.students.find((s) => s.id === enr.studentId);
                   const row = getRow(enr.id);
                   const total = row.isAbsent ? 0 : row.written + row.mcq + row.practical;
-                  const grade = resolveGradeFromScale(
-                    total,
-                    examSubject.fullMarks,
-                    scaleRanges,
-                    row.isAbsent,
-                    examSubject.passMarks
+                  const grade = evaluateExamSubjectMark(
+                    {
+                      writtenMarks: row.written,
+                      mcqMarks: row.mcq,
+                      practicalMarks: row.practical,
+                      continuousAssessmentMarks: 0,
+                      isAbsent: row.isAbsent,
+                    },
+                    examSubject,
+                    scaleRanges
                   );
 
                   return (

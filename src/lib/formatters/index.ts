@@ -110,6 +110,8 @@ export function formatTime12h(timeStr?: string | null, locale: 'bn' | 'en' = 'bn
   return `${str} ${isPm ? 'PM' : 'AM'}`;
 }
 
+export const formatTime = formatTime12h;
+
 /**
  * Configurable Grade & GPA Calculator driven strictly by GradingScale & GradeRange.
  * Optional subject bonus policy: as noted in DBML `StudentSubjectResult.bonusGradePoint`,
@@ -171,15 +173,112 @@ export function resolveGradeFromScale(
   };
 }
 
+export type ComponentFailReason =
+  | 'ABSENT'
+  | 'WRITTEN_FAIL'
+  | 'MCQ_FAIL'
+  | 'PRACTICAL_FAIL'
+  | 'CA_FAIL'
+  | 'TOTAL_FAIL'
+  | null;
+
+export interface EvaluatedSubjectMark {
+  totalMarks: number;
+  letterGrade: string;
+  gradePoint: number;
+  isPassed: boolean;
+  percentage: number;
+  failReason: ComponentFailReason;
+}
+
+/**
+ * Unified NCTB Secondary Examination subject evaluator.
+ * Strictly enforces component-wise pass marks (Written / MCQ / Practical / CA)
+ * alongside overall subject pass marks, matching Education Board standards.
+ */
+export function evaluateExamSubjectMark(
+  mark: {
+    writtenMarks: number;
+    mcqMarks: number;
+    practicalMarks: number;
+    continuousAssessmentMarks?: number;
+    isAbsent: boolean;
+  },
+  examSubject: {
+    fullMarks: number;
+    passMarks: number;
+    hasWritten?: boolean;
+    writtenPassMarks?: number | null;
+    hasMcq?: boolean;
+    mcqPassMarks?: number | null;
+    hasPractical?: boolean;
+    practicalPassMarks?: number | null;
+    hasContinuousAssessment?: boolean;
+    continuousAssessmentPassMarks?: number | null;
+  },
+  ranges: GradeRange[]
+): EvaluatedSubjectMark {
+  const written = Number(mark.writtenMarks) || 0;
+  const mcq = Number(mark.mcqMarks) || 0;
+  const practical = Number(mark.practicalMarks) || 0;
+  const ca = Number(mark.continuousAssessmentMarks) || 0;
+  const totalMarks = written + mcq + practical + ca;
+  const percentage = examSubject.fullMarks > 0 ? Math.round((totalMarks / examSubject.fullMarks) * 10000) / 100 : 0;
+
+  const activeRanges = ranges.filter((r) => !r.isDeleted);
+  const failRange = activeRanges.find((r) => r.isFailGrade) ?? { letterGrade: 'F', gradePoint: 0.0 };
+
+  if (mark.isAbsent) {
+    return {
+      totalMarks: 0,
+      letterGrade: failRange.letterGrade,
+      gradePoint: failRange.gradePoint,
+      isPassed: false,
+      percentage: 0,
+      failReason: 'ABSENT',
+    };
+  }
+
+  if (examSubject.hasWritten && (examSubject.writtenPassMarks ?? 0) > 0 && written < (examSubject.writtenPassMarks ?? 0)) {
+    return { totalMarks, letterGrade: failRange.letterGrade, gradePoint: failRange.gradePoint, isPassed: false, percentage, failReason: 'WRITTEN_FAIL' };
+  }
+  if (examSubject.hasMcq && (examSubject.mcqPassMarks ?? 0) > 0 && mcq < (examSubject.mcqPassMarks ?? 0)) {
+    return { totalMarks, letterGrade: failRange.letterGrade, gradePoint: failRange.gradePoint, isPassed: false, percentage, failReason: 'MCQ_FAIL' };
+  }
+  if (examSubject.hasPractical && (examSubject.practicalPassMarks ?? 0) > 0 && practical < (examSubject.practicalPassMarks ?? 0)) {
+    return { totalMarks, letterGrade: failRange.letterGrade, gradePoint: failRange.gradePoint, isPassed: false, percentage, failReason: 'PRACTICAL_FAIL' };
+  }
+  if (
+    examSubject.hasContinuousAssessment &&
+    (examSubject.continuousAssessmentPassMarks ?? 0) > 0 &&
+    ca < (examSubject.continuousAssessmentPassMarks ?? 0)
+  ) {
+    return { totalMarks, letterGrade: failRange.letterGrade, gradePoint: failRange.gradePoint, isPassed: false, percentage, failReason: 'CA_FAIL' };
+  }
+  if (totalMarks < examSubject.passMarks) {
+    return { totalMarks, letterGrade: failRange.letterGrade, gradePoint: failRange.gradePoint, isPassed: false, percentage, failReason: 'TOTAL_FAIL' };
+  }
+
+  const resolved = resolveGradeFromScale(totalMarks, examSubject.fullMarks, ranges, false, examSubject.passMarks);
+  return {
+    totalMarks,
+    letterGrade: resolved.letterGrade,
+    gradePoint: resolved.gradePoint,
+    isPassed: resolved.isPassed,
+    percentage: resolved.percentage,
+    failReason: resolved.isPassed ? null : 'TOTAL_FAIL',
+  };
+}
+
 export function calculateOverallGpa(
   subjectResults: Array<{
     gradePoint: number;
     isPassed: boolean;
     isOptional: boolean;
   }>,
-  scale: Pick<GradingScale, 'maxGpa'>,
+  scale: Pick<GradingScale, 'maxGpa' | 'optionalBonusThreshold'>,
   ranges: GradeRange[],
-  optionalBonusThreshold = 2.0
+  optionalBonusThreshold?: number
 ): {
   gpa: number;
   gpaWithoutOptional: number;
@@ -187,6 +286,7 @@ export function calculateOverallGpa(
   failedSubjectCount: number;
   isPassed: boolean;
 } {
+  const threshold = optionalBonusThreshold ?? scale.optionalBonusThreshold ?? 2.0;
   const compulsory = subjectResults.filter((s) => !s.isOptional);
   const optional = subjectResults.filter((s) => s.isOptional);
 
@@ -210,7 +310,7 @@ export function calculateOverallGpa(
 
   const bonusPoints = optional.reduce((sum, s) => {
     if (!s.isPassed) return sum;
-    return sum + Math.max(0, s.gradePoint - optionalBonusThreshold);
+    return sum + Math.max(0, s.gradePoint - threshold);
   }, 0);
 
   const rawWithBonus = (compulsoryPoints + bonusPoints) / compulsory.length;

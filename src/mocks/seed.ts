@@ -61,9 +61,11 @@ import type {
   Event,
   EventCategory,
   Exam,
+  ExamHallRoom,
   ExamRoutine,
   ExamSubject,
   Gallery,
+  GalleryCategory,
   GalleryMedia,
   GradeRange,
   GradingScale,
@@ -81,6 +83,7 @@ import type {
   Permission,
   Publication,
   QuickLink,
+  ResultScrutinyRequest,
   ResultSummary,
   Role,
   RolePermission,
@@ -118,7 +121,7 @@ import type {
   SmsTemplateConfig,
 } from '@/src/types/proposed/future';
 import { PERMISSIONS } from '@/src/lib/permissions';
-import { calculateOverallGpa, resolveGradeFromScale } from '@/src/lib/formatters';
+import { calculateOverallGpa, evaluateExamSubjectMark } from '@/src/lib/formatters';
 
 export interface MockDatabase {
   users: User[];
@@ -165,9 +168,11 @@ export interface MockDatabase {
   exams: Exam[];
   examSubjects: ExamSubject[];
   examRoutines: ExamRoutine[];
+  examHallRooms: ExamHallRoom[];
   marks: Mark[];
   studentSubjectResults: StudentSubjectResult[];
   resultSummaries: ResultSummary[];
+  resultScrutinyRequests: ResultScrutinyRequest[];
   consolidatedConfigs: ConsolidatedExamConfig[];
   libraryProfile: LibraryProfile;
   libraryBooks: LibraryBook[];
@@ -181,6 +186,7 @@ export interface MockDatabase {
   careers: Career[];
   banners: WebsiteBanner[];
   leadershipMessages: LeadershipMessage[];
+  galleryCategories: GalleryCategory[];
   galleries: Gallery[];
   galleryMedia: GalleryMedia[];
   admissionContent: AdmissionContent;
@@ -1212,6 +1218,7 @@ export function createInitialSeed(): MockDatabase {
       name: 'NCTB Secondary Grading Scale (5.00)',
       description: 'বাংলাদেশ মাধ্যমিক শিক্ষা বোর্ড অনুসৃত ৫.০০ স্কেল (বিদ্যালয় নীতিমালা অনুযায়ী পরিবর্তনযোগ্য)',
       maxGpa: 5.0,
+      optionalBonusThreshold: 2.0,
       isDefault: true,
       isSystemDefault: true,
       isActive: true,
@@ -1428,7 +1435,17 @@ export function createInitialSeed(): MockDatabase {
         });
 
         if (publishResults) {
-          const g = resolveGradeFromScale(total, es.fullMarks, gradeRanges, false, es.passMarks);
+          const g = evaluateExamSubjectMark(
+            {
+              writtenMarks,
+              mcqMarks,
+              practicalMarks,
+              continuousAssessmentMarks: 0,
+              isAbsent: false,
+            },
+            es,
+            gradeRanges
+          );
           const bonus = es.isOptional && g.isPassed ? Math.max(0, g.gradePoint - 2.0) : 0;
           const ssr: StudentSubjectResult = {
             id: `ssr-${examId}-${enr.id}-${es.id}`,
@@ -1462,6 +1479,14 @@ export function createInitialSeed(): MockDatabase {
           gradeRanges
         );
 
+        const defaultRemark = !overall.isPassed
+          ? 'গণিত ও মৌলিক বিষয়ে অতিরিক্ত অনুশীলন ও নিয়মিত ক্লাস উপস্থিতি প্রয়োজন।'
+          : overall.gpa >= 5.0
+            ? 'অসাধারণ মেধা ও ধারাবাহিক কৃতিত্ব; উজ্জ্বল ভবিষ্যতের জন্য শুভকামনা।'
+            : overall.gpa >= 4.0
+              ? 'অতি উত্তম ফলাফল; আরও মনোযোগী হলে জিপিএ ৫.০০ অর্জন সম্ভব।'
+              : 'সন্তোষজনক অগ্রগতি; নিয়মিত অনুশীলন অব্যাহত রাখলে আরও ভালো করবে।';
+
         summariesForExam.push({
           id: `res-${examId}-${enr.id}`,
           studentEnrollmentId: enr.id,
@@ -1475,6 +1500,7 @@ export function createInitialSeed(): MockDatabase {
           sectionMeritPosition: null,
           failedSubjectCount: overall.failedSubjectCount,
           resultStatus: overall.isPassed ? ResultStatus.PASS : ResultStatus.FAIL,
+          teacherRemarks: defaultRemark,
           publishedAt: '2026-07-15T10:00:00.000Z',
           createdAt: NOW,
           updatedAt: NOW,
@@ -1512,6 +1538,113 @@ export function createInitialSeed(): MockDatabase {
   buildExamMarksAndResults('exam-hy-9', 'cls-9', true, true);
   // Seed draft marks for Annual 2026 Class 10 so teachers/admin can edit, lock, process & publish live!
   buildExamMarksAndResults('exam-ann-10', 'cls-10', false, false);
+
+  const examHallRooms: ExamHallRoom[] = [
+    {
+      id: 'ehr-ann-10-1',
+      examId: 'exam-ann-10',
+      roomNo: 'হল রুম ১০১',
+      buildingName: 'মূল একাডেমিক ভবন (২য় তলা)',
+      capacity: 4,
+      invigilatorStaffId: 'staff-3',
+      assistantInvigilatorStaffId: 'staff-4',
+      notes: '১০ম শ্রেণি (বিজ্ঞান ও মানবিক)',
+      displayOrder: 1,
+      createdAt: NOW,
+      updatedAt: NOW,
+    },
+    {
+      id: 'ehr-ann-10-2',
+      examId: 'exam-ann-10',
+      roomNo: 'বিজ্ঞান ভবন ২০১',
+      buildingName: 'বিজ্ঞান ভবন (২য় তলা)',
+      capacity: 4,
+      invigilatorStaffId: 'staff-5',
+      assistantInvigilatorStaffId: 'staff-7',
+      notes: 'অতিরিক্ত ও ব্যবসায় শিক্ষা আসন',
+      displayOrder: 2,
+      createdAt: NOW,
+      updatedAt: NOW,
+    },
+    {
+      id: 'ehr-hy-10-1',
+      examId: 'exam-hy-10',
+      roomNo: 'হল রুম ১০১',
+      buildingName: 'মূল একাডেমিক ভবন (২য় তলা)',
+      capacity: 4,
+      invigilatorStaffId: 'staff-3',
+      assistantInvigilatorStaffId: 'staff-6',
+      notes: 'অর্ধবার্ষিক পরীক্ষা কেন্দ্র কক্ষ ১',
+      displayOrder: 1,
+      createdAt: NOW,
+      updatedAt: NOW,
+    },
+    {
+      id: 'ehr-hy-10-2',
+      examId: 'exam-hy-10',
+      roomNo: 'হল রুম ১০২',
+      buildingName: 'মূল একাডেমিক ভবন (২য় তলা)',
+      capacity: 4,
+      invigilatorStaffId: 'staff-8',
+      assistantInvigilatorStaffId: 'staff-9',
+      notes: 'অর্ধবার্ষিক পরীক্ষা কেন্দ্র কক্ষ ২',
+      displayOrder: 2,
+      createdAt: NOW,
+      updatedAt: NOW,
+    },
+    {
+      id: 'ehr-hy-9-1',
+      examId: 'exam-hy-9',
+      roomNo: 'হল রুম ২০৩',
+      buildingName: 'নতুন একাডেমিক ভবন',
+      capacity: 6,
+      invigilatorStaffId: 'staff-4',
+      assistantInvigilatorStaffId: 'staff-7',
+      notes: '৯ম শ্রেণির সকল শাখা',
+      displayOrder: 1,
+      createdAt: NOW,
+      updatedAt: NOW,
+    },
+  ];
+
+  const resultScrutinyRequests: ResultScrutinyRequest[] = [
+    {
+      id: 'scr-1',
+      examId: 'exam-hy-10',
+      studentEnrollmentId: 'enr-stu-10-4',
+      examSubjectId: 'es-exam-hy-10-math',
+      reason: 'সৃজনশীল অংশে ৩ নং প্রশ্নের যোগফল পুনঃযাচাইয়ের আবেদন।',
+      status: 'PENDING',
+      previousTotalMarks: 62,
+      revisedWrittenMarks: null,
+      revisedMcqMarks: null,
+      revisedPracticalMarks: null,
+      revisedCaMarks: null,
+      revisedTotalMarks: null,
+      reviewerNote: null,
+      requestedAt: '2026-07-17T11:30:00.000Z',
+      resolvedAt: null,
+      resolvedBy: null,
+    },
+    {
+      id: 'scr-2',
+      examId: 'exam-hy-10',
+      studentEnrollmentId: 'enr-stu-10-3',
+      examSubjectId: 'es-exam-hy-10-eng',
+      reason: 'ইংরেজি রচনা অংশের নম্বর পুনর্গণনা।',
+      status: 'NO_CHANGE',
+      previousTotalMarks: 72,
+      revisedWrittenMarks: 72,
+      revisedMcqMarks: 0,
+      revisedPracticalMarks: 0,
+      revisedCaMarks: 0,
+      revisedTotalMarks: 72,
+      reviewerNote: 'খাতা যাচাই করে সকল প্রশ্নের যোগফল সঠিক পাওয়া গেছে।',
+      requestedAt: '2026-07-16T09:15:00.000Z',
+      resolvedAt: '2026-07-18T14:20:00.000Z',
+      resolvedBy: 'প্রধান পরীক্ষক',
+    },
+  ];
 
   // 10. Library & Digital Education
   const libraryProfile: LibraryProfile = {
@@ -1809,6 +1942,14 @@ export function createInitialSeed(): MockDatabase {
     },
   ];
 
+  const galleryCategories: GalleryCategory[] = [
+    { id: 'gcat-1', name: 'ক্যাম্পাস', description: 'বিদ্যালয় প্রাঙ্গণ, ভবন ও প্রাত্যহিক সমাবেশ', isActive: true, sortOrder: 1, createdAt: NOW, updatedAt: NOW },
+    { id: 'gcat-2', name: 'বিজ্ঞান মেলা', description: 'বিজ্ঞান ও প্রযুক্তি প্রদর্শনী এবং গবেষণাগার কার্যক্রম', isActive: true, sortOrder: 2, createdAt: NOW, updatedAt: NOW },
+    { id: 'gcat-3', name: 'ক্রীড়া ও সংস্কৃতি', description: 'বার্ষিক ক্রীড়া, বিতর্ক ও সাংস্কৃতিক আয়োজন', isActive: true, sortOrder: 3, createdAt: NOW, updatedAt: NOW },
+    { id: 'gcat-4', name: 'জাতীয় দিবস', description: 'স্বাধীনতা দিবস, বিজয় দিবস ও একুশে ফেব্রুয়ারি উদযাপন', isActive: true, sortOrder: 4, createdAt: NOW, updatedAt: NOW },
+    { id: 'gcat-5', name: 'পাঠাগার ও ল্যাব', description: 'গ্রন্থাগার, স্মার্ট শ্রেণিকক্ষ ও আইসিটি ল্যাব', isActive: true, sortOrder: 5, createdAt: NOW, updatedAt: NOW },
+  ];
+
   const galleries: Gallery[] = [
     { id: 'gal-1', title: 'বিদ্যালয় ক্যাম্পাস ও প্রাত্যহিক সমাবেশ', description: 'শতবর্ষী বিদ্যালয় প্রাঙ্গণ, একাডেমিক ভবন ও শিক্ষার্থীদের সমাবেশ।', category: 'ক্যাম্পাস', isPublished: true, createdAt: NOW, updatedAt: NOW },
     { id: 'gal-2', title: 'বিজ্ঞান মেলা ও প্রজেক্ট প্রদর্শনী ২০২৬', description: 'নবম ও দশম শ্রেণির শিক্ষার্থীদের উদ্ভাবনী বিজ্ঞান প্রকল্প।', category: 'বিজ্ঞান মেলা', isPublished: true, createdAt: NOW, updatedAt: NOW },
@@ -1862,6 +2003,13 @@ export function createInitialSeed(): MockDatabase {
     applicationFee: 200,
     helplinePhone: '01711-200201',
     formPdfUrl: '#official-admission-form',
+    requiredDocuments: [
+      'শিক্ষার্থীর ১৭ ডিজিটের ডিজিটাল জন্ম নিবন্ধন সনদের সত্যায়িত ফটোকপি',
+      'পিতা ও মাতার জাতীয় পরিচয়পত্রের (NID) ফটোকপি',
+      'শিক্ষার্থীর সদ্য তোলা ২ কপি পাসপোর্ট সাইজ ও ২ কপি স্ট্যাম্প সাইজ রঙিন ছবি',
+      'পূর্ববর্তী বিদ্যালয়ের ছাড়পত্র (TC) ও সর্বশেষ পরীক্ষার নম্বরপত্র (৭ম–৯ম শ্রেণির জন্য)',
+      'অভিভাবকের সচল বাংলাদেশি মোবাইল নম্বর (SMS নোটিফিকেশনের জন্য)',
+    ],
     isPublished: true,
     createdAt: NOW,
     updatedAt: NOW,
@@ -2044,9 +2192,11 @@ export function createInitialSeed(): MockDatabase {
     exams,
     examSubjects,
     examRoutines,
+    examHallRooms,
     marks,
     studentSubjectResults,
     resultSummaries,
+    resultScrutinyRequests,
     consolidatedConfigs,
     libraryProfile,
     libraryBooks,
@@ -2060,6 +2210,7 @@ export function createInitialSeed(): MockDatabase {
     careers,
     banners,
     leadershipMessages,
+    galleryCategories,
     galleries,
     galleryMedia,
     admissionContent,

@@ -608,6 +608,7 @@ export interface GradingScale {
   name: string;
   description?: string | null;
   maxGpa: number;
+  optionalBonusThreshold?: number;
   isDefault: boolean;
   isSystemDefault: boolean;
   isActive: boolean;
@@ -737,6 +738,7 @@ export interface ResultSummary {
   sectionMeritPosition?: number | null;
   failedSubjectCount: number;
   resultStatus: ResultStatus;
+  teacherRemarks?: string | null;
   publishedAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -750,6 +752,41 @@ export interface ConsolidatedExamConfig {
   displayOrder: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ExamHallRoom {
+  id: string;
+  examId: string;
+  roomNo: string;
+  buildingName?: string | null;
+  capacity: number;
+  invigilatorStaffId?: string | null;
+  assistantInvigilatorStaffId?: string | null;
+  notes?: string | null;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ScrutinyStatus = 'PENDING' | 'UNDER_REVIEW' | 'UPDATED' | 'NO_CHANGE';
+
+export interface ResultScrutinyRequest {
+  id: string;
+  examId: string;
+  studentEnrollmentId: string;
+  examSubjectId: string;
+  reason: string;
+  status: ScrutinyStatus;
+  previousTotalMarks: number;
+  revisedWrittenMarks?: number | null;
+  revisedMcqMarks?: number | null;
+  revisedPracticalMarks?: number | null;
+  revisedCaMarks?: number | null;
+  revisedTotalMarks?: number | null;
+  reviewerNote?: string | null;
+  requestedAt: string;
+  resolvedAt?: string | null;
+  resolvedBy?: string | null;
 }
 
 // ============================================================================
@@ -912,6 +949,17 @@ export interface LeadershipMessage {
   updatedAt: string;
 }
 
+export interface GalleryCategory {
+  id: string;
+  name: string;
+  slug?: string;
+  description?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Gallery {
   id: string;
   title: string;
@@ -971,6 +1019,7 @@ export interface AdmissionContent {
   applicationFee?: number | null;
   helplinePhone?: string | null;
   formPdfUrl?: string | null;
+  requiredDocuments?: string[] | null;
   publicOpenClassIds?: string[];
   isPublished: boolean;
   createdAt: string;

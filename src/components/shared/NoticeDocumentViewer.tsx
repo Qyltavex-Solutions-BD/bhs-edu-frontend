@@ -21,7 +21,7 @@ import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong } from '@/src/lib/formatters';
 import { SchoolEmblem, SCHOOL_LOGO_SRC } from '@/src/components/shared/Feedback';
 import type { Notice, NoticeAttachmentType, SchoolProfile } from '@/src/types/entities';
-import { cn } from '@/src/lib/utils/cn';
+import { cn, triggerPrint } from '@/src/lib/utils/cn';
 
 export function resolveNoticeFormat(notice: Notice): NoticeAttachmentType {
   if (notice.attachmentType) return notice.attachmentType;
@@ -410,7 +410,7 @@ export function NoticeDocumentViewer({
   }, [notice.id]);
 
   const handlePrint = () => {
-    window.print();
+    triggerPrint();
   };
 
   return (
@@ -509,8 +509,10 @@ export function NoticeDocumentViewer({
         ) : hasRealImage && notice.attachmentUrl ? (
           <div className="flex justify-center">
             <div
+              data-certificate-print-root="true"
+              data-print-orientation="portrait"
               style={{ width: `${zoom}%`, maxWidth: zoom > 100 ? 'none' : '740px' }}
-              className="transition-[width] duration-200 bg-white p-2 rounded-sm shadow-2xl border border-black/12"
+              className="certificate-paper transition-[width] duration-200 bg-white p-2 rounded-sm shadow-2xl border border-black/12"
             >
               <img
                 src={notice.attachmentUrl}
@@ -522,6 +524,8 @@ export function NoticeDocumentViewer({
         ) : (
           <div className="flex justify-center">
             <div
+              data-certificate-print-root="true"
+              data-print-orientation="portrait"
               style={{
                 transform: zoom === 100 ? undefined : `scale(${zoom / 100})`,
                 transformOrigin: 'top center',

@@ -17,12 +17,15 @@ import {
   ExternalLink,
   Download,
   Eye,
+  FileText,
+  Film,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
 import { useI18n } from '@/src/lib/i18n';
-import { formatDateLong } from '@/src/lib/formatters';
+import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   EmptyState,
+  getCampusPhoto,
   getNewsPhoto,
   InstitutionalArtwork,
   LoadingSkeleton,
@@ -35,9 +38,9 @@ import {
   NoticeDocumentViewer,
   downloadNoticeDocument,
 } from '@/src/components/shared/NoticeDocumentViewer';
-import { Button, Card, FormField, Input, Textarea } from '@/src/components/ui/primitives';
+import { Button, Card, FormField, Input, Select, Textarea } from '@/src/components/ui/primitives';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
-import { NoticeStatus } from '@/src/types/enums';
+import { AchievementType, MediaType, NoticeStatus, PublicationType } from '@/src/types/enums';
 import type { Notice } from '@/src/types/entities';
 
 export function PublicNoticesListPage() {
@@ -658,107 +661,472 @@ export function PublicEventDetailPage() {
   );
 }
 
+function getYouTubeEmbedUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname.includes('youtu.be')) {
+      const id = parsed.pathname.replace('/', '').split('/')[0];
+      return id ? `https://www.youtube.com/embed/${id}` : null;
+    }
+    if (parsed.hostname.includes('youtube.com')) {
+      const v = parsed.searchParams.get('v');
+      if (v) return `https://www.youtube.com/embed/${v}`;
+      if (parsed.pathname.startsWith('/embed/')) return url;
+      if (parsed.pathname.startsWith('/shorts/')) {
+        const id = parsed.pathname.replace('/shorts/', '').split('/')[0];
+        return id ? `https://www.youtube.com/embed/${id}` : null;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function isDirectVideoSource(url: string): boolean {
+  const trimmed = url.trim();
+  return (
+    trimmed.startsWith('data:video/') ||
+    trimmed.startsWith('blob:') ||
+    /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(trimmed)
+  );
+}
+
 export function PublicGalleryListPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { pick } = useI18n();
+  const { locale, pick } = useI18n();
+  const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('ALL');
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
+
+  const published = db.galleries.filter((g) => g.isPublished);
+  const activeManagedCategories = [...(db.galleryCategories ?? [])]
+    .filter((c) => c.isActive)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((c) => c.name.trim())
+    .filter(Boolean);
+  const categories = Array.from(
+    new Set([
+      ...activeManagedCategories,
+      ...published.map((g) => (g.category ?? '').trim()).filter(Boolean),
+    ])
+  );
+
+  const filtered = published.filter((gal) => {
+    if (category !== 'ALL' && (gal.category ?? '') !== category) return false;
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    const captions = db.galleryMedia
+      .filter((m) => m.galleryId === gal.id)
+      .map((m) => m.caption ?? '')
+      .join(' ');
+    return `${gal.title} ${gal.category ?? ''} ${gal.description ?? ''} ${captions}`
+      .toLowerCase()
+      .includes(q);
+  });
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
-      <PageHeader title={pick('ছবি ও ভিডিও গ্যালারি', 'Photo & Media Gallery')} />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {db.galleries.filter((g) => g.isPublished).map((gal) => {
-          const media = db.galleryMedia.filter((m) => m.galleryId === gal.id);
-          return (
-            <Link key={gal.id} href={`/gallery/${gal.id}`}>
-              <Card className="overflow-hidden hover:border-primary/50 transition-colors">
-                <InstitutionalArtwork
-                  variant={media[0]?.mediaUrl ?? 'campus-heritage'}
-                  title={gal.title}
-                  subtitle={gal.category ?? ''}
-                  className="h-48 rounded-none"
-                />
-                <div className="p-4 text-sm text-muted-foreground">{gal.description}</div>
-              </Card>
-            </Link>
-          );
-        })}
+      <PageHeader
+        title={pick('ছবি ও ভিডিও গ্যালারি', 'Photo & Video Gallery')}
+        description={pick(
+          'বিদ্যালয়ের ক্যাম্পাস, বিজ্ঞান মেলা, ক্রীড়া ও সাংস্কৃতিক আয়োজনের নির্বাচিত অ্যালবামসমূহ।',
+          'Browse campus life, science fairs, sports, and cultural program albums.'
+        )}
+      />
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={pick('অ্যালবামের নাম, ক্যাটাগরি বা ক্যাপশন দিয়ে খুঁজুন...', 'Search albums by title, category, or caption...')}
+            className="pl-9"
+          />
+        </div>
+        <Select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="w-full sm:w-56"
+        >
+          <option value="ALL">{pick('সব ক্যাটাগরি', 'All Categories')}</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </Select>
       </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={pick('কোনো অ্যালবাম পাওয়া যায়নি', 'No matching gallery albums')}
+          description={pick('অনুগ্রহ করে অন্য শব্দ বা ক্যাটাগরি নির্বাচন করে চেষ্টা করুন।', 'Try another search keyword or category.')}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {filtered.map((gal) => {
+            const media = [...db.galleryMedia.filter((m) => m.galleryId === gal.id)].sort(
+              (a, b) => a.sortOrder - b.sortOrder
+            );
+            const coverImage = media.find((m) => m.mediaType === MediaType.IMAGE);
+            const videoCount = media.filter((m) => m.mediaType === MediaType.VIDEO).length;
+            return (
+              <Link key={gal.id} href={`/gallery/${gal.id}`}>
+                <Card className="overflow-hidden hover:border-primary/50 transition-colors h-full flex flex-col">
+                  <div className="relative">
+                    {!coverImage && videoCount > 0 ? (
+                      <div className="h-48 bg-slate-900 text-white p-5 flex flex-col justify-between">
+                        <div className="w-11 h-11 rounded-full bg-white/15 flex items-center justify-center">
+                          <Film className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          {gal.category && (
+                            <p className="text-xs font-medium text-white/75">{gal.category}</p>
+                          )}
+                          <h3 className="text-base font-bold leading-snug line-clamp-2 mt-0.5">
+                            {gal.title}
+                          </h3>
+                        </div>
+                      </div>
+                    ) : (
+                      <InstitutionalArtwork
+                        variant={coverImage?.mediaUrl ?? 'campus-heritage'}
+                        title={gal.title}
+                        subtitle={gal.category ?? ''}
+                        className="h-48 rounded-none"
+                      />
+                    )}
+                    <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded bg-black/65 text-white text-xs font-medium tabular-nums inline-flex items-center gap-1.5">
+                      {formatNumber(media.length, locale)} {pick('টি মিডিয়া', 'items')}
+                      {videoCount > 0 && <Film className="w-3 h-3" />}
+                    </span>
+                  </div>
+                  <div className="p-4 text-sm text-muted-foreground flex-1">{gal.description}</div>
+                </Card>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 export function PublicGalleryDetailPage() {
   const { id } = useParams();
-  const { data: db } = useGetBootstrapQuery();
+  const { data: db, isLoading } = useGetBootstrapQuery();
   const { pick } = useI18n();
-  const gal = db?.galleries.find((g) => g.id === id);
-  if (!gal || !db) return <div className="max-w-[1440px] mx-auto p-6"><EmptyState /></div>;
-  const items = db.galleryMedia.filter((m) => m.galleryId === gal.id);
+  if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
+  const gal = db.galleries.find((g) => g.id === id && g.isPublished);
+  if (!gal) return <div className="max-w-[1440px] mx-auto p-6"><EmptyState /></div>;
+  const items = [...db.galleryMedia.filter((m) => m.galleryId === gal.id)].sort(
+    (a, b) => a.sortOrder - b.sortOrder
+  );
+
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <Link href="/gallery" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
         <ArrowLeft className="w-4 h-4" /> {pick('গ্যালারিতে ফিরুন', 'Back to Gallery')}
       </Link>
-      <PageHeader title={gal.title} description={gal.description ?? undefined} />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {items.map((m) => (
-          <Card key={m.id} className="overflow-hidden">
-            <InstitutionalArtwork variant={m.mediaUrl} title={m.caption ?? ''} className="h-60 rounded-none" />
-          </Card>
-        ))}
-      </div>
+      <PageHeader
+        title={gal.title}
+        description={
+          [gal.category, gal.description].filter(Boolean).join(' · ') || undefined
+        }
+      />
+      {items.length === 0 ? (
+        <EmptyState
+          title={pick('এই অ্যালবামে এখনো কোনো ছবি বা ভিডিও নেই', 'No media items in this album yet')}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {items.map((m) => {
+            if (m.mediaType === MediaType.VIDEO) {
+              const ytEmbed = getYouTubeEmbedUrl(m.mediaUrl);
+              const isDirectVideo = isDirectVideoSource(m.mediaUrl);
+              return (
+                <Card key={m.id} className="overflow-hidden flex flex-col">
+                  {ytEmbed ? (
+                    <div className="aspect-video w-full bg-black">
+                      <iframe
+                        src={ytEmbed}
+                        title={m.caption ?? gal.title}
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  ) : isDirectVideo ? (
+                    <div className="aspect-video w-full bg-black">
+                      <video
+                        src={m.mediaUrl}
+                        controls
+                        playsInline
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-60 bg-surface-muted/70 flex flex-col items-center justify-center gap-3 p-6 text-center">
+                      <Film className="w-10 h-10 text-primary" />
+                      <a
+                        href={m.mediaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        {pick('ভিডিও দেখুন', 'Watch Video')}
+                      </a>
+                    </div>
+                  )}
+                  {m.caption && (
+                    <div className="p-3.5 border-t border-border text-sm font-medium text-foreground">
+                      {m.caption}
+                    </div>
+                  )}
+                </Card>
+              );
+            }
+            return (
+              <Card key={m.id} className="overflow-hidden">
+                <InstitutionalArtwork variant={m.mediaUrl} title={m.caption ?? ''} className="h-64 rounded-none" />
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 export function PublicPublicationsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { pick } = useI18n();
+  const { locale, pick } = useI18n();
+  const [query, setQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('ALL');
+  const [yearFilter, setYearFilter] = useState('ALL');
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
+
+  const published = db.publications.filter((p) => p.isPublished);
+  const years = Array.from(
+    new Set(published.map((p) => p.publishYear).filter((y): y is number => Boolean(y)))
+  ).sort((a, b) => b - a);
+
+  const filtered = published.filter((pub) => {
+    if (typeFilter !== 'ALL' && pub.type !== typeFilter) return false;
+    if (yearFilter !== 'ALL' && String(pub.publishYear ?? '') !== yearFilter) return false;
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return `${pub.title} ${pub.description ?? ''} ${pub.publishYear ?? ''}`
+      .toLowerCase()
+      .includes(q);
+  });
+
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
-      <PageHeader title={pick('বিদ্যালয়ের প্রকাশনা ও ম্যাগাজিন', 'School Publications')} />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {db.publications.filter((p) => p.isPublished).map((pub) => (
-          <Card key={pub.id} className="p-6 space-y-3">
-            <div className="flex items-center justify-between">
-              <StatusBadge enumName="PublicationType" value={pub.type} />
-              <span className="text-sm text-muted-foreground tabular-nums">{pub.publishYear}</span>
-            </div>
-            <h2 className="text-lg font-bold text-foreground">{pub.title}</h2>
-            <p className="text-base text-muted-foreground leading-relaxed">{pub.description}</p>
-          </Card>
-        ))}
+      <PageHeader
+        title={pick('বিদ্যালয়ের প্রকাশনা ও ম্যাগাজিন', 'School Publications')}
+        description={pick(
+          'বার্ষিক ম্যাগাজিন, দেয়াল পত্রিকা, জার্নাল ও অন্যান্য প্রকাশনা খুঁজুন ও পড়ুন।',
+          'Search and browse school magazines, wall magazines, journals, and special publications.'
+        )}
+      />
+
+      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+        <div className="relative sm:col-span-6">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={pick('প্রকাশনার শিরোনাম বা বিবরণ দিয়ে খুঁজুন...', 'Search publications by title or keyword...')}
+            className="pl-9"
+          />
+        </div>
+        <div className="sm:col-span-3">
+          <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+            <option value="ALL">{pick('সব ধরন', 'All Types')}</option>
+            <option value={PublicationType.SCHOOL_MAGAZINE}>{pick('বিদ্যালয় ম্যাগাজিন', 'School Magazine')}</option>
+            <option value={PublicationType.WALL_MAGAZINE}>{pick('দেয়াল পত্রিকা', 'Wall Magazine')}</option>
+            <option value={PublicationType.JOURNAL}>{pick('বার্ষিকী / জার্নাল', 'Journal')}</option>
+            <option value={PublicationType.OTHER}>{pick('অন্যান্য', 'Other')}</option>
+          </Select>
+        </div>
+        <div className="sm:col-span-3">
+          <Select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)}>
+            <option value="ALL">{pick('সব বছর', 'All Years')}</option>
+            {years.map((y) => (
+              <option key={y} value={String(y)}>
+                {formatNumber(y, locale)}
+              </option>
+            ))}
+          </Select>
+        </div>
       </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={pick('কোনো প্রকাশনা পাওয়া যায়নি', 'No publications matched your filter')}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {filtered.map((pub) => {
+            const hasDirectFile = Boolean(
+              pub.fileUrl &&
+                (pub.fileUrl.startsWith('http://') ||
+                  pub.fileUrl.startsWith('https://') ||
+                  pub.fileUrl.startsWith('/') ||
+                  pub.fileUrl.startsWith('data:'))
+            );
+            return (
+              <Card key={pub.id} className="p-6 flex flex-col sm:flex-row gap-4">
+                {pub.coverImage && (
+                  <img
+                    src={getCampusPhoto(pub.coverImage).src}
+                    alt={pub.title}
+                    referrerPolicy="no-referrer"
+                    className="w-full sm:w-28 h-40 sm:h-36 rounded object-cover border border-border shrink-0"
+                  />
+                )}
+                <div className="flex-1 flex flex-col justify-between gap-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <StatusBadge enumName="PublicationType" value={pub.type} />
+                      {pub.publishYear && (
+                        <span className="text-sm text-muted-foreground tabular-nums">
+                          {formatNumber(pub.publishYear, locale)}
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="text-lg font-bold text-foreground">{pub.title}</h2>
+                    <p className="text-base text-muted-foreground leading-relaxed">{pub.description}</p>
+                  </div>
+                  {pub.fileUrl && (
+                    <div className="pt-2 border-t border-border">
+                      {hasDirectFile ? (
+                        <a href={pub.fileUrl} target="_blank" rel="noopener noreferrer">
+                          <Button variant="outline" size="sm">
+                            <Download className="w-4 h-4" />
+                            {pick('পড়ুন / ডাউনলোড করুন', 'Read / Download')}
+                          </Button>
+                        </a>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            toast.info(
+                              pick(
+                                'বিদ্যালয়ের মূল আর্কাইভ পিডিএফ সংযুক্ত হলে এখান থেকে সরাসরি ডাউনলোড করা যাবে।',
+                                'PDF download will be available once the archive document URL is attached.'
+                              )
+                            )
+                          }
+                        >
+                          <FileText className="w-4 h-4" />
+                          {pick('ডিজিটাল কপি (আর্কাইভ)', 'Digital Copy (Archive)')}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 export function PublicAchievementsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { pick } = useI18n();
+  const { locale, pick } = useI18n();
+  const [query, setQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('ALL');
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
+
+  const filtered = db.achievements
+    .filter((a) => a.isPublished)
+    .filter((ach) => {
+      if (typeFilter !== 'ALL' && ach.type !== typeFilter) return false;
+      const q = query.trim().toLowerCase();
+      if (!q) return true;
+      return `${ach.title} ${ach.personName ?? ''} ${ach.batch ?? ''} ${ach.description ?? ''}`
+        .toLowerCase()
+        .includes(q);
+    });
+
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <PageHeader
         title={pick('অর্জন ও কৃতী শিক্ষার্থী', 'Achievements & Alumni')}
         description={pick('প্রাতিষ্ঠানিক অর্জন ও সম্মতিপ্রাপ্ত কৃতী শিক্ষার্থীদের তালিকা।', 'Institutional milestones and consented student recognitions.')}
       />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {db.achievements.filter((a) => a.isPublished).map((ach) => (
-          <Card key={ach.id} className="p-6 space-y-2.5">
-            <StatusBadge enumName="AchievementType" value={ach.type} />
-            <h2 className="text-lg font-bold text-foreground">{ach.title}</h2>
-            {ach.personName && (
-              <p className="text-sm text-primary font-medium">
-                {ach.personName} {ach.batch ? `· ${ach.batch}` : ''}
-              </p>
-            )}
-            <p className="text-base text-muted-foreground leading-relaxed">{ach.description}</p>
-          </Card>
-        ))}
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={pick('অর্জন, শিক্ষার্থী বা ব্যাচ দিয়ে খুঁজুন...', 'Search by title, student name, or batch...')}
+            className="pl-9"
+          />
+        </div>
+        <Select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="w-full sm:w-60"
+        >
+          <option value="ALL">{pick('সব ক্যাটাগরি', 'All Categories')}</option>
+          <option value={AchievementType.INSTITUTION_ACHIEVEMENT}>{pick('প্রাতিষ্ঠানিক অর্জন', 'Institution Award')}</option>
+          <option value={AchievementType.STUDENT_STAR}>{pick('কৃতী শিক্ষার্থী', 'Student Star')}</option>
+          <option value={AchievementType.NOTABLE_ALUMNI}>{pick('কৃতী প্রাক্তন শিক্ষার্থী', 'Notable Alumni')}</option>
+        </Select>
       </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState
+          title={pick('কোনো অর্জন পাওয়া যায়নি', 'No matching achievements found')}
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {filtered.map((ach) => (
+            <Card key={ach.id} className="p-6 flex flex-col sm:flex-row gap-4">
+              {ach.image && (
+                <img
+                  src={getCampusPhoto(ach.image).src}
+                  alt={ach.title}
+                  referrerPolicy="no-referrer"
+                  className="w-full sm:w-28 h-40 sm:h-28 rounded object-cover border border-border shrink-0"
+                />
+              )}
+              <div className="space-y-2 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge enumName="AchievementType" value={ach.type} />
+                  {ach.batch && (
+                    <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                      {ach.batch}
+                    </span>
+                  )}
+                  {ach.achievedAt && (
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      · {formatDateShort(ach.achievedAt, locale)}
+                    </span>
+                  )}
+                </div>
+                <h2 className="text-lg font-bold text-foreground">{ach.title}</h2>
+                {ach.personName && (
+                  <p className="text-sm text-primary font-medium">{ach.personName}</p>
+                )}
+                <p className="text-base text-muted-foreground leading-relaxed">{ach.description}</p>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

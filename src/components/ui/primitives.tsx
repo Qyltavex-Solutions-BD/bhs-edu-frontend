@@ -185,6 +185,7 @@ export function Modal({
   title,
   description,
   maxWidth = 'max-w-2xl',
+  size,
   children,
 }: {
   open: boolean;
@@ -192,9 +193,19 @@ export function Modal({
   title: string;
   description?: string;
   maxWidth?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
   children: React.ReactNode;
 }) {
   if (!open) return null;
+  const sizeMap: Record<'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full', string> = {
+    sm: 'max-w-md',
+    md: 'max-w-xl',
+    lg: 'max-w-3xl',
+    xl: 'max-w-5xl',
+    '2xl': 'max-w-6xl',
+    full: 'max-w-7xl',
+  };
+  const resolvedMaxWidth = size ? sizeMap[size] : maxWidth;
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
@@ -204,7 +215,7 @@ export function Modal({
       <div
         className={cn(
           'w-full bg-surface border border-border rounded-[var(--radius)] shadow-lg max-h-[90vh] flex flex-col',
-          maxWidth
+          resolvedMaxWidth
         )}
       >
         <div className="flex items-start justify-between gap-4 px-5 py-4 border-b border-border">

@@ -24,6 +24,10 @@ function PrintCertificateContent() {
   const autoPrintedRef = useRef(false);
 
   useEffect(() => {
+    document.documentElement.classList.remove('dark');
+  }, []);
+
+  useEffect(() => {
     let resolved: CertificatePrintPayload | null = null;
 
     if (key && key.startsWith(CERT_PRINT_STORAGE_PREFIX)) {

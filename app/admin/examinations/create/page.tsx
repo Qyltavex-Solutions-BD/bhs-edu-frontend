@@ -1,7 +1,5 @@
-import { AdminExamsAndResultsPage } from '@/src/views/admin/AdminExamsAndResultsPage';
+import { ExamsDirectoryView } from '@/src/views/admin/examinations/ExamsAndSubjectsView';
 
 export default function Page() {
-  return (
-    <AdminExamsAndResultsPage defaultTab="exams" />
-  );
+  return <ExamsDirectoryView openCreateOnMount />;
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertCircle, Inbox, RefreshCw, Info } from 'lucide-react';
 import { Button, Card, Modal, Skeleton } from '@/src/components/ui/primitives';
 import { useI18n } from '@/src/lib/i18n';
@@ -70,6 +70,20 @@ export const CAMPUS_PHOTOS: Record<
 export function getCampusPhoto(variant?: string | null) {
   if (variant && CAMPUS_PHOTOS[variant]) {
     return CAMPUS_PHOTOS[variant];
+  }
+  if (
+    variant &&
+    (variant.startsWith('/') ||
+      variant.startsWith('http://') ||
+      variant.startsWith('https://') ||
+      variant.startsWith('data:'))
+  ) {
+    return {
+      src: variant,
+      altBn: 'ভোজেশ্বর উচ্চ বিদ্যালয় গ্যালারি ছবি',
+      altEn: 'Bhojeshwar High School gallery photo',
+      fallbackBg: '#1E293B',
+    };
   }
   return CAMPUS_PHOTOS['campus-heritage'];
 }
@@ -228,6 +242,10 @@ export function InstitutionalArtwork({
   const [imgFailed, setImgFailed] = useState(false);
   const photo = getCampusPhoto(variant);
 
+  useEffect(() => {
+    setImgFailed(false);
+  }, [photo.src]);
+
   return (
     <div
       className={cn(
@@ -266,20 +284,35 @@ export function InstitutionalArtwork({
 export function PageHeader({
   title,
   description,
+  titleBn,
+  titleEn,
+  subtitleBn,
+  subtitleEn,
   actions,
 }: {
-  title: string;
+  title?: string;
   description?: string;
+  titleBn?: string;
+  titleEn?: string;
+  subtitleBn?: string;
+  subtitleEn?: string;
   actions?: React.ReactNode;
 }) {
+  const { locale } = useI18n();
+  const resolvedTitle = title ?? (locale === 'bn' ? titleBn || titleEn || '' : titleEn || titleBn || '');
+  const resolvedDescription =
+    description ?? (locale === 'bn' ? subtitleBn || subtitleEn : subtitleEn || subtitleBn);
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-          {title}
+          {resolvedTitle}
         </h1>
-        {description && (
-          <p className="text-base text-muted-foreground mt-1.5 max-w-2xl leading-relaxed">{description}</p>
+        {resolvedDescription && (
+          <p className="text-base text-muted-foreground mt-1.5 max-w-2xl leading-relaxed">
+            {resolvedDescription}
+          </p>
         )}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2 shrink-0">{actions}</div>}
@@ -292,11 +325,13 @@ export function StatCard({
   value,
   meta,
   accent,
+  icon,
 }: {
   label: string;
   value: string | number;
   meta?: string;
   accent?: 'default' | 'primary' | 'success' | 'warning' | 'destructive';
+  icon?: React.ReactNode;
 }) {
   const valueTone =
     accent === 'primary'
@@ -311,7 +346,10 @@ export function StatCard({
 
   return (
     <Card className="p-4 flex flex-col justify-between">
-      <span className="text-sm font-medium text-muted-foreground">{label}</span>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        {icon && <span className="text-muted-foreground shrink-0">{icon}</span>}
+      </div>
       <div className={cn('text-2xl sm:text-3xl font-bold tabular-nums mt-2', valueTone)}>{value}</div>
       {meta && <span className="text-sm text-muted-foreground mt-1.5">{meta}</span>}
     </Card>
@@ -412,3 +450,5 @@ export function ConfirmationDialog({
     </Modal>
   );
 }
+
+export const ConfirmDialog = ConfirmationDialog;

@@ -205,10 +205,10 @@
   }
 }
 
-/* Official A4 Print Styles (Bangla-safe, clean letterhead & isolated certificates) */
+/* Official A4 Print Styles (Bangla-safe, pixel-accurate Portrait & Landscape A4) */
 @page landscape {
   size: A4 landscape;
-  margin: 10mm;
+  margin: 8mm;
 }
 
 #certificate-print-mount {
@@ -218,13 +218,23 @@
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 8mm;
   }
 
   html,
-  body {
+  body,
+  html.dark,
+  html.dark body {
+    --background: #FFFFFF;
+    --surface: #FFFFFF;
+    --surface-muted: #F4F4F5;
+    --foreground: #111111;
+    --muted-foreground: #52525B;
+    --border: #D4D4D8;
     background: #FFFFFF !important;
     color: #111111 !important;
+    font-size: 13.5px !important;
+    line-height: 1.42 !important;
     font-family: var(--font-latin), var(--font-bengali), "Noto Sans Bengali", sans-serif !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -252,6 +262,19 @@
     background: #FFFFFF !important;
   }
 
+  /* Landscape documents use slightly tighter root scale so wide subject columns fit 100% across A4 landscape */
+  html.printing-landscape,
+  html.printing-landscape body {
+    font-size: 12px !important;
+    line-height: 1.32 !important;
+  }
+
+  #certificate-print-mount[data-print-orientation="landscape"],
+  .a4-print-canvas.a4-landscape {
+    font-size: 11.5px !important;
+    line-height: 1.32 !important;
+  }
+
   .no-print {
     display: none !important;
   }
@@ -270,9 +293,10 @@
     padding: 0 !important;
     margin: 0 !important;
     max-width: 100% !important;
+    width: 100% !important;
   }
 
-  /* Print ONLY the crisp inner double-border certificate frame cleanly on A4 */
+  /* Print ONLY the crisp inner double-border frame cleanly on A4 (exact single-page Portrait fit) */
   .certificate-paper {
     box-shadow: none !important;
     border: none !important;
@@ -284,5 +308,51 @@
     color: #111111 !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
+  }
+
+  /* Multi-page / Landscape A4 documents flow naturally without clipping or scrollbars */
+  .certificate-paper-flow {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    background: #FFFFFF !important;
+    color: #111111 !important;
+  }
+
+  /* Never clip wide tables or add scrollbars on A4 paper */
+  #certificate-print-mount .overflow-x-auto,
+  .a4-print-canvas .overflow-x-auto,
+  .certificate-paper .overflow-x-auto,
+  .certificate-paper-flow .overflow-x-auto {
+    overflow: visible !important;
+  }
+
+  /* Repeat table headers cleanly across multi-page A4 registers & prevent split rows */
+  #certificate-print-mount thead,
+  .a4-print-canvas thead,
+  .certificate-paper thead,
+  .certificate-paper-flow thead {
+    display: table-header-group;
+  }
+
+  #certificate-print-mount tr,
+  .a4-print-canvas tr,
+  .certificate-paper tr,
+  .certificate-paper-flow tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-page-break {
+    break-after: page !important;
+    page-break-after: always !important;
+  }
+
+  .print-page-break:last-child {
+    break-after: auto !important;
+    page-break-after: auto !important;
   }
 }

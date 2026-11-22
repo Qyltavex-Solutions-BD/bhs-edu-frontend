@@ -1,7 +1,10 @@
-import { AdminExamsAndResultsPage } from '@/src/views/admin/AdminExamsAndResultsPage';
+import { MeritAndMarksheetsView } from '@/src/views/admin/examinations/MeritAndMarksheetsView';
 
-export default function Page() {
-  return (
-    <AdminExamsAndResultsPage defaultTab="merit" />
-  );
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  return <MeritAndMarksheetsView initialExamId={id} />;
 }

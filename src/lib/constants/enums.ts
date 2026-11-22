@@ -35,6 +35,7 @@ export const ENUM_LABELS: Record<string, Record<string, EnumMeta>> = {
     ENTRY: { bn: 'প্রবেশ', en: 'Entry', tone: 'success' },
     EXIT: { bn: 'প্রস্থান', en: 'Exit', tone: 'info' },
     ABSENT: { bn: 'অনুপস্থিতি', en: 'Absent', tone: 'destructive' },
+    RESULT: { bn: 'ফলাফল প্রকাশ', en: 'Result Alert', tone: 'primary' },
   },
   AttendanceStatus: {
     PRESENT: { bn: 'উপস্থিত', en: 'Present', tone: 'success' },

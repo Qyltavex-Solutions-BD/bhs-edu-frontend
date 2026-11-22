@@ -134,28 +134,143 @@ function openStandaloneCertificatePrintView(payload: CertificatePrintPayload) {
   return true;
 }
 
+export const DOC_PRINT_STORAGE_PREFIX = 'bhs_doc_print_';
+
+export interface StandaloneDocumentPrintPayload {
+  html: string;
+  orientation: 'portrait' | 'landscape';
+  title: string;
+  createdAt: number;
+}
+
+function pruneStaleDocPrintPayloads(keepNewest = 3) {
+  try {
+    const now = Date.now();
+    const entries: Array<{ key: string; createdAt: number }> = [];
+    for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(DOC_PRINT_STORAGE_PREFIX)) continue;
+      const raw = localStorage.getItem(key);
+      if (!raw) {
+        localStorage.removeItem(key);
+        continue;
+      }
+      try {
+        const parsed = JSON.parse(raw) as { createdAt?: number };
+        const createdAt = parsed.createdAt ?? 0;
+        if (!createdAt || now - createdAt > 15 * 60 * 1000) {
+          localStorage.removeItem(key);
+        } else {
+          entries.push({ key, createdAt });
+        }
+      } catch {
+        localStorage.removeItem(key);
+      }
+    }
+    if (entries.length > keepNewest) {
+      entries
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .slice(0, entries.length - keepNewest)
+        .forEach((e) => localStorage.removeItem(e.key));
+    }
+  } catch {
+    // Ignore storage access restrictions
+  }
+}
+
+function resolvePrintOrientation(node: HTMLElement): 'portrait' | 'landscape' {
+  if (
+    node.getAttribute('data-print-orientation') === 'landscape' ||
+    node.classList.contains('print-landscape') ||
+    Boolean(node.querySelector('[data-print-orientation="landscape"], .print-landscape'))
+  ) {
+    return 'landscape';
+  }
+  return 'portrait';
+}
+
+function buildCleanPrintableClone(node: HTMLElement): HTMLElement {
+  const clone = node.cloneNode(true) as HTMLElement;
+  clone.removeAttribute('data-certificate-print-root');
+  clone.querySelectorAll('.no-print').forEach((el) => el.remove());
+  return clone;
+}
+
+function openStandaloneDocumentPrintView(
+  node: HTMLElement,
+  orientation: 'portrait' | 'landscape'
+): boolean {
+  pruneStaleDocPrintPayloads(2);
+  const clone = buildCleanPrintableClone(node);
+  const key = `${DOC_PRINT_STORAGE_PREFIX}${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const record: StandaloneDocumentPrintPayload = {
+    html: clone.outerHTML,
+    orientation,
+    title: typeof document !== 'undefined' ? document.title : 'Institutional Document',
+    createdAt: Date.now(),
+  };
+
+  try {
+    localStorage.setItem(key, JSON.stringify(record));
+  } catch {
+    // Clear older print keys and retry once if storage quota was hit
+    pruneStaleDocPrintPayloads(0);
+    try {
+      localStorage.setItem(key, JSON.stringify(record));
+    } catch {
+      return false;
+    }
+  }
+
+  const link = document.createElement('a');
+  link.href = `/print-document?key=${encodeURIComponent(key)}`;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  return true;
+}
+
 export function printCertificateNode(
   node: HTMLElement | null,
   payload?: CertificatePrintPayload
 ): boolean {
-  if (typeof window === 'undefined' || !node) {
-    if (typeof window !== 'undefined') window.print();
+  if (typeof window === 'undefined') return false;
+  if (!node) {
+    window.print();
     return true;
   }
 
   const existing = document.getElementById('certificate-print-mount');
   if (existing) existing.remove();
+  const existingOrientation = document.getElementById('certificate-print-orientation');
+  if (existingOrientation) existingOrientation.remove();
+
+  const orientation = resolvePrintOrientation(node);
+  const isLandscape = orientation === 'landscape';
+
+  const orientationStyle = document.createElement('style');
+  orientationStyle.id = 'certificate-print-orientation';
+  orientationStyle.textContent = isLandscape
+    ? '@media print { @page { size: A4 landscape; margin: 8mm; } }'
+    : '@media print { @page { size: A4 portrait; margin: 8mm; } }';
+  document.head.appendChild(orientationStyle);
 
   const mount = document.createElement('div');
   mount.id = 'certificate-print-mount';
-  const clone = node.cloneNode(true) as HTMLElement;
-  clone.removeAttribute('data-certificate-print-root');
+  mount.setAttribute('data-print-orientation', orientation);
+  const clone = buildCleanPrintableClone(node);
   mount.appendChild(clone);
   document.body.appendChild(mount);
   document.documentElement.classList.add('printing-certificate');
   document.body.classList.add('printing-certificate');
+  if (isLandscape) {
+    document.documentElement.classList.add('printing-landscape');
+  }
 
-  // Force synchronous reflow so print preview captures the mounted certificate immediately
+  // Force synchronous reflow so print preview captures the mounted document immediately
   void mount.offsetHeight;
 
   let cleaned = false;
@@ -166,9 +281,10 @@ export function printCertificateNode(
   const cleanup = () => {
     if (cleaned) return;
     cleaned = true;
-    document.documentElement.classList.remove('printing-certificate');
+    document.documentElement.classList.remove('printing-certificate', 'printing-landscape');
     document.body.classList.remove('printing-certificate');
     mount.remove();
+    orientationStyle.remove();
     window.removeEventListener('beforeprint', onBeforePrint);
     window.removeEventListener('afterprint', cleanup);
     if (mediaQuery) {
@@ -199,14 +315,14 @@ export function printCertificateNode(
   window.print();
 
   // If an embedded preview iframe sandbox blocked window.print() (beforeprint never fired),
-  // clean up and launch the dedicated same-origin /print-certificate view (NO file download)
-  // which renders ONLY the exact certificate and automatically opens the Print Dialog.
+  // clean up and launch the dedicated same-origin standalone print tab which renders
+  // ONLY the exact A4 document and automatically opens the native browser Print Dialog.
   if (!beforePrintFired) {
     cleanup();
     if (payload) {
-      openStandaloneCertificatePrintView(payload);
+      return openStandaloneCertificatePrintView(payload);
     }
-    return false;
+    return openStandaloneDocumentPrintView(node, orientation);
   }
 
   return true;
@@ -226,13 +342,32 @@ export function triggerCertificatePrint(payload: CertificatePrintPayload): boole
 
 export function triggerPrint(): boolean {
   if (typeof window === 'undefined') return false;
+
+  const isVisible = (el: HTMLElement) =>
+    el.offsetParent !== null || el.getBoundingClientRect().height > 0;
+
+  // 1. Prefer explicitly marked A4 institutional print roots (e.g. inside open print modals)
   const certNodes = Array.from(
     document.querySelectorAll<HTMLElement>('[data-certificate-print-root="true"]')
-  ).filter((el) => el.offsetParent !== null || el.getBoundingClientRect().height > 0);
+  ).filter(isVisible);
   if (certNodes.length > 0) {
-    const target = certNodes[certNodes.length - 1];
-    return printCertificateNode(target);
+    return printCertificateNode(certNodes[certNodes.length - 1]);
   }
+
+  // 2. Next prefer .print-sheet containers
+  const sheetNodes = Array.from(
+    document.querySelectorAll<HTMLElement>('.print-sheet')
+  ).filter(isVisible);
+  if (sheetNodes.length > 0) {
+    return printCertificateNode(sheetNodes[sheetNodes.length - 1]);
+  }
+
+  // 3. Fallback to primary <main> content container so iframe print buttons always work cleanly
+  const mainEl = document.querySelector<HTMLElement>('main');
+  if (mainEl && isVisible(mainEl)) {
+    return printCertificateNode(mainEl);
+  }
+
   window.print();
   return true;
 }
