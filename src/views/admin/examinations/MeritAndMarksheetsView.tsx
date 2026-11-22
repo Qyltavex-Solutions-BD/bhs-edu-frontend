@@ -367,8 +367,8 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
 
       {/* Exam & Filter Toolbar */}
       <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          <div className="md:col-span-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+          <div className="sm:col-span-2 lg:col-span-4">
             <FormField label={pick('পরীক্ষা নির্বাচন করুন', 'Select Examination')}>
               <Select
                 value={activeExamId}
@@ -390,7 +390,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
             </FormField>
           </div>
 
-          <div className="md:col-span-2">
+          <div className="sm:col-span-1 lg:col-span-2">
             <FormField label={pick('শাখা', 'Section')}>
               <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
                 <option value="ALL">{pick('সকল শাখা', 'All Sections')}</option>
@@ -404,7 +404,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           </div>
 
           {classGroups.length > 0 && (
-            <div className="md:col-span-2">
+            <div className="sm:col-span-1 lg:col-span-2">
               <FormField label={pick('বিভাগ (Group)', 'Academic Group')}>
                 <Select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
                   <option value="ALL">{pick('সকল বিভাগ', 'All Groups')}</option>
@@ -418,7 +418,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
             </div>
           )}
 
-          <div className="md:col-span-2">
+          <div className="sm:col-span-1 lg:col-span-2">
             <FormField label={pick('ফলাফলের অবস্থা', 'Result Status')}>
               <Select
                 value={statusFilter}
@@ -431,7 +431,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
             </FormField>
           </div>
 
-          <div className={classGroups.length > 0 ? 'md:col-span-2' : 'md:col-span-4'}>
+          <div className={classGroups.length > 0 ? 'sm:col-span-1 lg:col-span-2' : 'sm:col-span-2 lg:col-span-4'}>
             <FormField label={pick('খুঁজুন (নাম / রোল / আইডি)', 'Search (Name / Roll / ID)')}>
               <div className="relative">
                 <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -448,8 +448,8 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
       </Card>
 
       {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
-        <div className="p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('মোট ফলাফল (ফিল্টারকৃত)', 'Filtered Examinees')}
           </p>
@@ -462,7 +462,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('উত্তীর্ণ ও পাসের হার', 'Passed & Pass Rate')}
           </p>
@@ -478,7 +478,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('জিপিএ ৫.০০ (A+)', 'GPA 5.00 (A+)')}
           </p>
@@ -496,7 +496,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('অনুত্তীর্ণ শিক্ষার্থী', 'Failed Examinees')}
           </p>
@@ -551,7 +551,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface-muted/70 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <th className="px-4 py-3 text-center w-20">{pick('শ্রেণি মেধা', 'Class Merit')}</th>

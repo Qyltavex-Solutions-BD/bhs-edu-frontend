@@ -396,8 +396,8 @@ export function ConsolidatedResultsView() {
 
       {/* Selector & Filter Bar */}
       <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          <div className="md:col-span-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+          <div className="sm:col-span-2 lg:col-span-5">
             <FormField label={pick('সমন্বিত পরীক্ষা নির্বাচন করুন', 'Select Consolidated Examination')}>
               <Select
                 value={activeExamId}
@@ -421,7 +421,7 @@ export function ConsolidatedResultsView() {
               </Select>
             </FormField>
           </div>
-          <div className="md:col-span-3">
+          <div className="sm:col-span-1 lg:col-span-3">
             <FormField label={pick('শাখা ফিল্টার', 'Filter Section')}>
               <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
                 <option value="ALL">{pick('সকল শাখা', 'All Sections')}</option>
@@ -433,7 +433,7 @@ export function ConsolidatedResultsView() {
               </Select>
             </FormField>
           </div>
-          <div className="md:col-span-4">
+          <div className="sm:col-span-1 lg:col-span-4">
             <FormField label={pick('শিক্ষার্থী খুঁজুন', 'Search Student')}>
               <div className="relative">
                 <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -488,8 +488,8 @@ export function ConsolidatedResultsView() {
       </Card>
 
       {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
-        <div className="p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('মোট তালিকাভুক্ত শিক্ষার্থী', 'Enrolled Students')}
           </p>
@@ -502,7 +502,7 @@ export function ConsolidatedResultsView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('সমন্বিত উত্তীর্ণ ও পাসের হার', 'Consolidated Passed & Rate')}
           </p>
@@ -518,7 +518,7 @@ export function ConsolidatedResultsView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('চূড়ান্ত জিপিএ ৫.০০', 'Final GPA 5.00')}
           </p>
@@ -536,7 +536,7 @@ export function ConsolidatedResultsView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('অসম্পূর্ণ / অনুত্তীর্ণ', 'Incomplete / Failed')}
           </p>
@@ -605,7 +605,7 @@ export function ConsolidatedResultsView() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface-muted/70 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <th className="px-4 py-3 text-center w-16">{pick('মেধা', 'Merit')}</th>
