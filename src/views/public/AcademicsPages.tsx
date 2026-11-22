@@ -1877,7 +1877,7 @@ export function PublicRoutinesPage() {
         />
       ) : (
         <Card className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse min-w-[780px]">
+          <table className="w-full text-sm border-collapse min-w-[980px]">
             <thead className="bg-surface-muted text-muted-foreground">
               <tr>
                 <th className="p-3.5 border-b border-r border-border text-left font-semibold w-32">
@@ -1897,14 +1897,14 @@ export function PublicRoutinesPage() {
                     {pick('১২:১৫–১২:৪৫', '12:15–12:45')}
                   </div>
                 </th>
-                <th className="p-3.5 border-b border-border text-left">
-                  <div className="font-semibold text-foreground">
-                    {pick(PERIOD_META[3].labelBn, PERIOD_META[3].labelEn)}
-                  </div>
-                  <div className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                    {pick(PERIOD_META[3].timeBn, PERIOD_META[3].timeEn)}
-                  </div>
-                </th>
+                {PERIOD_META.slice(3).map((pm) => (
+                  <th key={pm.period} className="p-3.5 border-b border-border text-left">
+                    <div className="font-semibold text-foreground">{pick(pm.labelBn, pm.labelEn)}</div>
+                    <div className="text-xs text-muted-foreground tabular-nums mt-0.5">
+                      {pick(pm.timeBn, pm.timeEn)}
+                    </div>
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -1959,7 +1959,7 @@ export function PublicRoutinesPage() {
                         </div>
                       </td>
                     )}
-                    {renderCell(4)}
+                    {PERIOD_META.slice(3).map((pm) => renderCell(pm.period))}
                   </tr>
                 );
               })}

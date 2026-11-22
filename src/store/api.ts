@@ -584,6 +584,8 @@ export const schoolApi = createApi({
           | 'publications'
           | 'achievements'
           | 'digitalResources'
+          | 'digitalClassrooms'
+          | 'libraryDistributions'
           | 'leadershipMessages'
           | 'institutionContents'
           | 'facilities'
@@ -612,12 +614,17 @@ export const schoolApi = createApi({
           | 'galleries'
           | 'galleryMedia'
           | 'publications'
-          | 'achievements';
+          | 'achievements'
+          | 'libraryBooks'
+          | 'libraryDistributions'
+          | 'digitalClassrooms'
+          | 'digitalResources'
+          | 'examRoutines';
         item: Record<string, unknown>;
       }
     >({
       query: (body) => ({ url: '/cms/upsert', method: 'POST', body }),
-      invalidatesTags: ['Bootstrap', 'Institution', 'Notices', 'Audit'],
+      invalidatesTags: ['Bootstrap', 'Institution', 'Notices', 'Exams', 'Results', 'Audit'],
     }),
 
     deleteCmsItem: builder.mutation<
@@ -636,12 +643,17 @@ export const schoolApi = createApi({
           | 'galleries'
           | 'galleryMedia'
           | 'publications'
-          | 'achievements';
+          | 'achievements'
+          | 'libraryBooks'
+          | 'libraryDistributions'
+          | 'digitalClassrooms'
+          | 'digitalResources'
+          | 'examRoutines';
         id: string;
       }
     >({
       query: (body) => ({ url: '/cms/delete', method: 'POST', body }),
-      invalidatesTags: ['Bootstrap', 'Institution', 'Notices', 'Audit'],
+      invalidatesTags: ['Bootstrap', 'Institution', 'Notices', 'Exams', 'Results', 'Audit'],
     }),
 
     updateContactInfo: builder.mutation<

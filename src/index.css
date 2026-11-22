@@ -84,34 +84,34 @@
   --color-border: var(--border);
   --color-ring: var(--ring);
   --radius-md: var(--radius);
-  --font-sans: var(--font-hind), "Hind Siliguri", system-ui, -apple-system, sans-serif;
-  --font-display: var(--font-inter), "Inter", system-ui, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, monospace;
+  --font-sans: var(--font-latin), var(--font-bengali), "Noto Sans Bengali", system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-latin), var(--font-bengali), "Noto Sans Bengali", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Calibrated Institutional Typography Scale (12px hard floor, 14px compact UI, 16px primary base) */
-  --text-xs: 0.75rem;
-  --text-xs--line-height: 1.4;
-  --text-sm: 0.875rem;
-  --text-sm--line-height: 1.55;
-  --text-base: 1rem;
-  --text-base--line-height: 1.65;
-  --text-lg: 1.125rem;
-  --text-lg--line-height: 1.5;
-  --text-xl: 1.25rem;
-  --text-xl--line-height: 1.4;
-  --text-2xl: 1.5rem;
-  --text-2xl--line-height: 1.32;
-  --text-3xl: 1.875rem;
-  --text-3xl--line-height: 1.25;
-  --text-4xl: 2.25rem;
+  /* Calibrated Institutional Typography Scale — Bangla-optimized legibility across public & portals */
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.48;
+  --text-sm: 0.96875rem;
+  --text-sm--line-height: 1.58;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.7;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.52;
+  --text-xl: 1.3125rem;
+  --text-xl--line-height: 1.42;
+  --text-2xl: 1.5625rem;
+  --text-2xl--line-height: 1.34;
+  --text-3xl: 1.9375rem;
+  --text-3xl--line-height: 1.26;
+  --text-4xl: 2.375rem;
   --text-4xl--line-height: 1.2;
-  --text-5xl: 3rem;
+  --text-5xl: 3.125rem;
   --text-5xl--line-height: 1.15;
 }
 
 @layer base {
   html {
-    font-family: var(--font-hind), "Hind Siliguri", system-ui, sans-serif;
+    font-family: var(--font-latin), var(--font-bengali), "Noto Sans Bengali", system-ui, sans-serif;
     font-size: 16px;
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
@@ -122,9 +122,8 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-size: 1rem;
-    line-height: 1.65;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-size: 1.0625rem;
+    line-height: 1.7;
   }
 
   .dark body {
@@ -142,7 +141,6 @@
 }
 
 .tabular-nums {
-  font-family: var(--font-inter), "Inter", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
@@ -227,7 +225,7 @@
   body {
     background: #FFFFFF !important;
     color: #111111 !important;
-    font-family: var(--font-hind), "Hind Siliguri", sans-serif !important;
+    font-family: var(--font-latin), var(--font-bengali), "Noto Sans Bengali", sans-serif !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }

@@ -1,19 +1,20 @@
 import type { Metadata } from 'next';
-import { Hind_Siliguri, Inter } from 'next/font/google';
+import { Noto_Sans_Bengali, Plus_Jakarta_Sans } from 'next/font/google';
 import { Suspense } from 'react';
 import { Providers } from '@/src/components/Providers';
 import '@/src/index.css';
 
-const hind = Hind_Siliguri({
+const notoBengali = Noto_Sans_Bengali({
   subsets: ['bengali', 'latin'],
   weight: ['400', '500', '600', '700'],
-  variable: '--font-hind',
+  variable: '--font-bengali',
   display: 'swap',
 });
 
-const inter = Inter({
+const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
-  variable: '--font-inter',
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-latin',
   display: 'swap',
 });
 
@@ -28,7 +29,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="bn" className={`${hind.variable} ${inter.variable}`} suppressHydrationWarning>
+    <html
+      lang="bn"
+      className={`${plusJakarta.variable} ${notoBengali.variable}`}
+      suppressHydrationWarning
+    >
       <body className="bg-background text-foreground antialiased" suppressHydrationWarning>
         <Providers>
           <Suspense fallback={null}>{children}</Suspense>

@@ -742,7 +742,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
               className="ring-1 ring-white/40 bg-white shadow-sm transition-transform group-hover:scale-[1.03]"
             />
             <div className="min-w-0 leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]">
-              <span className="block font-bold text-sm sm:text-base text-white tracking-tight whitespace-nowrap truncate max-w-[180px] sm:max-w-[240px]">
+              <span className="block font-bold text-sm sm:text-base text-white tracking-tight whitespace-nowrap truncate max-w-[200px] sm:max-w-[265px]">
                 {locale === 'bn'
                   ? school?.name ?? t('school.name')
                   : school?.nameEn ?? 'Bhojeshwar High School'}
@@ -759,7 +759,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
 
           {/* Center Desktop Navigation Links + Structured 2-Column Rich Mega-Menus */}
           <nav
-            className="hidden lg:flex items-center gap-5 xl:gap-6"
+            className="hidden lg:flex items-center gap-4 xl:gap-6"
             aria-label="Primary navigation"
           >
             {PUBLIC_NAV.map((item) => {

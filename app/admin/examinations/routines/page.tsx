@@ -2,6 +2,6 @@ import { AdminExamsAndResultsPage } from '@/src/views/admin/AdminExamsAndResults
 
 export default function Page() {
   return (
-    <AdminExamsAndResultsPage defaultTab="exams" />
+    <AdminExamsAndResultsPage defaultTab="routines" />
   );
 }

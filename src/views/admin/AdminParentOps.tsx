@@ -15,6 +15,7 @@ import {
 } from '@/src/store/api';
 import { ParentsShell } from '@/src/views/admin/ParentsShell';
 import { useI18n } from '@/src/lib/i18n';
+import { formatNumber } from '@/src/lib/formatters';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { Button, Card, FormField, Input, Modal, Select, Textarea } from '@/src/components/ui/primitives';
@@ -86,7 +87,7 @@ export function AdminParentsPage({
 }
 
 function Directory({ db, createOpen }: { db: MockDatabase; createOpen: boolean }) {
-  const { pick } = useI18n();
+  const { locale, pick } = useI18n();
   const [open, setOpen] = useState(createOpen);
   const rows = db.parents.map((parent) => {
     const links = db.parentStudents.filter((link) => link.parentId === parent.id);
@@ -104,9 +105,46 @@ function Directory({ db, createOpen }: { db: MockDatabase; createOpen: boolean }
     };
   });
 
+  const activeStudents = db.students.filter((s) => s.status === StudentStatus.ACTIVE);
+  const linkedStudentIds = new Set(db.parentStudents.map((l) => l.studentId));
+  const smsReceiverLinks = db.parentStudents.filter((l) => l.isSmsReceiver).length;
+  const coverageGapCount = activeStudents.filter((s) => {
+    const links = db.parentStudents.filter((l) => l.studentId === s.id);
+    return !links.some((l) => l.isPrimary) || !links.some((l) => l.isSmsReceiver) || !links.some((l) => l.isEmergencyContact);
+  }).length;
+
   return (
-    <>
-      <div className="flex justify-end">
+    <div className="space-y-5">
+      <div className="bg-surface border border-border rounded-[var(--radius)] grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x divide-border">
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">{pick('মোট নিবন্ধিত অভিভাবক', 'Registered Guardians')}</p>
+          <p className="text-2xl font-bold text-foreground tabular-nums mt-1">{formatNumber(db.parents.length, locale)}</p>
+        </div>
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">{pick('সংযুক্ত সক্রিয় শিক্ষার্থী', 'Linked Active Students')}</p>
+          <p className="text-2xl font-bold text-primary tabular-nums mt-1">
+            {formatNumber(activeStudents.filter((s) => linkedStudentIds.has(s.id)).length, locale)}
+            <span className="text-sm font-normal text-muted-foreground"> / {formatNumber(activeStudents.length, locale)}</span>
+          </p>
+        </div>
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">{pick('সক্রিয় SMS প্রাপক সংযোগ', 'Active SMS Links')}</p>
+          <p className="text-2xl font-bold text-success tabular-nums mt-1">{formatNumber(smsReceiverLinks, locale)}</p>
+        </div>
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">{pick('অসম্পূর্ণ অভিভাবক তথ্য', 'Coverage Gaps')}</p>
+          <p className={`text-2xl font-bold tabular-nums mt-1 ${coverageGapCount > 0 ? 'text-warning' : 'text-success'}`}>
+            {formatNumber(coverageGapCount, locale)}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <Link href="/admin/parents/coverage">
+          <Button variant="outline" size="sm">
+            {pick('প্রাথমিক ও SMS কভারেজ', 'Primary & SMS Coverage')}
+          </Button>
+        </Link>
         <Button variant="primary" size="sm" onClick={() => setOpen(true)}>
           {pick('নতুন অভিভাবক', 'New guardian')}
         </Button>
@@ -125,14 +163,22 @@ function Directory({ db, createOpen }: { db: MockDatabase; createOpen: boolean }
               </Link>
             ),
           },
-          { accessorKey: 'phone', header: pick('মোবাইল', 'Phone') },
+          {
+            accessorKey: 'phone',
+            header: pick('মোবাইল', 'Phone'),
+            cell: ({ row }) => <span className="font-mono text-sm tabular-nums">{row.original.phone}</span>,
+          },
           { accessorKey: 'occupation', header: pick('পেশা', 'Occupation'), cell: ({ row }) => row.original.occupation || '—' },
           { accessorKey: 'children', header: pick('সন্তান', 'Children') },
-          { accessorKey: 'smsCount', header: pick('SMS', 'SMS') },
+          {
+            accessorKey: 'smsCount',
+            header: pick('SMS সংযোগ', 'SMS Links'),
+            cell: ({ row }) => <span className="tabular-nums font-medium">{formatNumber(row.original.smsCount, locale)}</span>,
+          },
         ]}
       />
       <ParentForm db={db} open={open} onClose={() => setOpen(false)} parent={null} />
-    </>
+    </div>
   );
 }
 
@@ -499,10 +545,10 @@ function LinkEditModal({ link, onClose }: { link: ParentStudent | null; onClose:
 }
 
 function Coverage({ db }: { db: MockDatabase }) {
-  const { pick } = useI18n();
-  const [onlyGaps, setOnlyGaps] = useState(true);
+  const { locale, pick } = useI18n();
+  const [onlyGaps, setOnlyGaps] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
-  const rows = db.students
+  const allRows = db.students
     .filter((student) => student.status === StudentStatus.ACTIVE)
     .map((student) => {
       const links = db.parentStudents.filter((link) => link.studentId === student.id);
@@ -516,19 +562,44 @@ function Coverage({ db }: { db: MockDatabase }) {
         name: student.nameBn || student.nameEn,
         studentId: student.studentId,
         primaryName: primaryParent ? primaryParent.nameBn || primaryParent.name : '—',
-        phone: primaryParent?.phone ?? '—',
+        phone: shownPhone(primaryParent?.phone) || '—',
         sms,
         emergency,
         gap,
       };
-    })
-    .filter((row) => (onlyGaps ? row.gap : true));
+    });
+
+  const completeCount = allRows.filter((r) => !r.gap).length;
+  const gapCount = allRows.filter((r) => r.gap).length;
+  const smsReadyCount = allRows.filter((r) => r.sms > 0).length;
+  const rows = allRows.filter((row) => (onlyGaps ? row.gap : true));
 
   return (
-    <>
+    <div className="space-y-5">
+      <div className="bg-surface border border-border rounded-[var(--radius)] grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x divide-border">
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">{pick('মোট সক্রিয় শিক্ষার্থী', 'Active Students')}</p>
+          <p className="text-2xl font-bold text-foreground tabular-nums mt-1">{formatNumber(allRows.length, locale)}</p>
+        </div>
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">{pick('সম্পূর্ণ কভারেজ', 'Full Coverage')}</p>
+          <p className="text-2xl font-bold text-success tabular-nums mt-1">{formatNumber(completeCount, locale)}</p>
+        </div>
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">{pick('SMS প্রাপক নির্ধারিত', 'SMS Ready')}</p>
+          <p className="text-2xl font-bold text-primary tabular-nums mt-1">{formatNumber(smsReadyCount, locale)}</p>
+        </div>
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">{pick('তথ্য ঘাটতি (Gap)', 'Needs Attention')}</p>
+          <p className={`text-2xl font-bold tabular-nums mt-1 ${gapCount > 0 ? 'text-warning' : 'text-success'}`}>
+            {formatNumber(gapCount, locale)}
+          </p>
+        </div>
+      </div>
+
       <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={() => setOnlyGaps((value) => !value)}>
-          {onlyGaps ? pick('সবাই দেখুন', 'Show everyone') : pick('শুধু ফাঁক', 'Only gaps')}
+          {onlyGaps ? pick('সকল শিক্ষার্থী দেখুন', 'Show all students') : pick('শুধু ঘাটতি দেখুন', 'Only gaps')}
         </Button>
       </div>
       <DataTable
@@ -543,20 +614,40 @@ function Coverage({ db }: { db: MockDatabase }) {
               <Link href={`/admin/students/${row.original.id}`} className="font-semibold text-primary hover:underline">{row.original.name}</Link>
             ),
           },
-          { accessorKey: 'primaryName', header: pick('প্রাথমিক', 'Primary') },
-          { accessorKey: 'phone', header: pick('মোবাইল', 'Phone') },
-          { accessorKey: 'emergency', header: pick('জরুরি', 'Emergency') },
-          { accessorKey: 'sms', header: 'SMS' },
+          { accessorKey: 'primaryName', header: pick('প্রাথমিক অভিভাবক', 'Primary Guardian') },
+          {
+            accessorKey: 'phone',
+            header: pick('মোবাইল', 'Phone'),
+            cell: ({ row }) => <span className="font-mono text-sm tabular-nums">{row.original.phone}</span>,
+          },
+          {
+            accessorKey: 'emergency',
+            header: pick('জরুরি', 'Emergency'),
+            cell: ({ row }) => (
+              <span className={`tabular-nums font-medium ${row.original.emergency === 0 ? 'text-destructive' : 'text-foreground'}`}>
+                {formatNumber(row.original.emergency, locale)}
+              </span>
+            ),
+          },
+          {
+            accessorKey: 'sms',
+            header: 'SMS',
+            cell: ({ row }) => (
+              <span className={`tabular-nums font-medium ${row.original.sms === 0 ? 'text-destructive' : 'text-success'}`}>
+                {formatNumber(row.original.sms, locale)}
+              </span>
+            ),
+          },
           {
             id: 'link',
             header: '',
             cell: ({ row }) => (
-              <Button size="sm" variant="outline" onClick={() => setStudentId(row.original.id)}>{pick('যোগ', 'Link')}</Button>
+              <Button size="sm" variant="outline" onClick={() => setStudentId(row.original.id)}>{pick('যোগ করুন', 'Link')}</Button>
             ),
           },
         ]}
       />
       <LinkModal db={db} open={Boolean(studentId)} onClose={() => setStudentId(null)} studentId={studentId ?? undefined} />
-    </>
+    </div>
   );
 }

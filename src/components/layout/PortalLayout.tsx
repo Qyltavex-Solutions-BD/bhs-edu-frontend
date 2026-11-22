@@ -104,9 +104,44 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
           { to: '/admin/students/rfid-cards', labelBn: 'পরিচয়পত্র', labelEn: 'ID cards' },
         ],
       },
-      { to: '/admin/parents', labelBn: 'অভিভাবক', labelEn: 'Parents', icon: UsersRound },
-      { to: '/admin/staff', labelBn: 'শিক্ষক ও কর্মচারী', labelEn: 'Staff & Teachers', icon: UserCheck },
-      { to: '/admin/academic/years', labelBn: 'একাডেমিক ও রুটিন', labelEn: 'Academics & Syllabus', icon: Calendar },
+      {
+        to: '/admin/parents',
+        labelBn: 'অভিভাবক',
+        labelEn: 'Parents',
+        icon: UsersRound,
+        children: [
+          { to: '/admin/parents', labelBn: 'অভিভাবক তালিকা', labelEn: 'Directory' },
+          { to: '/admin/parents/coverage', labelBn: 'প্রাথমিক ও SMS', labelEn: 'Primary & SMS' },
+        ],
+      },
+      {
+        to: '/admin/staff',
+        labelBn: 'শিক্ষক ও কর্মচারী',
+        labelEn: 'Staff & Teachers',
+        icon: UserCheck,
+        children: [
+          { to: '/admin/staff', labelBn: 'সকল স্টাফ', labelEn: 'All staff' },
+          { to: '/admin/staff/teachers', labelBn: 'শিক্ষকমণ্ডলী', labelEn: 'Teachers' },
+          { to: '/admin/staff/employees', labelBn: 'কর্মকর্তা ও কর্মচারী', labelEn: 'Employees' },
+          { to: '/admin/staff/departments', labelBn: 'বিভাগসমূহ', labelEn: 'Departments' },
+          { to: '/admin/staff/structures', labelBn: 'অনুমোদিত পদ', labelEn: 'Sanctioned posts' },
+        ],
+      },
+      {
+        to: '/admin/academic',
+        labelBn: 'একাডেমিক ও রুটিন',
+        labelEn: 'Academics & Routine',
+        icon: Calendar,
+        children: [
+          { to: '/admin/academic/years', labelBn: 'শিক্ষাবর্ষ', labelEn: 'Academic years' },
+          { to: '/admin/academic/classes', labelBn: 'শ্রেণি, শাখা ও বিভাগ', labelEn: 'Classes & sections' },
+          { to: '/admin/academic/class-subjects', labelBn: 'বিষয় ও পাঠ্যবই', labelEn: 'Subjects & books' },
+          { to: '/admin/academic/teacher-assignments', labelBn: 'শিক্ষক বণ্টন', labelEn: 'Teacher allocation' },
+          { to: '/admin/academic/class-routines', labelBn: 'ক্লাস রুটিন', labelEn: 'Class timetable' },
+          { to: '/admin/academic/documents', labelBn: 'সিলেবাস ও নীতিমালা', labelEn: 'Syllabus & policies' },
+          { to: '/admin/academic/events', labelBn: 'একাডেমিক ক্যালেন্ডার', labelEn: 'Calendar' },
+        ],
+      },
       {
         to: '/admin/attendance',
         labelBn: 'হাজিরা ও SMS',
@@ -120,8 +155,29 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
           { to: '/admin/attendance/settings', labelBn: 'পদ্ধতি ও নিয়ম', labelEn: 'Method & rules' },
         ],
       },
-      { to: '/admin/examinations', labelBn: 'পরীক্ষা ও নম্বর', labelEn: 'Examinations', icon: FileSpreadsheet },
-      { to: '/admin/results', labelBn: 'ফলাফল ও মার্কশিট', labelEn: 'Results & Marksheets', icon: FileBarChart2 },
+      {
+        to: '/admin/examinations',
+        labelBn: 'পরীক্ষা ও নম্বর',
+        labelEn: 'Examinations',
+        icon: FileSpreadsheet,
+        children: [
+          { to: '/admin/examinations', labelBn: 'পরীক্ষা তালিকা', labelEn: 'Exams' },
+          { to: '/admin/examinations/routines', labelBn: 'পরীক্ষার রুটিন', labelEn: 'Exam routines' },
+          { to: '/admin/examinations/marks-entry', labelBn: 'নম্বর এন্ট্রি শিট', labelEn: 'Marks entry' },
+          { to: '/admin/examinations/grading-scales', labelBn: 'গ্রেডিং স্কেল', labelEn: 'Grading scale' },
+        ],
+      },
+      {
+        to: '/admin/results',
+        labelBn: 'ফলাফল ও মার্কশিট',
+        labelEn: 'Results & Marksheets',
+        icon: FileBarChart2,
+        children: [
+          { to: '/admin/results/publication', labelBn: 'প্রক্রিয়াকরণ ও প্রকাশ', labelEn: 'Process & publish' },
+          { to: '/admin/results/merit-list', labelBn: 'মেধাতালিকা ও মার্কশিট', labelEn: 'Merit & marksheets' },
+          { to: '/admin/results/consolidated', labelBn: 'সমন্বিত ফলাফল', labelEn: 'Consolidated' },
+        ],
+      },
       { to: '/admin/library', labelBn: 'গ্রন্থাগার', labelEn: 'Library', icon: BookOpen },
       { to: '/admin/digital-education/classrooms', labelBn: 'ডিজিটাল শিক্ষা', labelEn: 'Digital Education', icon: MonitorPlay },
     ],
@@ -191,6 +247,8 @@ const STUDENT_NAV: NavEntry[] = [
 ];
 
 const STUDENT_RESERVED = new Set(['create', 'admissions', 'import', 'enrollments', 'promotions', 'transfers', 'testimonials', 'rfid-cards']);
+const STAFF_RESERVED = new Set(['teachers', 'employees', 'departments', 'structures']);
+const EXAM_RESERVED = new Set(['routines', 'marks-entry', 'grading-scales', 'consolidated', 'results', 'subjects']);
 
 function studentChildActive(pathname: string, to: string) {
   if (to === '/admin/students') {
@@ -198,6 +256,40 @@ function studentChildActive(pathname: string, to: string) {
     if (!pathname.startsWith('/admin/students/')) return false;
     const first = pathname.slice('/admin/students/'.length).split('/')[0];
     return Boolean(first) && !STUDENT_RESERVED.has(first);
+  }
+  if (to === '/admin/parents') {
+    if (pathname === '/admin/parents' || pathname === '/admin/parents/create') return true;
+    return pathname.startsWith('/admin/parents/') && !pathname.startsWith('/admin/parents/coverage');
+  }
+  if (to === '/admin/staff') {
+    if (pathname === '/admin/staff' || pathname === '/admin/staff/create') return true;
+    if (!pathname.startsWith('/admin/staff/')) return false;
+    const first = pathname.slice('/admin/staff/'.length).split('/')[0];
+    return Boolean(first) && !STAFF_RESERVED.has(first);
+  }
+  if (to === '/admin/academic/classes') {
+    return ['/admin/academic/classes', '/admin/academic/sections', '/admin/academic/groups'].includes(pathname);
+  }
+  if (to === '/admin/academic/class-subjects') {
+    return ['/admin/academic/class-subjects', '/admin/academic/subjects', '/admin/academic/books'].includes(pathname);
+  }
+  if (to === '/admin/academic/teacher-assignments') {
+    return ['/admin/academic/teacher-assignments', '/admin/academic/class-teachers'].includes(pathname);
+  }
+  if (to === '/admin/academic/documents') {
+    return ['/admin/academic/documents', '/admin/academic/policies'].includes(pathname);
+  }
+  if (to === '/admin/examinations') {
+    if (pathname === '/admin/examinations' || pathname === '/admin/examinations/create') return true;
+    if (!pathname.startsWith('/admin/examinations/')) return false;
+    const first = pathname.slice('/admin/examinations/'.length).split('/')[0];
+    return Boolean(first) && !EXAM_RESERVED.has(first);
+  }
+  if (to === '/admin/results/merit-list') {
+    return pathname === '/admin/results/merit-list' || pathname === '/admin/results/merit-lists' || pathname === '/admin/results/mark-sheets';
+  }
+  if (to === '/admin/results/publication') {
+    return pathname === '/admin/results' || pathname === '/admin/results/publication';
   }
   return pathname === to || pathname.startsWith(`${to}/`);
 }

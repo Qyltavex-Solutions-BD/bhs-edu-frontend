@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Printer } from 'lucide-react';
+import { ExternalLink, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useParams } from '@/src/lib/navigation';
 import {
@@ -17,6 +17,7 @@ import {
 import { useAcademicYearSelection } from '@/src/views/admin/AcademicFoundation';
 import { StaffShell } from '@/src/views/admin/StaffShell';
 import { useI18n } from '@/src/lib/i18n';
+import { formatNumber } from '@/src/lib/formatters';
 import { triggerPrint } from '@/src/lib/utils/cn';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { DataTable } from '@/src/components/shared/DataTable';
@@ -104,7 +105,7 @@ function deptName(db: MockDatabase, id?: string | null) {
 }
 
 function Directory({ db, kind, createOpen }: { db: MockDatabase; kind: 'all' | 'teachers' | 'employees'; createOpen: boolean }) {
-  const { pick } = useI18n();
+  const { locale, pick } = useI18n();
   const [open, setOpen] = useState(createOpen);
   const [printOpen, setPrintOpen] = useState(false);
   const [departmentId, setDepartmentId] = useState('ALL');
@@ -117,9 +118,41 @@ function Directory({ db, kind, createOpen }: { db: MockDatabase; kind: 'all' | '
     return true;
   }).map((member) => ({ ...member, department: deptName(db, member.departmentId) }));
 
+  const activeStaff = db.staff.filter((s) => s.status === StaffStatus.ACTIVE);
+  const activeTeachers = activeStaff.filter((s) => s.staffType === StaffType.TEACHER).length;
+  const activeEmployees = activeStaff.filter((s) => s.staffType !== StaffType.TEACHER).length;
+  const totalPosts = db.staffStructures.filter((p) => !p.isDeleted).reduce((sum, p) => sum + p.totalPositions, 0);
+
   return (
-    <>
-      <div className="flex justify-end gap-2">
+    <div className="space-y-5">
+      <div className="bg-surface border border-border rounded-[var(--radius)] grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x divide-border">
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">{pick('মোট কর্মরত স্টাফ', 'Total Active Staff')}</p>
+          <p className="text-2xl font-bold text-foreground tabular-nums mt-1">{formatNumber(activeStaff.length, locale)}</p>
+        </div>
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">{pick('শিক্ষকমণ্ডলী', 'Active Teachers')}</p>
+          <p className="text-2xl font-bold text-primary tabular-nums mt-1">{formatNumber(activeTeachers, locale)}</p>
+        </div>
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">{pick('কর্মকর্তা ও কর্মচারী', 'Officers & Support')}</p>
+          <p className="text-2xl font-bold text-foreground tabular-nums mt-1">{formatNumber(activeEmployees, locale)}</p>
+        </div>
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">{pick('অনুমোদিত পদ পূরণ', 'Sanctioned Posts Filled')}</p>
+          <p className="text-2xl font-bold text-success tabular-nums mt-1">
+            {formatNumber(activeStaff.length, locale)}
+            <span className="text-sm font-normal text-muted-foreground"> / {formatNumber(totalPosts, locale)}</span>
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap justify-end gap-2">
+        <Link href="/about/teachers" target="_blank" rel="noopener noreferrer">
+          <Button variant="outline" size="sm">
+            <ExternalLink className="w-4 h-4" /> {pick('পাবলিক শিক্ষক তালিকা', 'Public Teachers')}
+          </Button>
+        </Link>
         <Button variant="outline" size="sm" onClick={() => setPrintOpen(true)} disabled={!rows.length}>
           <Printer className="w-4 h-4" /> {pick('পরিচয়পত্র', 'ID cards')}
         </Button>
@@ -182,7 +215,7 @@ function Directory({ db, kind, createOpen }: { db: MockDatabase; kind: 'all' | '
           />
         </div>
       </Modal>
-    </>
+    </div>
   );
 }
 

@@ -1,13 +1,5 @@
-import {
-  AdminDigitalEducationPage,
-  AdminLibraryPage,
-  AdminNoticesAndEventsPage,
-  AdminReportsPage,
-  AdminSettingsPage,
-} from '@/src/views/admin/AdminContentAndOpsPage';
+import { AdminDigitalEducationPage } from '@/src/views/admin/AdminContentAndOpsPage';
 
 export default function Page() {
-  return (
-    <AdminDigitalEducationPage />
-  );
+  return <AdminDigitalEducationPage defaultTab="classrooms" />;
 }

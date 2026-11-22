@@ -2973,6 +2973,8 @@ export async function handleMockRequest(
           | 'publications'
           | 'achievements'
           | 'digitalResources'
+          | 'digitalClassrooms'
+          | 'libraryDistributions'
           | 'leadershipMessages'
           | 'institutionContents'
           | 'facilities'
@@ -3026,7 +3028,46 @@ export async function handleMockRequest(
         updatedAt: nowIso(),
       };
       db.exams.unshift(exam);
-      addAudit('EXAM_CREATE', 'Examinations', `Created exam: ${exam.name}`);
+      // Auto-attach configured NCTB classSubjects as examSubjects so Marks Entry & Exam Routine work immediately
+      const configuredSubjects = db.classSubjects.filter(
+        (cs) => cs.academicYearId === exam.academicYearId && cs.classId === exam.classId
+      );
+      configuredSubjects.forEach((cs, idx) => {
+        const sub = db.subjects.find((s) => s.id === cs.subjectId);
+        const isIct = sub?.id === 'sub-ict' || sub?.officialCode === '154';
+        const isEng = sub?.id === 'sub-eng' || sub?.officialCode === '107' || sub?.officialCode === '108';
+        const hasPractical =
+          isIct ||
+          sub?.category === SubjectCategory.SCIENCE ||
+          sub?.id === 'sub-phy' ||
+          sub?.id === 'sub-che' ||
+          sub?.id === 'sub-bio' ||
+          sub?.id === 'sub-hmath' ||
+          sub?.id === 'sub-agri';
+        const fullMarks = isIct ? 50 : 100;
+        const passMarks = isIct ? 17 : 33;
+        db.examSubjects.push({
+          id: uid('es'),
+          examId: exam.id,
+          subjectId: cs.subjectId,
+          groupId: cs.groupId ?? null,
+          fullMarks,
+          passMarks,
+          hasWritten: !isIct,
+          writtenFullMarks: isIct ? 0 : isEng ? 100 : hasPractical ? 50 : 70,
+          writtenPassMarks: isIct ? 0 : isEng ? 33 : hasPractical ? 17 : 23,
+          hasMcq: !isEng,
+          mcqFullMarks: isEng ? 0 : hasPractical ? 25 : 30,
+          mcqPassMarks: isEng ? 0 : hasPractical ? 8 : 10,
+          hasPractical,
+          practicalFullMarks: hasPractical ? 25 : 0,
+          practicalPassMarks: hasPractical ? (isIct ? 9 : 8) : 0,
+          hasContinuousAssessment: false,
+          isOptional: cs.isOptional ?? false,
+          displayOrder: idx + 1,
+        });
+      });
+      addAudit('EXAM_CREATE', 'Examinations', `Created exam: ${exam.name} (${configuredSubjects.length} subjects attached).`);
       return { data: clone(exam) };
     }
 
@@ -3257,7 +3298,7 @@ export async function handleMockRequest(
       return { data: { id: removed.id } };
     }
 
-    // 28. Unified Website CMS Upsert (Create or Update)
+    // 28. Unified CMS & Operations Collection Upsert (Create or Update)
     if (endpoint === '/cms/upsert' && method === 'POST') {
       const { collection, item } = body as {
         collection:
@@ -3273,7 +3314,12 @@ export async function handleMockRequest(
           | 'galleries'
           | 'galleryMedia'
           | 'publications'
-          | 'achievements';
+          | 'achievements'
+          | 'libraryBooks'
+          | 'libraryDistributions'
+          | 'digitalClassrooms'
+          | 'digitalResources'
+          | 'examRoutines';
         item: Record<string, unknown>;
       };
       const list = db[collection] as unknown as Array<Record<string, unknown>>;
@@ -3287,7 +3333,7 @@ export async function handleMockRequest(
           updatedAt: nowIso(),
         };
         list[existingIdx] = updated;
-        addAudit('CMS_UPDATE', 'Website', `Updated ${collection}/${existingId}.`);
+        addAudit('CMS_UPDATE', 'Operations', `Updated ${collection}/${existingId}.`);
         return { data: clone(updated) };
       }
 
@@ -3300,16 +3346,25 @@ export async function handleMockRequest(
       if ((collection === 'banners' || collection === 'quickLinks' || collection === 'galleryMedia') && !created.sortOrder) {
         created.sortOrder = list.length + 1;
       }
-      if (collection === 'news' || collection === 'events' || collection === 'careers' || collection === 'galleries' || collection === 'publications' || collection === 'achievements') {
+      if (
+        collection === 'news' ||
+        collection === 'events' ||
+        collection === 'careers' ||
+        collection === 'galleries' ||
+        collection === 'publications' ||
+        collection === 'achievements' ||
+        collection === 'libraryBooks' ||
+        collection === 'digitalResources'
+      ) {
         list.unshift(created);
       } else {
         list.push(created);
       }
-      addAudit('CMS_CREATE', 'Website', `Created ${collection}/${String(created.id)}.`);
+      addAudit('CMS_CREATE', 'Operations', `Created ${collection}/${String(created.id)}.`);
       return { data: clone(created) };
     }
 
-    // 29. Unified Website CMS Delete
+    // 29. Unified CMS & Operations Collection Delete
     if (endpoint === '/cms/delete' && method === 'POST') {
       const { collection, id } = body as {
         collection:
@@ -3325,14 +3380,19 @@ export async function handleMockRequest(
           | 'galleries'
           | 'galleryMedia'
           | 'publications'
-          | 'achievements';
+          | 'achievements'
+          | 'libraryBooks'
+          | 'libraryDistributions'
+          | 'digitalClassrooms'
+          | 'digitalResources'
+          | 'examRoutines';
         id: string;
       };
       const list = db[collection] as unknown as Array<Record<string, unknown>>;
       const idx = list.findIndex((x) => x.id === id);
-      if (idx < 0) return { error: { status: 404, message: 'CMS item not found' } };
+      if (idx < 0) return { error: { status: 404, message: 'Item not found' } };
       list.splice(idx, 1);
-      addAudit('CMS_DELETE', 'Website', `Deleted ${collection}/${id}.`);
+      addAudit('CMS_DELETE', 'Operations', `Deleted ${collection}/${id}.`);
       return { data: { deletedId: id } };
     }
 
