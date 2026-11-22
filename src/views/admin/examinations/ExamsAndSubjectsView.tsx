@@ -31,12 +31,12 @@ import {
   ConfirmDialog,
   LoadingSkeleton,
   PageHeader,
-  StatCard,
 } from '@/src/components/shared/Feedback';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { Button, Card, Input, Modal, Select } from '@/src/components/ui/primitives';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
+import { cn } from '@/src/lib/utils/cn';
 import { getEnumMeta } from '@/src/lib/constants/enums';
 import { ExamStatus, ExamType, ResultPublicationStatus } from '@/src/types/enums';
 import type { Exam, ExamSubject } from '@/src/types/entities';
@@ -89,6 +89,12 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
   const publishedCount = activeExams.filter((e) => e.resultStatus === ResultPublicationStatus.PUBLISHED).length;
   const draftCount = activeExams.filter((e) => e.resultStatus === ResultPublicationStatus.DRAFT).length;
   const archivedCount = db.exams.filter((e) => e.isDeleted).length;
+  const expiredDeadlinesCount = activeExams.filter(
+    (e) =>
+      Boolean(e.marksEntryDeadline) &&
+      new Date(e.marksEntryDeadline!) < new Date() &&
+      e.resultStatus === ResultPublicationStatus.DRAFT
+  ).length;
 
   const openCreateModal = () => {
     const activeYear = db.academicYears.find((y) => y.isActive) ?? db.academicYears[0];
@@ -207,28 +213,67 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
         }
       />
 
-      {/* KPI Summary Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label={pick('সক্রিয় পরীক্ষা', 'Active Exams')}
-          value={formatNumber(activeExams.length, locale)}
-          icon={<FileSpreadsheet className="w-5 h-5" />}
-        />
-        <StatCard
-          label={pick('প্রকাশিত ফলাফল', 'Published Results')}
-          value={formatNumber(publishedCount, locale)}
-          icon={<CheckCircle2 className="w-5 h-5" />}
-        />
-        <StatCard
-          label={pick('চলমান / খসড়া', 'Ongoing / Draft')}
-          value={formatNumber(draftCount, locale)}
-          icon={<CalendarClock className="w-5 h-5" />}
-        />
-        <StatCard
-          label={pick('আর্কাইভকৃত', 'Archived')}
-          value={formatNumber(archivedCount, locale)}
-          icon={<Archive className="w-5 h-5" />}
-        />
+      {/* 4-Column Hairline-Divided KPI Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('সক্রিয় পরীক্ষা ও শিক্ষাবর্ষ', 'Active Exams & Year')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {formatNumber(activeExams.length, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `শিক্ষাবর্ষ ২০২৬ · মোট শ্রেণি ${formatNumber(db.classes.length, 'bn')}`,
+              `Academic Year 2026 · Classes ${db.classes.length}`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('ফলাফল স্থিতি', 'Results Status')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+            {formatNumber(publishedCount, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `প্রকাশিত ${formatNumber(publishedCount, 'bn')} · চলমান/খসড়া ${formatNumber(draftCount, 'bn')}`,
+              `Published ${publishedCount} · Draft ${draftCount}`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('বিষয় ও উপাংশ সেটআপ', 'Configured Subjects')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {formatNumber(db.examSubjects.length, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `মোট পরীক্ষা বিষয় · ঐচ্ছিক ${formatNumber(db.examSubjects.filter((es) => es.isOptional).length, 'bn')}`,
+              `Total Exam Subjects · 4th/Opt ${db.examSubjects.filter((es) => es.isOptional).length}`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('নম্বর এন্ট্রি ডেডলাইন স্থিতি', 'Marks Deadline Status')}
+          </p>
+          <p className={cn('mt-1 text-2xl font-bold tabular-nums', expiredDeadlinesCount > 0 ? 'text-destructive' : 'text-foreground')}>
+            {formatNumber(expiredDeadlinesCount, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              expiredDeadlinesCount > 0 ? 'সময়সীমা অতিক্রান্ত পরীক্ষা আছে' : 'সকল পরীক্ষার ডেডলাইন সঠিক আছে',
+              expiredDeadlinesCount > 0 ? 'Deadlines expired' : 'All deadlines active'
+            )}
+          </p>
+        </div>
       </div>
 
       {/* Responsive Examinations DataTable (Desktop Table + Mobile Cards, matching portal standard) */}
@@ -802,6 +847,12 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
   const activeClass = activeExam ? db.classes.find((c) => c.id === activeExam.classId) : null;
   const isClassNineTen = (activeClass?.numericValue ?? 0) >= 9;
 
+  const totalFullMarks = examSubjects.reduce((s, x) => s + x.fullMarks, 0);
+  const compulsoryCount = examSubjects.filter((x) => !x.isOptional).length;
+  const optionalCount = examSubjects.filter((x) => x.isOptional).length;
+  const writtenMcqCount = examSubjects.filter((x) => x.hasWritten || x.hasMcq).length;
+  const practicalCaCount = examSubjects.filter((x) => x.hasPractical || x.hasContinuousAssessment).length;
+
   const componentSum =
     (form.hasWritten ? Number(form.writtenFullMarks) || 0 : 0) +
     (form.hasMcq ? Number(form.mcqFullMarks) || 0 : 0) +
@@ -971,6 +1022,69 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
           </div>
         )}
       </Card>
+
+      {/* 4-Column Hairline-Divided KPI Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('মোট বিষয় ও পূর্ণমান', 'Total Subjects & Full Marks')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {formatNumber(examSubjects.length, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `সর্বমোট পূর্ণমান ${formatNumber(totalFullMarks, 'bn')} নম্বর`,
+              `Total ${totalFullMarks} Full Marks`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('আবশ্যিক ও ঐচ্ছিক বিষয়', 'Compulsory & Optional')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+            {formatNumber(compulsoryCount, locale)} / {formatNumber(optionalCount, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `আবশ্যিক ${formatNumber(compulsoryCount, 'bn')} · ৪র্থ ঐচ্ছিক ${formatNumber(optionalCount, 'bn')}`,
+              `Compulsory ${compulsoryCount} · 4th Opt ${optionalCount}`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('উপাংশ বণ্টন স্থিতি', 'Component Distribution')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {formatNumber(writtenMcqCount, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `লিখিত+MCQ ${formatNumber(writtenMcqCount, 'bn')} · ব্যবহারিক/CA ${formatNumber(practicalCaCount, 'bn')}`,
+              `Written+MCQ ${writtenMcqCount} · Practical/CA ${practicalCaCount}`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('যৌথ পাস ও লক অবস্থা', 'Combined Pass & Lock')}
+          </p>
+          <p className={cn('mt-1 text-2xl font-bold tabular-nums', activeExam?.isLocked ? 'text-warning' : 'text-success')}>
+            {activeExam?.isLocked ? pick('লকড', 'Locked') : pick('উন্মুক্ত', 'Unlocked')}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `যৌথ পাস: ${activeExam?.allowCombinedPass ? 'চালু (NCTB)' : 'বন্ধ'}`,
+              `Combined pass: ${activeExam?.allowCombinedPass ? 'Enabled' : 'Disabled'}`
+            )}
+          </p>
+        </div>
+      </div>
 
       {activeExam?.isLocked && (
         <div className="p-3.5 rounded-[var(--radius)] border border-warning/40 bg-warning/10 flex items-center gap-2.5 text-sm">

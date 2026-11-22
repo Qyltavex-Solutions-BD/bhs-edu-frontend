@@ -28,7 +28,7 @@ import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { PrintableExamRoutine } from '@/src/components/print/PrintDocuments';
 import { Button, Card, Input, Modal, Select, Textarea } from '@/src/components/ui/primitives';
 import { formatDateShort, formatNumber, formatTime } from '@/src/lib/formatters';
-import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
+import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { ExamRoutineStatus } from '@/src/types/enums';
 import type { ExamRoutine } from '@/src/types/entities';
 import { getEnumMeta } from '@/src/lib/constants/enums';
@@ -142,6 +142,14 @@ export function ExamRoutinesView() {
 
   const activeClass = activeExam ? db.classes.find((c) => c.id === activeExam.classId) : null;
   const activeYear = activeExam ? db.academicYears.find((y) => y.id === activeExam.academicYearId) : null;
+
+  const uniqueDates = useMemo(() => new Set(routines.map((r) => r.examDate)).size, [routines]);
+  const coveredSubjectIds = useMemo(() => new Set(routines.map((r) => r.examSubjectId)).size, [routines]);
+  const uniqueRooms = useMemo(
+    () => new Set(routines.map((r) => r.roomNo?.trim()).filter(Boolean)).size,
+    [routines]
+  );
+  const hasConflict = conflicts.length > 0;
 
   const openCreate = () => {
     setEditingRoutine(null);
@@ -312,6 +320,70 @@ export function ExamRoutinesView() {
           </Select>
         </div>
       </Card>
+
+      {/* 4-Column Hairline-Divided KPI Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('নির্ধারিত পরীক্ষার দিন', 'Scheduled Exam Days')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {formatNumber(uniqueDates, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {routines.length > 0
+              ? pick(
+                  `প্রথম পরীক্ষা ${formatDateShort(routines[0].examDate, 'bn')}`,
+                  `First exam ${formatDateShort(routines[0].examDate, 'en')}`
+                )
+              : pick('রুটিন এন্ট্রি নেই', 'No routines entered')}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('বিষয় কভারেজ', 'Subject Coverage')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+            {formatNumber(coveredSubjectIds, locale)} / {formatNumber(examSubjects.length, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `রুটিনভুক্ত ${formatNumber(coveredSubjectIds, 'bn')} · বাকি ${formatNumber(Math.max(0, examSubjects.length - coveredSubjectIds), 'bn')}`,
+              `Scheduled ${coveredSubjectIds} · Remaining ${Math.max(0, examSubjects.length - coveredSubjectIds)}`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('ব্যবহৃত হল ও কক্ষ', 'Assigned Rooms & Halls')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {formatNumber(uniqueRooms, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `মোট রুম সংখ্যা · শাখা ${sectionFilter === 'ALL' ? 'সকল শাখা' : 'শাখা ভিত্তিক'}`,
+              `Total rooms · Section: ${sectionFilter}`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('সময়সূচি ও কনফ্লিক্ট স্থিতি', 'Schedule Conflict Status')}
+          </p>
+          <p className={cn('mt-1 text-2xl font-bold tabular-nums', hasConflict ? 'text-destructive' : 'text-success')}>
+            {hasConflict ? pick('সংঘর্ষ আছে', 'Clash Detected') : pick('কনফ্লিক্ট-মুক্ত', 'Clash-Free')}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {hasConflict
+              ? pick(`${formatNumber(conflicts.length, 'bn')}টি সময়/কক্ষ সংঘর্ষ চিহ্নিত`, `${conflicts.length} schedule conflict(s)`)
+              : pick('সব রুম ও সময় ওভারল্যাপ-মুক্ত', 'All slots verified clash-free')}
+          </p>
+        </div>
+      </div>
 
       {/* Live Conflict Detection Alert */}
       {conflicts.length > 0 && (

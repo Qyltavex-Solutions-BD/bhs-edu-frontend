@@ -8,7 +8,6 @@ import {
   EmptyState,
   LoadingSkeleton,
   PageHeader,
-  StatCard,
 } from '@/src/components/shared/Feedback';
 import {
   PrintableBulkExamAdmitCards,
@@ -17,7 +16,7 @@ import {
 } from '@/src/components/print/PrintDocuments';
 import { Button, Card, Input, Modal, Select } from '@/src/components/ui/primitives';
 import { formatNumber } from '@/src/lib/formatters';
-import { triggerPrint } from '@/src/lib/utils/cn';
+import { cn, triggerPrint } from '@/src/lib/utils/cn';
 import { EnrollmentStatus } from '@/src/types/enums';
 import {
   buildSeatPlanRooms,
@@ -137,6 +136,8 @@ export function ExamAdmitCardsView() {
 
   const selectedItems = admitCardItems.filter((item) => selectedIds[item.enrollmentId]);
   const bulkTargets = selectedItems.length > 0 ? selectedItems : admitCardItems;
+  const assignedSeatsCount = admitCardItems.filter((i) => Boolean(i.props.student.hallRoom)).length;
+  const readyCount = admitCardItems.filter((i) => i.props.schedule.length > 0).length;
   const allFilteredChecked =
     admitCardItems.length > 0 && admitCardItems.every((i) => selectedIds[i.enrollmentId]);
 
@@ -177,23 +178,67 @@ export function ExamAdmitCardsView() {
         }
       />
 
-      {/* KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard
-          label={pick('মোট পরীক্ষার্থী', 'Total Examinees')}
-          value={formatNumber(admitCardItems.length, locale)}
-          icon={<Users className="w-5 h-5" />}
-        />
-        <StatCard
-          label={pick('প্রবেশপত্রের যোগ্য', 'Eligible Examinees')}
-          value={formatNumber(admitCardItems.filter((i) => i.isEligible).length, locale)}
-          icon={<CheckCircle2 className="w-5 h-5" />}
-        />
-        <StatCard
-          label={pick('নির্বাচিত প্রিন্ট তালিকা', 'Selected for Print')}
-          value={formatNumber(selectedItems.length || admitCardItems.length, locale)}
-          icon={<IdCard className="w-5 h-5" />}
-        />
+      {/* 4-Column Hairline-Divided KPI Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('মোট পরীক্ষার্থী', 'Total Examinees')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {formatNumber(admitCardItems.length, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `শ্রেণি: ${locale === 'bn' ? activeClass?.nameBn || activeClass?.name || '—' : activeClass?.name || '—'}`,
+              `Class: ${activeClass?.name || '—'}`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('প্রবেশপত্র প্রস্তুতি স্থিতি', 'Admit Card Preparation')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+            {formatNumber(readyCount, locale)} / {formatNumber(admitCardItems.length, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `রুটিনযুক্ত ${formatNumber(readyCount, 'bn')} · বাকি ${formatNumber(Math.max(0, admitCardItems.length - readyCount), 'bn')}`,
+              `Prepared ${readyCount} · Missing routine ${Math.max(0, admitCardItems.length - readyCount)}`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('আসন নির্ধারিত শিক্ষার্থী', 'Seats Assigned')}
+          </p>
+          <p className={cn('mt-1 text-2xl font-bold tabular-nums', assignedSeatsCount === admitCardItems.length && admitCardItems.length > 0 ? 'text-success' : 'text-foreground')}>
+            {formatNumber(assignedSeatsCount, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `সিট নির্ধারিত ${formatNumber(assignedSeatsCount, 'bn')} · অনির্ধারিত ${formatNumber(Math.max(0, admitCardItems.length - assignedSeatsCount), 'bn')}`,
+              `Assigned ${assignedSeatsCount} · Unassigned ${Math.max(0, admitCardItems.length - assignedSeatsCount)}`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('নির্বাচিত প্রিন্ট তালিকা', 'Selected for Print')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {formatNumber(selectedItems.length || admitCardItems.length, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              selectedItems.length > 0 ? `${formatNumber(selectedItems.length, 'bn')}টি কার্ড নির্বাচিত` : 'সকল কার্ড প্রিন্টের জন্য প্রস্তুত',
+              selectedItems.length > 0 ? `${selectedItems.length} card(s) selected` : 'All cards ready for print'
+            )}
+          </p>
+        </div>
       </div>
 
       {/* Filters */}
