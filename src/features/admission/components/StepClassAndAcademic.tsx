@@ -263,7 +263,11 @@ export function StepClassAndAcademic({
                     </span>
                     <span className="block text-xs text-muted-foreground mt-0.5 leading-snug">
                       {!allowed
-                        ? pick('১০ম শ্রেণিতে প্রযোজ্য নয়', 'Not applicable for Class 10')
+                        ? numericClass === 6
+                          ? pick('৬ষ্ঠ শ্রেণিতে প্রযোজ্য নয়', 'Not applicable for Class 6')
+                          : numericClass === 10
+                            ? pick('১০ম শ্রেণিতে প্রযোজ্য নয়', 'Not applicable for Class 10')
+                            : pick('এই শ্রেণিতে প্রযোজ্য নয়', 'Not applicable for this class')
                         : locale === 'bn'
                           ? meta.descBn
                           : meta.descEn}

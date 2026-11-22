@@ -449,17 +449,17 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
 
       {/* 2. Unified Search, Filter & Action Toolbar */}
       <Card className="p-4 space-y-3">
-        <div className="flex flex-col xl:flex-row xl:items-center gap-2.5">
-          <div className="relative flex-1 min-w-[240px]">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="relative w-full lg:max-w-xs shrink-0">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={pick(
-                'স্মারক নং, শিক্ষার্থীর নাম, আইডি, বোর্ড রোল বা উদ্দেশ্য খুঁজুন...',
-                'Search ref no., student name, ID, board roll, or purpose...'
+                'স্মারক নং, নাম বা আইডি খুঁজুন...',
+                'Search ref no, name, or ID...'
               )}
-              className="pl-9 pr-9 h-9 text-sm"
+              className="pl-9 pr-9 h-9 text-sm w-full"
             />
             {searchQuery && (
               <button
