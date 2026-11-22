@@ -2,9 +2,6 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
 import {
   ArrowRight,
   CheckCircle2,
@@ -13,23 +10,16 @@ import {
   Search,
   FileText,
 } from 'lucide-react';
-import {
-  useGetBootstrapQuery,
-  useSubmitAdmissionApplicationMutation,
-} from '@/src/store/api';
+import { useGetBootstrapQuery } from '@/src/store/api';
 import { useI18n } from '@/src/lib/i18n';
-import {
-  admissionApplicationSchema,
-  type AdmissionApplicationFormValues,
-} from '@/src/lib/validations/schemas';
 import { formatBdt, formatDateLong } from '@/src/lib/formatters';
 import { LoadingSkeleton, PageHeader, SchoolEmblem } from '@/src/components/shared/Feedback';
-import { Button, Card, FormField, Input, Select, Textarea } from '@/src/components/ui/primitives';
+import { Button, Card, Input } from '@/src/components/ui/primitives';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { PrintableAdmissionAdmitCard } from '@/src/components/print/PrintDocuments';
-import { Gender, Religion } from '@/src/types/enums';
 import type { OnlineAdmissionApplication } from '@/src/types/proposed/future';
 import { triggerPrint } from '@/src/lib/utils/cn';
+import { UnifiedAdmissionForm } from '@/src/features/admission/components/UnifiedAdmissionForm';
 
 export function AdmissionOverviewPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
@@ -145,11 +135,12 @@ export function AdmissionGuidelinesPage() {
 export function AdmissionRequirementsPage() {
   const { pick } = useI18n();
   const docs = [
-    'শিক্ষার্থীর ১৭ ডিজিটের ডিজিটাল জন্ম নিবন্ধন সনদের সত্যায়িত ফটোকপি',
-    'পিতা ও মাতার জাতীয় পরিচয়পত্রের (NID) ফটোকপি',
-    'শিক্ষার্থীর সদ্য তোলা ২ কপি পাসপোর্ট সাইজ ও ২ কপি স্ট্যাম্প সাইজ রঙিন ছবি',
-    'পূর্ববর্তী বিদ্যালয়ের ছাড়পত্র (TC) ও সর্বশেষ পরীক্ষার নম্বরপত্র (৭ম–৯ম শ্রেণির জন্য)',
-    'অভিভাবকের সচল বাংলাদেশি মোবাইল নম্বর (SMS নোটিফিকেশনের জন্য)',
+    'শিক্ষার্থীর ১৭ ডিজিটের অনলাইন জন্ম নিবন্ধন সনদের ফটোকপি (বাংলা ও ইংরেজি — প্রথম ৪ ডিজিট জন্মসালের সাথে সামঞ্জস্যপূর্ণ)',
+    'পিতা ও মাতার (অথবা উভয়েই মৃত হলে বৈধ অভিভাবকের) জাতীয় পরিচয়পত্রের (NID) ফটোকপি',
+    'শিক্ষার্থীর সদ্য তোলা ২ কপি পাসপোর্ট সাইজ রঙিন ছবি (অনলাইন আবেদনে ১ কপি আপলোড আবশ্যক)',
+    '৬ষ্ঠ শ্রেণির জন্য ৫ম শ্রেণি উত্তীর্ণ প্রত্যয়নপত্র; ৭ম–৯ম শ্রেণিতে বদলির জন্য পূর্ববর্তী বিদ্যালয়ের ছাড়পত্র (TC) ও বার্ষিক ফলাফল সনদ',
+    '১০ম শ্রেণিতে ভর্তির জন্য শিক্ষা বোর্ডের অনুমোদিত e-TC অর্ডার ও ৯ম শ্রেণির বোর্ড রেজিস্ট্রেশন কার্ডের কপি বাধ্যতামূলক',
+    'অভিভাবকের সচল ১১ ডিজিটের বাংলাদেশি মোবাইল নম্বর (SMS ও জরুরি যোগাযোগের জন্য)',
   ];
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
@@ -239,43 +230,16 @@ export function AdmissionDownloadFormPage() {
 
 export function AdmissionApplyPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const [submitApp, { isLoading: submitting }] = useSubmitAdmissionApplicationMutation();
   const { locale, pick } = useI18n();
-  const [step, setStep] = useState(1);
   const [submittedApp, setSubmittedApp] = useState<OnlineAdmissionApplication | null>(null);
 
-  const form = useForm<AdmissionApplicationFormValues>({
-    resolver: zodResolver(admissionApplicationSchema) as never,
-    defaultValues: {
-      studentNameBn: '',
-      studentNameEn: '',
-      fatherNameBn: '',
-      fatherNameEn: '',
-      fatherOccupation: '',
-      fatherNid: '',
-      motherNameBn: '',
-      motherNameEn: '',
-      motherOccupation: '',
-      motherNid: '',
-      guardianPhone: '',
-      presentAddress: '',
-      permanentAddress: '',
-      dateOfBirth: '2014-01-15',
-      gender: Gender.MALE,
-      birthCertificateNo: '',
-      religion: Religion.ISLAM,
-      previousSchoolName: '',
-      previousClass: '৫ম শ্রেণি',
-      isReadmission: false,
-      targetClassId: 'cls-6',
-      preferredSection: 'ক',
-      targetGroupId: '',
-      optionalSubjectName: '',
-      declarationAccepted: false,
-    },
-  });
-
-  if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
+  if (isLoading || !db) {
+    return (
+      <div className="max-w-[1440px] mx-auto p-6">
+        <LoadingSkeleton />
+      </div>
+    );
+  }
 
   const cycleStatus = db.admissionContent.admissionStatus ?? 'OPEN';
   if (cycleStatus !== 'OPEN') {
@@ -324,30 +288,9 @@ export function AdmissionApplyPage() {
     );
   }
 
-  const targetClassId = form.watch('targetClassId');
-  const isNineOrTen = targetClassId === 'cls-9' || targetClassId === 'cls-10';
-
-  const onSubmit = async (values: AdmissionApplicationFormValues) => {
-    try {
-      const created = await submitApp({
-        ...values,
-        academicSession: db.admissionContent.academicSession ?? '২০২৭',
-        targetGroupId: isNineOrTen ? values.targetGroupId || 'grp-sci' : null,
-      }).unwrap();
-      setSubmittedApp(created);
-      toast.success(
-        pick(
-          `আবেদন সফলভাবে জমা হয়েছে! আবেদন নম্বর: ${created.applicationNumber}`,
-          `Application submitted! Application No: ${created.applicationNumber}`
-        )
-      );
-    } catch {
-      toast.error(pick('আবেদন জমা দিতে সমস্যা হয়েছে।', 'Submission failed.'));
-    }
-  };
-
   if (submittedApp) {
     const cls = db.classes.find((c) => c.id === submittedApp.targetClassId);
+    const grp = db.academicGroups.find((g) => g.id === submittedApp.targetGroupId);
     return (
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
         <Card className="p-6 border-success/40 bg-success/5 no-print">
@@ -362,13 +305,16 @@ export function AdmissionApplyPage() {
                 <strong className="font-mono text-foreground">{submittedApp.applicationNumber}</strong>
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button variant="primary" size="sm" onClick={triggerPrint}>
                 <Printer className="w-4 h-4" /> {pick('প্রবেশপত্র প্রিন্ট', 'Print Admit Card')}
               </Button>
               <Link href="/admission/status">
                 <Button variant="outline" size="sm">{pick('অবস্থা যাচাই', 'Track Status')}</Button>
               </Link>
+              <Button variant="ghost" size="sm" onClick={() => setSubmittedApp(null)}>
+                {pick('নতুন আবেদন করুন', 'New Application')}
+              </Button>
             </div>
           </div>
         </Card>
@@ -377,217 +323,27 @@ export function AdmissionApplyPage() {
           school={db.schoolProfile}
           application={submittedApp}
           targetClassName={locale === 'bn' ? cls?.nameBn ?? '' : cls?.name ?? ''}
+          groupName={grp ? (locale === 'bn' ? grp.nameBn : grp.name) : null}
         />
       </div>
     );
   }
 
-  const steps = [
-    { num: 1, label: pick('০১. শিক্ষার্থী ও জন্ম তথ্য', '1. Student Bio') },
-    { num: 2, label: pick('০২. পিতা-মাতা ও ঠিকানা', '2. Parents & Address') },
-    { num: 3, label: pick('০৩. পূর্ববর্তী ও ভর্তিচ্ছু শ্রেণি', '3. Academic & Class') },
-    { num: 4, label: pick('০৪. যাচাই ও অঙ্গীকারনামা', '4. Review & Submit') },
-  ];
-
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <PageHeader
-        title={pick('অনলাইন ভর্তি আবেদন ফরম (১৩-দফা)', 'Online Admission Application (13-Point Form)')}
+        title={pick('অনলাইন ভর্তি আবেদন ফরম (৬ষ্ঠ – ১০ম শ্রেণি)', 'Online Admission Application (Classes 6–10)')}
         description={pick(
-          'সকল তথ্য জন্ম সনদ ও এনআইডি অনুযায়ী সঠিকভাবে পূরণ করুন। (ডেমো মোড — ব্যাকএন্ড মডিউল সংযোজনের জন্য প্রস্তুত)',
-          'Fill all 13 official school admission points carefully. (Mock adapter enabled for preview)'
+          `${db.admissionContent.schoolNameBn} · শিক্ষাবর্ষ ${db.admissionContent.academicSession} · জন্ম নিবন্ধন ও এনআইডি অনুযায়ী তথ্য পূরণ করুন।`,
+          `${db.admissionContent.schoolNameEn || db.schoolProfile.nameEn} · Session ${db.admissionContent.academicSession} · Complete accurately per Birth Certificate & NID.`
         )}
       />
 
-      {/* Stepper */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {steps.map((s) => (
-          <button
-            key={s.num}
-            type="button"
-            onClick={() => setStep(s.num)}
-            className={`px-3 py-2.5 text-sm font-semibold rounded-[var(--radius)] border text-left cursor-pointer ${
-              step === s.num
-                ? 'bg-primary text-primary-foreground border-primary'
-                : step > s.num
-                  ? 'bg-success/10 text-success border-success/30'
-                  : 'bg-surface text-muted-foreground border-border'
-            }`}
-          >
-            {s.label}
-          </button>
-        ))}
-      </div>
-
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Card className="p-6 space-y-6">
-          {step === 1 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label={pick('০১. শিক্ষার্থীর নাম (বাংলায়)', '01. Student Name (Bangla)')} required error={form.formState.errors.studentNameBn?.message}>
-                <Input {...form.register('studentNameBn')} placeholder="যেমন: রাফিউল ইসলাম" />
-              </FormField>
-              <FormField label={pick('০১. শিক্ষার্থীর নাম (ইংরেজিতে)', '01. Student Name (English)')} required error={form.formState.errors.studentNameEn?.message}>
-                <Input {...form.register('studentNameEn')} placeholder="e.g. Rafiul Islam" />
-              </FormField>
-              <FormField label={pick('০৫. জন্ম তারিখ', '05. Date of Birth')} required error={form.formState.errors.dateOfBirth?.message}>
-                <Input type="date" {...form.register('dateOfBirth')} />
-              </FormField>
-              <FormField label={pick('০৬. ১৭ ডিজিটের ডিজিটাল জন্ম সনদ নং', '06. 17-Digit Birth Certificate No')} required error={form.formState.errors.birthCertificateNo?.message}>
-                <Input {...form.register('birthCertificateNo')} placeholder="20148614500012345" maxLength={17} />
-              </FormField>
-              <FormField label={pick('লিঙ্গ', 'Gender')} required>
-                <Select {...form.register('gender')}>
-                  <option value={Gender.MALE}>{pick('ছাত্র (Male)', 'Male')}</option>
-                  <option value={Gender.FEMALE}>{pick('ছাত্রী (Female)', 'Female')}</option>
-                  <option value={Gender.OTHER}>{pick('অন্যান্য', 'Other')}</option>
-                </Select>
-              </FormField>
-              <FormField label={pick('০৭. ধর্ম', '07. Religion')} required>
-                <Select {...form.register('religion')}>
-                  <option value={Religion.ISLAM}>{pick('ইসলাম', 'Islam')}</option>
-                  <option value={Religion.HINDUISM}>{pick('হিন্দু', 'Hinduism')}</option>
-                  <option value={Religion.BUDDHISM}>{pick('বৌদ্ধ', 'Buddhism')}</option>
-                  <option value={Religion.CHRISTIANITY}>{pick('খ্রিস্টান', 'Christianity')}</option>
-                  <option value={Religion.OTHER}>{pick('অন্যান্য', 'Other')}</option>
-                </Select>
-              </FormField>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label={pick('০২. পিতার নাম (বাংলায়)', '02. Father Name (Bangla)')} required error={form.formState.errors.fatherNameBn?.message}>
-                <Input {...form.register('fatherNameBn')} />
-              </FormField>
-              <FormField label={pick('পিতার নাম (ইংরেজিতে)', 'Father Name (English)')} required error={form.formState.errors.fatherNameEn?.message}>
-                <Input {...form.register('fatherNameEn')} />
-              </FormField>
-              <FormField label={pick('পিতার পেশা', 'Father Occupation')} required error={form.formState.errors.fatherOccupation?.message}>
-                <Input {...form.register('fatherOccupation')} />
-              </FormField>
-              <FormField label={pick('পিতার এনআইডি নম্বর', 'Father NID Number')} required error={form.formState.errors.fatherNid?.message}>
-                <Input {...form.register('fatherNid')} />
-              </FormField>
-              <FormField label={pick('০৩. মাতার নাম (বাংলায়)', '03. Mother Name (Bangla)')} required error={form.formState.errors.motherNameBn?.message}>
-                <Input {...form.register('motherNameBn')} />
-              </FormField>
-              <FormField label={pick('মাতার নাম (ইংরেজিতে)', 'Mother Name (English)')} required error={form.formState.errors.motherNameEn?.message}>
-                <Input {...form.register('motherNameEn')} />
-              </FormField>
-              <FormField label={pick('মাতার পেশা', 'Mother Occupation')} required error={form.formState.errors.motherOccupation?.message}>
-                <Input {...form.register('motherOccupation')} />
-              </FormField>
-              <FormField label={pick('মাতার এনআইডি নম্বর', 'Mother NID Number')} required error={form.formState.errors.motherNid?.message}>
-                <Input {...form.register('motherNid')} />
-              </FormField>
-              <FormField label={pick('অভিভাবকের মোবাইল নম্বর', 'Guardian Mobile Phone')} required error={form.formState.errors.guardianPhone?.message}>
-                <Input {...form.register('guardianPhone')} placeholder="017XXXXXXXX" />
-              </FormField>
-              <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField label={pick('০৪. বর্তমান ঠিকানা', '04. Present Address')} required error={form.formState.errors.presentAddress?.message}>
-                  <Textarea {...form.register('presentAddress')} placeholder="গ্রাম, ডাকঘর, উপজেলা, জেলা" />
-                </FormField>
-                <FormField label={pick('০৪. স্থায়ী ঠিকানা', '04. Permanent Address')} required error={form.formState.errors.permanentAddress?.message}>
-                  <Textarea {...form.register('permanentAddress')} placeholder="গ্রাম, ডাকঘর, উপজেলা, জেলা" />
-                </FormField>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label={pick('০৯. পূর্বে অধ্যয়নরত বিদ্যালয়ের নাম', '09. Previous School Name')}>
-                <Input {...form.register('previousSchoolName')} />
-              </FormField>
-              <FormField label={pick('পূর্ববর্তী শ্রেণি ও প্রাপ্ত গ্রেড', 'Previous Class & Grade')}>
-                <Input {...form.register('previousGrade')} placeholder="যেমন: ৫ম শ্রেণি, A+" />
-              </FormField>
-              <FormField label={pick('০৮. পি.এস.সি / জে.এস.সি পাসের সন', '08. Previous Exam Year')}>
-                <Input type="number" {...form.register('prevExamPassingYear')} placeholder="2025" />
-              </FormField>
-              <FormField label={pick('পূর্ববর্তী পরীক্ষার রোল / জিপিএ', 'Previous Exam Roll')}>
-                <Input {...form.register('prevExamRoll')} />
-              </FormField>
-              <FormField label={pick('১১. ভর্তিচ্ছু শ্রেণি', '11. Applying for Class')} required>
-                <Select {...form.register('targetClassId')}>
-                  {db.classes.filter((c) => c.numericValue <= 9).map((c) => (
-                    <option key={c.id} value={c.id}>{locale === 'bn' ? c.nameBn : c.name}</option>
-                  ))}
-                </Select>
-              </FormField>
-              <FormField label={pick('১০. ভর্তির ধরন', '10. Admission Type')}>
-                <Select
-                  value={form.watch('isReadmission') ? 'READMISSION' : 'NEW'}
-                  onChange={(e) => form.setValue('isReadmission', e.target.value === 'READMISSION')}
-                >
-                  <option value="NEW">{pick('নতুন ভর্তি', 'New Admission')}</option>
-                  <option value="READMISSION">{pick('পুনঃভর্তি', 'Re-admission')}</option>
-                </Select>
-              </FormField>
-              {isNineOrTen && (
-                <>
-                  <FormField label={pick('১২. ৯ম শ্রেণির বিভাগ', '12. Academic Group')}>
-                    <Select {...form.register('targetGroupId')}>
-                      {db.academicGroups.map((g) => (
-                        <option key={g.id} value={g.id}>{locale === 'bn' ? g.nameBn : g.name}</option>
-                      ))}
-                    </Select>
-                  </FormField>
-                  <FormField label={pick('১৩. ৪র্থ বিষয় (ঐচ্ছিক)', '13. 4th / Optional Subject')}>
-                    <Select {...form.register('optionalSubjectName')}>
-                      <option value="উচ্চতর গণিত">{pick('উচ্চতর গণিত', 'Higher Mathematics')}</option>
-                      <option value="কৃষি শিক্ষা">{pick('কৃষি শিক্ষা', 'Agriculture Studies')}</option>
-                      <option value="কম্পিউটার শিক্ষা">{pick('কম্পিউটার শিক্ষা', 'Computer Studies')}</option>
-                    </Select>
-                  </FormField>
-                </>
-              )}
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="space-y-4">
-              <div className="p-4 bg-surface-muted/50 border border-border rounded space-y-2 text-base">
-                <h3 className="font-bold text-foreground">{pick('আবেদনের সারসংক্ষেপ', 'Application Summary')}</h3>
-                <p><strong>{pick('শিক্ষার্থী:', 'Student:')}</strong> {form.watch('studentNameBn')} ({form.watch('studentNameEn')})</p>
-                <p><strong>{pick('পিতা / মাতা:', 'Parents:')}</strong> {form.watch('fatherNameBn')} / {form.watch('motherNameBn')}</p>
-                <p className="tabular-nums"><strong>{pick('জন্ম সনদ:', 'Birth Cert:')}</strong> {form.watch('birthCertificateNo')}</p>
-                <p className="tabular-nums"><strong>{pick('মোবাইল:', 'Phone:')}</strong> {form.watch('guardianPhone')}</p>
-              </div>
-              <div className="p-4 border border-border rounded text-sm leading-relaxed bg-surface">
-                <p className="font-semibold text-foreground mb-2">{pick('অঙ্গীকারনামা', 'Declaration')}</p>
-                <p className="text-muted-foreground">{db.admissionContent.declarationText}</p>
-                <label className="mt-3 flex items-center gap-2 text-base font-medium text-foreground cursor-pointer">
-                  <input type="checkbox" {...form.register('declarationAccepted')} className="w-4 h-4 accent-primary" />
-                  <span>{pick('আমি উপরের অঙ্গীকারনামায় সম্মত এবং সকল তথ্য সঠিক।', 'I agree to the declaration and confirm all information is accurate.')}</span>
-                </label>
-                {form.formState.errors.declarationAccepted && (
-                  <p className="text-sm text-destructive mt-1">{form.formState.errors.declarationAccepted.message}</p>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between pt-4 border-t border-border">
-            <Button
-              variant="outline"
-              disabled={step === 1}
-              onClick={() => setStep((s) => Math.max(1, s - 1))}
-            >
-              {pick('পূর্ববর্তী ধাপ', 'Previous')}
-            </Button>
-            {step < 4 ? (
-              <Button variant="primary" onClick={() => setStep((s) => Math.min(4, s + 1))}>
-                {pick('পরবর্তী ধাপ', 'Next Step')}
-              </Button>
-            ) : (
-              <Button type="submit" variant="primary" disabled={submitting}>
-                {submitting ? pick('জমা হচ্ছে...', 'Submitting...') : pick('আবেদন জমা দিন', 'Submit Application')}
-              </Button>
-            )}
-          </div>
-        </Card>
-      </form>
+      <UnifiedAdmissionForm
+        mode="public"
+        db={db}
+        onPublicSuccess={(created) => setSubmittedApp(created)}
+      />
     </div>
   );
 }
@@ -664,6 +420,10 @@ export function AdmissionStatusPage() {
                 ? db.classes.find((c) => c.id === found.targetClassId)?.nameBn ?? ''
                 : db.classes.find((c) => c.id === found.targetClassId)?.name ?? ''
             }
+            groupName={(() => {
+              const g = db.academicGroups.find((item) => item.id === found.targetGroupId);
+              return g ? (locale === 'bn' ? g.nameBn : g.name) : null;
+            })()}
           />
         </div>
       )}

@@ -348,6 +348,13 @@ export interface Student {
   prevExamRoll?: string | null;
   prevExamRegistration?: string | null;
   prevExamGpa?: number | null;
+  nationality?: string | null;
+  studentPhone?: string | null;
+  admissionType?: 'NEW' | 'TRANSFER' | 'READMISSION' | null;
+  transferCertificateNo?: string | null;
+  transferCertificateDate?: string | null;
+  previousSchoolEiin?: string | null;
+  verifiedDocuments?: Record<string, boolean> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -964,6 +971,7 @@ export interface AdmissionContent {
   applicationFee?: number | null;
   helplinePhone?: string | null;
   formPdfUrl?: string | null;
+  publicOpenClassIds?: string[];
   isPublished: boolean;
   createdAt: string;
   updatedAt: string;

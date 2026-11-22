@@ -1207,12 +1207,44 @@ export async function handleMockRequest(
       };
     }
 
-    // 3. Submit Online Admission Application (BACKEND-PENDING mock)
+    // 3. Submit Online Admission Application (Unified Class 6-10 real-world validation)
     if (endpoint === '/public/admissions' && method === 'POST') {
       const payload = body as Omit<
         OnlineAdmissionApplication,
         'id' | 'applicationNumber' | 'status' | 'submittedAt' | 'admissionTestRoll' | 'admissionTestDate'
       >;
+      const bcn = String(payload.birthCertificateNo ?? '').trim();
+      if (bcn) {
+        const dupStudent = db.students.find((s) => s.birthCertificateNo === bcn);
+        if (dupStudent) {
+          return studentError(
+            409,
+            `এই জন্ম নিবন্ধন নম্বর ইতোমধ্যে ভর্তি শিক্ষার্থী (${dupStudent.studentId})-এর নামে নিবন্ধিত। / Birth certificate already registered.`
+          );
+        }
+        const dupApp = db.onlineAdmissions.find(
+          (a) => a.birthCertificateNo === bcn && a.status !== 'REJECTED'
+        );
+        if (dupApp) {
+          return studentError(
+            409,
+            `এই জন্ম নিবন্ধন নম্বর দিয়ে ইতোমধ্যে আবেদন (${dupApp.applicationNumber}) জমা আছে। / Active application already exists for this Birth Certificate.`
+          );
+        }
+      }
+      const brn = payload.boardRegistrationNo ? String(payload.boardRegistrationNo).trim() : '';
+      if (brn) {
+        const dupRegStu = db.students.find((s) => s.boardRegistrationNo === brn);
+        const dupRegApp = db.onlineAdmissions.find(
+          (a) => a.boardRegistrationNo === brn && a.status !== 'REJECTED'
+        );
+        if (dupRegStu || dupRegApp) {
+          return studentError(
+            409,
+            'এই বোর্ড রেজিস্ট্রেশন নম্বরটি ইতোমধ্যে সিস্টেমে নিবন্ধিত রয়েছে। / Board registration number is already in use.'
+          );
+        }
+      }
       const seq = String(db.onlineAdmissions.length + 1).padStart(3, '0');
       const created: OnlineAdmissionApplication = {
         ...payload,
@@ -1241,12 +1273,14 @@ export async function handleMockRequest(
 
     // 4. Update Admission Application Status / One-Click Admit into Students
     if (endpoint === '/admin/admissions/status' && method === 'POST') {
-      const { id, status, sectionId, roll, academicYearId } = body as {
+      const { id, status, sectionId, roll, academicYearId, formSerialNo, verifiedDocuments } = body as {
         id: string;
         status: AdmissionApplicationStatus;
         sectionId?: string;
         roll?: number;
         academicYearId?: string;
+        formSerialNo?: string;
+        verifiedDocuments?: Record<string, boolean>;
       };
       const app = db.onlineAdmissions.find((a) => a.id === id);
       if (!app) return studentError(404, 'আবেদন পাওয়া যায়নি। / Application was not found.');
@@ -1274,29 +1308,42 @@ export async function handleMockRequest(
         roll: nextRoll,
       });
       if (placed) return studentError(400, placed);
-      const identity = identityError({ birthCertificateNo: app.birthCertificateNo });
+      const identity = identityError({
+        birthCertificateNo: app.birthCertificateNo,
+        boardRegistrationNo: app.boardRegistrationNo ?? null,
+      });
       if (identity) return studentError(409, identity);
       const stuId = uid('stu');
       const newStudent: Student = {
         id: stuId,
         studentId: `BHS-2026-${String(3000 + db.students.length + 1)}`,
         birthCertificateNo: app.birthCertificateNo,
+        boardRegistrationNo: app.boardRegistrationNo ?? null,
         nameEn: app.studentNameEn,
         nameBn: app.studentNameBn,
+        photo: app.photoPreview ?? null,
         dateOfBirth: app.dateOfBirth,
         gender: app.gender,
+        bloodGroup: app.bloodGroup ?? null,
         religion: app.religion,
+        nationality: app.nationality ?? 'বাংলাদেশি',
+        studentPhone: app.studentPhone ?? null,
         presentAddress: app.presentAddress,
         permanentAddress: app.permanentAddress,
         admissionDate: nowIso().slice(0, 10),
+        admissionType: app.admissionType ?? (app.isReadmission ? 'READMISSION' : 'NEW'),
         status: StudentStatus.ACTIVE,
         previousSchoolName: app.previousSchoolName ?? null,
+        previousSchoolEiin: app.previousSchoolEiin ?? null,
         previousSchoolAddress: app.previousSchoolAddress ?? null,
         previousGrade: app.previousGrade ?? null,
         prevExamPassingYear: app.prevExamPassingYear ?? null,
         prevExamRoll: app.prevExamRoll ?? null,
         prevExamRegistration: app.prevExamRegistration ?? null,
         prevExamGpa: app.prevExamGpa ?? null,
+        transferCertificateNo: app.transferCertificateNo ?? null,
+        transferCertificateDate: app.transferCertificateDate ?? null,
+        verifiedDocuments: verifiedDocuments ?? app.verifiedDocuments ?? null,
         createdAt: nowIso(),
         updatedAt: nowIso(),
       };
@@ -1308,23 +1355,52 @@ export async function handleMockRequest(
         classId: app.targetClassId,
         sectionId: section.id,
         groupId: app.targetGroupId ?? null,
+        optionalClassSubjectId: app.optionalClassSubjectId ?? null,
         roll: nextRoll,
         enrollmentDate: nowIso().slice(0, 10),
+        formSerialNo: formSerialNo || app.applicationNumber,
         isRepeater: false,
-        isReadmission: app.isReadmission,
+        isReadmission: app.isReadmission || app.admissionType === 'READMISSION',
         status: EnrollmentStatus.ACTIVE,
         createdAt: nowIso(),
         updatedAt: nowIso(),
       });
+      const bothDeceased = app.fatherAlive === false && app.motherAlive === false;
       linkGuardian(stuId, {
         name: app.fatherNameEn,
         nameBn: app.fatherNameBn,
-        phone: app.guardianPhone,
-        occupation: app.fatherOccupation,
-        nid: app.fatherNid,
+        phone: app.fatherPhone || (app.fatherAlive !== false ? app.guardianPhone : `deceased-f-${uid('p')}`),
+        occupation: app.fatherAlive === false ? 'মৃত' : app.fatherOccupation,
+        nid: app.fatherNid || null,
         address: app.presentAddress,
         relationship: RelationshipType.FATHER,
+        sms: app.fatherAlive !== false && !bothDeceased,
       });
+      linkGuardian(stuId, {
+        name: app.motherNameEn,
+        nameBn: app.motherNameBn,
+        phone: app.motherPhone || `mother-${uid('p')}`,
+        occupation: app.motherAlive === false ? 'মৃত' : app.motherOccupation,
+        nid: app.motherNid || null,
+        address: app.presentAddress,
+        relationship: RelationshipType.MOTHER,
+        sms: app.fatherAlive === false && app.motherAlive !== false,
+      });
+      if (app.legalGuardianNameBn && app.legalGuardianPhone) {
+        linkGuardian(stuId, {
+          name: app.legalGuardianNameEn || app.legalGuardianNameBn,
+          nameBn: app.legalGuardianNameBn,
+          phone: app.legalGuardianPhone,
+          occupation: app.legalGuardianRelation || 'অভিভাবক',
+          nid: app.legalGuardianNid || null,
+          address: app.legalGuardianAddress || app.presentAddress,
+          relationship: RelationshipType.GUARDIAN,
+          sms: bothDeceased,
+        });
+      }
+      if (verifiedDocuments) {
+        app.verifiedDocuments = verifiedDocuments;
+      }
       app.status = 'ADMITTED';
       addAudit('ADMISSION_ADMIT', 'Students', `Admitted ${app.applicationNumber} as ${newStudent.studentId}, roll ${nextRoll}.`);
       return { data: clone(app) };
@@ -1787,7 +1863,7 @@ export async function handleMockRequest(
       return { data: clone(notice) };
     }
 
-    // 13. Register Student + Enrollment + Parent (6-step wizard)
+    // 13. Register Student + Enrollment + Parent (Unified Admission Engine)
     if (endpoint === '/students' && method === 'POST') {
       const p = body as Record<string, unknown>;
       const nameEn = String(p.nameEn ?? '').trim();
@@ -1797,12 +1873,18 @@ export async function handleMockRequest(
       const motherName = String(p.motherNameEn ?? '').trim();
       const motherNameBn = String(p.motherNameBn ?? '').trim();
       const guardianPhone = String(p.guardianPhone ?? p.parentPhone ?? '').trim();
+      const fatherAlive = p.fatherAlive !== false;
+      const motherAlive = p.motherAlive !== false;
       if (!nameEn || !nameBn) return studentError(400, 'শিক্ষার্থীর বাংলা ও ইংরেজি নাম আবশ্যক। / Both names are required.');
       if (!fatherName || !fatherNameBn || !guardianPhone) {
-        return studentError(400, 'পিতার নাম ও অভিভাবকের মোবাইল আবশ্যক। / Father’s name and the guardian phone are required.');
+        return studentError(400, 'পিতার নাম ও অভিভাবকের মোবাইল আবশ্যক। / Father’s name and an active guardian phone are required.');
       }
       if (!/^(\+?88)?01[3-9]\d{8}$/.test(guardianPhone)) {
         return studentError(400, 'অভিভাবকের মোবাইল সঠিক নয়। / Guardian phone is not a valid Bangladesh number.');
+      }
+      const fatherPhoneRaw = String(p.fatherPhone ?? '').trim();
+      if (fatherPhoneRaw && !/^(\+?88)?01[3-9]\d{8}$/.test(fatherPhoneRaw)) {
+        return studentError(400, 'পিতার মোবাইল সঠিক নয়। / Father’s phone is not a valid Bangladesh number.');
       }
       const motherPhoneRaw = String(p.motherPhone ?? '').trim();
       if (motherPhoneRaw && !/^(\+?88)?01[3-9]\d{8}$/.test(motherPhoneRaw)) {
@@ -1831,8 +1913,10 @@ export async function handleMockRequest(
       if (identity) return studentError(409, identity);
       const optionalId = p.optionalClassSubjectId ? String(p.optionalClassSubjectId) : null;
       if (optionalId) {
-        const optional = db.classSubjects.find((row) => row.id === optionalId && row.isOptional && row.isActive);
-        if (!optional || optional.classId !== String(p.classId) || optional.academicYearId !== String(p.academicYearId)) {
+        const optional = db.classSubjects.find(
+          (row) => row.id === optionalId && row.isOptional && row.isActive && row.classId === String(p.classId)
+        );
+        if (!optional) {
           return studentError(400, 'ঐচ্ছিক বিষয় এই শ্রেণির পাঠ্যতালিকায় নেই। / That optional subject is not on this class curriculum.');
         }
       }
@@ -1844,15 +1928,20 @@ export async function handleMockRequest(
         boardRegistrationNo: p.boardRegistrationNo ? String(p.boardRegistrationNo).trim() : null,
         nameEn,
         nameBn,
+        photo: p.photo ? String(p.photo) : null,
         dateOfBirth: p.dateOfBirth ? String(p.dateOfBirth) : null,
         gender: p.gender as Student['gender'],
         bloodGroup: (p.bloodGroup as Student['bloodGroup']) || null,
         religion: (p.religion as Student['religion']) || null,
+        nationality: p.nationality ? String(p.nationality) : 'বাংলাদেশি',
+        studentPhone: p.studentPhone ? String(p.studentPhone) : null,
         presentAddress: p.presentAddress ? String(p.presentAddress) : null,
         permanentAddress: p.permanentAddress ? String(p.permanentAddress) : null,
         admissionDate: String(p.admissionDate ?? nowIso().slice(0, 10)),
+        admissionType: (p.admissionType as Student['admissionType']) || (p.isReadmission ? 'READMISSION' : 'NEW'),
         status: StudentStatus.ACTIVE,
         previousSchoolName: p.previousSchoolName ? String(p.previousSchoolName) : null,
+        previousSchoolEiin: p.previousSchoolEiin ? String(p.previousSchoolEiin) : null,
         previousSchoolAddress: p.previousSchoolAddress ? String(p.previousSchoolAddress) : null,
         previousGrade: p.previousGrade ? String(p.previousGrade) : null,
         previousGpa: p.previousGpa ? Number(p.previousGpa) : null,
@@ -1860,6 +1949,9 @@ export async function handleMockRequest(
         prevExamRoll: p.prevExamRoll ? String(p.prevExamRoll) : null,
         prevExamRegistration: p.prevExamRegistration ? String(p.prevExamRegistration) : null,
         prevExamGpa: p.prevExamGpa ? Number(p.prevExamGpa) : null,
+        transferCertificateNo: p.transferCertificateNo ? String(p.transferCertificateNo) : null,
+        transferCertificateDate: p.transferCertificateDate ? String(p.transferCertificateDate) : null,
+        verifiedDocuments: (p.verifiedDocuments as Record<string, boolean>) || null,
         createdAt: nowIso(),
         updatedAt: nowIso(),
       };
@@ -1874,35 +1966,77 @@ export async function handleMockRequest(
         optionalClassSubjectId: optionalId,
         roll: Number(p.roll),
         enrollmentDate: nowIso().slice(0, 10),
+        formSerialNo: p.formSerialNo ? String(p.formSerialNo) : null,
         isRepeater: false,
-        isReadmission: Boolean(p.isReadmission),
+        isReadmission: Boolean(p.isReadmission) || p.admissionType === 'READMISSION',
         status: EnrollmentStatus.ACTIVE,
+        remarks: p.remarks ? String(p.remarks) : null,
         createdAt: nowIso(),
         updatedAt: nowIso(),
       };
       db.enrollments.unshift(newEnr);
+
+      const bothDeceased = !fatherAlive && !motherAlive;
+      const fatherPrimaryPhone = fatherAlive
+        ? fatherPhoneRaw || guardianPhone
+        : `deceased-f-${String(p.fatherNid ?? uid('f')).replace(/\s/g, '')}`;
+
       linkGuardian(stuId, {
         name: fatherName,
         nameBn: fatherNameBn,
-        phone: guardianPhone,
-        occupation: p.fatherOccupation ? String(p.fatherOccupation) : p.parentOccupation ? String(p.parentOccupation) : null,
+        phone: fatherPrimaryPhone,
+        occupation: fatherAlive
+          ? p.fatherOccupation
+            ? String(p.fatherOccupation)
+            : p.parentOccupation
+              ? String(p.parentOccupation)
+              : null
+          : 'মৃত',
         nid: p.fatherNid ? String(p.fatherNid) : p.parentNid ? String(p.parentNid) : null,
         address: p.presentAddress ? String(p.presentAddress) : null,
         relationship: RelationshipType.FATHER,
+        sms: fatherAlive,
       });
-      const motherPhone = motherPhoneRaw && motherPhoneRaw !== guardianPhone
-        ? motherPhoneRaw
-        : `unused-${String(p.motherNid ?? uid('m')).replace(/\s/g, '')}`;
+
+      const motherPhone =
+        motherAlive && motherPhoneRaw && motherPhoneRaw !== fatherPrimaryPhone
+          ? motherPhoneRaw
+          : `unused-${String(p.motherNid ?? uid('m')).replace(/\s/g, '')}`;
+
       linkGuardian(stuId, {
         name: motherName,
         nameBn: motherNameBn,
         phone: motherPhone,
-        occupation: p.motherOccupation ? String(p.motherOccupation) : null,
+        occupation: motherAlive ? (p.motherOccupation ? String(p.motherOccupation) : null) : 'মৃত',
         nid: p.motherNid ? String(p.motherNid) : null,
         address: p.presentAddress ? String(p.presentAddress) : null,
         relationship: RelationshipType.MOTHER,
-        sms: false,
+        sms: !fatherAlive && motherAlive,
       });
+
+      const legalNameBn = p.legalGuardianNameBn ? String(p.legalGuardianNameBn).trim() : '';
+      const legalPhone = p.legalGuardianPhone ? String(p.legalGuardianPhone).trim() : '';
+      if (legalNameBn && legalPhone) {
+        linkGuardian(stuId, {
+          name: p.legalGuardianNameEn ? String(p.legalGuardianNameEn).trim() : legalNameBn,
+          nameBn: legalNameBn,
+          phone: legalPhone,
+          occupation: p.legalGuardianRelation ? String(p.legalGuardianRelation).trim() : 'বৈধ অভিভাবক',
+          nid: p.legalGuardianNid ? String(p.legalGuardianNid).trim() : null,
+          address: p.legalGuardianAddress ? String(p.legalGuardianAddress).trim() : p.presentAddress ? String(p.presentAddress) : null,
+          relationship: RelationshipType.GUARDIAN,
+          sms: bothDeceased,
+        });
+      }
+
+      if (p.sourceApplicationId) {
+        const sourceApp = db.onlineAdmissions.find((a) => a.id === String(p.sourceApplicationId));
+        if (sourceApp) {
+          sourceApp.status = 'ADMITTED';
+          sourceApp.verifiedDocuments = (p.verifiedDocuments as Record<string, boolean>) || sourceApp.verifiedDocuments;
+        }
+      }
+
       addAudit('STUDENT_CREATE', 'Students', `Registered ${newStudent.nameEn} (${newStudent.studentId}).`);
       return { data: clone({ student: newStudent, enrollment: newEnr }) };
     }

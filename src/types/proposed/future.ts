@@ -2,7 +2,7 @@
 // These entities are NOT present in the current DBML schema and require
 // future backend API & PostgreSQL/Prisma implementation.
 
-import { AttendanceMethod, Gender, Religion } from '../enums';
+import { AttendanceMethod, BloodGroup, Gender, Religion } from '../enums';
 
 export type AdmissionApplicationStatus =
   | 'NEW'
@@ -11,7 +11,29 @@ export type AdmissionApplicationStatus =
   | 'REJECTED'
   | 'ADMITTED';
 
-// BACKEND-PENDING: Online admission application submission (mirrors 13-point school form)
+export type AdmissionType = 'NEW' | 'TRANSFER' | 'READMISSION';
+
+export interface StructuredAddress {
+  village: string;
+  postOffice: string;
+  postCode?: string;
+  upazila: string;
+  district: string;
+}
+
+export interface AdmissionDocumentAttachment {
+  name: string;
+  dataUrl: string;
+  sizeBytes?: number;
+}
+
+export interface AdmissionAttachments {
+  birthCertificate?: AdmissionDocumentAttachment | null;
+  parentsNid?: AdmissionDocumentAttachment | null;
+  previousRecordOrTc?: AdmissionDocumentAttachment | null;
+}
+
+// BACKEND-PENDING: Unified online admission application (Classes 6-10, BHS + BUTPHS + DSHE/Board standard)
 export interface OnlineAdmissionApplication {
   id: string;
   applicationNumber: string;
@@ -20,45 +42,70 @@ export interface OnlineAdmissionApplication {
   submittedAt: string;
   admissionTestRoll?: string;
   admissionTestDate?: string;
-  // 01. Student name
+  // 01. Student identity
   studentNameBn: string;
   studentNameEn: string;
   photoPreview?: string | null;
+  dateOfBirth: string;
+  gender: Gender;
+  birthCertificateNo: string; // 17 digits (BDRIS)
+  religion: Religion;
+  bloodGroup?: BloodGroup | null;
+  nationality?: string;
+  studentPhone?: string | null;
   // 02. Father
+  fatherAlive?: boolean;
   fatherNameBn: string;
   fatherNameEn: string;
   fatherOccupation: string;
   fatherNid: string;
+  fatherPhone?: string | null;
   // 03. Mother
+  motherAlive?: boolean;
   motherNameBn: string;
   motherNameEn: string;
   motherOccupation: string;
   motherNid: string;
+  motherPhone?: string | null;
+  // Legal guardian (when both parents deceased or separate primary guardian)
   guardianPhone: string;
-  // 04. Addresses
+  guardianMonthlyIncome?: number | null;
+  legalGuardianNameBn?: string | null;
+  legalGuardianNameEn?: string | null;
+  legalGuardianRelation?: string | null;
+  legalGuardianPhone?: string | null;
+  legalGuardianNid?: string | null;
+  legalGuardianAddress?: string | null;
+  // 04. Addresses (formatted + structured)
   presentAddress: string;
   permanentAddress: string;
-  // 05-07. Bio
-  dateOfBirth: string;
-  gender: Gender;
-  birthCertificateNo: string; // 17 digits
-  religion: Religion;
-  // 08-09. Previous exam & school
+  presentAddressParts?: StructuredAddress | null;
+  permanentAddressParts?: StructuredAddress | null;
+  // 08-09. Previous academic / TC / Board Registration
   prevExamName?: string;
   prevExamPassingYear?: number;
   prevExamRoll?: string;
   prevExamRegistration?: string;
   prevExamGpa?: number;
   previousSchoolName?: string;
+  previousSchoolEiin?: string | null;
   previousSchoolAddress?: string;
   previousClass?: string;
   previousGrade?: string;
+  transferCertificateNo?: string | null;
+  transferCertificateDate?: string | null;
+  boardRegistrationNo?: string | null;
+  boardRegistrationSession?: string | null;
   // 10-13. Target admission details
+  admissionType?: AdmissionType;
   isReadmission: boolean;
   targetClassId: string;
   preferredSection?: string;
   targetGroupId?: string | null;
+  optionalClassSubjectId?: string | null;
   optionalSubjectName?: string | null;
+  attachments?: AdmissionAttachments | null;
+  verifiedDocuments?: Record<string, boolean> | null;
   declarationAccepted: boolean;
   remarks?: string;
 }

@@ -274,63 +274,229 @@ export function PrintableAdmissionAdmitCard({
   school,
   application,
   targetClassName,
+  groupName,
 }: {
   school: SchoolProfile;
   application: OnlineAdmissionApplication;
   targetClassName: string;
+  groupName?: string | null;
 }) {
   const { locale, pick } = useI18n();
+  const isTransfer = application.admissionType === 'TRANSFER';
   return (
     <div className="print-sheet bg-surface border border-border rounded-[var(--radius)] p-6 text-foreground">
       <SchoolLetterhead
         school={school}
-        docTitleBn={`ভর্তি পরীক্ষার প্রবেশপত্র — শিক্ষাবর্ষ ${application.academicSession}`}
+        docTitleBn={
+          isTransfer
+            ? `ভর্তি আবেদন ও বদলি (TC) প্রবেশপত্র — শিক্ষাবর্ষ ${application.academicSession}`
+            : `ভর্তি পরীক্ষার প্রবেশপত্র — শিক্ষাবর্ষ ${application.academicSession}`
+        }
         docTitleEn={`Admission Test Admit Card — Session ${application.academicSession}`}
       />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-        <div className="space-y-1.5">
-          <p>
-            <span className="text-muted-foreground">{pick('আবেদন নম্বর:', 'Application No:')}</span>{' '}
-            <strong className="font-mono">{application.applicationNumber}</strong>
-          </p>
-          <p>
-            <span className="text-muted-foreground">{pick('ভর্তি পরীক্ষার রোল:', 'Admission Test Roll:')}</span>{' '}
-            <strong className="font-mono text-primary">{application.admissionTestRoll ?? 'TBA'}</strong>
-          </p>
-          <p>
-            <span className="text-muted-foreground">{pick('শিক্ষার্থীর নাম:', 'Applicant Name:')}</span>{' '}
-            <strong>{application.studentNameBn} ({application.studentNameEn})</strong>
-          </p>
-          <p>
-            <span className="text-muted-foreground">{pick('পিতার নাম:', 'Father Name:')}</span>{' '}
-            {application.fatherNameBn}
-          </p>
-          <p>
-            <span className="text-muted-foreground">{pick('মাতার নাম:', 'Mother Name:')}</span>{' '}
-            {application.motherNameBn}
-          </p>
+      <div className="flex flex-col sm:flex-row items-start justify-between gap-5 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+          <div className="space-y-1.5">
+            <p>
+              <span className="text-muted-foreground">{pick('আবেদন নম্বর:', 'Application No:')}</span>{' '}
+              <strong className="font-mono tabular-nums">{application.applicationNumber}</strong>
+            </p>
+            <p>
+              <span className="text-muted-foreground">{pick('ভর্তি পরীক্ষার রোল:', 'Admission Test Roll:')}</span>{' '}
+              <strong className="font-mono tabular-nums text-primary">{application.admissionTestRoll ?? 'TBA'}</strong>
+            </p>
+            <p>
+              <span className="text-muted-foreground">{pick('শিক্ষার্থীর নাম:', 'Applicant Name:')}</span>{' '}
+              <strong>{application.studentNameBn}</strong>
+              <span className="block text-xs font-mono uppercase text-muted-foreground">
+                {application.studentNameEn}
+              </span>
+            </p>
+            <p>
+              <span className="text-muted-foreground">{pick('পিতার নাম:', 'Father Name:')}</span>{' '}
+              {application.fatherNameBn}
+            </p>
+            <p>
+              <span className="text-muted-foreground">{pick('মাতার নাম:', 'Mother Name:')}</span>{' '}
+              {application.motherNameBn}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <p>
+              <span className="text-muted-foreground">{pick('আবেদনকৃত শ্রেণি:', 'Applying for Class:')}</span>{' '}
+              <strong>{targetClassName}</strong>
+            </p>
+            {groupName && (
+              <p>
+                <span className="text-muted-foreground">{pick('বিভাগ ও ৪র্থ বিষয়:', 'Group & 4th Subject:')}</span>{' '}
+                <strong>{groupName}</strong>
+                {application.optionalSubjectName ? ` · ${application.optionalSubjectName}` : ''}
+              </p>
+            )}
+            {application.boardRegistrationNo && (
+              <p className="tabular-nums">
+                <span className="text-muted-foreground">{pick('বোর্ড রেজিস্ট্রেশন:', 'Board Reg No:')}</span>{' '}
+                <strong className="font-mono">{application.boardRegistrationNo}</strong>
+              </p>
+            )}
+            <p>
+              <span className="text-muted-foreground">{pick('ভর্তি পরীক্ষার তারিখ:', 'Test Date:')}</span>{' '}
+              <strong>{formatDateLong(application.admissionTestDate, locale)}</strong>
+            </p>
+            <p>
+              <span className="text-muted-foreground">{pick('অভিভাবক মোবাইল:', 'Guardian Phone:')}</span>{' '}
+              <span className="font-mono tabular-nums">{application.guardianPhone}</span>
+            </p>
+          </div>
         </div>
-        <div className="space-y-1.5 sm:text-right">
-          <p>
-            <span className="text-muted-foreground">{pick('আবেদনকৃত শ্রেণি:', 'Applying for Class:')}</span>{' '}
-            <strong>{targetClassName}</strong>
-          </p>
-          <p>
-            <span className="text-muted-foreground">{pick('ভর্তি পরীক্ষার তারিখ:', 'Test Date:')}</span>{' '}
-            <strong>{formatDateLong(application.admissionTestDate, locale)}</strong>
-          </p>
-          <p>
-            <span className="text-muted-foreground">{pick('পরীক্ষার কেন্দ্র:', 'Venue:')}</span>{' '}
-            {pick('ভোজেশ্বর উচ্চ বিদ্যালয় ক্যাম্পাস', 'Bhojeshwar High School Main Campus')}
-          </p>
+
+        {/* Applicant Passport Photo Box */}
+        <div className="w-24 h-28 border border-border rounded bg-surface-muted/40 overflow-hidden flex items-center justify-center shrink-0">
+          {application.photoPreview ? (
+            <img
+              src={application.photoPreview}
+              alt={application.studentNameEn}
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-[11px] text-muted-foreground text-center px-1">
+              {pick('পাসপোর্ট ছবি', 'Passport Photo')}
+            </span>
+          )}
         </div>
       </div>
       <div className="mt-5 p-3 bg-surface-muted/60 border border-border rounded text-sm text-muted-foreground">
         {pick(
-          'নির্দেশনা: পরীক্ষার দিন প্রবেশপত্রের প্রিন্ট কপি, ১৭ ডিজিটের জন্ম সনদের ফটোকপি এবং ২ কপি পাসপোর্ট সাইজ ছবি সঙ্গে আনতে হবে।',
-          'Instructions: Bring this printed admit card, copy of 17-digit birth certificate, and 2 passport photographs on test day.'
+          'নির্দেশনা: পরীক্ষার/ভর্তির দিন এই প্রবেশপত্রের প্রিন্ট কপি, ১৭ ডিজিটের অনলাইন জন্ম সনদের ফটোকপি, পিতা-মাতার এনআইডি কপি, ২ কপি পাসপোর্ট সাইজ ছবি এবং প্রযোজ্য ক্ষেত্রে ছাড়পত্র (TC) / বোর্ড রেজিস্ট্রেশন কপি সঙ্গে আনতে হবে।',
+          'Instructions: Bring this printed admit card, copy of 17-digit online birth certificate, parents’ NID copies, 2 passport photos, and TC/Board Registration copy (where applicable).'
         )}
       </div>
+      <SignatureBlock />
+    </div>
+  );
+}
+
+/**
+ * Official Admission Confirmation & Tear-Off Student ID Card Info Slip (inspired by BHS admission form).
+ */
+export function PrintableAdmissionConfirmationSlip({
+  school,
+  student,
+  enrollment,
+  classNameLabel,
+  sectionName,
+  groupName,
+  academicYearName,
+  fatherName,
+  motherName,
+  guardianPhone,
+  optionalSubjectName,
+}: {
+  school: SchoolProfile;
+  student: Student;
+  enrollment: {
+    roll: number;
+    formSerialNo?: string | null;
+    remarks?: string | null;
+  };
+  classNameLabel: string;
+  sectionName: string;
+  groupName?: string | null;
+  academicYearName: string;
+  fatherName: string;
+  motherName: string;
+  guardianPhone: string;
+  optionalSubjectName?: string | null;
+}) {
+  const { locale, pick } = useI18n();
+  const bloodDisplay = student.bloodGroup
+    ? student.bloodGroup.replace('_POSITIVE', '+').replace('_NEGATIVE', '-')
+    : '—';
+
+  return (
+    <div className="print-sheet bg-surface border border-border rounded-[var(--radius)] p-6 text-foreground space-y-6">
+      <SchoolLetterhead
+        school={school}
+        docTitleBn={`ভর্তি নিশ্চয়ন ও আইডি কার্ড তথ্য স্লিপ — শিক্ষাবর্ষ ${academicYearName}`}
+        docTitleEn={`Admission Confirmation & ID Card Info Slip — Session ${academicYearName}`}
+      />
+
+      <div className="flex flex-col sm:flex-row items-start justify-between gap-5 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 flex-1">
+          <p className="tabular-nums">
+            <span className="text-muted-foreground">{pick('শিক্ষার্থী আইডি:', 'Student ID:')}</span>{' '}
+            <strong className="font-mono text-primary">{student.studentId}</strong>
+          </p>
+          <p className="tabular-nums">
+            <span className="text-muted-foreground">{pick('শ্রেণি ও শাখা:', 'Class & Section:')}</span>{' '}
+            <strong>
+              {classNameLabel} ({sectionName})
+            </strong>
+          </p>
+          <p>
+            <span className="text-muted-foreground">{pick('শিক্ষার্থীর নাম:', 'Student Name:')}</span>{' '}
+            <strong>{student.nameBn || student.nameEn}</strong>
+            <span className="block text-xs font-mono uppercase text-muted-foreground">
+              {student.nameEn}
+            </span>
+          </p>
+          <p className="tabular-nums">
+            <span className="text-muted-foreground">{pick('রোল নম্বর:', 'Class Roll:')}</span>{' '}
+            <strong className="font-mono text-base">{formatNumber(enrollment.roll, locale)}</strong>
+          </p>
+          <p>
+            <span className="text-muted-foreground">{pick('পিতার নাম:', 'Father:')}</span>{' '}
+            {fatherName}
+          </p>
+          <p>
+            <span className="text-muted-foreground">{pick('মাতার নাম:', 'Mother:')}</span>{' '}
+            {motherName}
+          </p>
+          <p className="tabular-nums">
+            <span className="text-muted-foreground">{pick('অভিভাবক মোবাইল:', 'Guardian Phone:')}</span>{' '}
+            <strong className="font-mono">{guardianPhone}</strong>
+          </p>
+          <p>
+            <span className="text-muted-foreground">{pick('রক্তের গ্রুপ:', 'Blood Group:')}</span>{' '}
+            <strong className="text-destructive">{bloodDisplay}</strong>
+          </p>
+          {groupName && (
+            <p>
+              <span className="text-muted-foreground">{pick('বিভাগ ও ৪র্থ বিষয়:', 'Group & 4th Subject:')}</span>{' '}
+              <strong>{groupName}</strong>
+              {optionalSubjectName ? ` · ${optionalSubjectName}` : ''}
+            </p>
+          )}
+          {enrollment.formSerialNo && (
+            <p className="tabular-nums">
+              <span className="text-muted-foreground">{pick('ফরম নং:', 'Form Serial:')}</span>{' '}
+              <span className="font-mono">{enrollment.formSerialNo}</span>
+            </p>
+          )}
+          {enrollment.remarks && (
+            <p className="sm:col-span-2 text-xs text-muted-foreground">
+              {pick('অফিস নোট / ফি তথ্য:', 'Office Note / Receipt:')} {enrollment.remarks}
+            </p>
+          )}
+        </div>
+
+        <div className="w-24 h-28 border border-border rounded bg-surface-muted/40 overflow-hidden flex items-center justify-center shrink-0">
+          {student.photo ? (
+            <img
+              src={student.photo}
+              alt={student.nameEn}
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-[11px] text-muted-foreground text-center px-1">
+              {pick('পাসপোর্ট ছবি', 'Passport Photo')}
+            </span>
+          )}
+        </div>
+      </div>
+
       <SignatureBlock />
     </div>
   );

@@ -448,6 +448,7 @@ export function createInitialSeed(): MockDatabase {
     { id: 'sub-agri', name: 'Agriculture Studies', nameBn: 'কৃষি শিক্ষা', officialCode: '134', category: SubjectCategory.GENERAL, displayOrder: 12, isSystemDefault: false, isActive: true, createdAt: NOW, updatedAt: NOW },
     { id: 'sub-acc', name: 'Accounting', nameBn: 'হিসাববিজ্ঞান', officialCode: '146', category: SubjectCategory.COMMERCE, displayOrder: 13, isSystemDefault: false, isActive: true, createdAt: NOW, updatedAt: NOW },
     { id: 'sub-his', name: 'History of Bangladesh & World', nameBn: 'বাংলাদেশের ইতিহাস ও বিশ্বসভ্যতা', officialCode: '153', category: SubjectCategory.SOCIAL_SCIENCE, displayOrder: 14, isSystemDefault: false, isActive: true, createdAt: NOW, updatedAt: NOW },
+    { id: 'sub-home', name: 'Home Science', nameBn: 'গার্হস্থ্য বিজ্ঞান', officialCode: '151', category: SubjectCategory.GENERAL, displayOrder: 15, isSystemDefault: false, isActive: true, createdAt: NOW, updatedAt: NOW },
   ];
 
   const books: Book[] = [
@@ -518,45 +519,45 @@ export function createInitialSeed(): MockDatabase {
           updatedAt: NOW,
         });
       });
-      // Science
-      ['sub-phy', 'sub-che', 'sub-bio', 'sub-hmath'].forEach((subId, idx) => {
+      // Science (4th subject options: Higher Math, Agriculture Studies)
+      ['sub-phy', 'sub-che', 'sub-bio', 'sub-hmath', 'sub-agri'].forEach((subId, idx) => {
         classSubjects.push({
           id: `cs-${cls.numericValue}-sci-${subId}`,
           academicYearId: 'ay-2026',
           classId: cls.id,
           subjectId: subId,
           groupId: 'grp-sci',
-          isOptional: subId === 'sub-hmath',
+          isOptional: subId === 'sub-hmath' || subId === 'sub-agri',
           displayOrder: 6 + idx,
           isActive: true,
           createdAt: NOW,
           updatedAt: NOW,
         });
       });
-      // Humanities
-      ['sub-his', 'sub-bgs', 'sub-agri'].forEach((subId, idx) => {
+      // Humanities (4th subject options: Agriculture Studies, Home Science)
+      ['sub-his', 'sub-bgs', 'sub-agri', 'sub-home'].forEach((subId, idx) => {
         classSubjects.push({
           id: `cs-${cls.numericValue}-hum-${subId}`,
           academicYearId: 'ay-2026',
           classId: cls.id,
           subjectId: subId,
           groupId: 'grp-hum',
-          isOptional: subId === 'sub-agri',
+          isOptional: subId === 'sub-agri' || subId === 'sub-home',
           displayOrder: 6 + idx,
           isActive: true,
           createdAt: NOW,
           updatedAt: NOW,
         });
       });
-      // Business
-      ['sub-acc', 'sub-agri'].forEach((subId, idx) => {
+      // Business Studies (4th subject options: Agriculture Studies, Home Science)
+      ['sub-acc', 'sub-agri', 'sub-home'].forEach((subId, idx) => {
         classSubjects.push({
           id: `cs-${cls.numericValue}-bus-${subId}`,
           academicYearId: 'ay-2026',
           classId: cls.id,
           subjectId: subId,
           groupId: 'grp-bus',
-          isOptional: subId === 'sub-agri',
+          isOptional: subId === 'sub-agri' || subId === 'sub-home',
           displayOrder: 6 + idx,
           isActive: true,
           createdAt: NOW,

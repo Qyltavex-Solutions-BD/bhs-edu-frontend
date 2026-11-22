@@ -196,7 +196,15 @@ export const schoolApi = createApi({
 
     updateAdmissionStatus: builder.mutation<
       OnlineAdmissionApplication,
-      { id: string; status: AdmissionApplicationStatus; sectionId?: string; roll?: number; academicYearId?: string }
+      {
+        id: string;
+        status: AdmissionApplicationStatus;
+        sectionId?: string;
+        roll?: number;
+        academicYearId?: string;
+        formSerialNo?: string;
+        verifiedDocuments?: Record<string, boolean>;
+      }
     >({
       query: (body) => ({ url: '/admin/admissions/status', method: 'POST', body }),
       invalidatesTags: ['Admissions', 'Students', 'Audit'],
@@ -310,7 +318,7 @@ export const schoolApi = createApi({
 
     createStudent: builder.mutation<unknown, Record<string, unknown>>({
       query: (body) => ({ url: '/students', method: 'POST', body }),
-      invalidatesTags: ['Students', 'Audit'],
+      invalidatesTags: ['Students', 'Admissions', 'Audit'],
     }),
 
     updateStudent: builder.mutation<Student, Partial<Student> & { id: string }>({
