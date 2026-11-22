@@ -263,8 +263,8 @@ export function ExamSeatPlanView() {
       </Card>
 
       {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
-        <div className="p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('মোট আসন ধারণক্ষমতা', 'Total Seating Capacity')}
           </p>
@@ -279,7 +279,7 @@ export function ExamSeatPlanView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('কনফিগারকৃত হল ও কক্ষ', 'Configured Hall Rooms')}
           </p>
@@ -294,7 +294,7 @@ export function ExamSeatPlanView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('হল পরিদর্শক শিক্ষক', 'Assigned Invigilators')}
           </p>
@@ -309,7 +309,7 @@ export function ExamSeatPlanView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('আসন বরাদ্দের স্থিতি', 'Seat Allocation Status')}
           </p>

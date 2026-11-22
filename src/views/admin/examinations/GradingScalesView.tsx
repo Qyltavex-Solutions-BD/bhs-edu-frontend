@@ -316,8 +316,8 @@ export function GradingScalesView() {
       </Card>
 
       {/* KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
-        <div className="p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('সর্বোচ্চ জিপিএ ও স্কেল', 'Max GPA & Scale')}
           </p>
@@ -330,7 +330,7 @@ export function GradingScalesView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('গ্রেড স্তর ও শতকরা বিস্তার', 'Grade Tiers & Range')}
           </p>
@@ -345,7 +345,7 @@ export function GradingScalesView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('৪র্থ বিষয় বোনাস সীমা', '4th Subj. Bonus Threshold')}
           </p>
@@ -361,7 +361,7 @@ export function GradingScalesView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('সংযুক্ত পরীক্ষা ও স্থিতি', 'Linked Exams & Status')}
           </p>

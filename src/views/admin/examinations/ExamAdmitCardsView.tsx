@@ -179,8 +179,8 @@ export function ExamAdmitCardsView() {
       />
 
       {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
-        <div className="p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('মোট পরীক্ষার্থী', 'Total Examinees')}
           </p>
@@ -195,7 +195,7 @@ export function ExamAdmitCardsView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('প্রবেশপত্র প্রস্তুতি স্থিতি', 'Admit Card Preparation')}
           </p>
@@ -210,7 +210,7 @@ export function ExamAdmitCardsView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('আসন নির্ধারিত শিক্ষার্থী', 'Seats Assigned')}
           </p>
@@ -225,7 +225,7 @@ export function ExamAdmitCardsView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('নির্বাচিত প্রিন্ট তালিকা', 'Selected for Print')}
           </p>
