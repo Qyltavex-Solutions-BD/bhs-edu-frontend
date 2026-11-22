@@ -1,10 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { toast } from 'sonner';
-import { CheckCircle2, ClipboardCheck, ExternalLink, FileEdit, Printer, UserPlus } from 'lucide-react';
+import {
+  CheckCircle2,
+  ClipboardCheck,
+  Clock,
+  ExternalLink,
+  FileEdit,
+  FileText,
+  Filter,
+  Printer,
+  RotateCcw,
+  UserPlus,
+  XCircle,
+} from 'lucide-react';
 import { useParams } from '@/src/lib/navigation';
 import {
   useGetBootstrapQuery,
@@ -14,13 +26,13 @@ import {
 import { useAcademicYearSelection } from '@/src/views/admin/AcademicFoundation';
 import { StudentsShell } from '@/src/views/admin/StudentsShell';
 import { useI18n } from '@/src/lib/i18n';
-import { formatDateShort } from '@/src/lib/formatters';
+import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Card, FormField, Input, Modal, Select } from '@/src/components/ui/primitives';
 import { PrintableAdmissionConfirmationSlip } from '@/src/components/print/PrintDocuments';
-import { triggerPrint } from '@/src/lib/utils/cn';
+import { cn, triggerPrint } from '@/src/lib/utils/cn';
 import type { MockDatabase } from '@/src/mocks/seed';
 import type { OnlineAdmissionApplication } from '@/src/types/proposed/future';
 import {
@@ -380,16 +392,57 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
     );
   }
 
-  const rows = db.onlineAdmissions.map((item) => {
-    const grp = db.academicGroups.find((g) => g.id === item.targetGroupId);
-    const typeKey = item.admissionType ?? (item.isReadmission ? 'READMISSION' : 'NEW');
-    return {
-      ...item,
-      classLabel: classLabel(db, item.targetClassId, locale) + (grp ? ` · ${locale === 'bn' ? grp.nameBn : grp.name}` : ''),
-      typeLabel: locale === 'bn' ? ADMISSION_TYPE_META[typeKey].bn : ADMISSION_TYPE_META[typeKey].en,
-      when: formatDateShort(item.submittedAt, locale),
-    };
-  });
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'ADMITTED' | 'REJECTED'>('ALL');
+  const [classFilter, setClassFilter] = useState<string>('ALL');
+
+  const totalCount = db.onlineAdmissions.length;
+  const pendingCount = db.onlineAdmissions.filter(
+    (item) => item.status === 'NEW' || item.status === 'UNDER_REVIEW'
+  ).length;
+  const admittedCount = db.onlineAdmissions.filter(
+    (item) => item.status === 'ADMITTED' || item.status === 'APPROVED'
+  ).length;
+  const rejectedCount = db.onlineAdmissions.filter(
+    (item) => item.status === 'REJECTED'
+  ).length;
+
+  const availableClasses = useMemo(() => {
+    return [...db.classes].sort((a, b) => a.numericValue - b.numericValue);
+  }, [db.classes]);
+
+  const rows = useMemo(() => {
+    return db.onlineAdmissions.map((item) => {
+      const grp = db.academicGroups.find((g) => g.id === item.targetGroupId);
+      const typeKey = item.admissionType ?? (item.isReadmission ? 'READMISSION' : 'NEW');
+      return {
+        ...item,
+        classLabel:
+          classLabel(db, item.targetClassId, locale) +
+          (grp ? ` · ${locale === 'bn' ? grp.nameBn : grp.name}` : ''),
+        typeLabel:
+          locale === 'bn' ? ADMISSION_TYPE_META[typeKey].bn : ADMISSION_TYPE_META[typeKey].en,
+        when: formatDateShort(item.submittedAt, locale),
+      };
+    });
+  }, [db, locale]);
+
+  const filteredRows = useMemo(() => {
+    return rows.filter((item) => {
+      if (statusFilter === 'PENDING') {
+        if (item.status !== 'NEW' && item.status !== 'UNDER_REVIEW') return false;
+      } else if (statusFilter === 'ADMITTED') {
+        if (item.status !== 'ADMITTED' && item.status !== 'APPROVED') return false;
+      } else if (statusFilter === 'REJECTED') {
+        if (item.status !== 'REJECTED') return false;
+      }
+
+      if (classFilter !== 'ALL' && item.targetClassId !== classFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [rows, statusFilter, classFilter]);
 
   const appClass = app ? db.classes.find((c) => c.id === app.targetClassId) : undefined;
   const appGroup = app ? db.academicGroups.find((g) => g.id === app.targetGroupId) : undefined;
@@ -403,10 +456,165 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
     : [];
 
   return (
-    <>
+    <div className="space-y-6">
+      {/* 1. Large KPI Summary Cards (Informational Display) */}
+      <Card className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden">
+        {/* Total Applications */}
+        <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">
+              {pick('মোট আবেদন', 'Total Applications')}
+            </span>
+            <FileText className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-bold tabular-nums text-foreground">
+              {formatNumber(totalCount, locale)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {pick('টি জমা', 'submitted')}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {pick('চলতি শিক্ষাবর্ষের সকল অনলাইন আবেদন', 'All online applications in current session')}
+          </p>
+        </div>
+
+        {/* Pending Review */}
+        <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-warning">
+              {pick('অপেক্ষমান আবেদন', 'Pending Review')}
+            </span>
+            <Clock className="w-4 h-4 text-warning" />
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-bold tabular-nums text-warning">
+              {formatNumber(pendingCount, locale)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {pick('টি যাচাই বাকি', 'pending action')}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {pick('যাচাই ও ভর্তি সম্পন্নকরণের অপেক্ষায়', 'Awaiting review and enrollment')}
+          </p>
+        </div>
+
+        {/* Admitted / Approved */}
+        <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-success">
+              {pick('ভর্তি সম্পন্ন ও অনুমোদিত', 'Admitted & Approved')}
+            </span>
+            <CheckCircle2 className="w-4 h-4 text-success" />
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-bold tabular-nums text-success">
+              {formatNumber(admittedCount, locale)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {pick('জন শিক্ষার্থী', 'students')}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {pick('শিক্ষার্থী ডিরেক্টরিতে রোল ও শাখা বরাদ্দকৃত', 'Enrolled with assigned roll and section')}
+          </p>
+        </div>
+
+        {/* Rejected */}
+        <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-destructive">
+              {pick('বাতিলকৃত আবেদন', 'Rejected')}
+            </span>
+            <XCircle className="w-4 h-4 text-destructive" />
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-bold tabular-nums text-destructive">
+              {formatNumber(rejectedCount, locale)}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {pick('টি আবেদন', 'applications')}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {pick('অসম্পূর্ণ বা ত্রুটিযুক্ত আবেদন', 'Incomplete or invalid applications')}
+          </p>
+        </div>
+      </Card>
+
+      {/* 2. Applications DataTable with Inline Status & Class Dropdowns */}
       <DataTable
-        data={rows}
+        data={filteredRows}
         exportFilename="admissions.csv"
+        toolbarExtra={
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'PENDING' | 'ADMITTED' | 'REJECTED')}
+              className="text-xs h-9 py-1 px-2.5 min-w-[130px] w-auto bg-surface"
+              aria-label={pick('আবেদনের অবস্থা নির্বাচন করুন', 'Select status')}
+            >
+              <option value="ALL">{pick('সকল অবস্থা', 'All Statuses')}</option>
+              <option value="PENDING">
+                {pick('অপেক্ষমান', 'Pending')} ({formatNumber(pendingCount, locale)})
+              </option>
+              <option value="ADMITTED">
+                {pick('ভর্তি সম্পন্ন', 'Admitted')} ({formatNumber(admittedCount, locale)})
+              </option>
+              <option value="REJECTED">
+                {pick('বাতিলকৃত', 'Rejected')} ({formatNumber(rejectedCount, locale)})
+              </option>
+            </Select>
+
+            <Select
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+              className="text-xs h-9 py-1 px-2.5 min-w-[125px] w-auto bg-surface"
+              aria-label={pick('শ্রেণি নির্বাচন করুন', 'Select class')}
+            >
+              <option value="ALL">{pick('সকল শ্রেণি', 'All Classes')}</option>
+              {availableClasses.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {locale === 'bn' ? cls.nameBn || cls.name : cls.name}
+                </option>
+              ))}
+            </Select>
+
+            {(statusFilter !== 'ALL' || classFilter !== 'ALL') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setStatusFilter('ALL');
+                  setClassFilter('ALL');
+                }}
+                className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
+                title={pick('ফিল্টার রিসেট করুন', 'Reset filter')}
+              >
+                <RotateCcw className="w-3.5 h-3.5 mr-1" />
+                {pick('রিসেট', 'Reset')}
+              </Button>
+            )}
+          </div>
+        }
+        emptyTitle={pick('নির্বাচিত ফিল্টারে কোনো আবেদন পাওয়া যায়নি।', 'No applications found matching the selected filter.')}
+        emptyAction={
+          statusFilter !== 'ALL' || classFilter !== 'ALL' ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setStatusFilter('ALL');
+                setClassFilter('ALL');
+              }}
+            >
+              <RotateCcw className="w-3.5 h-3.5 mr-1" />
+              {pick('ফিল্টার রিসেট করুন', 'Reset filter')}
+            </Button>
+          ) : undefined
+        }
         columns={[
           { accessorKey: 'applicationNumber', header: pick('আবেদন নং', 'Application'), cell: ({ row }) => <span className="font-mono text-sm tabular-nums">{row.original.applicationNumber}</span> },
           {
@@ -615,7 +823,7 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
           </div>
         )}
       </Modal>
-    </>
+    </div>
   );
 }
 
