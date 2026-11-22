@@ -337,7 +337,7 @@ export function PrintableAdmissionAdmitCard({
 }
 
 /**
- * Subtle highlighted inline token for dynamic student/certificate data inside formal prose.
+ * Bold inline token for dynamic student/certificate data inside formal prose.
  */
 function CertField({
   children,
@@ -348,7 +348,7 @@ function CertField({
 }) {
   return (
     <span
-      className={`font-bold text-[#09090B] bg-[#F4F4F5] px-1.5 py-[1px] rounded-[2px] border-b border-dotted border-[#52525B] ${
+      className={`font-bold text-[#09090B] px-0.5 border-b border-dotted border-[#52525B] ${
         mono ? 'font-mono tabular-nums' : ''
       }`}
     >
@@ -413,9 +413,6 @@ function FormalCertificateShell({
                   <SchoolEmblem size={68} className="ring-0 bg-transparent p-0" />
                 </div>
                 <div className="space-y-0.5">
-                  <p className="text-[11px] tracking-[0.14em] uppercase text-[#52525B] font-medium">
-                    {pick('গণপ্রজাতন্ত্রী বাংলাদেশ সরকার অনুমোদিত', 'Government Approved Secondary Institution')}
-                  </p>
                   <h1 className="text-2xl sm:text-[26px] font-bold tracking-tight text-[#111111] leading-tight">
                     {school.name}
                   </h1>
@@ -426,8 +423,6 @@ function FormalCertificateShell({
                   <p className="text-[11px] text-[#52525B] tabular-nums">
                     EIIN: {school.eiin ?? '113587'} ·{' '}
                     {pick('স্থাপিত:', 'Est.')} {formatNumber(school.establishedYear ?? 1978, locale)}
-                    {school.schoolCode ? ` · ${pick('বিদ্যালয় কোড:', 'Code:')} ${school.schoolCode}` : ''}
-                    {school.phone ? ` · ${school.phone}` : ''}
                   </p>
                 </div>
               </div>

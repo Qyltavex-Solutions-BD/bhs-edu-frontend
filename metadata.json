@@ -1,6 +1,6 @@
 {
-  "name": "Bijhari Upashi T.P. High School — School Management Platform",
-  "description": "Comprehensive School Management System and Digital Education Platform for Bijhari Upashi T.P. High School (Est. 1898, EIIN 113585), featuring a public school website, Admin Dashboard, Teacher Portal, Parent Portal, and Student Portal.",
+  "name": "ভোজেশ্বর উচ্চ বিদ্যালয় | Bhojeshwar High School (BHS)",
+  "description": "ভোজেশ্বর উচ্চ বিদ্যালয় (স্থাপিত ১৯৭৮, EIIN: 113587), ভোজেশ্বর, নড়িয়া, শরীয়তপুর — আধুনিক স্কুল ম্যানেজমেন্ট ও ডিজিটাল শিক্ষা প্ল্যাটফর্ম।",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
