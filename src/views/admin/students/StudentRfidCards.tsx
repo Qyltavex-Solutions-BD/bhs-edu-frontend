@@ -648,8 +648,8 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
         </div>
 
         <div className="p-4 space-y-3">
-          <div className="flex flex-col xl:flex-row xl:items-center gap-2.5">
-            <div className="relative flex-1 min-w-[240px]">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="relative w-full lg:max-w-xs shrink-0">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <Input
                 value={searchQuery}
@@ -657,15 +657,15 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                 placeholder={
                   activeTab === 'registry'
                     ? pick(
-                        'কার্ড নম্বর, শিক্ষার্থীর নাম বা আইডি খুঁজুন...',
-                        'Search card number, student name, or ID...'
+                        'কার্ড নং, নাম বা আইডি খুঁজুন...',
+                        'Search card no, name, or ID...'
                       )
                     : pick(
-                        'শিক্ষার্থীর নাম, আইডি বা রোল খুঁজুন...',
-                        'Search student name, ID, or roll...'
+                        'নাম, আইডি বা রোল খুঁজুন...',
+                        'Search name, ID, or roll...'
                       )
                 }
-                className="pl-9 pr-9 h-9 text-sm"
+                className="pl-9 pr-9 h-9 text-sm w-full"
               />
               {searchQuery && (
                 <button
@@ -683,7 +683,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
               <Select
                 value={classId}
                 onChange={(e) => setClassId(e.target.value)}
-                className="w-36 h-9 text-sm"
+                className="w-auto min-w-[130px] h-9 text-sm"
                 aria-label={pick('শ্রেণি', 'Class')}
               >
                 <option value="ALL">{pick('সকল শ্রেণি', 'All classes')}</option>
@@ -698,7 +698,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                 <Select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value as 'ALL' | CardStatus)}
-                  className="w-36 h-9 text-sm"
+                  className="w-auto min-w-[130px] h-9 text-sm"
                   aria-label={pick('কার্ডের অবস্থা', 'Card status')}
                 >
                   <option value="ALL">{pick('সকল অবস্থা', 'All statuses')}</option>

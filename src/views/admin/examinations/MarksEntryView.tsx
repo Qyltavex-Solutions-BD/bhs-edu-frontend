@@ -35,7 +35,7 @@ import {
   formatNumber,
   type ComponentFailReason,
 } from '@/src/lib/formatters';
-import { exportToCsv } from '@/src/lib/utils/cn';
+import { cn, exportToCsv } from '@/src/lib/utils/cn';
 import { ResultPublicationStatus } from '@/src/types/enums';
 
 interface DraftMarkRow {
@@ -417,6 +417,52 @@ export function MarksEntryView() {
     ? db.subjects.find((s) => s.id === activeExamSubject.subjectId)
     : null;
 
+  const kpis = useMemo(() => {
+    let enteredCount = 0;
+    let absentCount = 0;
+    let passedCount = 0;
+    let failedCount = 0;
+
+    targetEnrollments.forEach((enr) => {
+      const row = getRow(enr.id);
+      const isEntered =
+        row.isAbsent || row.written > 0 || row.mcq > 0 || row.practical > 0 || row.ca > 0;
+      if (isEntered) {
+        enteredCount++;
+      }
+      if (row.isAbsent) {
+        absentCount++;
+        failedCount++;
+      } else if (activeExamSubject && scaleRanges.length > 0) {
+        const ev = evaluateExamSubjectMark(
+          {
+            writtenMarks: row.written,
+            mcqMarks: row.mcq,
+            practicalMarks: row.practical,
+            continuousAssessmentMarks: row.ca,
+            isAbsent: row.isAbsent,
+          },
+          activeExamSubject,
+          scaleRanges
+        );
+        if (ev.isPassed) passedCount++;
+        else failedCount++;
+      }
+    });
+
+    const total = targetEnrollments.length;
+    const progressPct = total > 0 ? Math.round((enteredCount / total) * 100) : 0;
+
+    return {
+      total,
+      enteredCount,
+      absentCount,
+      passedCount,
+      failedCount,
+      progressPct,
+    };
+  }, [targetEnrollments, drafts, db, resolvedSubjectId, activeExamSubject, scaleRanges]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -459,8 +505,8 @@ export function MarksEntryView() {
       />
 
       {/* Selection Toolbar */}
-      <Card className="p-4 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-        <div className="md:col-span-4">
+      <Card className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+        <div className="sm:col-span-1 lg:col-span-4">
           <label className="block text-xs text-muted-foreground mb-1">{pick('পরীক্ষা নির্বাচন করুন', 'Examination')}</label>
           <Select value={resolvedExamId} onChange={(e) => requestSwitch('exam', e.target.value)}>
             {activeExams.map((ex) => (
@@ -471,7 +517,7 @@ export function MarksEntryView() {
           </Select>
         </div>
 
-        <div className="md:col-span-4">
+        <div className="sm:col-span-1 lg:col-span-4">
           <label className="block text-xs text-muted-foreground mb-1">{pick('বিষয় নির্বাচন করুন', 'Subject')}</label>
           <Select value={resolvedSubjectId} onChange={(e) => requestSwitch('subject', e.target.value)}>
             {examSubjects.map((es) => {
@@ -487,7 +533,7 @@ export function MarksEntryView() {
           </Select>
         </div>
 
-        <div className="md:col-span-2">
+        <div className="sm:col-span-1 lg:col-span-2">
           <label className="block text-xs text-muted-foreground mb-1">{pick('শাখা', 'Section')}</label>
           <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
             <option value="ALL">{pick('সকল শাখা', 'All')}</option>
@@ -499,7 +545,7 @@ export function MarksEntryView() {
           </Select>
         </div>
 
-        <div className="md:col-span-2 relative">
+        <div className="sm:col-span-1 lg:col-span-2 relative">
           <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
           <Input
             value={search}
@@ -509,6 +555,92 @@ export function MarksEntryView() {
           />
         </div>
       </Card>
+
+      {/* KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('মোট পরীক্ষার্থী ও বিষয়', 'Total Examinees & Subject')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {formatNumber(kpis.total, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground truncate">
+            {activeExamSubject
+              ? `${pick('পূর্ণমান', 'Full')}: ${formatNumber(activeExamSubject.fullMarks, locale)} | ${activeSubjectMeta?.officialCode ?? ''}`
+              : pick('বিষয় নির্বাচিত হয়নি', 'No subject selected')}
+          </p>
+        </div>
+
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('এন্ট্রি অগ্রগতি', 'Entry Progress')}
+          </p>
+          <p
+            className={cn(
+              'mt-1 text-2xl font-bold tabular-nums',
+              kpis.progressPct === 100
+                ? 'text-success'
+                : kpis.progressPct > 0
+                  ? 'text-primary'
+                  : 'text-muted-foreground'
+            )}
+          >
+            {formatNumber(kpis.progressPct, locale)}%
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `${formatNumber(kpis.enteredCount, locale)} / ${formatNumber(kpis.total, locale)} জনের নম্বর এন্ট্রি`,
+              `${kpis.enteredCount} of ${kpis.total} marks recorded`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('উপস্থিতি ও অনুপস্থিতি', 'Attendance & Absent')}
+          </p>
+          <p
+            className={cn(
+              'mt-1 text-2xl font-bold tabular-nums',
+              kpis.absentCount > 0 ? 'text-destructive' : 'text-foreground'
+            )}
+          >
+            {formatNumber(kpis.absentCount, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('অনুপস্থিত', 'absent')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `উপস্থিত: ${formatNumber(kpis.total - kpis.absentCount, locale)} জন (${formatNumber(kpis.total > 0 ? Math.round(((kpis.total - kpis.absentCount) / kpis.total) * 100) : 0, locale)}%)`,
+              `Present: ${kpis.total - kpis.absentCount} (${kpis.total > 0 ? Math.round(((kpis.total - kpis.absentCount) / kpis.total) * 100) : 0}%)`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('প্রাথমিক মূল্যায়ন (উত্তীর্ণ / ব্যর্থ)', 'Pass / Component Fail')}
+          </p>
+          <p
+            className={cn(
+              'mt-1 text-2xl font-bold tabular-nums',
+              kpis.failedCount > 0 ? 'text-warning' : 'text-success'
+            )}
+          >
+            {formatNumber(kpis.passedCount, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('পাস', 'passed')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums truncate">
+            {kpis.failedCount > 0
+              ? pick(
+                  `${formatNumber(kpis.failedCount, locale)} জন উপাংশে অকৃতকার্য`,
+                  `${kpis.failedCount} component failed`
+                )
+              : pick('সকল মূল্যায়নকৃত শিক্ষার্থী উত্তীর্ণ', 'All evaluated passed')}
+          </p>
+        </div>
+      </div>
 
       {/* Lock / Deadline Notice Banner */}
       {isLocked && activeExam && (
@@ -585,7 +717,7 @@ export function MarksEntryView() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-xs tabular-nums">
                 <tr>
                   <th className="px-3 py-2.5 text-center w-14">{pick('রোল', 'Roll')}</th>

@@ -17,13 +17,12 @@ import {
 } from '@/src/store/api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
-import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
+import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { ExamType, ResultStatus } from '@/src/types/enums';
 import {
   EmptyState,
   LoadingSkeleton,
   PageHeader,
-  StatCard,
 } from '@/src/components/shared/Feedback';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import {
@@ -397,8 +396,8 @@ export function ConsolidatedResultsView() {
 
       {/* Selector & Filter Bar */}
       <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          <div className="md:col-span-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+          <div className="sm:col-span-2 lg:col-span-5">
             <FormField label={pick('সমন্বিত পরীক্ষা নির্বাচন করুন', 'Select Consolidated Examination')}>
               <Select
                 value={activeExamId}
@@ -422,7 +421,7 @@ export function ConsolidatedResultsView() {
               </Select>
             </FormField>
           </div>
-          <div className="md:col-span-3">
+          <div className="sm:col-span-1 lg:col-span-3">
             <FormField label={pick('শাখা ফিল্টার', 'Filter Section')}>
               <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
                 <option value="ALL">{pick('সকল শাখা', 'All Sections')}</option>
@@ -434,7 +433,7 @@ export function ConsolidatedResultsView() {
               </Select>
             </FormField>
           </div>
-          <div className="md:col-span-4">
+          <div className="sm:col-span-1 lg:col-span-4">
             <FormField label={pick('শিক্ষার্থী খুঁজুন', 'Search Student')}>
               <div className="relative">
                 <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -488,35 +487,79 @@ export function ConsolidatedResultsView() {
         )}
       </Card>
 
-      {/* KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label={pick('মোট তালিকাভুক্ত শিক্ষার্থী', 'Enrolled Students')}
-          value={formatNumber(stats.total, locale)}
-        />
-        <StatCard
-          label={pick('সমন্বিত উত্তীর্ণ', 'Consolidated Passed')}
-          value={`${formatNumber(stats.passed, locale)} (${formatNumber(stats.passRate, locale)}%)`}
-          accent="success"
-        />
-        <StatCard
-          label={pick('চূড়ান্ত জিপিএ ৫.০০', 'Final GPA 5.00')}
-          value={formatNumber(stats.gpa5, locale)}
-          accent="primary"
-        />
-        <StatCard
-          label={pick('অসম্পূর্ণ / অনুত্তীর্ণ', 'Incomplete / Failed')}
-          value={formatNumber(stats.total - stats.passed, locale)}
-          accent={stats.total - stats.passed > 0 ? 'destructive' : 'default'}
-          meta={
-            stats.incomplete > 0
+      {/* 4-Column Hairline-Divided KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('মোট তালিকাভুক্ত শিক্ষার্থী', 'Enrolled Students')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {formatNumber(stats.total, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums truncate">
+            {selectedExam ? selectedExam.name : pick('কনফিগারেশন নির্বাচন করুন', 'Select configuration')}
+          </p>
+        </div>
+
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('সমন্বিত উত্তীর্ণ ও পাসের হার', 'Consolidated Passed & Rate')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-success">
+            {formatNumber(stats.passed, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">({formatNumber(stats.passRate, locale)}%)</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `উত্তীর্ণ ${formatNumber(stats.passed, 'bn')} · অনুত্তীর্ণ ${formatNumber(stats.total - stats.passed, 'bn')}`,
+              `Passed ${stats.passed} · Failed ${stats.total - stats.passed}`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('চূড়ান্ত জিপিএ ৫.০০', 'Final GPA 5.00')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+            {formatNumber(stats.gpa5, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {stats.total > 0
               ? pick(
-                  `এর মধ্যে ${formatNumber(stats.incomplete, locale)} জনের উৎস পরীক্ষার ফলাফল অসম্পূর্ণ`,
-                  `${formatNumber(stats.incomplete, locale)} missing a source exam result`
+                  `মোট শিক্ষার্থীর ${formatNumber(Math.round((stats.gpa5 / stats.total) * 100), locale)}%`,
+                  `${Math.round((stats.gpa5 / stats.total) * 100)}% of total`
                 )
-              : undefined
-          }
-        />
+              : pick('কোনো ফলাফল নেই', 'No results')}
+          </p>
+        </div>
+
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('অসম্পূর্ণ / অনুত্তীর্ণ', 'Incomplete / Failed')}
+          </p>
+          <p
+            className={cn(
+              'mt-1 text-2xl font-bold tabular-nums',
+              stats.total - stats.passed > 0 ? 'text-destructive' : 'text-foreground'
+            )}
+          >
+            {formatNumber(stats.total - stats.passed, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums truncate">
+            {stats.incomplete > 0
+              ? pick(
+                  `${formatNumber(stats.incomplete, locale)} জনের উৎস পরীক্ষার ফল অসম্পূর্ণ`,
+                  `${stats.incomplete} missing source result`
+                )
+              : stats.total - stats.passed > 0
+                ? pick('সমন্বিত মূল্যায়নে অনুত্তীর্ণ', 'Failed in combined assessment')
+                : pick('সকল শিক্ষার্থী উত্তীর্ণ', 'All students passed')}
+          </p>
+        </div>
       </div>
 
       {/* Main Consolidated Table */}
@@ -562,7 +605,7 @@ export function ConsolidatedResultsView() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface-muted/70 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <th className="px-4 py-3 text-center w-16">{pick('মেধা', 'Merit')}</th>

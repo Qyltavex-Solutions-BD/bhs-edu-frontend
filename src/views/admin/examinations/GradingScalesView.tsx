@@ -28,6 +28,7 @@ import {
 } from '@/src/components/shared/Feedback';
 import { Button, Card, Input, Modal, Select } from '@/src/components/ui/primitives';
 import { calculateOverallGpa, formatNumber } from '@/src/lib/formatters';
+import { cn } from '@/src/lib/utils/cn';
 import type { GradeRange, GradingScale } from '@/src/types/entities';
 
 export function GradingScalesView() {
@@ -82,6 +83,11 @@ export function GradingScalesView() {
     return db.gradeRanges
       .filter((r) => r.gradingScaleId === activeScale.id && !r.isDeleted)
       .sort((a, b) => b.minPercentage - a.minPercentage);
+  }, [db, activeScale]);
+
+  const linkedExams = useMemo(() => {
+    if (!db || !activeScale) return [];
+    return db.exams.filter((e) => e.gradingScaleId === activeScale.id && !e.isDeleted);
   }, [db, activeScale]);
 
   // Check range overlaps or missing coverage
@@ -296,21 +302,6 @@ export function GradingScalesView() {
               <p className="text-xs text-muted-foreground">{activeScale.description}</p>
             )}
           </div>
-
-          <div className="grid grid-cols-2 gap-4 text-sm tabular-nums border border-border rounded-[var(--radius)] px-4 py-3 bg-surface-muted/40">
-            <div>
-              <p className="text-xs text-muted-foreground">{pick('সর্বোচ্চ GPA', 'Max GPA')}</p>
-              <p className="text-lg font-bold text-primary">
-                {formatNumber(activeScale.maxGpa, locale, 2)}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">{pick('৪র্থ বিষয় বোনাস সীমা', '4th Subj. Threshold')}</p>
-              <p className="text-lg font-bold text-foreground">
-                &gt; {formatNumber(activeScale.optionalBonusThreshold ?? 2.0, locale, 2)} GP
-              </p>
-            </div>
-          </div>
         </div>
 
         <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
@@ -323,6 +314,75 @@ export function GradingScalesView() {
           </span>
         </div>
       </Card>
+
+      {/* KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('সর্বোচ্চ জিপিএ ও স্কেল', 'Max GPA & Scale')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+            GPA {formatNumber(activeScale.maxGpa, locale, 2)}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground truncate">
+            {activeScale.name}
+            {activeScale.isDefault ? ` (${pick('ডিফল্ট', 'Default')})` : ''}
+          </p>
+        </div>
+
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('গ্রেড স্তর ও শতকরা বিস্তার', 'Grade Tiers & Range')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {formatNumber(ranges.length, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('টি স্তর', 'tiers')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums truncate">
+            {ranges.length > 0
+              ? `${ranges[0].letterGrade} (${formatNumber(ranges[0].minPercentage, locale)}%) ${pick('থেকে', 'to')} ${ranges[ranges.length - 1].letterGrade}`
+              : pick('কোনো রেঞ্জ নেই', 'No ranges')}
+          </p>
+        </div>
+
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('৪র্থ বিষয় বোনাস সীমা', '4th Subj. Bonus Threshold')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            &gt; {formatNumber(activeScale.optionalBonusThreshold ?? 2.0, locale, 2)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">GP</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground truncate">
+            {pick(
+              `অতিরিক্ত পয়েন্ট যোগ (সর্বোচ্চ ${formatNumber(activeScale.maxGpa, locale, 2)})`,
+              `Surplus GP added (Cap ${activeScale.maxGpa})`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('সংযুক্ত পরীক্ষা ও স্থিতি', 'Linked Exams & Status')}
+          </p>
+          <p
+            className={cn(
+              'mt-1 text-2xl font-bold tabular-nums',
+              activeScale.isDeleted ? 'text-destructive' : 'text-success'
+            )}
+          >
+            {formatNumber(linkedExams.length, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('টি পরীক্ষা', 'exams')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground truncate">
+            {activeScale.isDeleted
+              ? pick('আর্কাইভকৃত স্কেল', 'Archived')
+              : activeScale.isSystemDefault
+                ? pick('সিস্টেম জাতীয় মানদণ্ড', 'National Standard')
+                : pick('কাস্টম স্কেল', 'Custom Scale')}
+          </p>
+        </div>
+      </div>
 
       {/* Range Overlap / Gap Warnings */}
       {rangeWarnings.length > 0 && (

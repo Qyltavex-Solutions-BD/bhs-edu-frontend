@@ -371,8 +371,8 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
   return (
     <div className="space-y-5">
       {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
-        <div className="p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('শাখার উপস্থিতির হার', 'Section Attendance Rate')}
           </p>
@@ -387,7 +387,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('অনুপস্থিত ও ছুটি', 'Absent & Leave')}
           </p>
@@ -402,7 +402,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('অচিহ্নিত / অপেক্ষমাণ', 'Unmarked / Pending')}
           </p>
@@ -416,7 +416,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('বিদ্যালয়ব্যাপী সম্পন্ন শাখা', 'School Sections Marked')}
           </p>

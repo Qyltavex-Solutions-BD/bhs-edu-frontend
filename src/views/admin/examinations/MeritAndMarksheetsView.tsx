@@ -15,13 +15,12 @@ import { toast } from 'sonner';
 import { useGetBootstrapQuery, useSaveResultRemarkMutation } from '@/src/store/api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
-import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
+import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { ExamType, ResultStatus } from '@/src/types/enums';
 import {
   EmptyState,
   LoadingSkeleton,
   PageHeader,
-  StatCard,
 } from '@/src/components/shared/Feedback';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import {
@@ -368,8 +367,8 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
 
       {/* Exam & Filter Toolbar */}
       <Card className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          <div className="md:col-span-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+          <div className="sm:col-span-2 lg:col-span-4">
             <FormField label={pick('পরীক্ষা নির্বাচন করুন', 'Select Examination')}>
               <Select
                 value={activeExamId}
@@ -391,7 +390,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
             </FormField>
           </div>
 
-          <div className="md:col-span-2">
+          <div className="sm:col-span-1 lg:col-span-2">
             <FormField label={pick('শাখা', 'Section')}>
               <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
                 <option value="ALL">{pick('সকল শাখা', 'All Sections')}</option>
@@ -405,7 +404,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           </div>
 
           {classGroups.length > 0 && (
-            <div className="md:col-span-2">
+            <div className="sm:col-span-1 lg:col-span-2">
               <FormField label={pick('বিভাগ (Group)', 'Academic Group')}>
                 <Select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
                   <option value="ALL">{pick('সকল বিভাগ', 'All Groups')}</option>
@@ -419,7 +418,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
             </div>
           )}
 
-          <div className="md:col-span-2">
+          <div className="sm:col-span-1 lg:col-span-2">
             <FormField label={pick('ফলাফলের অবস্থা', 'Result Status')}>
               <Select
                 value={statusFilter}
@@ -432,7 +431,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
             </FormField>
           </div>
 
-          <div className={classGroups.length > 0 ? 'md:col-span-2' : 'md:col-span-4'}>
+          <div className={classGroups.length > 0 ? 'sm:col-span-1 lg:col-span-2' : 'sm:col-span-2 lg:col-span-4'}>
             <FormField label={pick('খুঁজুন (নাম / রোল / আইডি)', 'Search (Name / Roll / ID)')}>
               <div className="relative">
                 <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -448,28 +447,77 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
         </div>
       </Card>
 
-      {/* KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label={pick('মোট ফলাফল (ফিল্টারকৃত)', 'Filtered Examinees')}
-          value={formatNumber(stats.total, locale)}
-          meta={activeSectionLabel}
-        />
-        <StatCard
-          label={pick('উত্তীর্ণ ও পাসের হার', 'Passed & Pass Rate')}
-          value={`${formatNumber(stats.passed, locale)} (${formatNumber(stats.passRate, locale)}%)`}
-          accent="success"
-        />
-        <StatCard
-          label={pick('জিপিএ ৫.০০ (A+)', 'GPA 5.00 (A+)')}
-          value={formatNumber(stats.gpa5, locale)}
-          accent="primary"
-        />
-        <StatCard
-          label={pick('অনুত্তীর্ণ শিক্ষার্থী', 'Failed Examinees')}
-          value={formatNumber(stats.failed, locale)}
-          accent={stats.failed > 0 ? 'destructive' : 'default'}
-        />
+      {/* 4-Column Hairline-Divided KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('মোট ফলাফল (ফিল্টারকৃত)', 'Filtered Examinees')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+            {formatNumber(stats.total, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums truncate">
+            {activeSectionLabel}
+          </p>
+        </div>
+
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('উত্তীর্ণ ও পাসের হার', 'Passed & Pass Rate')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-success">
+            {formatNumber(stats.passed, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">({formatNumber(stats.passRate, locale)}%)</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {pick(
+              `উত্তীর্ণ ${formatNumber(stats.passed, 'bn')} · অনুত্তীর্ণ ${formatNumber(stats.failed, 'bn')}`,
+              `Passed ${stats.passed} · Failed ${stats.failed}`
+            )}
+          </p>
+        </div>
+
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('জিপিএ ৫.০০ (A+)', 'GPA 5.00 (A+)')}
+          </p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+            {formatNumber(stats.gpa5, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {stats.total > 0
+              ? pick(
+                  `মোট পরীক্ষার্থীর ${formatNumber(Math.round((stats.gpa5 / stats.total) * 100), locale)}%`,
+                  `${Math.round((stats.gpa5 / stats.total) * 100)}% of total`
+                )
+              : pick('কোনো ফলাফল নেই', 'No results')}
+          </p>
+        </div>
+
+        <div className="p-4 bg-surface">
+          <p className="text-xs font-medium text-muted-foreground">
+            {pick('অনুত্তীর্ণ শিক্ষার্থী', 'Failed Examinees')}
+          </p>
+          <p
+            className={cn(
+              'mt-1 text-2xl font-bold tabular-nums',
+              stats.failed > 0 ? 'text-destructive' : 'text-foreground'
+            )}
+          >
+            {formatNumber(stats.failed, locale)}{' '}
+            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+            {stats.failed > 0
+              ? pick(
+                  `ফেলের হার: ${formatNumber(stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0, locale)}%`,
+                  `Failure rate: ${stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0}%`
+                )
+              : pick('শতভাগ পাস অর্জিত', '100% pass achieved')}
+          </p>
+        </div>
       </div>
 
       {/* Main Merit List Table */}
@@ -503,7 +551,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-surface-muted/70 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   <th className="px-4 py-3 text-center w-20">{pick('শ্রেণি মেধা', 'Class Merit')}</th>

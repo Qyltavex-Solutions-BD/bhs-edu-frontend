@@ -451,17 +451,17 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
 
       {/* 2. Unified Search, Filter & Action Toolbar */}
       <Card className="p-4 space-y-3">
-        <div className="flex flex-col xl:flex-row xl:items-center gap-2.5">
-          <div className="relative flex-1 min-w-[240px]">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="relative w-full lg:max-w-xs shrink-0">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={pick(
-                'টিসি নম্বর, শিক্ষার্থীর নাম, আইডি, শ্রেণি বা গন্তব্য বিদ্যালয় খুঁজুন...',
-                'Search TC number, student name, ID, class, or destination school...'
+                'টিসি নম্বর, নাম বা আইডি খুঁজুন...',
+                'Search TC number, name, or ID...'
               )}
-              className="pl-9 pr-9 h-9 text-sm"
+              className="pl-9 pr-9 h-9 text-sm w-full"
             />
             {searchQuery && (
               <button
@@ -479,7 +479,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
             <Select
               value={duesFilter}
               onChange={(e) => setDuesFilter(e.target.value as 'ALL' | 'CLEARED' | 'PENDING')}
-              className="w-36 h-9 text-sm"
+              className="w-auto min-w-[155px] h-9 text-sm"
               aria-label={pick('বকেয়া অবস্থা', 'Dues status')}
             >
               <option value="ALL">{pick('সকল বকেয়া অবস্থা', 'All dues status')}</option>
@@ -490,7 +490,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
             <Select
               value={promotionFilter}
               onChange={(e) => setPromotionFilter(e.target.value as 'ALL' | 'PROMOTED' | 'MID')}
-              className="w-40 h-9 text-sm"
+              className="w-auto min-w-[155px] h-9 text-sm"
               aria-label={pick('উত্তরণ অবস্থা', 'Promotion status')}
             >
               <option value="ALL">{pick('সকল ত্যাগ ধরন', 'All leaving types')}</option>
