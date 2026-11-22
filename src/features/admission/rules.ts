@@ -15,8 +15,10 @@ export interface ClassAdmissionRule {
   defaultAdmissionType: AdmissionType;
   requiresParentNid: boolean;
   showStudentPhone: boolean;
-  minAge: number;
-  maxAge: number;
+  showPreviousSchoolEiin: boolean;
+  showPreviousGpa: boolean;
+  typicalMinAge: number;
+  typicalMaxAge: number;
   defaultPreviousClassBn: string;
   defaultPreviousClassEn: string;
   previousSchoolLabelBn: string;
@@ -54,8 +56,31 @@ export function cleanNumericInput(value: string, maxLength?: number): string {
   return maxLength ? digits.slice(0, maxLength) : digits;
 }
 
+export function cleanDecimalInput(value: string, maxLength = 4): string {
+  const normalized = normalizeDigits(value).replace(/[^0-9.]/g, '');
+  const parts = normalized.split('.');
+  const rebuilt = parts.length > 1 ? `${parts[0]}.${parts.slice(1).join('')}` : normalized;
+  return rebuilt.slice(0, maxLength);
+}
+
 export function toBlockLetters(value: string): string {
   return value.toUpperCase();
+}
+
+/**
+ * Official Bangladesh NCTB / Education Board 5.00 GPA-to-Letter-Grade conversion.
+ */
+export function gpaToLetterGrade(gpaRaw?: string | number | null): string {
+  if (gpaRaw === undefined || gpaRaw === null || String(gpaRaw).trim() === '') return '';
+  const num = Number(normalizeDigits(String(gpaRaw).trim()));
+  if (Number.isNaN(num) || num < 0 || num > 5) return '';
+  if (num >= 5.0) return 'A+';
+  if (num >= 4.0) return 'A';
+  if (num >= 3.5) return 'A-';
+  if (num >= 3.0) return 'B';
+  if (num >= 2.0) return 'C';
+  if (num >= 1.0) return 'D';
+  return 'F';
 }
 
 export const BD_PHONE_REGEX = /^01[3-9]\d{8}$/;
@@ -81,25 +106,25 @@ export const ADMISSION_TYPE_META: Record<
   NEW: {
     bn: 'নতুন ভর্তি',
     en: 'New Admission',
-    descBn: 'প্রাথমিক বা পূর্ববর্তী স্তর উত্তীর্ণ হয়ে নতুন ভর্তি',
-    descEn: 'Fresh admission after completing previous class',
+    descBn: 'পূর্ববর্তী শ্রেণি উত্তীর্ণ হয়ে ভর্তি',
+    descEn: 'Fresh admission after passing previous class',
   },
   TRANSFER: {
-    bn: 'বদলি (TC / e-TC)',
-    en: 'Transfer (TC / e-TC)',
-    descBn: 'অন্য মাধ্যমিক বিদ্যালয় থেকে ছাড়পত্রসহ ভর্তি',
-    descEn: 'Transfer from another secondary school with TC',
+    bn: 'বদলি ভর্তি (TC / e-TC)',
+    en: 'Transfer Admission (TC / e-TC)',
+    descBn: 'অন্য বিদ্যালয়ের ছাড়পত্রসহ ভর্তি',
+    descEn: 'Transfer from another school with TC',
   },
   READMISSION: {
     bn: 'পুনঃভর্তি',
     en: 'Re-admission',
-    descBn: 'অত্র বিদ্যালয়ের পূর্ববর্তী শিক্ষার্থীর পুনঃভর্তি',
-    descEn: 'Re-admission for a returning student of this school',
+    descBn: 'অত্র বিদ্যালয়ের পূর্ববর্তী শিক্ষার্থী',
+    descEn: 'Returning student of this school',
   },
 };
 
 /**
- * Single Source of Truth for Bangladeshi Secondary School (Classes 6-10) admission rules.
+ * Single Source of Truth for Bangladeshi Secondary School (Classes 6–10) admission rules.
  * Grounded in DSHE guidelines, Education Board eSIF (Class 9) & e-TC (Class 10) policies.
  */
 export function getClassAdmissionRules(numericClass: number): ClassAdmissionRule {
@@ -115,16 +140,18 @@ export function getClassAdmissionRules(numericClass: number): ClassAdmissionRule
       defaultAdmissionType: 'NEW',
       requiresParentNid: false,
       showStudentPhone: false,
-      minAge: 9,
-      maxAge: 15,
+      showPreviousSchoolEiin: false,
+      showPreviousGpa: false,
+      typicalMinAge: 10,
+      typicalMaxAge: 14,
       defaultPreviousClassBn: '৫ম শ্রেণি',
       defaultPreviousClassEn: 'Class 5',
-      previousSchoolLabelBn: 'পূর্ববর্তী প্রাথমিক বিদ্যালয়ের নাম',
-      previousSchoolLabelEn: 'Previous Primary School Name',
+      previousSchoolLabelBn: '৫ম শ্রেণি উত্তীর্ণ প্রাথমিক বিদ্যালয়ের নাম',
+      previousSchoolLabelEn: 'Primary School Attended (Class 5)',
       policyNoteBn:
-        '৬ষ্ঠ শ্রেণিতে ভর্তির জন্য ৫ম শ্রেণি উত্তীর্ণ প্রত্যয়নপত্র ও ১৭ ডিজিটের অনলাইন জন্ম নিবন্ধন আবশ্যক।',
+        '৬ষ্ঠ শ্রেণি: ৫ম শ্রেণি উত্তীর্ণ প্রত্যয়নপত্র ও ১৭ ডিজিটের অনলাইন জন্ম নিবন্ধন সনদ প্রযোজ্য।',
       policyNoteEn:
-        'Class 6 admission requires Class 5 completion proof and a 17-digit online Birth Registration Certificate.',
+        'Class 6: Class 5 completion proof and 17-digit online Birth Registration Certificate apply.',
     };
   }
 
@@ -142,14 +169,16 @@ export function getClassAdmissionRules(numericClass: number): ClassAdmissionRule
       defaultAdmissionType: 'TRANSFER',
       requiresParentNid: false,
       showStudentPhone: false,
-      minAge: numericClass === 7 ? 10 : 11,
-      maxAge: numericClass === 7 ? 16 : 17,
+      showPreviousSchoolEiin: true,
+      showPreviousGpa: true,
+      typicalMinAge: numericClass === 7 ? 11 : 12,
+      typicalMaxAge: numericClass === 7 ? 15 : 16,
       defaultPreviousClassBn: prevBn,
       defaultPreviousClassEn: prevEn,
-      previousSchoolLabelBn: 'পূর্ববর্তী মাধ্যমিক বিদ্যালয়ের নাম',
-      previousSchoolLabelEn: 'Previous Secondary School Name',
-      policyNoteBn: `${numericClass === 7 ? '৭ম' : '৮ম'} শ্রেণিতে অন্য বিদ্যালয় থেকে ভর্তির ক্ষেত্রে ছাড়পত্র (TC) ও বার্ষিক পরীক্ষার ফলাফল সনদ আবশ্যক।`,
-      policyNoteEn: `Admission to Class ${numericClass} from another school requires a Transfer Certificate (TC) and annual exam transcript.`,
+      previousSchoolLabelBn: `${prevBn} অধ্যয়নরত বিদ্যালয়ের নাম`,
+      previousSchoolLabelEn: `Previous School Name (${prevEn})`,
+      policyNoteBn: `${numericClass === 7 ? '৭ম' : '৮ম'} শ্রেণি: অন্য বিদ্যালয় থেকে বদলির ক্ষেত্রে মূল ছাড়পত্র (TC) ও বার্ষিক ফলাফল বিবরণী প্রযোজ্য।`,
+      policyNoteEn: `Class ${numericClass}: Original Transfer Certificate (TC) and annual exam result apply for transfers.`,
     };
   }
 
@@ -165,16 +194,18 @@ export function getClassAdmissionRules(numericClass: number): ClassAdmissionRule
       defaultAdmissionType: 'NEW',
       requiresParentNid: true,
       showStudentPhone: true,
-      minAge: 12,
-      maxAge: 18,
+      showPreviousSchoolEiin: true,
+      showPreviousGpa: true,
+      typicalMinAge: 13,
+      typicalMaxAge: 17,
       defaultPreviousClassBn: '৮ম শ্রেণি',
       defaultPreviousClassEn: 'Class 8',
-      previousSchoolLabelBn: '৮ম শ্রেণিতে অধ্যয়নরত বিদ্যালয়ের নাম',
-      previousSchoolLabelEn: 'School Attended in Class 8',
+      previousSchoolLabelBn: '৮ম শ্রেণি উত্তীর্ণ বিদ্যালয়ের নাম',
+      previousSchoolLabelEn: 'Previous School Name (Class 8)',
       policyNoteBn:
-        '৯ম শ্রেণিতে এসএসসি বোর্ড রেজিস্ট্রেশন (eSIF) হবে। বিভাগ ও ৪র্থ বিষয় নির্বাচন, ইংরেজি নাম (BLOCK LETTERS), ১৭ ডিজিট জন্ম নিবন্ধন এবং পিতা-মাতার এনআইডি বাধ্যতামূলক।',
+        '৯ম শ্রেণি: বিভাগ ও ৪র্থ বিষয় নির্বাচন এবং এসএসসি বোর্ড রেজিস্ট্রেশনের জন্য পিতা-মাতার এনআইডি আবশ্যক।',
       policyNoteEn:
-        'SSC Board Registration (eSIF) takes place in Class 9. Group, 4th subject, English BLOCK LETTERS names, 17-digit Birth Certificate, and parents’ NID are required.',
+        'Class 9: Academic Group, 4th subject, and parents’ NID are required for SSC Board Registration.',
     };
   }
 
@@ -190,22 +221,25 @@ export function getClassAdmissionRules(numericClass: number): ClassAdmissionRule
     defaultAdmissionType: 'TRANSFER',
     requiresParentNid: true,
     showStudentPhone: true,
-    minAge: 13,
-    maxAge: 19,
+    showPreviousSchoolEiin: true,
+    showPreviousGpa: true,
+    typicalMinAge: 14,
+    typicalMaxAge: 18,
     defaultPreviousClassBn: '৯ম শ্রেণি',
     defaultPreviousClassEn: 'Class 9',
-    previousSchoolLabelBn: 'পূর্ববর্তী বিদ্যালয়ের নাম (৯ম শ্রেণি)',
+    previousSchoolLabelBn: '৯ম শ্রেণিতে অধ্যয়নরত বিদ্যালয়ের নাম',
     previousSchoolLabelEn: 'Previous School Name (Class 9)',
     policyNoteBn:
-      'শিক্ষা বোর্ডের নীতিমালা অনুযায়ী ১০ম শ্রেণিতে সরাসরি নতুন ভর্তি হয় না—শুধুমাত্র বোর্ড অনুমোদিত e-TC (ছাড়পত্র) বা পুনঃভর্তি গ্রহণযোগ্য। ৯ম শ্রেণির বোর্ড রেজিস্ট্রেশন নম্বর, বিভাগ ও ৪র্থ বিষয় হুবহু দিতে হবে।',
+      '১০ম শ্রেণি: শিক্ষা বোর্ডের নীতিমালা অনুযায়ী কেবল বোর্ড অনুমোদিত e-TC অথবা পুনঃভর্তি প্রযোজ্য। ৯ম শ্রেণির বোর্ড রেজিস্ট্রেশন নম্বর ও বিভাগ হুবহু প্রদান করতে হবে।',
     policyNoteEn:
-      'Per Education Board policy, Class 10 accepts only Board e-TC transfers or re-admissions. Class 9 Board Registration No, exact stream, and 4th subject are mandatory.',
+      'Class 10: Only Education Board approved e-TC transfers or re-admissions are eligible. Class 9 Board Registration No and stream are mandatory.',
   };
 }
 
 export function getRequiredDocumentChecklist(
   numericClass: number,
-  admissionType: AdmissionType
+  admissionType: AdmissionType,
+  hasDeceasedParent = false
 ): DocumentChecklistItem[] {
   const items: DocumentChecklistItem[] = [
     {
@@ -244,15 +278,19 @@ export function getRequiredDocumentChecklist(
           : 'পূর্ববর্তী শ্রেণির বার্ষিক পরীক্ষার ফলাফল বিবরণী',
       labelEn:
         admissionType === 'TRANSFER'
-          ? 'Original Transfer Certificate (TC) & annual exam transcript from previous school'
+          ? 'Original Transfer Certificate (TC) & annual exam transcript'
           : 'Previous class annual exam transcript',
       required: true,
     });
   } else if (numericClass === 9) {
     items.push({
       key: 'class8PassCert',
-      labelBn: '৮ম শ্রেণি উত্তীর্ণের প্রশংসাপত্র / বার্ষিক নম্বরপত্র' + (admissionType === 'TRANSFER' ? ' ও ছাড়পত্র (TC)' : ''),
-      labelEn: 'Class 8 pass certificate / annual transcript' + (admissionType === 'TRANSFER' ? ' & Transfer Certificate (TC)' : ''),
+      labelBn:
+        '৮ম শ্রেণি উত্তীর্ণের প্রশংসাপত্র / বার্ষিক নম্বরপত্র' +
+        (admissionType === 'TRANSFER' ? ' ও মূল ছাড়পত্র (TC)' : ''),
+      labelEn:
+        'Class 8 pass certificate / annual transcript' +
+        (admissionType === 'TRANSFER' ? ' & Original TC' : ''),
       required: true,
     });
   } else {
@@ -264,9 +302,18 @@ export function getRequiredDocumentChecklist(
           : '৯ম শ্রেণির বোর্ড রেজিস্ট্রেশন কার্ড ও বার্ষিক ফলাফল বিবরণী',
       labelEn:
         admissionType === 'TRANSFER'
-          ? 'Education Board approved e-TC Order & Class 9 Board Registration Card copy'
+          ? 'Education Board approved e-TC Order & Class 9 Board Registration Card'
           : 'Class 9 Board Registration Card & annual exam transcript',
       required: true,
+    });
+  }
+
+  if (hasDeceasedParent) {
+    items.push({
+      key: 'parentDeathCertificate',
+      labelBn: 'মৃত পিতা/মাতার মৃত্যু নিবন্ধন সনদের ফটোকপি (সংগ্রহে থাকলে)',
+      labelEn: 'Photocopy of deceased parent’s Death Certificate (if available)',
+      required: false,
     });
   }
 
@@ -291,7 +338,10 @@ export function parseAddressToStructured(raw?: string | null): StructuredAddress
   if (!raw || !raw.trim()) {
     return { village: '', postOffice: '', postCode: '', upazila: '', district: '' };
   }
-  const chunks = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  const chunks = raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
   const extract = (prefixes: string[], fallbackIndex?: number) => {
     const found = chunks.find((c) => prefixes.some((p) => c.startsWith(p)));
     if (found) {
@@ -312,8 +362,14 @@ export function parseAddressToStructured(raw?: string | null): StructuredAddress
     village: extract(['গ্রাম/বাসা:', 'গ্রাম:', 'বাসা:', 'Village:'], 0),
     postOffice: poMatch ? poMatch[1].trim() : poRaw,
     postCode: poMatch ? poMatch[2] : '',
-    upazila: extract(['উপজেলা:', 'থানা:', 'Upazila:'], chunks.length >= 4 ? 2 : chunks.length === 3 ? 1 : undefined),
-    district: extract(['জেলা:', 'District:'], chunks.length >= 2 ? chunks.length - 1 : undefined),
+    upazila: extract(
+      ['উপজেলা:', 'থানা:', 'Upazila:'],
+      chunks.length >= 4 ? 2 : chunks.length === 3 ? 1 : undefined
+    ),
+    district: extract(
+      ['জেলা:', 'District:'],
+      chunks.length >= 2 ? chunks.length - 1 : undefined
+    ),
   };
 }
 
@@ -338,10 +394,6 @@ export interface OptionalSubjectChoice {
   officialCode?: string | null;
 }
 
-/**
- * Dynamically fetches valid 4th/optional subjects for a given class + academic group
- * from db.classSubjects (with fallback across academic years so upcoming sessions like 2027 work).
- */
 export function getOptionalSubjectsForClassGroup(
   db: MockDatabase,
   classId: string,
@@ -414,7 +466,7 @@ export function checkDuplicateIdentity(
   if (bcn && BD_BIRTH_CERT_REGEX.test(bcn)) {
     const existingStudent = db.students.find((s) => s.birthCertificateNo === bcn);
     if (existingStudent) {
-      result.birthCertConflict = `এই জন্ম নিবন্ধন নম্বর ইতোমধ্যে ভর্তি শিক্ষার্থী ${existingStudent.nameBn || existingStudent.nameEn} (${existingStudent.studentId})-এর নামে নিবন্ধিত।`;
+      result.birthCertConflict = `এই জন্ম নিবন্ধন নম্বর ইতোমধ্যে ${existingStudent.nameBn || existingStudent.nameEn} (${existingStudent.studentId})-এর নামে নিবন্ধিত রয়েছে।`;
     } else {
       const existingApp = db.onlineAdmissions.find(
         (a) =>
@@ -423,7 +475,7 @@ export function checkDuplicateIdentity(
           a.id !== params.ignoreApplicationId
       );
       if (existingApp) {
-        result.birthCertConflict = `এই জন্ম নিবন্ধন নম্বর দিয়ে ইতোমধ্যে একটি সক্রিয় আবেদন (${existingApp.applicationNumber}) জমা আছে।`;
+        result.birthCertConflict = `এই জন্ম নিবন্ধন নম্বর দিয়ে ইতোমধ্যে একটি আবেদন (${existingApp.applicationNumber}) জমা রয়েছে।`;
       }
     }
   }
@@ -431,7 +483,7 @@ export function checkDuplicateIdentity(
   if (brn && brn.length >= 8) {
     const existingStudent = db.students.find((s) => s.boardRegistrationNo === brn);
     if (existingStudent) {
-      result.boardRegConflict = `এই বোর্ড রেজিস্ট্রেশন নম্বর ইতোমধ্যে ${existingStudent.nameBn || existingStudent.nameEn} (${existingStudent.studentId})-এর নামে নিবন্ধিত।`;
+      result.boardRegConflict = `এই বোর্ড রেজিস্ট্রেশন নম্বর ইতোমধ্যে ${existingStudent.nameBn || existingStudent.nameEn} (${existingStudent.studentId})-এর নামে নিবন্ধিত রয়েছে।`;
     } else {
       const existingApp = db.onlineAdmissions.find(
         (a) =>
@@ -440,7 +492,7 @@ export function checkDuplicateIdentity(
           a.id !== params.ignoreApplicationId
       );
       if (existingApp) {
-        result.boardRegConflict = `এই বোর্ড রেজিস্ট্রেশন নম্বর দিয়ে ইতোমধ্যে আবেদন (${existingApp.applicationNumber}) জমা আছে।`;
+        result.boardRegConflict = `এই বোর্ড রেজিস্ট্রেশন নম্বর দিয়ে ইতোমধ্যে একটি আবেদন (${existingApp.applicationNumber}) জমা রয়েছে।`;
       }
     }
   }

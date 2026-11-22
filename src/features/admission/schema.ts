@@ -31,7 +31,8 @@ export const documentAttachmentSchema = z
 
 /**
  * Single Canonical Schema for Both Public Online Admission & Admin New Student Admission.
- * Mode-specific & class-specific real-world validations are enforced cleanly in buildUnifiedAdmissionSchema().
+ * Base schema defines clean types; all required & class-conditional rules run inside superRefine()
+ * so partial per-step validation via form.trigger() works accurately at every step.
  */
 export const unifiedAdmissionBaseSchema = z.object({
   // Step 1: Class, Admission Type & Previous Academic Records
@@ -83,6 +84,7 @@ export const unifiedAdmissionBaseSchema = z.object({
   motherNid: z.string().trim().optional().default(''),
   motherPhone: z.string().trim().optional().default(''),
 
+  primaryGuardianType: z.enum(['FATHER', 'MOTHER', 'LEGAL_GUARDIAN']).default('FATHER'),
   guardianMonthlyIncome: z.string().trim().optional().default(''),
   hasSeparateGuardian: z.boolean().default(false),
   legalGuardianNameBn: z.string().trim().optional().default(''),
@@ -127,12 +129,12 @@ export function buildUnifiedAdmissionSchema(
   classes: SchoolClass[]
 ) {
   return unifiedAdmissionBaseSchema.superRefine((data, ctx) => {
-    // 0. Core Class Selection Check (Step 1)
+    // --- STEP 1: Class, Admission Type, Stream, Previous Academic ---
     if (!data.targetClassId.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['targetClassId'],
-        message: 'ভর্তিচ্ছু শ্রেণি নির্বাচন করুন',
+        message: 'ভর্তিচ্ছু শ্রেণি নির্বাচন করুন।',
       });
     }
 
@@ -140,12 +142,11 @@ export function buildUnifiedAdmissionSchema(
     const numericClass = selectedClass?.numericValue ?? 6;
     const rules = getClassAdmissionRules(numericClass);
 
-    // 1. Class-specific Admission Type & Group / 4th Subject validation
     if (!rules.allowedAdmissionTypes.includes(data.admissionType)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['admissionType'],
-        message: '১০ম শ্রেণিতে সরাসরি নতুন ভর্তি প্রযোজ্য নয়—বদলি (e-TC) বা পুনঃভর্তি নির্বাচন করুন',
+        message: '১০ম শ্রেণিতে বদলি (e-TC) অথবা পুনঃভর্তি নির্বাচন করুন।',
       });
     }
 
@@ -153,7 +154,7 @@ export function buildUnifiedAdmissionSchema(
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['targetGroupId'],
-        message: '৯ম–১০ম শ্রেণির জন্য বিভাগ (বিজ্ঞান / মানবিক / ব্যবসায় শিক্ষা) নির্বাচন আবশ্যক',
+        message: 'বিভাগ নির্বাচন করুন।',
       });
     }
 
@@ -161,27 +162,52 @@ export function buildUnifiedAdmissionSchema(
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['optionalClassSubjectId'],
-        message: '৪র্থ (ঐচ্ছিক) বিষয় নির্বাচন আবশ্যক',
+        message: '৪র্থ (ঐচ্ছিক) বিষয় নির্বাচন করুন।',
       });
     }
 
-    // 2. Previous school, TC & Board Registration validation
     if (data.admissionType !== 'READMISSION' && data.previousSchoolName.trim().length < 3) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['previousSchoolName'],
-        message: `${rules.previousSchoolLabelBn} লিখুন`,
+        message: 'পূর্ববর্তী বিদ্যালয়ের নাম প্রদান করুন।',
       });
     }
 
-    if (data.admissionType === 'TRANSFER' && numericClass >= 7 && data.transferCertificateNo.trim().length < 2) {
+    if (data.previousSchoolEiin.trim()) {
+      const eiin = normalizeDigits(data.previousSchoolEiin.trim());
+      if (!/^\d{6}$/.test(eiin)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['previousSchoolEiin'],
+          message: 'EIIN নম্বর ৬ ডিজিটের হতে হবে।',
+        });
+      }
+    }
+
+    if (data.prevExamGpa.trim()) {
+      const gpa = Number(normalizeDigits(data.prevExamGpa.trim()));
+      if (Number.isNaN(gpa) || gpa < 0 || gpa > 5) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['prevExamGpa'],
+          message: 'জিপিএ ০.০০ থেকে ৫.০০-এর মধ্যে প্রদান করুন।',
+        });
+      }
+    }
+
+    if (
+      data.admissionType === 'TRANSFER' &&
+      numericClass >= 7 &&
+      data.transferCertificateNo.trim().length < 2
+    ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['transferCertificateNo'],
         message:
           numericClass === 10
-            ? 'শিক্ষা বোর্ডের e-TC / ছাড়পত্র নম্বর আবশ্যক'
-            : 'পূর্ববর্তী বিদ্যালয়ের ছাড়পত্র (TC) নম্বর আবশ্যক',
+            ? 'বোর্ড e-TC / ছাড়পত্র নম্বর প্রদান করুন।'
+            : 'পূর্ববর্তী বিদ্যালয়ের ছাড়পত্র (TC) নম্বর প্রদান করুন।',
       });
     }
 
@@ -191,7 +217,7 @@ export function buildUnifiedAdmissionSchema(
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['boardRegistrationNo'],
-          message: '১০ম শ্রেণির জন্য ৯ম শ্রেণির সঠিক বোর্ড রেজিস্ট্রেশন নম্বর (৮–১৪ ডিজিট) আবশ্যক',
+          message: '৯ম শ্রেণির সঠিক বোর্ড রেজিস্ট্রেশন নম্বর (৮–১৪ ডিজিট) প্রদান করুন।',
         });
       }
     } else if (data.boardRegistrationNo.trim()) {
@@ -200,28 +226,17 @@ export function buildUnifiedAdmissionSchema(
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['boardRegistrationNo'],
-          message: 'বোর্ড রেজিস্ট্রেশন নম্বর ৮–১৪ ডিজিটের হতে হবে',
+          message: 'বোর্ড রেজিস্ট্রেশন নম্বর ৮–১৪ ডিজিটের হতে হবে।',
         });
       }
     }
 
-    if (data.prevExamGpa.trim()) {
-      const gpa = Number(normalizeDigits(data.prevExamGpa));
-      if (Number.isNaN(gpa) || gpa < 0 || gpa > 5) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['prevExamGpa'],
-          message: 'জিপিএ ০.০০ থেকে ৫.০০ এর মধ্যে হতে হবে',
-        });
-      }
-    }
-
-    // 3. Student Identity, BDRIS Birth Certificate Year Cross-Check & Age Guardrail (Step 2)
+    // --- STEP 2: Student Identity, BDRIS 17-Digit Check & Sensible Date Sanity ---
     if (data.studentNameBn.trim().length < 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['studentNameBn'],
-        message: 'শিক্ষার্থীর বাংলা নাম আবশ্যক',
+        message: 'শিক্ষার্থীর বাংলা নাম প্রদান করুন।',
       });
     }
 
@@ -229,13 +244,13 @@ export function buildUnifiedAdmissionSchema(
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['studentNameEn'],
-        message: 'শিক্ষার্থীর ইংরেজি নাম আবশ্যক',
+        message: 'শিক্ষার্থীর ইংরেজি নাম প্রদান করুন।',
       });
     } else if (!ENGLISH_NAME_REGEX.test(data.studentNameEn.trim())) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['studentNameEn'],
-        message: 'ইংরেজি নামে শুধুমাত্র ইংরেজি অক্ষর ব্যবহার করুন',
+        message: 'ইংরেজি নামে কেবল ইংরেজি অক্ষর ব্যবহার করুন।',
       });
     }
 
@@ -243,15 +258,26 @@ export function buildUnifiedAdmissionSchema(
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['dateOfBirth'],
-        message: 'সঠিক জন্ম তারিখ নির্বাচন করুন',
+        message: 'জন্ম তারিখ নির্বাচন করুন।',
       });
+    } else {
+      // Only hard-block impossible dates (future, <6 yrs, or >25 yrs);
+      // DSHE typical range outside 10-18 is shown as a soft advisory in UI, never a hard blocker.
+      const age = calculateAgeYears(data.dateOfBirth);
+      if (age === null || age < 6 || age > 25) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['dateOfBirth'],
+          message: 'সঠিক জন্ম তারিখ নির্বাচন করুন।',
+        });
+      }
     }
 
     if (!BD_BIRTH_CERT_REGEX.test(data.birthCertificateNo)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['birthCertificateNo'],
-        message: '১৭ ডিজিটের অনলাইন জন্ম নিবন্ধন নম্বর দিন',
+        message: '১৭ ডিজিটের অনলাইন জন্ম নিবন্ধন নম্বর প্রদান করুন।',
       });
     } else if (data.dateOfBirth) {
       const dobYear = data.dateOfBirth.slice(0, 4);
@@ -260,25 +286,16 @@ export function buildUnifiedAdmissionSchema(
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['birthCertificateNo'],
-          message: `অনলাইন জন্ম নিবন্ধনের প্রথম ৪ ডিজিট (${certYear}) জন্মসালের (${dobYear}) সাথে মিলছে না`,
+          message: `জন্ম নিবন্ধন নম্বরের প্রথম ৪ ডিজিট (${certYear}) জন্মসালের (${dobYear}) সাথে সামঞ্জস্যপূর্ণ নয়।`,
         });
       }
-    }
-
-    const age = calculateAgeYears(data.dateOfBirth);
-    if (age !== null && (age < rules.minAge || age > rules.maxAge)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['dateOfBirth'],
-        message: `${selectedClass?.nameBn || `Class ${numericClass}`}-এর জন্য বয়স সাধারণত ${rules.minAge} থেকে ${rules.maxAge} বছরের মধ্যে হতে হয়`,
-      });
     }
 
     if (data.nationality.trim().length < 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['nationality'],
-        message: 'জাতীয়তা আবশ্যক',
+        message: 'জাতীয়তা প্রদান করুন।',
       });
     }
 
@@ -288,7 +305,7 @@ export function buildUnifiedAdmissionSchema(
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['studentPhone'],
-          message: 'সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন (যেমন: 017XXXXXXXX)',
+          message: '১১ ডিজিটের সঠিক মোবাইল নম্বর প্রদান করুন (01XXXXXXXXX)।',
         });
       }
     }
@@ -297,29 +314,29 @@ export function buildUnifiedAdmissionSchema(
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['photoPreview'],
-        message: 'প্রবেশপত্র ও আইডি কার্ডের জন্য শিক্ষার্থীর পাসপোর্ট ছবি আপলোড আবশ্যক',
+        message: 'শিক্ষার্থীর পাসপোর্ট সাইজ ছবি আপলোড করুন।',
       });
     }
 
-    // 4. Father & Mother Alive/Deceased + Legal Guardian Real-World Validation (Step 3)
+    // --- STEP 3: Parents, Legal Guardian & Structured Addresses ---
     if (data.fatherNameBn.trim().length < 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['fatherNameBn'],
-        message: 'পিতার বাংলা নাম আবশ্যক',
+        message: 'পিতার বাংলা নাম প্রদান করুন।',
       });
     }
     if (data.fatherNameEn.trim().length < 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['fatherNameEn'],
-        message: 'পিতার ইংরেজি নাম আবশ্যক',
+        message: 'পিতার ইংরেজি নাম প্রদান করুন।',
       });
     } else if (!ENGLISH_NAME_REGEX.test(data.fatherNameEn.trim())) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['fatherNameEn'],
-        message: 'পিতার ইংরেজি নামে শুধুমাত্র ইংরেজি অক্ষর দিন',
+        message: 'পিতার ইংরেজি নামে কেবল ইংরেজি অক্ষর ব্যবহার করুন।',
       });
     }
 
@@ -327,20 +344,20 @@ export function buildUnifiedAdmissionSchema(
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['motherNameBn'],
-        message: 'মাতার বাংলা নাম আবশ্যক',
+        message: 'মাতার বাংলা নাম প্রদান করুন।',
       });
     }
     if (data.motherNameEn.trim().length < 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['motherNameEn'],
-        message: 'মাতার ইংরেজি নাম আবশ্যক',
+        message: 'মাতার ইংরেজি নাম প্রদান করুন।',
       });
     } else if (!ENGLISH_NAME_REGEX.test(data.motherNameEn.trim())) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['motherNameEn'],
-        message: 'মাতার ইংরেজি নামে শুধুমাত্র ইংরেজি অক্ষর দিন',
+        message: 'মাতার ইংরেজি নামে কেবল ইংরেজি অক্ষর ব্যবহার করুন।',
       });
     }
 
@@ -356,22 +373,28 @@ export function buildUnifiedAdmissionSchema(
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['fatherNid'],
-          message: 'বোর্ড রেজিস্ট্রেশনের জন্য পিতার এনআইডি নম্বর আবশ্যক',
+          message: 'পিতার এনআইডি নম্বর প্রদান করুন।',
         });
       } else if (fatherNid && !BD_NID_REGEX.test(fatherNid)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['fatherNid'],
-          message: 'সঠিক এনআইডি নম্বর দিন (১০, ১৩ অথবা ১৭ ডিজিট)',
+          message: '১০, ১৩ অথবা ১৭ ডিজিটের এনআইডি নম্বর প্রদান করুন।',
         });
       }
       if (fatherPhone && !BD_PHONE_REGEX.test(fatherPhone)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['fatherPhone'],
-          message: 'পিতার ১১ ডিজিটের সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)',
+          message: '১১ ডিজিটের সঠিক মোবাইল নম্বর প্রদান করুন।',
         });
       }
+    } else if (fatherNid && !BD_NID_REGEX.test(fatherNid)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['fatherNid'],
+        message: '১০, ১৩ অথবা ১৭ ডিজিটের এনআইডি নম্বর প্রদান করুন।',
+      });
     }
 
     if (data.motherAlive) {
@@ -379,87 +402,113 @@ export function buildUnifiedAdmissionSchema(
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['motherNid'],
-          message: 'বোর্ড রেজিস্ট্রেশনের জন্য মাতার এনআইডি নম্বর আবশ্যক',
+          message: 'মাতার এনআইডি নম্বর প্রদান করুন।',
         });
       } else if (motherNid && !BD_NID_REGEX.test(motherNid)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['motherNid'],
-          message: 'সঠিক এনআইডি নম্বর দিন (১০, ১৩ অথবা ১৭ ডিজিট)',
+          message: '১০, ১৩ অথবা ১৭ ডিজিটের এনআইডি নম্বর প্রদান করুন।',
         });
       }
       if (motherPhone && !BD_PHONE_REGEX.test(motherPhone)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['motherPhone'],
-          message: 'মাতার ১১ ডিজিটের সঠিক মোবাইল নম্বর দিন (01XXXXXXXXX)',
+          message: '১১ ডিজিটের সঠিক মোবাইল নম্বর প্রদান করুন।',
         });
       }
+    } else if (motherNid && !BD_NID_REGEX.test(motherNid)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['motherNid'],
+        message: '১০, ১৩ অথবা ১৭ ডিজিটের এনআইডি নম্বর প্রদান করুন।',
+      });
     }
 
     const bothParentsDeceased = !data.fatherAlive && !data.motherAlive;
-    const needsLegalGuardian = bothParentsDeceased || data.hasSeparateGuardian;
+    const needsLegalGuardian =
+      bothParentsDeceased ||
+      data.hasSeparateGuardian ||
+      data.primaryGuardianType === 'LEGAL_GUARDIAN';
 
     if (needsLegalGuardian) {
       if (data.legalGuardianNameBn.trim().length < 2) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['legalGuardianNameBn'],
-          message: 'বৈধ অভিভাবকের বাংলা নাম আবশ্যক',
+          message: 'বৈধ অভিভাবকের নাম প্রদান করুন।',
         });
       }
       if (data.legalGuardianRelation.trim().length < 2) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['legalGuardianRelation'],
-          message: 'শিক্ষার্থীর সাথে অভিভাবকের সম্পর্ক লিখুন (যেমন: চাচা / মামা / বড় ভাই)',
+          message: 'শিক্ষার্থীর সাথে সম্পর্ক উল্লেখ করুন।',
         });
       }
       if (!BD_PHONE_REGEX.test(legalPhone)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['legalGuardianPhone'],
-          message: 'বৈধ অভিভাবকের সচল ১১ ডিজিটের মোবাইল নম্বর আবশ্যক',
+          message: 'অভিভাবকের ১১ ডিজিটের মোবাইল নম্বর প্রদান করুন।',
         });
       }
       if (legalNid && !BD_NID_REGEX.test(legalNid)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['legalGuardianNid'],
-          message: 'সঠিক এনআইডি নম্বর দিন (১০, ১৩ অথবা ১৭ ডিজিট)',
+          message: '১০, ১৩ অথবা ১৭ ডিজিটের এনআইডি নম্বর প্রদান করুন।',
         });
       }
       if (bothParentsDeceased && data.legalGuardianAddress.trim().length < 4) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['legalGuardianAddress'],
-          message: 'বৈধ অভিভাবকের ঠিকানা আবশ্যক',
+          message: 'বৈধ অভিভাবকের ঠিকানা প্রদান করুন।',
         });
       }
     }
 
-    // At least one active guardian contact mobile is required for school SMS & notices
-    const hasValidContact =
-      (data.fatherAlive && BD_PHONE_REGEX.test(fatherPhone)) ||
-      (data.motherAlive && BD_PHONE_REGEX.test(motherPhone)) ||
-      (needsLegalGuardian && BD_PHONE_REGEX.test(legalPhone));
-
-    if (!hasValidContact) {
-      const targetPath = data.fatherAlive
-        ? ['fatherPhone']
-        : data.motherAlive
-          ? ['motherPhone']
-          : ['legalGuardianPhone'];
+    // Primary Contact Guardian validation (administration uses this for urgent contact & SMS)
+    if (data.primaryGuardianType === 'FATHER') {
+      if (!data.fatherAlive) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['primaryGuardianType'],
+          message: 'জীবিত অভিভাবককে প্রাথমিক যোগাযোগকারী হিসেবে নির্বাচন করুন।',
+        });
+      } else if (!BD_PHONE_REGEX.test(fatherPhone)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['fatherPhone'],
+          message: 'প্রাথমিক যোগাযোগের জন্য পিতার ১১ ডিজিটের সচল মোবাইল নম্বর প্রদান করুন।',
+        });
+      }
+    } else if (data.primaryGuardianType === 'MOTHER') {
+      if (!data.motherAlive) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['primaryGuardianType'],
+          message: 'জীবিত অভিভাবককে প্রাথমিক যোগাযোগকারী হিসেবে নির্বাচন করুন।',
+        });
+      } else if (!BD_PHONE_REGEX.test(motherPhone)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['motherPhone'],
+          message: 'প্রাথমিক যোগাযোগের জন্য মাতার ১১ ডিজিটের সচল মোবাইল নম্বর প্রদান করুন।',
+        });
+      }
+    } else if (!BD_PHONE_REGEX.test(legalPhone)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: targetPath,
-        message: 'অভিভাবকের অন্তত একটি সচল বাংলাদেশি মোবাইল নম্বর (01XXXXXXXXX) আবশ্যক',
+        path: ['legalGuardianPhone'],
+        message: 'প্রাথমিক যোগাযোগের জন্য বৈধ অভিভাবকের ১১ ডিজিটের সচল মোবাইল নম্বর প্রদান করুন।',
       });
     }
 
-    // 5. Structured Address validation
     const addrChecks: Array<{ key: keyof typeof data.permanentAddressParts; label: string }> = [
-      { key: 'village', label: 'গ্রাম / বাসা ও রোড' },
+      { key: 'village', label: 'গ্রাম / মহল্লা / বাসা নং' },
       { key: 'postOffice', label: 'ডাকঘর' },
       { key: 'upazila', label: 'উপজেলা / থানা' },
       { key: 'district', label: 'জেলা' },
@@ -469,25 +518,40 @@ export function buildUnifiedAdmissionSchema(
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['permanentAddressParts', field.key],
-          message: `স্থায়ী ঠিকানার ${field.label} আবশ্যক`,
+          message: `স্থায়ী ঠিকানার ${field.label} প্রদান করুন।`,
         });
       }
       if (!data.sameAsPermanent && data.presentAddressParts[field.key].trim().length < 2) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['presentAddressParts', field.key],
-          message: `বর্তমান ঠিকানার ${field.label} আবশ্যক`,
+          message: `বর্তমান ঠিকানার ${field.label} প্রদান করুন।`,
         });
       }
     }
 
-    // 6. Mode-specific Final Step Validation
+    if (data.permanentAddressParts.postCode && !/^\d{4}$/.test(normalizeDigits(data.permanentAddressParts.postCode))) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['permanentAddressParts', 'postCode'],
+        message: 'পোস্ট কোড ৪ ডিজিটের হতে হবে।',
+      });
+    }
+    if (!data.sameAsPermanent && data.presentAddressParts.postCode && !/^\d{4}$/.test(normalizeDigits(data.presentAddressParts.postCode))) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['presentAddressParts', 'postCode'],
+        message: 'পোস্ট কোড ৪ ডিজিটের হতে হবে।',
+      });
+    }
+
+    // --- STEP 4: Declaration (Public) OR Office Placement (Admin) ---
     if (mode === 'public') {
       if (!data.declarationAccepted) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['declarationAccepted'],
-          message: 'অঙ্গীকারনামায় সম্মতি প্রদান আবশ্যক',
+          message: 'অঙ্গীকারনামায় সম্মতি প্রদান করুন।',
         });
       }
     } else {
@@ -495,14 +559,14 @@ export function buildUnifiedAdmissionSchema(
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['academicYearId'],
-          message: 'শিক্ষাবর্ষ নির্বাচন করুন',
+          message: 'শিক্ষাবর্ষ নির্বাচন করুন।',
         });
       }
       if (!data.sectionId) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['sectionId'],
-          message: 'ভর্তির শাখা নির্বাচন করুন',
+          message: 'শাখা নির্বাচন করুন।',
         });
       }
       const rollNum = Number(normalizeDigits(data.roll));
@@ -510,16 +574,13 @@ export function buildUnifiedAdmissionSchema(
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['roll'],
-          message: 'সঠিক রোল নম্বর (১ বা তার বেশি) দিন',
+          message: 'সঠিক রোল নম্বর প্রদান করুন।',
         });
       }
     }
   });
 }
 
-/**
- * Field names validated per step before advancing.
- */
 export const ADMISSION_STEP_FIELDS: Record<1 | 2 | 3 | 4, string[]> = {
   1: [
     'targetClassId',
@@ -528,8 +589,6 @@ export const ADMISSION_STEP_FIELDS: Record<1 | 2 | 3 | 4, string[]> = {
     'optionalClassSubjectId',
     'previousSchoolName',
     'previousSchoolEiin',
-    'previousClass',
-    'previousGrade',
     'prevExamPassingYear',
     'prevExamRoll',
     'prevExamGpa',
@@ -563,6 +622,7 @@ export const ADMISSION_STEP_FIELDS: Record<1 | 2 | 3 | 4, string[]> = {
     'motherOccupation',
     'motherNid',
     'motherPhone',
+    'primaryGuardianType',
     'guardianMonthlyIncome',
     'hasSeparateGuardian',
     'legalGuardianNameBn',

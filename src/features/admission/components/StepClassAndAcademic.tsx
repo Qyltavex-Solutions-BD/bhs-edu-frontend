@@ -2,20 +2,27 @@
 
 import React from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import { AlertCircle, BookOpen, GraduationCap, Info } from 'lucide-react';
-import { FormField, Input, Select } from '@/src/components/ui/primitives';
+import { AlertCircle, Info } from 'lucide-react';
 import { useI18n } from '@/src/lib/i18n';
 import type { MockDatabase } from '@/src/mocks/seed';
 import type { AdmissionType } from '@/src/types/proposed/future';
 import {
   ADMISSION_TYPE_META,
   AdmissionFormMode,
+  cleanDecimalInput,
   cleanNumericInput,
   getClassAdmissionRules,
   getNextSuggestedRoll,
   getOptionalSubjectsForClassGroup,
+  gpaToLetterGrade,
 } from '../rules';
 import type { UnifiedAdmissionFormValues } from '../schema';
+import {
+  AdmissionField,
+  AdmissionInput,
+  AdmissionSectionHeader,
+  AdmissionSelect,
+} from './AdmissionFormPrimitives';
 
 interface StepClassAndAcademicProps {
   form: UseFormReturn<UnifiedAdmissionFormValues>;
@@ -42,8 +49,8 @@ export function StepClassAndAcademic({
   const admissionType = watch('admissionType');
   const targetGroupId = watch('targetGroupId');
   const academicYearId = watch('academicYearId');
+  const prevExamGpa = watch('prevExamGpa');
 
-  // Filter classes: in public mode respect optional publicOpenClassIds config; in admin mode show all Classes 6-10
   const openClassIds = db.admissionContent.publicOpenClassIds;
   const availableClasses = db.classes
     .filter((c) => c.isActive)
@@ -57,9 +64,6 @@ export function StepClassAndAcademic({
   const numericClass = selectedClass?.numericValue ?? 6;
   const rules = getClassAdmissionRules(numericClass);
 
-  const classSections = db.sections.filter(
-    (s) => s.classId === targetClassId && s.isActive
-  );
   const optionalSubjects = rules.requiresOptionalSubject
     ? getOptionalSubjectsForClassGroup(
         db,
@@ -69,22 +73,37 @@ export function StepClassAndAcademic({
       )
     : [];
 
+  // Show Board Registration for Class 10 always (mandatory), and for Class 9 only on Transfer/Readmission
+  const showBoardRegFields =
+    numericClass === 10 ||
+    (numericClass === 9 && (admissionType === 'TRANSFER' || admissionType === 'READMISSION'));
+
+  const showTcFields = admissionType === 'TRANSFER' && numericClass >= 7;
+  const derivedGrade = gpaToLetterGrade(prevExamGpa);
+
   const handleClassChange = (newClassId: string) => {
     const nextCls = db.classes.find((c) => c.id === newClassId);
-    const nextRules = getClassAdmissionRules(nextCls?.numericValue ?? 6);
+    const nextNum = nextCls?.numericValue ?? 6;
+    const nextRules = getClassAdmissionRules(nextNum);
     setValue('targetClassId', newClassId, { shouldValidate: true });
 
-    // Enforce valid admission type (e.g. Class 10 cannot be NEW)
     if (!nextRules.allowedAdmissionTypes.includes(admissionType)) {
       setValue('admissionType', nextRules.defaultAdmissionType, {
         shouldValidate: true,
       });
     }
 
-    // Update default previous class label
+    // Automatically track previous class — no redundant input needed
     setValue('previousClass', nextRules.defaultPreviousClassBn);
 
-    // Clear group / 4th subject if moving to Class 6-8
+    if (!nextRules.showPreviousSchoolEiin) {
+      setValue('previousSchoolEiin', '');
+    }
+    if (!nextRules.showPreviousGpa) {
+      setValue('prevExamGpa', '');
+      setValue('previousGrade', '');
+    }
+
     if (!nextRules.requiresGroup) {
       setValue('targetGroupId', '');
       setValue('optionalClassSubjectId', '');
@@ -99,19 +118,21 @@ export function StepClassAndAcademic({
       setValue('optionalClassSubjectId', nextOpts[0]?.classSubjectId ?? '');
     }
 
-    // Update section & suggested roll for admin mode
+    if (nextNum < 9) {
+      setValue('boardRegistrationNo', '');
+      setValue('boardRegistrationSession', '');
+    } else if (nextNum === 10 && !watch('boardRegistrationSession')) {
+      setValue('boardRegistrationSession', '2025-26');
+    }
+
+    // Admin official section auto-sync (Public never picks section)
     const firstSec = db.sections.find((s) => s.classId === newClassId && s.isActive);
-    setValue('preferredSection', firstSec?.name ?? '');
     if (mode === 'admin' && firstSec) {
       setValue('sectionId', firstSec.id);
       setValue(
         'roll',
         String(getNextSuggestedRoll(db, academicYearId, firstSec.id))
       );
-    }
-
-    if (nextCls?.numericValue === 10 && !watch('boardRegistrationSession')) {
-      setValue('boardRegistrationSession', '2025-26');
     }
   };
 
@@ -130,59 +151,71 @@ export function StepClassAndAcademic({
 
   return (
     <div className="space-y-7">
-      {/* 1. Target Class Selection Grid */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <GraduationCap className="w-4 h-4 text-primary shrink-0" />
-            {pick('১. ভর্তিচ্ছু শ্রেণি নির্বাচন করুন (৬ষ্ঠ – ১০ম)', '1. Select Target Class (Classes 6–10)')}
-          </h3>
-          <span className="text-xs text-muted-foreground">
-            {pick('শ্রেণি অনুযায়ী ফরমের নিয়ম স্বয়ংক্রিয়ভাবে নির্ধারিত হবে', 'Form rules adapt automatically by class')}
-          </span>
+      {/* 1. Target Class & Admission Type */}
+      <div className="space-y-4">
+        <AdmissionSectionHeader
+          title={pick('১. ভর্তিচ্ছু শ্রেণি ও ভর্তির ধরন', '1. Target Class & Admission Type')}
+          subtitle={pick(
+            'ভর্তিচ্ছু শ্রেণি নির্বাচন করুন — শ্রেণি অনুযায়ী আবশ্যক তথ্যসমূহ প্রদর্শিত হবে।',
+            'Select target class — required fields adjust automatically.'
+          )}
+        />
+
+        {/* Crisp Segmented Institutional Class Bar */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground">
+            {pick('ভর্তিচ্ছু শ্রেণি', 'Target Class')}
+            <span className="text-destructive ml-1">*</span>
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-5 border border-border rounded-[4px] overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-border">
+            {availableClasses.map((cls) => {
+              const active = cls.id === targetClassId;
+              const clsRules = getClassAdmissionRules(cls.numericValue);
+              return (
+                <button
+                  key={cls.id}
+                  type="button"
+                  onClick={() => handleClassChange(cls.id)}
+                  className={`px-3 py-2.5 text-left transition-colors duration-150 cursor-pointer ${
+                    active
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-surface text-foreground hover:bg-surface-muted/70'
+                  }`}
+                >
+                  <span className="block text-sm font-semibold leading-tight">
+                    {locale === 'bn' ? cls.nameBn || cls.name : cls.name}
+                  </span>
+                  <span
+                    className={`block text-xs mt-0.5 leading-tight ${
+                      active ? 'text-primary-foreground/85' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {clsRules.isTransferOrReadmissionOnly
+                      ? pick('বোর্ড e-TC / পুনঃভর্তি', 'e-TC / Readmit')
+                      : clsRules.requiresGroup
+                        ? pick('বিভাগ ও ৪র্থ বিষয়', 'Stream & 4th Sub')
+                        : pick('সাধারণ শাখা', 'General')}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {errors.targetClassId && (
+            <p className="text-xs text-destructive font-medium">
+              {errors.targetClassId.message}
+            </p>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-          {availableClasses.map((cls) => {
-            const active = cls.id === targetClassId;
-            const clsRules = getClassAdmissionRules(cls.numericValue);
-            return (
-              <button
-                key={cls.id}
-                type="button"
-                onClick={() => handleClassChange(cls.id)}
-                className={`p-3 rounded-[var(--radius)] border text-left transition-colors duration-150 cursor-pointer ${
-                  active
-                    ? 'border-primary bg-primary/8 text-foreground ring-1 ring-primary/30'
-                    : 'border-border bg-surface text-foreground hover:bg-surface-muted/60'
-                }`}
-              >
-                <div className="text-sm font-bold leading-snug">
-                  {locale === 'bn' ? cls.nameBn || cls.name : cls.name}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {clsRules.isTransferOrReadmissionOnly
-                    ? pick('বোর্ড e-TC / পুনঃভর্তি', 'Board e-TC / Readmit')
-                    : clsRules.requiresGroup
-                      ? pick('বিভাগ ও ৪র্থ বিষয়সহ', 'Stream & 4th Subject')
-                      : pick('সাধারণ মাধ্যমিক', 'General Secondary')}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Policy Notice Strip */}
-        <div className="flex items-start gap-2.5 p-3.5 rounded-[var(--radius)] border border-border bg-surface-muted/50 text-sm text-foreground/90">
+        {/* Concise Institutional Policy Strip */}
+        <div className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-[4px] border border-border bg-surface-muted/50 text-xs text-foreground/90">
           <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
           <p className="leading-relaxed">
             {locale === 'bn' ? rules.policyNoteBn : rules.policyNoteEn}
           </p>
         </div>
-      </div>
 
-      {/* 2. Admission Type + Stream & 4th Subject (Class 9-10) */}
-      <div className="pt-5 border-t border-border space-y-4">
+        {/* Admission Type Inline Radio Controls */}
         <div className="space-y-2">
           <label className="block text-sm font-medium text-foreground">
             {pick('ভর্তির ধরন', 'Admission Type')}
@@ -201,137 +234,111 @@ export function StepClassAndAcademic({
                   onClick={() =>
                     setValue('admissionType', type, { shouldValidate: true })
                   }
-                  className={`p-3 rounded-[var(--radius)] border text-left transition-colors duration-150 ${
+                  className={`flex items-start gap-2.5 px-3 py-2.5 rounded-[4px] border text-left transition-colors duration-150 ${
                     !allowed
-                      ? 'border-border/60 bg-surface-muted/30 text-muted-foreground/50 cursor-not-allowed'
+                      ? 'border-border/60 bg-surface-muted/30 text-muted-foreground/55 cursor-not-allowed'
                       : active
-                        ? 'border-primary bg-primary/8 text-foreground ring-1 ring-primary/30 cursor-pointer'
+                        ? 'border-primary bg-primary/5 text-foreground cursor-pointer'
                         : 'border-border bg-surface text-foreground hover:bg-surface-muted/50 cursor-pointer'
                   }`}
                 >
-                  <div className="text-sm font-semibold">
-                    {locale === 'bn' ? meta.bn : meta.en}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {!allowed
-                      ? pick('১০ম শ্রেণিতে প্রযোজ্য নয়', 'Not eligible for Class 10')
-                      : locale === 'bn'
-                        ? meta.descBn
-                        : meta.descEn}
-                  </div>
+                  <span
+                    className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                      active ? 'border-primary' : 'border-muted-foreground/45'
+                    }`}
+                  >
+                    {active && <span className="w-2 h-2 rounded-full bg-primary" />}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium leading-tight">
+                      {locale === 'bn' ? meta.bn : meta.en}
+                    </span>
+                    <span className="block text-xs text-muted-foreground mt-0.5 leading-snug">
+                      {!allowed
+                        ? pick('১০ম শ্রেণিতে প্রযোজ্য নয়', 'Not applicable for Class 10')
+                        : locale === 'bn'
+                          ? meta.descBn
+                          : meta.descEn}
+                    </span>
+                  </span>
                 </button>
               );
             })}
           </div>
           {errors.admissionType && (
-            <p className="text-sm text-destructive font-medium">
+            <p className="text-xs text-destructive font-medium">
               {errors.admissionType.message}
             </p>
           )}
         </div>
 
-        {/* Conditional Class 9 & 10 Stream + 4th Subject */}
+        {/* Conditional Stream & 4th Subject (Classes 9 & 10) */}
         {rules.requiresGroup && (
-          <div className="p-4 sm:p-5 rounded-[var(--radius)] border border-border bg-surface-muted/35 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <BookOpen className="w-4 h-4 text-primary shrink-0" />
-              {numericClass === 10
-                ? pick(
-                    'বিভাগ ও ৪র্থ বিষয় (৯ম শ্রেণির বোর্ড রেজিস্ট্রেশন অনুযায়ী)',
-                    'Stream & 4th Subject (Matching Class 9 Board Registration)'
-                  )
-                : pick(
-                    '৯ম শ্রেণির বিভাগ ও ৪র্থ (ঐচ্ছিক) বিষয় নির্বাচন',
-                    'Class 9 Academic Group & 4th (Optional) Subject'
-                  )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField
-                label={pick('বিভাগ (Group / Stream)', 'Academic Group')}
-                required
-                error={errors.targetGroupId?.message}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <AdmissionField
+              label={pick('বিভাগ (Group)', 'Academic Group')}
+              required
+              error={errors.targetGroupId?.message}
+            >
+              <AdmissionSelect
+                value={targetGroupId}
+                onChange={(e) => handleGroupChange(e.target.value)}
               >
-                <Select
-                  value={targetGroupId}
-                  onChange={(e) => handleGroupChange(e.target.value)}
-                >
-                  <option value="">
-                    {pick('— বিভাগ নির্বাচন করুন —', '— Select Group —')}
-                  </option>
-                  {db.academicGroups
-                    .filter((g) => g.isActive)
-                    .map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {locale === 'bn' ? g.nameBn || g.name : g.name}
-                      </option>
-                    ))}
-                </Select>
-              </FormField>
-
-              <FormField
-                label={pick('৪র্থ / ঐচ্ছিক বিষয়', '4th / Optional Subject')}
-                required
-                hint={
-                  !targetGroupId
-                    ? pick('প্রথমে বিভাগ নির্বাচন করুন', 'Select an academic group first')
-                    : undefined
-                }
-                error={errors.optionalClassSubjectId?.message}
-              >
-                <Select
-                  {...register('optionalClassSubjectId')}
-                  disabled={!targetGroupId}
-                >
-                  <option value="">
-                    {pick('— ৪র্থ বিষয় নির্বাচন করুন —', '— Select 4th Subject —')}
-                  </option>
-                  {optionalSubjects.map((opt) => (
-                    <option key={opt.classSubjectId} value={opt.classSubjectId}>
-                      {locale === 'bn' ? opt.nameBn : opt.nameEn}
-                      {opt.officialCode ? ` (${opt.officialCode})` : ''}
+                <option value="">{pick('নির্বাচন করুন', 'Select Group')}</option>
+                {db.academicGroups
+                  .filter((g) => g.isActive)
+                  .map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {locale === 'bn' ? g.nameBn || g.name : g.name}
                     </option>
                   ))}
-                </Select>
-              </FormField>
-            </div>
-          </div>
-        )}
+              </AdmissionSelect>
+            </AdmissionField>
 
-        {/* Preferred Section (Public only — Admin sets official section in Step 4) */}
-        {mode === 'public' && classSections.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField
-              label={pick('পছন্দের শাখা (ঐচ্ছিক)', 'Preferred Section (Optional)')}
-              hint={pick(
-                'চূড়ান্ত শাখা বিদ্যালয় কর্তৃপক্ষ আসন সাপেক্ষে নির্ধারণ করবে',
-                'Final section is assigned by school office based on seat capacity'
-              )}
+            <AdmissionField
+              label={pick('৪র্থ / ঐচ্ছিক বিষয়', '4th / Optional Subject')}
+              required
+              hint={
+                !targetGroupId
+                  ? pick('প্রথমে বিভাগ নির্বাচন করুন।', 'Select an academic group first.')
+                  : undefined
+              }
+              error={errors.optionalClassSubjectId?.message}
             >
-              <Select {...register('preferredSection')}>
-                <option value="">{pick('যেকোনো শাখা', 'Any Available Section')}</option>
-                {classSections.map((sec) => (
-                  <option key={sec.id} value={sec.name}>
-                    {pick(`শাখা ${sec.name}`, `Section ${sec.name}`)}
+              <AdmissionSelect
+                {...register('optionalClassSubjectId')}
+                disabled={!targetGroupId}
+              >
+                <option value="">
+                  {pick('নির্বাচন করুন', 'Select 4th Subject')}
+                </option>
+                {optionalSubjects.map((opt) => (
+                  <option key={opt.classSubjectId} value={opt.classSubjectId}>
+                    {locale === 'bn' ? opt.nameBn : opt.nameEn}
+                    {opt.officialCode ? ` (${opt.officialCode})` : ''}
                   </option>
                 ))}
-              </Select>
-            </FormField>
+              </AdmissionSelect>
+            </AdmissionField>
           </div>
         )}
       </div>
 
-      {/* 3. Previous Academic Record, TC & Board Registration */}
-      <div className="pt-5 border-t border-border space-y-4">
-        <h4 className="text-sm font-semibold text-foreground">
-          {pick(
-            'পূর্ববর্তী বিদ্যালয় ও একাডেমিক তথ্য',
-            'Previous School & Academic Records'
+      {/* 2. Previous School & Annual Exam Record */}
+      <div className="space-y-4">
+        <AdmissionSectionHeader
+          title={pick(
+            `২. পূর্ববর্তী বিদ্যালয় ও ${rules.defaultPreviousClassBn}-এর তথ্য`,
+            `2. Previous School & ${rules.defaultPreviousClassEn} Details`
           )}
-        </h4>
+        />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField
+        <div
+          className={`grid grid-cols-1 sm:grid-cols-2 ${
+            rules.showPreviousGpa ? 'lg:grid-cols-3' : 'lg:grid-cols-2'
+          } gap-4`}
+        >
+          <AdmissionField
             label={
               locale === 'bn'
                 ? rules.previousSchoolLabelBn
@@ -339,8 +346,13 @@ export function StepClassAndAcademic({
             }
             required={admissionType !== 'READMISSION'}
             error={errors.previousSchoolName?.message}
+            className={
+              rules.showPreviousSchoolEiin
+                ? 'sm:col-span-2'
+                : 'sm:col-span-2'
+            }
           >
-            <Input
+            <AdmissionInput
               {...register('previousSchoolName')}
               placeholder={
                 numericClass === 6
@@ -348,53 +360,32 @@ export function StepClassAndAcademic({
                   : 'যেমন: নড়িয়া বিহারী লাল সরকারি উচ্চ বিদ্যালয়'
               }
             />
-          </FormField>
+          </AdmissionField>
 
-          {numericClass >= 7 && (
-            <FormField
-              label={pick('পূর্ববর্তী বিদ্যালয়ের EIIN (যদি জানা থাকে)', 'Previous School EIIN (Optional)')}
-              hint={
-                numericClass === 10
-                  ? pick('বোর্ড e-TC যাচাইয়ের জন্য ৬ ডিজিটের EIIN', '6-digit EIIN for Board e-TC verification')
-                  : undefined
-              }
+          {rules.showPreviousSchoolEiin && (
+            <AdmissionField
+              label={pick('বিদ্যালয়ের EIIN (ঐচ্ছিক)', 'School EIIN (Optional)')}
+              error={errors.previousSchoolEiin?.message}
             >
-              <Input
+              <AdmissionInput
                 value={watch('previousSchoolEiin')}
                 inputMode="numeric"
                 maxLength={6}
                 onChange={(e) =>
-                  setValue('previousSchoolEiin', cleanNumericInput(e.target.value, 6))
+                  setValue('previousSchoolEiin', cleanNumericInput(e.target.value, 6), {
+                    shouldValidate: true,
+                  })
                 }
-                placeholder="যেমন: 113587"
+                placeholder="৬ ডিজিট (যেমন: 113587)"
                 className="font-mono tabular-nums"
               />
-            </FormField>
+            </AdmissionField>
           )}
 
-          <FormField
-            label={pick('পূর্ববর্তী শ্রেণি', 'Previous Class')}
+          <AdmissionField
+            label={pick(`${rules.defaultPreviousClassBn} পাসের সন`, 'Passing Year')}
           >
-            <Input
-              {...register('previousClass')}
-              placeholder={rules.defaultPreviousClassBn}
-            />
-          </FormField>
-
-          <FormField
-            label={pick('সর্বশেষ বার্ষিক পরীক্ষার ফলাফল / গ্রেড', 'Last Annual Exam Result / Grade')}
-            error={errors.previousGrade?.message}
-          >
-            <Input
-              {...register('previousGrade')}
-              placeholder={pick('যেমন: A+ / ১ম স্থান / উত্তীর্ণ', 'e.g. A+ / 1st Position / Passed')}
-            />
-          </FormField>
-
-          <FormField
-            label={pick('পাসের শিক্ষাবর্ষ', 'Passing Year')}
-          >
-            <Input
+            <AdmissionInput
               value={watch('prevExamPassingYear')}
               inputMode="numeric"
               maxLength={4}
@@ -404,74 +395,91 @@ export function StepClassAndAcademic({
               placeholder="2026"
               className="font-mono tabular-nums"
             />
-          </FormField>
+          </AdmissionField>
 
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label={pick('পূর্ববর্তী রোল নং', 'Previous Roll')}>
-              <Input
-                {...register('prevExamRoll')}
-                placeholder="যেমন: 12"
-                className="font-mono tabular-nums"
-              />
-            </FormField>
-            <FormField
-              label={pick('জিপিএ (যদি থাকে)', 'GPA (Optional)')}
+          <AdmissionField
+            label={pick(`${rules.defaultPreviousClassBn}-এর রোল নং (ঐচ্ছিক)`, 'Previous Roll No (Optional)')}
+          >
+            <AdmissionInput
+              value={watch('prevExamRoll')}
+              inputMode="numeric"
+              onChange={(e) =>
+                setValue('prevExamRoll', cleanNumericInput(e.target.value, 8))
+              }
+              placeholder="যেমন: 12"
+              className="font-mono tabular-nums"
+            />
+          </AdmissionField>
+
+          {/* GPA only shown for Classes 7–10 (Not Class 6 where PEC is discontinued) */}
+          {rules.showPreviousGpa && (
+            <AdmissionField
+              label={pick('বার্ষিক পরীক্ষার জিপিএ (ঐচ্ছিক)', 'Annual Exam GPA (Optional)')}
+              hint={
+                derivedGrade
+                  ? pick(`সমতুল্য গ্রেড: ${derivedGrade}`, `Equivalent Grade: ${derivedGrade}`)
+                  : numericClass === 9
+                    ? pick('০.০০–৫.০০ স্কেলে (বিভাগ যাচাইয়ে সহায়ক)', '0.00–5.00 scale (helps stream review)')
+                    : pick('০.০০ থেকে ৫.০০ স্কেলে (যেমন: 5.00)', 'Scale 0.00 to 5.00 (e.g. 5.00)')
+              }
               error={errors.prevExamGpa?.message}
             >
-              <Input
-                {...register('prevExamGpa')}
+              <AdmissionInput
+                value={prevExamGpa}
                 inputMode="decimal"
+                maxLength={4}
+                onChange={(e) =>
+                  setValue('prevExamGpa', cleanDecimalInput(e.target.value, 4), {
+                    shouldValidate: true,
+                  })
+                }
                 placeholder="5.00"
                 className="font-mono tabular-nums"
               />
-            </FormField>
-          </div>
+            </AdmissionField>
+          )}
         </div>
 
-        {/* Conditional TC / e-TC Fields (When TRANSFER or Class 10) */}
-        {(admissionType === 'TRANSFER' || numericClass === 10) && (
+        {/* Conditional Transfer Certificate (TC / e-TC) */}
+        {showTcFields && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-border/70">
-            <FormField
+            <AdmissionField
               label={
                 numericClass === 10
-                  ? pick('বোর্ড e-TC / ছাড়পত্র নম্বর', 'Board e-TC Order / TC Number')
+                  ? pick('বোর্ড e-TC / ছাড়পত্র নম্বর', 'Board e-TC / TC Number')
                   : pick('ছাড়পত্র (TC) নম্বর', 'Transfer Certificate (TC) Number')
               }
-              required={admissionType === 'TRANSFER' && numericClass >= 7}
+              required
               error={errors.transferCertificateNo?.message}
             >
-              <Input
+              <AdmissionInput
                 {...register('transferCertificateNo')}
-                placeholder={
-                  numericClass === 10
-                    ? 'যেমন: ETC-2026-44129'
-                    : 'যেমন: TC-2026-084'
-                }
+                placeholder={numericClass === 10 ? 'যেমন: ETC-2026-44129' : 'যেমন: TC-2026-084'}
                 className="font-mono tabular-nums"
               />
-            </FormField>
+            </AdmissionField>
 
-            <FormField
+            <AdmissionField
               label={pick('ছাড়পত্র ইস্যুর তারিখ', 'TC Issue Date')}
             >
-              <Input type="date" {...register('transferCertificateDate')} />
-            </FormField>
+              <AdmissionInput type="date" {...register('transferCertificateDate')} />
+            </AdmissionField>
           </div>
         )}
 
-        {/* Conditional Board Registration Fields (Class 9 optional, Class 10 MANDATORY) */}
-        {rules.showBoardRegistration && (
+        {/* Conditional SSC Board Registration (Mandatory Class 10; Optional Class 9 Transfer/Readmit) */}
+        {showBoardRegFields && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-border/70">
-            <FormField
+            <AdmissionField
               label={
                 numericClass === 10
                   ? pick('৯ম শ্রেণির এসএসসি বোর্ড রেজিস্ট্রেশন নম্বর', 'Class 9 SSC Board Registration No')
-                  : pick('বোর্ড রেজিস্ট্রেশন নম্বর (থাকলে)', 'Board Registration No (If Already Issued)')
+                  : pick('বোর্ড রেজিস্ট্রেশন নম্বর (ইস্যু হয়ে থাকলে)', 'Board Registration No (If Issued)')
               }
               required={rules.requiresBoardRegistration}
               error={errors.boardRegistrationNo?.message || boardRegDuplicate}
             >
-              <Input
+              <AdmissionInput
                 value={watch('boardRegistrationNo')}
                 inputMode="numeric"
                 maxLength={14}
@@ -485,20 +493,20 @@ export function StepClassAndAcademic({
                 placeholder="যেমন: 2110548790"
                 className="font-mono tabular-nums"
               />
-            </FormField>
+            </AdmissionField>
 
-            <FormField
-              label={pick('বোর্ড রেজিস্ট্রেশন সেশন', 'Board Registration Session')}
+            <AdmissionField
+              label={pick('রেজিস্ট্রেশন শিক্ষাবর্ষ (সেশন)', 'Registration Session')}
             >
-              <Input
+              <AdmissionInput
                 {...register('boardRegistrationSession')}
                 placeholder="যেমন: 2025-26"
                 className="font-mono tabular-nums"
               />
-            </FormField>
+            </AdmissionField>
 
             {boardRegDuplicate && (
-              <div className="sm:col-span-2 flex items-start gap-2 p-3 rounded-[var(--radius)] border border-destructive/40 bg-destructive/5 text-sm text-destructive">
+              <div className="sm:col-span-2 flex items-start gap-2 px-3 py-2.5 rounded-[4px] border border-destructive/40 bg-destructive/5 text-xs text-destructive">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{boardRegDuplicate}</span>
               </div>

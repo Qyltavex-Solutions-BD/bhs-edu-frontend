@@ -2,16 +2,22 @@
 
 import React from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import { Home, ShieldAlert, Users } from 'lucide-react';
-import { FormField, Input, Switch } from '@/src/components/ui/primitives';
+import { PhoneCall, ShieldAlert } from 'lucide-react';
 import { useI18n } from '@/src/lib/i18n';
 import type { SchoolClass } from '@/src/types/entities';
+import type { PrimaryGuardianType } from '@/src/types/proposed/future';
 import {
   cleanNumericInput,
+  formatStructuredAddress,
   getClassAdmissionRules,
   toBlockLetters,
 } from '../rules';
 import type { UnifiedAdmissionFormValues } from '../schema';
+import {
+  AdmissionField,
+  AdmissionInput,
+  AdmissionSectionHeader,
+} from './AdmissionFormPrimitives';
 
 interface StepParentsAndAddressProps {
   form: UseFormReturn<UnifiedAdmissionFormValues>;
@@ -34,112 +40,172 @@ export function StepParentsAndAddress({
 
   const fatherAlive = watch('fatherAlive');
   const motherAlive = watch('motherAlive');
+  const primaryGuardianType = watch('primaryGuardianType');
   const bothParentsDeceased = !fatherAlive && !motherAlive;
   const hasSeparateGuardian = watch('hasSeparateGuardian');
-  const showLegalGuardian = bothParentsDeceased || hasSeparateGuardian;
+  const showLegalGuardian =
+    bothParentsDeceased ||
+    hasSeparateGuardian ||
+    primaryGuardianType === 'LEGAL_GUARDIAN';
   const sameAsPermanent = watch('sameAsPermanent');
+  const permanentAddressParts = watch('permanentAddressParts');
+
+  const handleFatherAliveChange = (alive: boolean) => {
+    setValue('fatherAlive', alive, { shouldValidate: true });
+    if (!alive && primaryGuardianType === 'FATHER') {
+      setValue('primaryGuardianType', motherAlive ? 'MOTHER' : 'LEGAL_GUARDIAN', {
+        shouldValidate: true,
+      });
+    }
+  };
+
+  const handleMotherAliveChange = (alive: boolean) => {
+    setValue('motherAlive', alive, { shouldValidate: true });
+    if (!alive && primaryGuardianType === 'MOTHER') {
+      setValue('primaryGuardianType', fatherAlive ? 'FATHER' : 'LEGAL_GUARDIAN', {
+        shouldValidate: true,
+      });
+    }
+  };
+
+  const handlePrimaryGuardianChange = (next: PrimaryGuardianType) => {
+    setValue('primaryGuardianType', next, { shouldValidate: true });
+    if (next === 'LEGAL_GUARDIAN' && !bothParentsDeceased) {
+      setValue('hasSeparateGuardian', true);
+    }
+  };
 
   const handleToggleSameAddress = (checked: boolean) => {
     setValue('sameAsPermanent', checked, { shouldValidate: true });
     if (checked) {
-      const perm = watch('permanentAddressParts');
-      setValue('presentAddressParts', { ...perm }, { shouldValidate: true });
+      setValue('presentAddressParts', { ...permanentAddressParts }, { shouldValidate: true });
     }
   };
+
+  const primaryOptions: Array<{
+    value: PrimaryGuardianType;
+    label: string;
+    disabled: boolean;
+  }> = [
+    {
+      value: 'FATHER',
+      label: pick('পিতা', 'Father'),
+      disabled: !fatherAlive,
+    },
+    {
+      value: 'MOTHER',
+      label: pick('মাতা', 'Mother'),
+      disabled: !motherAlive,
+    },
+    {
+      value: 'LEGAL_GUARDIAN',
+      label: pick('বৈধ অভিভাবক', 'Legal Guardian'),
+      disabled: false,
+    },
+  ];
 
   return (
     <div className="space-y-7">
       {/* 1. Father's Information */}
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary shrink-0" />
-            {pick('পিতার তথ্য (এনআইডি অনুযায়ী)', 'Father’s Information (per NID)')}
-          </h3>
-          <div className="inline-flex items-center gap-1 p-1 bg-surface-muted rounded-[var(--radius)] border border-border">
-            <button
-              type="button"
-              onClick={() => setValue('fatherAlive', true, { shouldValidate: true })}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                fatherAlive
-                  ? 'bg-surface text-foreground border border-border shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground border border-transparent'
-              }`}
-            >
-              {pick('জীবিত', 'Alive')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setValue('fatherAlive', false, { shouldValidate: true })}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                !fatherAlive
-                  ? 'bg-surface text-foreground border border-border shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground border border-transparent'
-              }`}
-            >
-              {pick('মৃত (Late)', 'Deceased')}
-            </button>
-          </div>
-        </div>
+        <AdmissionSectionHeader
+          title={pick('১. পিতার তথ্য', '1. Father’s Information')}
+          rightSlot={
+            <div className="inline-flex border border-border rounded-[4px] overflow-hidden divide-x divide-border text-xs">
+              <button
+                type="button"
+                onClick={() => handleFatherAliveChange(true)}
+                className={`px-3 py-1.5 font-medium transition-colors cursor-pointer ${
+                  fatherAlive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-surface text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {pick('জীবিত', 'Alive')}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleFatherAliveChange(false)}
+                className={`px-3 py-1.5 font-medium transition-colors cursor-pointer ${
+                  !fatherAlive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-surface text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {pick('মৃত', 'Deceased')}
+              </button>
+            </div>
+          }
+        />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField
+          <AdmissionField
             label={pick('পিতার নাম (বাংলায়)', 'Father’s Name (Bangla)')}
             required
             error={errors.fatherNameBn?.message}
           >
-            <Input
+            <AdmissionInput
               {...register('fatherNameBn')}
               placeholder={fatherAlive ? 'যেমন: মোঃ সাইদুর রহমান' : 'যেমন: মৃত মোঃ সাইদুর রহমান'}
             />
-          </FormField>
+          </AdmissionField>
 
-          <FormField
-            label={pick('পিতার নাম (ইংরেজিতে — BLOCK LETTERS)', 'Father’s Name (English — BLOCK LETTERS)')}
+          <AdmissionField
+            label={pick('পিতার নাম (ইংরেজিতে বড় অক্ষরে)', 'Father’s Name (English — BLOCK LETTERS)')}
             required
             error={errors.fatherNameEn?.message}
           >
-            <Input
+            <AdmissionInput
               value={watch('fatherNameEn')}
               onChange={(e) =>
                 setValue('fatherNameEn', toBlockLetters(e.target.value), {
                   shouldValidate: true,
                 })
               }
-              placeholder="e.g. MD. SAIDUR RAHMAN"
+              placeholder="MD. SAIDUR RAHMAN"
               className="uppercase tracking-wide"
             />
-          </FormField>
+          </AdmissionField>
+
+          <AdmissionField
+            label={
+              fatherAlive
+                ? pick('পিতার এনআইডি নম্বর', 'Father’s NID Number')
+                : pick('পিতার এনআইডি নম্বর (সংগ্রহে থাকলে — ঐচ্ছিক)', 'Father’s NID Number (If Available — Optional)')
+            }
+            required={fatherAlive && rules.requiresParentNid}
+            hint={
+              fatherAlive
+                ? pick('১০, ১৩ অথবা ১৭ ডিজিট', '10, 13, or 17 digits')
+                : pick(
+                    'বোর্ড রেজিস্ট্রেশনে (eSIF) সহায়ক—না থাকলে খালি রাখা যাবে।',
+                    'Helpful for board registration (eSIF); optional if unavailable.'
+                  )
+            }
+            error={errors.fatherNid?.message}
+          >
+            <AdmissionInput
+              value={watch('fatherNid')}
+              inputMode="numeric"
+              maxLength={17}
+              onChange={(e) =>
+                setValue('fatherNid', cleanNumericInput(e.target.value, 17), {
+                  shouldValidate: true,
+                })
+              }
+              placeholder="19848614500112233"
+              className="font-mono tabular-nums"
+            />
+          </AdmissionField>
 
           {fatherAlive && (
             <>
-              <FormField
-                label={pick('পিতার এনআইডি নম্বর', 'Father’s NID Number')}
-                required={rules.requiresParentNid}
-                hint={pick('১০, ১৩ অথবা ১৭ ডিজিট', '10, 13, or 17 digits')}
-                error={errors.fatherNid?.message}
-              >
-                <Input
-                  value={watch('fatherNid')}
-                  inputMode="numeric"
-                  maxLength={17}
-                  onChange={(e) =>
-                    setValue('fatherNid', cleanNumericInput(e.target.value, 17), {
-                      shouldValidate: true,
-                    })
-                  }
-                  placeholder="19848614500112233"
-                  className="font-mono tabular-nums"
-                />
-              </FormField>
-
-              <FormField
-                label={pick('পিতার মোবাইল নম্বর (১১ ডিজিট)', 'Father’s Mobile Number (11 Digits)')}
-                required={!motherAlive}
-                hint={pick('বিদ্যালয়ের জরুরি এসএমএস ও যোগাযোগের জন্য', 'Used for attendance & school SMS alerts')}
+              <AdmissionField
+                label={pick('পিতার মোবাইল নম্বর', 'Father’s Mobile Number')}
+                required={primaryGuardianType === 'FATHER'}
                 error={errors.fatherPhone?.message}
               >
-                <Input
+                <AdmissionInput
                   value={watch('fatherPhone')}
                   inputMode="numeric"
                   maxLength={11}
@@ -151,111 +217,122 @@ export function StepParentsAndAddress({
                   placeholder="017XXXXXXXX"
                   className="font-mono tabular-nums"
                 />
-              </FormField>
+              </AdmissionField>
 
-              <FormField
+              <AdmissionField
                 label={pick('পিতার পেশা', 'Father’s Occupation')}
                 error={errors.fatherOccupation?.message}
               >
-                <Input
+                <AdmissionInput
                   {...register('fatherOccupation')}
-                  placeholder="যেমন: ব্যবসা / চাকরি / কৃষি / প্রবাসী"
+                  placeholder="যেমন: ব্যবসা / চাকরি / কৃষি"
                 />
-              </FormField>
+              </AdmissionField>
             </>
           )}
         </div>
       </div>
 
-      {/* 2. Mother's Information */}
-      <div className="pt-5 border-t border-border space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-base font-semibold text-foreground">
-            {pick('মাতার তথ্য (এনআইডি অনুযায়ী)', 'Mother’s Information (per NID)')}
-          </h3>
-          <div className="inline-flex items-center gap-1 p-1 bg-surface-muted rounded-[var(--radius)] border border-border">
-            <button
-              type="button"
-              onClick={() => setValue('motherAlive', true, { shouldValidate: true })}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                motherAlive
-                  ? 'bg-surface text-foreground border border-border shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground border border-transparent'
-              }`}
-            >
-              {pick('জীবিত', 'Alive')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setValue('motherAlive', false, { shouldValidate: true })}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${
-                !motherAlive
-                  ? 'bg-surface text-foreground border border-border shadow-xs'
-                  : 'text-muted-foreground hover:text-foreground border border-transparent'
-              }`}
-            >
-              {pick('মৃত (Late)', 'Deceased')}
-            </button>
-          </div>
-        </div>
+      {/* 2. Mother's Information (Strictly Mother's own fields — NO household income mixed in) */}
+      <div className="space-y-4">
+        <AdmissionSectionHeader
+          title={pick('২. মাতার তথ্য', '2. Mother’s Information')}
+          rightSlot={
+            <div className="inline-flex border border-border rounded-[4px] overflow-hidden divide-x divide-border text-xs">
+              <button
+                type="button"
+                onClick={() => handleMotherAliveChange(true)}
+                className={`px-3 py-1.5 font-medium transition-colors cursor-pointer ${
+                  motherAlive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-surface text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {pick('জীবিত', 'Alive')}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMotherAliveChange(false)}
+                className={`px-3 py-1.5 font-medium transition-colors cursor-pointer ${
+                  !motherAlive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-surface text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {pick('মৃত', 'Deceased')}
+              </button>
+            </div>
+          }
+        />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField
+          <AdmissionField
             label={pick('মাতার নাম (বাংলায়)', 'Mother’s Name (Bangla)')}
             required
             error={errors.motherNameBn?.message}
           >
-            <Input
+            <AdmissionInput
               {...register('motherNameBn')}
               placeholder={motherAlive ? 'যেমন: মোছাঃ সালমা বেগম' : 'যেমন: মৃত মোছাঃ সালমা বেগম'}
             />
-          </FormField>
+          </AdmissionField>
 
-          <FormField
-            label={pick('মাতার নাম (ইংরেজিতে — BLOCK LETTERS)', 'Mother’s Name (English — BLOCK LETTERS)')}
+          <AdmissionField
+            label={pick('মাতার নাম (ইংরেজিতে বড় অক্ষরে)', 'Mother’s Name (English — BLOCK LETTERS)')}
             required
             error={errors.motherNameEn?.message}
           >
-            <Input
+            <AdmissionInput
               value={watch('motherNameEn')}
               onChange={(e) =>
                 setValue('motherNameEn', toBlockLetters(e.target.value), {
                   shouldValidate: true,
                 })
               }
-              placeholder="e.g. MST. SALMA BEGUM"
+              placeholder="MST. SALMA BEGUM"
               className="uppercase tracking-wide"
             />
-          </FormField>
+          </AdmissionField>
+
+          <AdmissionField
+            label={
+              motherAlive
+                ? pick('মাতার এনআইডি নম্বর', 'Mother’s NID Number')
+                : pick('মাতার এনআইডি নম্বর (সংগ্রহে থাকলে — ঐচ্ছিক)', 'Mother’s NID Number (If Available — Optional)')
+            }
+            required={motherAlive && rules.requiresParentNid}
+            hint={
+              motherAlive
+                ? pick('১০, ১৩ অথবা ১৭ ডিজিট', '10, 13, or 17 digits')
+                : pick(
+                    'বোর্ড রেজিস্ট্রেশনে (eSIF) সহায়ক—না থাকলে খালি রাখা যাবে।',
+                    'Helpful for board registration (eSIF); optional if unavailable.'
+                  )
+            }
+            error={errors.motherNid?.message}
+          >
+            <AdmissionInput
+              value={watch('motherNid')}
+              inputMode="numeric"
+              maxLength={17}
+              onChange={(e) =>
+                setValue('motherNid', cleanNumericInput(e.target.value, 17), {
+                  shouldValidate: true,
+                })
+              }
+              placeholder="19888614500112244"
+              className="font-mono tabular-nums"
+            />
+          </AdmissionField>
 
           {motherAlive && (
             <>
-              <FormField
-                label={pick('মাতার এনআইডি নম্বর', 'Mother’s NID Number')}
-                required={rules.requiresParentNid}
-                hint={pick('১০, ১৩ অথবা ১৭ ডিজিট', '10, 13, or 17 digits')}
-                error={errors.motherNid?.message}
-              >
-                <Input
-                  value={watch('motherNid')}
-                  inputMode="numeric"
-                  maxLength={17}
-                  onChange={(e) =>
-                    setValue('motherNid', cleanNumericInput(e.target.value, 17), {
-                      shouldValidate: true,
-                    })
-                  }
-                  placeholder="19888614500112244"
-                  className="font-mono tabular-nums"
-                />
-              </FormField>
-
-              <FormField
-                label={pick('মাতার মোবাইল নম্বর (১১ ডিজিট)', 'Mother’s Mobile Number (11 Digits)')}
-                required={!fatherAlive}
+              <AdmissionField
+                label={pick('মাতার মোবাইল নম্বর', 'Mother’s Mobile Number')}
+                required={primaryGuardianType === 'MOTHER'}
                 error={errors.motherPhone?.message}
               >
-                <Input
+                <AdmissionInput
                   value={watch('motherPhone')}
                   inputMode="numeric"
                   maxLength={11}
@@ -267,24 +344,79 @@ export function StepParentsAndAddress({
                   placeholder="018XXXXXXXX"
                   className="font-mono tabular-nums"
                 />
-              </FormField>
+              </AdmissionField>
 
-              <FormField
+              <AdmissionField
                 label={pick('মাতার পেশা', 'Mother’s Occupation')}
                 error={errors.motherOccupation?.message}
               >
-                <Input
+                <AdmissionInput
                   {...register('motherOccupation')}
                   placeholder="যেমন: গৃহিণী / শিক্ষকতা / চাকরি"
                 />
-              </FormField>
+              </AdmissionField>
             </>
           )}
+        </div>
+      </div>
 
-          <FormField
-            label={pick('অভিভাবকের মাসিক আয় (টাকা — ঐচ্ছিক)', 'Guardian Monthly Income (BDT — Optional)')}
+      {/* 3. Primary Contact, Household Income & Legal Guardian */}
+      <div className="space-y-4">
+        <AdmissionSectionHeader
+          title={pick(
+            '৩. প্রাথমিক যোগাযোগকারী অভিভাবক ও পারিবারিক তথ্য',
+            '3. Primary Contact Guardian & Family Information'
+          )}
+          subtitle={pick(
+            'জরুরি প্রয়োজন, উপস্থিতি এসএমএস ও বিদ্যালয়ের নোটিশের জন্য প্রাথমিক অভিভাবক নির্ধারণ করুন।',
+            'Select the primary guardian for emergency contact, attendance SMS, and school notices.'
+          )}
+        />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+          {/* Primary Contact Radio Selector */}
+          <div className="lg:col-span-2 space-y-1.5">
+            <label className="block text-sm font-medium text-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <PhoneCall className="w-3.5 h-3.5 text-primary" />
+                {pick('প্রাথমিক যোগাযোগকারী অভিভাবক', 'Primary Contact Guardian')}
+              </span>
+              <span className="text-destructive ml-1">*</span>
+            </label>
+            <div className="grid grid-cols-3 border border-border rounded-[4px] overflow-hidden divide-x divide-border">
+              {primaryOptions.map((opt) => {
+                const active = primaryGuardianType === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    disabled={opt.disabled}
+                    onClick={() => handlePrimaryGuardianChange(opt.value)}
+                    className={`h-10 px-3 text-sm font-medium transition-colors ${
+                      opt.disabled
+                        ? 'bg-surface-muted/40 text-muted-foreground/45 cursor-not-allowed'
+                        : active
+                          ? 'bg-primary text-primary-foreground cursor-pointer'
+                          : 'bg-surface text-foreground hover:bg-surface-muted/60 cursor-pointer'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+            {errors.primaryGuardianType && (
+              <p className="text-xs text-destructive font-medium">
+                {errors.primaryGuardianType.message}
+              </p>
+            )}
+          </div>
+
+          {/* Combined Household / Guardian Monthly Income (Properly placed outside Mother's section) */}
+          <AdmissionField
+            label={pick('পরিবারের মাসিক আয় (টাকা — ঐচ্ছিক)', 'Family Monthly Income (BDT — Optional)')}
           >
-            <Input
+            <AdmissionInput
               value={watch('guardianMonthlyIncome')}
               inputMode="numeric"
               onChange={(e) =>
@@ -293,81 +425,84 @@ export function StepParentsAndAddress({
               placeholder="যেমন: 25000"
               className="font-mono tabular-nums"
             />
-          </FormField>
+          </AdmissionField>
         </div>
-      </div>
 
-      {/* 3. Conditional Legal Guardian Section (Auto-Required if Both Parents Deceased) */}
-      <div className="pt-5 border-t border-border space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="space-y-0.5">
-            <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              {bothParentsDeceased && (
-                <ShieldAlert className="w-4 h-4 text-destructive shrink-0" />
-              )}
+        {/* Legal Guardian Toggle or Mandatory Notice */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+          {bothParentsDeceased ? (
+            <p className="text-xs font-medium text-destructive inline-flex items-center gap-1.5">
+              <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
               {pick(
-                'বৈধ অভিভাবকের তথ্য (পিতা-মাতা উভয়েই মৃত হলে বা ভিন্ন অভিভাবকের তত্ত্বাবধানে থাকলে)',
-                'Legal Guardian Details (Mandatory if Both Parents Deceased)'
+                'পিতা ও মাতা উভয়েই মৃত হওয়ায় বৈধ অভিভাবকের তথ্য প্রদান বাধ্যতামূলক।',
+                'Both parents are deceased; legal guardian details are required.'
               )}
-            </h4>
-            {bothParentsDeceased && (
-              <p className="text-xs text-destructive">
+            </p>
+          ) : primaryGuardianType === 'LEGAL_GUARDIAN' ? (
+            <p className="text-xs text-muted-foreground">
+              {pick(
+                'বৈধ অভিভাবককে প্রাথমিক যোগাযোগকারী হিসেবে নির্বাচন করা হয়েছে—নিচের তথ্যগুলো পূরণ করুন।',
+                'Legal Guardian is set as primary contact—complete the details below.'
+              )}
+            </p>
+          ) : (
+            <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={hasSeparateGuardian}
+                onChange={(e) => setValue('hasSeparateGuardian', e.target.checked)}
+                className="w-4 h-4 rounded-[3px] accent-primary"
+              />
+              <span>
                 {pick(
-                  'পিতা ও মাতা উভয়েই মৃত নির্বাচিত হওয়ায় বৈধ অভিভাবকের তথ্য প্রদান বাধ্যতামূলক।',
-                  'Both parents are marked deceased; legal guardian information is mandatory.'
+                  'পিতা-মাতা ব্যতীত ভিন্ন বৈধ অভিভাবকের তথ্য যুক্ত করুন (ঐচ্ছিক)',
+                  'Add separate legal guardian details (Optional)'
                 )}
-              </p>
-            )}
-          </div>
-          {!bothParentsDeceased && (
-            <Switch
-              checked={hasSeparateGuardian}
-              onChange={(val) => setValue('hasSeparateGuardian', val)}
-              label={pick('ভিন্ন অভিভাবক যোগ করুন', 'Add separate guardian')}
-            />
+              </span>
+            </label>
           )}
         </div>
 
         {showLegalGuardian && (
-          <div className="p-4 sm:p-5 rounded-[var(--radius)] border border-border bg-surface-muted/35 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField
+          <div className="p-4 rounded-[4px] border border-border bg-surface-muted/25 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <AdmissionField
               label={pick('বৈধ অভিভাবকের নাম (বাংলায়)', 'Legal Guardian Name (Bangla)')}
               required
               error={errors.legalGuardianNameBn?.message}
             >
-              <Input {...register('legalGuardianNameBn')} placeholder="যেমন: মোঃ কামাল হোসেন" />
-            </FormField>
+              <AdmissionInput {...register('legalGuardianNameBn')} placeholder="যেমন: মোঃ কামাল হোসেন" />
+            </AdmissionField>
 
-            <FormField
+            <AdmissionField
               label={pick('বৈধ অভিভাবকের নাম (ইংরেজিতে)', 'Legal Guardian Name (English)')}
             >
-              <Input
+              <AdmissionInput
                 value={watch('legalGuardianNameEn')}
                 onChange={(e) =>
                   setValue('legalGuardianNameEn', toBlockLetters(e.target.value))
                 }
-                placeholder="e.g. MD. KAMAL HOSSAIN"
+                placeholder="MD. KAMAL HOSSAIN"
                 className="uppercase tracking-wide"
               />
-            </FormField>
+            </AdmissionField>
 
-            <FormField
-              label={pick('শিক্ষার্থীর সাথে সম্পর্ক', 'Relationship with Student')}
+            <AdmissionField
+              label={pick('শিক্ষার্থীর সাথে সম্পর্ক', 'Relationship')}
               required
               error={errors.legalGuardianRelation?.message}
             >
-              <Input
+              <AdmissionInput
                 {...register('legalGuardianRelation')}
                 placeholder="যেমন: চাচা / মামা / দাদা / বড় ভাই"
               />
-            </FormField>
+            </AdmissionField>
 
-            <FormField
-              label={pick('অভিভাবকের মোবাইল নম্বর (১১ ডিজিট)', 'Legal Guardian Mobile (11 Digits)')}
+            <AdmissionField
+              label={pick('বৈধ অভিভাবকের মোবাইল নম্বর', 'Legal Guardian Mobile')}
               required
               error={errors.legalGuardianPhone?.message}
             >
-              <Input
+              <AdmissionInput
                 value={watch('legalGuardianPhone')}
                 inputMode="numeric"
                 maxLength={11}
@@ -379,13 +514,13 @@ export function StepParentsAndAddress({
                 placeholder="017XXXXXXXX"
                 className="font-mono tabular-nums"
               />
-            </FormField>
+            </AdmissionField>
 
-            <FormField
-              label={pick('অভিভাবকের এনআইডি নম্বর', 'Legal Guardian NID')}
+            <AdmissionField
+              label={pick('বৈধ অভিভাবকের এনআইডি নম্বর', 'Legal Guardian NID')}
               error={errors.legalGuardianNid?.message}
             >
-              <Input
+              <AdmissionInput
                 value={watch('legalGuardianNid')}
                 inputMode="numeric"
                 maxLength={17}
@@ -394,134 +529,190 @@ export function StepParentsAndAddress({
                     shouldValidate: true,
                   })
                 }
-                placeholder="১০, ১৩ বা ১৭ ডিজিট"
+                placeholder="১০, ১৩ অথবা ১৭ ডিজিট"
                 className="font-mono tabular-nums"
               />
-            </FormField>
+            </AdmissionField>
 
-            <FormField
-              label={pick('অভিভাবকের ঠিকানা', 'Legal Guardian Address')}
+            <AdmissionField
+              label={pick('বৈধ অভিভাবকের ঠিকানা', 'Legal Guardian Address')}
               required={bothParentsDeceased}
               error={errors.legalGuardianAddress?.message}
             >
-              <Input
+              <AdmissionInput
                 {...register('legalGuardianAddress')}
                 placeholder="গ্রাম, ডাকঘর, উপজেলা, জেলা"
               />
-            </FormField>
+            </AdmissionField>
           </div>
         )}
       </div>
 
-      {/* 4. Structured Addresses */}
-      <div className="pt-5 border-t border-border space-y-5">
-        <div className="space-y-3">
-          <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-            <Home className="w-4 h-4 text-primary shrink-0" />
-            {pick('স্থায়ী ঠিকানা (Permanent Address)', 'Permanent Address')}
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            <div className="lg:col-span-2">
-              <FormField
-                label={pick('গ্রাম / বাসা ও রোড', 'Village / House')}
-                required
-                error={errors.permanentAddressParts?.village?.message}
-              >
-                <Input
-                  {...register('permanentAddressParts.village')}
-                  placeholder="যেমন: ভোজেশ্বর বাজার / মশুরা"
-                />
-              </FormField>
-            </div>
-            <FormField
+      {/* 4. Structured Permanent & Present Addresses */}
+      <div className="space-y-5">
+        <div className="space-y-4">
+          <AdmissionSectionHeader
+            title={pick('৪. স্থায়ী ঠিকানা', '4. Permanent Address')}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <AdmissionField
+              label={pick('গ্রাম / মহল্লা / বাসা নং', 'Village / House & Road')}
+              required
+              error={errors.permanentAddressParts?.village?.message}
+              className="sm:col-span-2"
+            >
+              <AdmissionInput
+                {...register('permanentAddressParts.village')}
+                placeholder="যেমন: ভোজেশ্বর বাজার"
+              />
+            </AdmissionField>
+
+            <AdmissionField
               label={pick('ডাকঘর', 'Post Office')}
               required
               error={errors.permanentAddressParts?.postOffice?.message}
             >
-              <Input
+              <AdmissionInput
                 {...register('permanentAddressParts.postOffice')}
                 placeholder="যেমন: ভোজেশ্বর"
               />
-            </FormField>
-            <FormField
+            </AdmissionField>
+
+            <AdmissionField
+              label={pick('পোস্ট কোড (ঐচ্ছিক)', 'Post Code (Optional)')}
+              error={errors.permanentAddressParts?.postCode?.message}
+            >
+              <AdmissionInput
+                value={watch('permanentAddressParts.postCode') || ''}
+                inputMode="numeric"
+                maxLength={4}
+                onChange={(e) =>
+                  setValue(
+                    'permanentAddressParts.postCode',
+                    cleanNumericInput(e.target.value, 4),
+                    { shouldValidate: true }
+                  )
+                }
+                placeholder="8021"
+                className="font-mono tabular-nums"
+              />
+            </AdmissionField>
+
+            <AdmissionField
               label={pick('উপজেলা / থানা', 'Upazila / Thana')}
               required
               error={errors.permanentAddressParts?.upazila?.message}
+              className="sm:col-span-1 lg:col-span-2"
             >
-              <Input
+              <AdmissionInput
                 {...register('permanentAddressParts.upazila')}
                 placeholder="যেমন: নড়িয়া"
               />
-            </FormField>
-            <FormField
+            </AdmissionField>
+
+            <AdmissionField
               label={pick('জেলা', 'District')}
               required
               error={errors.permanentAddressParts?.district?.message}
+              className="sm:col-span-1 lg:col-span-2"
             >
-              <Input
+              <AdmissionInput
                 {...register('permanentAddressParts.district')}
                 placeholder="যেমন: শরীয়তপুর"
               />
-            </FormField>
+            </AdmissionField>
           </div>
         </div>
 
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="text-base font-semibold text-foreground">
-              {pick('বর্তমান ঠিকানা (Present Address)', 'Present Address')}
-            </h3>
-            <Switch
-              checked={sameAsPermanent}
-              onChange={handleToggleSameAddress}
-              label={pick('স্থায়ী ও বর্তমান ঠিকানা একই', 'Same as permanent address')}
-            />
-          </div>
+        <div className="space-y-4">
+          <AdmissionSectionHeader
+            title={pick('৫. বর্তমান ঠিকানা', '5. Present Address')}
+            rightSlot={
+              <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={sameAsPermanent}
+                  onChange={(e) => handleToggleSameAddress(e.target.checked)}
+                  className="w-4 h-4 rounded-[3px] accent-primary"
+                />
+                <span>{pick('স্থায়ী ঠিকানার অনুরূপ', 'Same as permanent address')}</span>
+              </label>
+            }
+          />
 
-          {!sameAsPermanent && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              <div className="lg:col-span-2">
-                <FormField
-                  label={pick('গ্রাম / বাসা ও রোড', 'Village / House')}
-                  required
-                  error={errors.presentAddressParts?.village?.message}
-                >
-                  <Input
-                    {...register('presentAddressParts.village')}
-                    placeholder="গ্রাম / বাসা নম্বর"
-                  />
-                </FormField>
-              </div>
-              <FormField
+          {sameAsPermanent ? (
+            <div className="px-3.5 py-2.5 rounded-[4px] border border-border bg-surface-muted/40 text-sm text-muted-foreground">
+              {formatStructuredAddress(permanentAddressParts) ||
+                pick('স্থায়ী ঠিকানা পূরণ করলে এখানে স্বয়ংক্রিয়ভাবে যুক্ত হবে।', 'Mirrors permanent address.')}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <AdmissionField
+                label={pick('গ্রাম / মহল্লা / বাসা নং', 'Village / House & Road')}
+                required
+                error={errors.presentAddressParts?.village?.message}
+                className="sm:col-span-2"
+              >
+                <AdmissionInput
+                  {...register('presentAddressParts.village')}
+                  placeholder="গ্রাম / বাসা নম্বর"
+                />
+              </AdmissionField>
+
+              <AdmissionField
                 label={pick('ডাকঘর', 'Post Office')}
                 required
                 error={errors.presentAddressParts?.postOffice?.message}
               >
-                <Input
+                <AdmissionInput
                   {...register('presentAddressParts.postOffice')}
                   placeholder="ডাকঘর"
                 />
-              </FormField>
-              <FormField
+              </AdmissionField>
+
+              <AdmissionField
+                label={pick('পোস্ট কোড (ঐচ্ছিক)', 'Post Code (Optional)')}
+                error={errors.presentAddressParts?.postCode?.message}
+              >
+                <AdmissionInput
+                  value={watch('presentAddressParts.postCode') || ''}
+                  inputMode="numeric"
+                  maxLength={4}
+                  onChange={(e) =>
+                    setValue(
+                      'presentAddressParts.postCode',
+                      cleanNumericInput(e.target.value, 4),
+                      { shouldValidate: true }
+                    )
+                  }
+                  placeholder="8021"
+                  className="font-mono tabular-nums"
+                />
+              </AdmissionField>
+
+              <AdmissionField
                 label={pick('উপজেলা / থানা', 'Upazila / Thana')}
                 required
                 error={errors.presentAddressParts?.upazila?.message}
+                className="sm:col-span-1 lg:col-span-2"
               >
-                <Input
+                <AdmissionInput
                   {...register('presentAddressParts.upazila')}
                   placeholder="উপজেলা / থানা"
                 />
-              </FormField>
-              <FormField
+              </AdmissionField>
+
+              <AdmissionField
                 label={pick('জেলা', 'District')}
                 required
                 error={errors.presentAddressParts?.district?.message}
+                className="sm:col-span-1 lg:col-span-2"
               >
-                <Input
+                <AdmissionInput
                   {...register('presentAddressParts.district')}
                   placeholder="জেলা"
                 />
-              </FormField>
+              </AdmissionField>
             </div>
           )}
         </div>

@@ -12,6 +12,7 @@ export type AdmissionApplicationStatus =
   | 'ADMITTED';
 
 export type AdmissionType = 'NEW' | 'TRANSFER' | 'READMISSION';
+export type PrimaryGuardianType = 'FATHER' | 'MOTHER' | 'LEGAL_GUARDIAN';
 
 export interface StructuredAddress {
   village: string;
@@ -67,7 +68,8 @@ export interface OnlineAdmissionApplication {
   motherOccupation: string;
   motherNid: string;
   motherPhone?: string | null;
-  // Legal guardian (when both parents deceased or separate primary guardian)
+  // Primary contact & Legal guardian
+  primaryGuardianType?: PrimaryGuardianType;
   guardianPhone: string;
   guardianMonthlyIncome?: number | null;
   legalGuardianNameBn?: string | null;

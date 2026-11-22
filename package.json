@@ -18,6 +18,8 @@
     "@vis.gl/react-google-maps": "^1.10.2",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "next": "^16.4.6",

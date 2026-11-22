@@ -395,7 +395,11 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
   const appGroup = app ? db.academicGroups.find((g) => g.id === app.targetGroupId) : undefined;
   const appType = app ? (app.admissionType ?? (app.isReadmission ? 'READMISSION' : 'NEW')) : 'NEW';
   const appChecklist = app
-    ? getRequiredDocumentChecklist(appClass?.numericValue ?? 6, appType)
+    ? getRequiredDocumentChecklist(
+        appClass?.numericValue ?? 6,
+        appType,
+        app.fatherAlive === false || app.motherAlive === false
+      )
     : [];
 
   return (
@@ -485,8 +489,15 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
                   </p>
                 )}
                 <p className="tabular-nums">
-                  <span className="text-muted-foreground">{pick('মোবাইল:', 'Phone:')}</span>{' '}
-                  <strong className="font-mono">{app.guardianPhone}</strong>
+                  <span className="text-muted-foreground">
+                    {pick('প্রাথমিক যোগাযোগ:', 'Primary Contact:')}
+                  </span>{' '}
+                  {app.primaryGuardianType === 'MOTHER'
+                    ? pick('মাতা', 'Mother')
+                    : app.primaryGuardianType === 'LEGAL_GUARDIAN'
+                      ? pick('বৈধ অভিভাবক', 'Legal Guardian')
+                      : pick('পিতা', 'Father')}{' '}
+                  · <strong className="font-mono">{app.guardianPhone}</strong>
                 </p>
                 {appGroup && (
                   <p>

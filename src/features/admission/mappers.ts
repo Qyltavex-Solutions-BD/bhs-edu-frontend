@@ -8,6 +8,7 @@ import {
   getClassAdmissionRules,
   getNextSuggestedRoll,
   getOptionalSubjectsForClassGroup,
+  gpaToLetterGrade,
   normalizeDigits,
   parseAddressToStructured,
   toBlockLetters,
@@ -18,6 +19,16 @@ export function resolvePrimaryGuardianPhone(values: UnifiedAdmissionFormValues):
   const fatherPhone = normalizeDigits(values.fatherPhone.trim());
   const motherPhone = normalizeDigits(values.motherPhone.trim());
   const legalPhone = normalizeDigits(values.legalGuardianPhone.trim());
+
+  if (values.primaryGuardianType === 'FATHER' && values.fatherAlive && BD_PHONE_REGEX.test(fatherPhone)) {
+    return fatherPhone;
+  }
+  if (values.primaryGuardianType === 'MOTHER' && values.motherAlive && BD_PHONE_REGEX.test(motherPhone)) {
+    return motherPhone;
+  }
+  if (values.primaryGuardianType === 'LEGAL_GUARDIAN' && BD_PHONE_REGEX.test(legalPhone)) {
+    return legalPhone;
+  }
 
   if (values.fatherAlive && BD_PHONE_REGEX.test(fatherPhone)) return fatherPhone;
   if (values.motherAlive && BD_PHONE_REGEX.test(motherPhone)) return motherPhone;
@@ -72,7 +83,7 @@ export function buildDefaultAdmissionValues(
   return {
     targetClassId: defaultClassId,
     admissionType,
-    preferredSection: prefillApp?.preferredSection || matchingSection?.name || 'ক',
+    preferredSection: prefillApp?.preferredSection || '',
     targetGroupId: prefillApp?.targetGroupId || '',
     optionalClassSubjectId,
     previousSchoolName: prefillApp?.previousSchoolName || '',
@@ -91,7 +102,7 @@ export function buildDefaultAdmissionValues(
     photoPreview: prefillApp?.photoPreview ?? null,
     studentNameBn: prefillApp?.studentNameBn || '',
     studentNameEn: prefillApp?.studentNameEn ? toBlockLetters(prefillApp.studentNameEn) : '',
-    dateOfBirth: prefillApp?.dateOfBirth || '2014-01-15',
+    dateOfBirth: prefillApp?.dateOfBirth || '',
     birthCertificateNo: prefillApp?.birthCertificateNo || '',
     gender: prefillApp?.gender ?? Gender.MALE,
     religion: prefillApp?.religion ?? Religion.ISLAM,
@@ -113,6 +124,13 @@ export function buildDefaultAdmissionValues(
     motherNid: prefillApp?.motherNid || '',
     motherPhone: prefillApp?.motherPhone || '',
 
+    primaryGuardianType:
+      prefillApp?.primaryGuardianType ??
+      (prefillApp?.fatherAlive === false
+        ? prefillApp?.motherAlive === false
+          ? 'LEGAL_GUARDIAN'
+          : 'MOTHER'
+        : 'FATHER'),
     guardianMonthlyIncome:
       prefillApp?.guardianMonthlyIncome !== undefined && prefillApp?.guardianMonthlyIncome !== null
         ? String(prefillApp.guardianMonthlyIncome)
@@ -190,16 +208,17 @@ export function toPublicAdmissionPayload(
     fatherNameBn: values.fatherNameBn.trim(),
     fatherNameEn: toBlockLetters(values.fatherNameEn.trim()),
     fatherOccupation: values.fatherAlive ? values.fatherOccupation.trim() : 'মৃত',
-    fatherNid: values.fatherAlive ? normalizeDigits(values.fatherNid.trim()) : '',
+    fatherNid: values.fatherNid.trim() ? normalizeDigits(values.fatherNid.trim()) : '',
     fatherPhone: values.fatherAlive && values.fatherPhone.trim() ? normalizeDigits(values.fatherPhone.trim()) : null,
 
     motherAlive: values.motherAlive,
     motherNameBn: values.motherNameBn.trim(),
     motherNameEn: toBlockLetters(values.motherNameEn.trim()),
     motherOccupation: values.motherAlive ? values.motherOccupation.trim() : 'মৃত',
-    motherNid: values.motherAlive ? normalizeDigits(values.motherNid.trim()) : '',
+    motherNid: values.motherNid.trim() ? normalizeDigits(values.motherNid.trim()) : '',
     motherPhone: values.motherAlive && values.motherPhone.trim() ? normalizeDigits(values.motherPhone.trim()) : null,
 
+    primaryGuardianType: values.primaryGuardianType,
     guardianPhone: resolvePrimaryGuardianPhone(values),
     guardianMonthlyIncome: values.guardianMonthlyIncome.trim()
       ? Number(normalizeDigits(values.guardianMonthlyIncome))
@@ -225,13 +244,18 @@ export function toPublicAdmissionPayload(
     previousSchoolName: values.previousSchoolName.trim() || undefined,
     previousSchoolEiin: values.previousSchoolEiin.trim() ? normalizeDigits(values.previousSchoolEiin.trim()) : null,
     previousSchoolAddress: values.previousSchoolAddress.trim() || undefined,
-    previousClass: values.previousClass.trim() || rules.defaultPreviousClassBn,
-    previousGrade: values.previousGrade.trim() || undefined,
+    previousClass: rules.defaultPreviousClassBn,
+    previousGrade: rules.showPreviousGpa
+      ? gpaToLetterGrade(values.prevExamGpa) || values.previousGrade.trim() || undefined
+      : undefined,
     prevExamPassingYear: values.prevExamPassingYear.trim()
       ? Number(normalizeDigits(values.prevExamPassingYear))
       : undefined,
     prevExamRoll: values.prevExamRoll.trim() || undefined,
-    prevExamGpa: values.prevExamGpa.trim() ? Number(normalizeDigits(values.prevExamGpa)) : undefined,
+    prevExamGpa:
+      rules.showPreviousGpa && values.prevExamGpa.trim()
+        ? Number(normalizeDigits(values.prevExamGpa))
+        : undefined,
     transferCertificateNo: values.transferCertificateNo.trim() || null,
     transferCertificateDate: values.transferCertificateDate.trim() || null,
     boardRegistrationNo: values.boardRegistrationNo.trim()
@@ -242,7 +266,7 @@ export function toPublicAdmissionPayload(
     admissionType: values.admissionType,
     isReadmission: values.admissionType === 'READMISSION',
     targetClassId: values.targetClassId,
-    preferredSection: values.preferredSection || undefined,
+    preferredSection: undefined,
     targetGroupId: rules.requiresGroup ? values.targetGroupId || null : null,
     optionalClassSubjectId: rules.requiresOptionalSubject ? values.optionalClassSubjectId || null : null,
     optionalSubjectName: rules.requiresOptionalSubject ? chosenOptional?.nameBn ?? null : null,
@@ -285,16 +309,17 @@ export function toAdminCreateStudentPayload(
     fatherNameBn: values.fatherNameBn.trim(),
     fatherNameEn: toBlockLetters(values.fatherNameEn.trim()),
     fatherOccupation: values.fatherAlive ? values.fatherOccupation.trim() : 'মৃত',
-    fatherNid: values.fatherAlive ? normalizeDigits(values.fatherNid.trim()) : '',
+    fatherNid: values.fatherNid.trim() ? normalizeDigits(values.fatherNid.trim()) : '',
     fatherPhone: values.fatherAlive && values.fatherPhone.trim() ? normalizeDigits(values.fatherPhone.trim()) : '',
 
     motherAlive: values.motherAlive,
     motherNameBn: values.motherNameBn.trim(),
     motherNameEn: toBlockLetters(values.motherNameEn.trim()),
     motherOccupation: values.motherAlive ? values.motherOccupation.trim() : 'মৃত',
-    motherNid: values.motherAlive ? normalizeDigits(values.motherNid.trim()) : '',
+    motherNid: values.motherNid.trim() ? normalizeDigits(values.motherNid.trim()) : '',
     motherPhone: values.motherAlive && values.motherPhone.trim() ? normalizeDigits(values.motherPhone.trim()) : '',
 
+    primaryGuardianType: values.primaryGuardianType,
     guardianPhone: resolvePrimaryGuardianPhone(values),
     guardianMonthlyIncome: values.guardianMonthlyIncome.trim()
       ? Number(normalizeDigits(values.guardianMonthlyIncome))
@@ -315,12 +340,17 @@ export function toAdminCreateStudentPayload(
     previousSchoolName: values.previousSchoolName.trim() || null,
     previousSchoolEiin: values.previousSchoolEiin.trim() ? normalizeDigits(values.previousSchoolEiin.trim()) : null,
     previousSchoolAddress: values.previousSchoolAddress.trim() || null,
-    previousGrade: values.previousGrade.trim() || null,
+    previousGrade: rules.showPreviousGpa
+      ? gpaToLetterGrade(values.prevExamGpa) || values.previousGrade.trim() || null
+      : null,
     prevExamPassingYear: values.prevExamPassingYear.trim()
       ? Number(normalizeDigits(values.prevExamPassingYear))
       : null,
     prevExamRoll: values.prevExamRoll.trim() || null,
-    prevExamGpa: values.prevExamGpa.trim() ? Number(normalizeDigits(values.prevExamGpa)) : null,
+    prevExamGpa:
+      rules.showPreviousGpa && values.prevExamGpa.trim()
+        ? Number(normalizeDigits(values.prevExamGpa))
+        : null,
     transferCertificateNo: values.transferCertificateNo.trim() || null,
     transferCertificateDate: values.transferCertificateDate.trim() || null,
 

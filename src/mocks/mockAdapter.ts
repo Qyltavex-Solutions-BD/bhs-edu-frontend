@@ -1372,6 +1372,13 @@ export async function handleMockRequest(
         updatedAt: nowIso(),
       });
       const bothDeceased = app.fatherAlive === false && app.motherAlive === false;
+      const primaryRole =
+        app.primaryGuardianType ??
+        (bothDeceased
+          ? 'LEGAL_GUARDIAN'
+          : app.fatherAlive !== false
+            ? 'FATHER'
+            : 'MOTHER');
       linkGuardian(stuId, {
         name: app.fatherNameEn,
         nameBn: app.fatherNameBn,
@@ -1380,7 +1387,7 @@ export async function handleMockRequest(
         nid: app.fatherNid || null,
         address: app.presentAddress,
         relationship: RelationshipType.FATHER,
-        sms: app.fatherAlive !== false && !bothDeceased,
+        sms: primaryRole === 'FATHER' && app.fatherAlive !== false,
       });
       linkGuardian(stuId, {
         name: app.motherNameEn,
@@ -1390,7 +1397,7 @@ export async function handleMockRequest(
         nid: app.motherNid || null,
         address: app.presentAddress,
         relationship: RelationshipType.MOTHER,
-        sms: app.fatherAlive === false && app.motherAlive !== false,
+        sms: primaryRole === 'MOTHER' && app.motherAlive !== false,
       });
       if (app.legalGuardianNameBn && app.legalGuardianPhone) {
         linkGuardian(stuId, {
@@ -1401,7 +1408,7 @@ export async function handleMockRequest(
           nid: app.legalGuardianNid || null,
           address: app.legalGuardianAddress || app.presentAddress,
           relationship: RelationshipType.GUARDIAN,
-          sms: bothDeceased,
+          sms: primaryRole === 'LEGAL_GUARDIAN' || bothDeceased,
         });
       }
       if (verifiedDocuments) {
@@ -2525,6 +2532,9 @@ export async function handleMockRequest(
         ? fatherPhoneRaw || guardianPhone
         : `deceased-f-${String(p.fatherNid ?? uid('f')).replace(/\s/g, '')}`;
 
+      const directPrimaryRole =
+        (p.primaryGuardianType as 'FATHER' | 'MOTHER' | 'LEGAL_GUARDIAN' | undefined) ??
+        (bothDeceased ? 'LEGAL_GUARDIAN' : fatherAlive ? 'FATHER' : 'MOTHER');
       linkGuardian(stuId, {
         name: fatherName,
         nameBn: fatherNameBn,
@@ -2539,7 +2549,7 @@ export async function handleMockRequest(
         nid: p.fatherNid ? String(p.fatherNid) : p.parentNid ? String(p.parentNid) : null,
         address: p.presentAddress ? String(p.presentAddress) : null,
         relationship: RelationshipType.FATHER,
-        sms: fatherAlive,
+        sms: directPrimaryRole === 'FATHER' && fatherAlive,
       });
 
       const motherPhone =
@@ -2555,7 +2565,7 @@ export async function handleMockRequest(
         nid: p.motherNid ? String(p.motherNid) : null,
         address: p.presentAddress ? String(p.presentAddress) : null,
         relationship: RelationshipType.MOTHER,
-        sms: !fatherAlive && motherAlive,
+        sms: directPrimaryRole === 'MOTHER' && motherAlive,
       });
 
       const legalNameBn = p.legalGuardianNameBn ? String(p.legalGuardianNameBn).trim() : '';
@@ -2569,7 +2579,7 @@ export async function handleMockRequest(
           nid: p.legalGuardianNid ? String(p.legalGuardianNid).trim() : null,
           address: p.legalGuardianAddress ? String(p.legalGuardianAddress).trim() : p.presentAddress ? String(p.presentAddress) : null,
           relationship: RelationshipType.GUARDIAN,
-          sms: bothDeceased,
+          sms: directPrimaryRole === 'LEGAL_GUARDIAN' || bothDeceased,
         });
       }
 

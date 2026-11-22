@@ -2,11 +2,13 @@
 
 import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Printer } from 'lucide-react';
+import { Download, Loader2, Printer } from 'lucide-react';
 import {
+  PrintableAdmissionAdmitCard,
   PrintableTestimonialCertificate,
   PrintableTransferCertificate,
 } from '@/src/components/print/PrintDocuments';
+import { PrintableAdmissionFormDocument } from '@/src/features/admission/components/AdmissionFormPreviewSheet';
 import { Button } from '@/src/components/ui/primitives';
 import { useI18n } from '@/src/lib/i18n';
 import {
@@ -14,6 +16,7 @@ import {
   decodeCertificatePrintPayload,
   type CertificatePrintPayload,
 } from '@/src/lib/utils/cn';
+import { exportNodeToA4Pdf } from '@/src/lib/utils/pdfExport';
 
 function PrintCertificateContent() {
   const searchParams = useSearchParams();
@@ -21,7 +24,9 @@ function PrintCertificateContent() {
   const key = searchParams.get('key');
   const [payload, setPayload] = useState<CertificatePrintPayload | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const autoPrintedRef = useRef(false);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.remove('dark');
@@ -107,12 +112,12 @@ function PrintCertificateContent() {
       <div className="min-h-screen bg-white text-[#111111] flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-2 border border-neutral-300 rounded-md p-6">
           <p className="text-base font-semibold">
-            {pick('প্রিন্টের জন্য সনদপত্র পাওয়া যায়নি।', 'Certificate data for printing was not found.')}
+            {pick('প্রিন্টের জন্য ডকুমেন্ট পাওয়া যায়নি।', 'Document data for printing was not found.')}
           </p>
           <p className="text-sm text-neutral-600">
             {pick(
               'অনুগ্রহ করে মূল পাতা থেকে আবার "প্রিন্ট করুন" বাটনে ক্লিক করুন।',
-              'Please click "Print Certificate" again from the main registry page.'
+              'Please click "Print" again from the main page.'
             )}
           </p>
         </div>
@@ -120,34 +125,77 @@ function PrintCertificateContent() {
     );
   }
 
+  const pdfFilename =
+    payload.kind === 'TC'
+      ? `BHS-Transfer-Certificate-${payload.tc.tcNumber}`
+      : payload.kind === 'TESTIMONIAL'
+        ? `BHS-Testimonial-${payload.testimonial.refNumber}`
+        : payload.kind === 'ADMISSION_FORM'
+          ? `BHS-Admission-Form-${payload.data.submittedMeta.applicationNumber}`
+          : `BHS-Admit-Card-${payload.application.applicationNumber}`;
+
+  const handleDownloadPdf = async () => {
+    setDownloadingPdf(true);
+    try {
+      await exportNodeToA4Pdf(sheetRef.current, pdfFilename);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-white text-[#111111] py-6 px-4 print:p-0 print:min-h-0">
-      <div className="max-w-[794px] mx-auto mb-4 flex items-center justify-end no-print">
+      <div className="max-w-[794px] mx-auto mb-4 flex items-center justify-end gap-2 no-print">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={downloadingPdf}
+          onClick={handleDownloadPdf}
+        >
+          {downloadingPdf ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+          <span>{pick('PDF ডাউনলোড করুন', 'Download PDF')}</span>
+        </Button>
         <Button type="button" variant="primary" size="sm" onClick={() => window.print()}>
           <Printer className="w-4 h-4" />
-          <span>{pick('প্রিন্ট করুন', 'Print Certificate')}</span>
+          <span>{pick('প্রিন্ট করুন', 'Print')}</span>
         </Button>
       </div>
 
-      {payload.kind === 'TC' ? (
-        <PrintableTransferCertificate
-          school={payload.school}
-          tc={payload.tc}
-          student={payload.student}
-          fatherName={payload.fatherName}
-          motherName={payload.motherName}
-          sectionName={payload.sectionName}
-          roll={payload.roll}
-        />
-      ) : (
-        <PrintableTestimonialCertificate
-          school={payload.school}
-          testimonial={payload.testimonial}
-          student={payload.student}
-          fatherName={payload.fatherName}
-          motherName={payload.motherName}
-        />
-      )}
+      <div ref={sheetRef}>
+        {payload.kind === 'TC' ? (
+          <PrintableTransferCertificate
+            school={payload.school}
+            tc={payload.tc}
+            student={payload.student}
+            fatherName={payload.fatherName}
+            motherName={payload.motherName}
+            sectionName={payload.sectionName}
+            roll={payload.roll}
+          />
+        ) : payload.kind === 'TESTIMONIAL' ? (
+          <PrintableTestimonialCertificate
+            school={payload.school}
+            testimonial={payload.testimonial}
+            student={payload.student}
+            fatherName={payload.fatherName}
+            motherName={payload.motherName}
+          />
+        ) : payload.kind === 'ADMISSION_FORM' ? (
+          <PrintableAdmissionFormDocument data={payload.data} />
+        ) : (
+          <PrintableAdmissionAdmitCard
+            school={payload.school}
+            application={payload.application}
+            targetClassName={payload.targetClassName}
+            groupName={payload.groupName}
+          />
+        )}
+      </div>
     </main>
   );
 }
