@@ -132,7 +132,7 @@ function Directory({ db, createOpen }: { db: MockDatabase; createOpen: boolean }
           <p className="text-2xl font-bold text-success tabular-nums mt-1">{formatNumber(smsReceiverLinks, locale)}</p>
         </div>
         <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('অসম্পূর্ণ অভিভাবক তথ্য', 'Coverage Gaps')}</p>
+          <p className="text-xs font-medium text-muted-foreground">{pick('অসম্পূর্ণ তথ্য', 'Incomplete Records')}</p>
           <p className={`text-2xl font-bold tabular-nums mt-1 ${coverageGapCount > 0 ? 'text-warning' : 'text-success'}`}>
             {formatNumber(coverageGapCount, locale)}
           </p>

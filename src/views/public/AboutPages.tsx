@@ -1515,7 +1515,26 @@ export function PublicTeachersListPage() {
   };
   const setSearch = (v: string) => setFilterParam('q', v);
   const setDeptFilter = (v: string) => setFilterParam('dept', v);
-  const setTypeFilter = (v: string) => setFilterParam('type', v);
+  const setTypeFilter = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (!v || v === 'ALL') next.delete('type');
+    else next.set('type', v);
+    next.delete('dept');
+    setSearchParams(next, { replace: true });
+  };
+
+  const ADMIN_DEPARTMENT_IDS = useMemo(() => new Set(['dept-adm', 'dept-acc', 'dept-lib', 'dept-sec', 'dept-lab']), []);
+
+  const departmentList = useMemo(() => {
+    if (!db) return [];
+    if (typeFilter === StaffType.TEACHER) {
+      return db.departments.filter((d) => !ADMIN_DEPARTMENT_IDS.has(d.id) || d.id === 'dept-adm');
+    }
+    if (typeFilter === StaffType.OFFICER || typeFilter === StaffType.EMPLOYEE) {
+      return db.departments.filter((d) => ADMIN_DEPARTMENT_IDS.has(d.id));
+    }
+    return db.departments;
+  }, [db, typeFilter, ADMIN_DEPARTMENT_IDS]);
 
   const filtered = useMemo(() => {
     if (!db) return [];
@@ -1559,7 +1578,7 @@ export function PublicTeachersListPage() {
         </div>
         <Select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
           <option value="ALL">{pick('সকল বিভাগ', 'All Departments')}</option>
-          {db.departments.map((d) => (
+          {departmentList.map((d) => (
             <option key={d.id} value={d.id}>{d.name}</option>
           ))}
         </Select>
