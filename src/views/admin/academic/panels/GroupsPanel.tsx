@@ -3,20 +3,39 @@
 import React, { useState } from 'react';
 import { Pencil, Plus } from 'lucide-react';
 import { toast } from 'sonner';
-import { useSaveAcademicGroupMutation } from '@/src/store/api';
+import {
+  useCreateAcademicGroupMutation,
+  useGetAcademicGroupsQuery,
+  useUpdateAcademicGroupMutation,
+} from '@/src/services/academic/group.api';
 import { useI18n } from '@/src/lib/i18n';
 import { Button, Card, FormField, Input, Switch, Textarea } from '@/src/components/ui/primitives';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import type { AcademicGroup } from '@/src/types/entities';
 import { errorMessage } from './shared';
 
-const emptyGroup = { name: '', nameBn: '', description: '', isActive: true };
+interface GroupFormState {
+  name: string;
+  description: string;
+  isActive: boolean;
+}
 
-export function GroupsPanel({ groups }: { groups: AcademicGroup[] }) {
+const emptyGroup: GroupFormState = { name: '', description: '', isActive: true };
+
+export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
   const { locale, pick } = useI18n();
-  const [saveGroup, { isLoading: saving }] = useSaveAcademicGroupMutation();
+
+  // Load groups from real backend with fallback
+  const { data: realGroups, isLoading: loadingGroups } = useGetAcademicGroupsQuery();
+  const groupList = realGroups && realGroups.length > 0 ? realGroups : (groups ?? []);
+
+  const [createGroup, { isLoading: creating }] = useCreateAcademicGroupMutation();
+  const [updateGroup, { isLoading: updating }] = useUpdateAcademicGroupMutation();
+
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyGroup);
+  const [form, setForm] = useState<GroupFormState>(emptyGroup);
+
+  const saving = creating || updating;
 
   const startCreate = () => {
     setEditingId(null);
@@ -25,20 +44,37 @@ export function GroupsPanel({ groups }: { groups: AcademicGroup[] }) {
 
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
+    const trimmedName = form.name.trim();
+
+    if (!trimmedName) {
+      toast.error(pick('বিভাগের নাম আবশ্যক।', 'Group name is required.'));
+      return;
+    }
+
     try {
-      await saveGroup({
-        id: editingId ?? undefined,
-        name: form.name,
-        nameBn: form.nameBn,
-        description: form.description,
-        isActive: form.isActive,
-      }).unwrap();
-      toast.success(
-        editingId ? pick('বিভাগ হালনাগাদ হয়েছে।', 'Group updated.') : pick('নতুন বিভাগ যুক্ত হয়েছে।', 'Group created.')
-      );
+      if (editingId) {
+        await updateGroup({
+          id: editingId,
+          name: trimmedName,
+          description: form.description.trim() || undefined,
+          isActive: form.isActive,
+        }).unwrap();
+        toast.success(
+          pick('বিভাগ সফলভাবে হালনাগাদ হয়েছে।', 'Group updated successfully.')
+        );
+      } else {
+        await createGroup({
+          name: trimmedName,
+          description: form.description.trim() || undefined,
+          isActive: form.isActive,
+        }).unwrap();
+        toast.success(
+          pick('নতুন বিভাগ সফলভাবে যুক্ত হয়েছে।', 'Group created successfully.')
+        );
+      }
       startCreate();
     } catch (err) {
-      toast.error(errorMessage(err, pick('বিভাগ সংরক্ষণ হয়নি।', 'Could not save the group.')));
+      toast.error(errorMessage(err, pick('বিভাগ সংরক্ষণ করা যায়নি।', 'Could not save the group.')));
     }
   };
 
@@ -47,7 +83,9 @@ export function GroupsPanel({ groups }: { groups: AcademicGroup[] }) {
       <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-base font-bold">
-            {editingId ? pick('বিভাগ সম্পাদনা', 'Edit group') : pick('নতুন বিভাগ (৯ম–১০ম)', 'New group (classes 9–10)')}
+            {editingId
+              ? pick('বিভাগ সম্পাদনা', 'Edit group')
+              : pick('নতুন বিভাগ (৯ম–১০ম)', 'New group (classes 9–10)')}
           </h3>
           {editingId && (
             <Button type="button" variant="outline" size="sm" onClick={startCreate}>
@@ -56,57 +94,94 @@ export function GroupsPanel({ groups }: { groups: AcademicGroup[] }) {
           )}
         </div>
         <form onSubmit={handleSave} className="space-y-3">
-          <FormField label={pick('ইংরেজি নাম', 'English name')}>
-            <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Science" />
+          <FormField label={pick('বিভাগের নাম', 'Group name')}>
+            <Input
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              placeholder={pick(
+                'যেমন: বিজ্ঞান, ব্যবসায় শিক্ষা, মানবিক',
+                'e.g. Science, Business Studies, Humanities'
+              )}
+              required
+            />
           </FormField>
-          <FormField label={pick('বাংলা নাম', 'Bangla name')}>
-            <Input value={form.nameBn} onChange={(event) => setForm({ ...form, nameBn: event.target.value })} placeholder="বিজ্ঞান" />
-          </FormField>
-          <FormField label={pick('বিবরণ', 'Description')}>
-            <Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
+          <FormField label={pick('বিবরণ (ঐচ্ছিক)', 'Description (optional)')}>
+            <Textarea
+              value={form.description}
+              onChange={(event) => setForm({ ...form, description: event.target.value })}
+              placeholder={pick(
+                'বিভাগের সংক্ষিপ্ত বিবরণ...',
+                'Brief description of the group...'
+              )}
+            />
           </FormField>
           <Switch
             checked={form.isActive}
             onChange={(isActive) => setForm({ ...form, isActive })}
             label={pick('সক্রিয়', 'Active')}
           />
-          <Button type="submit" variant="primary" disabled={saving}>
-            {saving ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save')}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button type="submit" variant="primary" disabled={saving}>
+              {saving
+                ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
+                : editingId
+                ? pick('হালনাগাদ করুন', 'Update')
+                : pick('যুক্ত করুন', 'Add Group')}
+            </Button>
+            {editingId && (
+              <Button type="button" variant="outline" onClick={startCreate}>
+                {pick('বাতিল', 'Cancel')}
+              </Button>
+            )}
+          </div>
         </form>
       </Card>
       <Card className="divide-y divide-border">
-        {groups.map((group) => (
-          <div key={group.id} className="p-4 flex items-start justify-between gap-3">
-            <div>
-              <p className="font-semibold">{locale === 'bn' ? group.nameBn || group.name : group.name}</p>
-              <p className="text-sm text-muted-foreground">{group.description}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <StatusBadge
-                value={group.isActive ? 'ACTIVE' : 'INACTIVE'}
-                customLabel={group.isActive ? pick('সক্রিয়', 'Active') : pick('বন্ধ', 'Inactive')}
-                customTone={group.isActive ? 'success' : 'neutral'}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditingId(group.id);
-                  setForm({
-                    name: group.name,
-                    nameBn: group.nameBn ?? '',
-                    description: group.description ?? '',
-                    isActive: group.isActive,
-                  });
-                }}
-              >
-                <Pencil className="w-4 h-4" />
-              </Button>
-            </div>
+        {loadingGroups && groupList.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            {pick('লোড হচ্ছে...', 'Loading groups...')}
           </div>
-        ))}
+        ) : groupList.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            {pick('কোনো বিভাগ পাওয়া যায়নি।', 'No academic groups found.')}
+          </div>
+        ) : (
+          groupList.map((group) => (
+            <div key={group.id} className="p-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="font-semibold">
+                  {locale === 'bn' ? group.nameBn || group.name : group.name}
+                </p>
+                {group.description && (
+                  <p className="text-sm text-muted-foreground">{group.description}</p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <StatusBadge
+                  value={group.isActive ? 'ACTIVE' : 'INACTIVE'}
+                  customLabel={group.isActive ? pick('সক্রিয়', 'Active') : pick('বন্ধ', 'Inactive')}
+                  customTone={group.isActive ? 'success' : 'neutral'}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setEditingId(group.id);
+                    setForm({
+                      name: group.name,
+                      description: group.description ?? '',
+                      isActive: group.isActive,
+                    });
+                  }}
+                  title={pick('সম্পাদনা', 'Edit')}
+                >
+                  <Pencil className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          ))
+        )}
       </Card>
     </div>
   );
