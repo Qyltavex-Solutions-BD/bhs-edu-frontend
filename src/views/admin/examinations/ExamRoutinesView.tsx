@@ -322,8 +322,8 @@ export function ExamRoutinesView() {
       </Card>
 
       {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
-        <div className="p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('নির্ধারিত পরীক্ষার দিন', 'Scheduled Exam Days')}
           </p>
@@ -340,7 +340,7 @@ export function ExamRoutinesView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('বিষয় কভারেজ', 'Subject Coverage')}
           </p>
@@ -355,7 +355,7 @@ export function ExamRoutinesView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('ব্যবহৃত হল ও কক্ষ', 'Assigned Rooms & Halls')}
           </p>
@@ -370,7 +370,7 @@ export function ExamRoutinesView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('সময়সূচি ও কনফ্লিক্ট স্থিতি', 'Schedule Conflict Status')}
           </p>

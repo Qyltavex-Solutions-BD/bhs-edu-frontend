@@ -505,8 +505,8 @@ export function MarksEntryView() {
       />
 
       {/* Selection Toolbar */}
-      <Card className="p-4 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-        <div className="md:col-span-4">
+      <Card className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+        <div className="sm:col-span-1 lg:col-span-4">
           <label className="block text-xs text-muted-foreground mb-1">{pick('পরীক্ষা নির্বাচন করুন', 'Examination')}</label>
           <Select value={resolvedExamId} onChange={(e) => requestSwitch('exam', e.target.value)}>
             {activeExams.map((ex) => (
@@ -517,7 +517,7 @@ export function MarksEntryView() {
           </Select>
         </div>
 
-        <div className="md:col-span-4">
+        <div className="sm:col-span-1 lg:col-span-4">
           <label className="block text-xs text-muted-foreground mb-1">{pick('বিষয় নির্বাচন করুন', 'Subject')}</label>
           <Select value={resolvedSubjectId} onChange={(e) => requestSwitch('subject', e.target.value)}>
             {examSubjects.map((es) => {
@@ -533,7 +533,7 @@ export function MarksEntryView() {
           </Select>
         </div>
 
-        <div className="md:col-span-2">
+        <div className="sm:col-span-1 lg:col-span-2">
           <label className="block text-xs text-muted-foreground mb-1">{pick('শাখা', 'Section')}</label>
           <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
             <option value="ALL">{pick('সকল শাখা', 'All')}</option>
@@ -545,7 +545,7 @@ export function MarksEntryView() {
           </Select>
         </div>
 
-        <div className="md:col-span-2 relative">
+        <div className="sm:col-span-1 lg:col-span-2 relative">
           <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
           <Input
             value={search}
@@ -557,8 +557,8 @@ export function MarksEntryView() {
       </Card>
 
       {/* KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
-        <div className="p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('মোট পরীক্ষার্থী ও বিষয়', 'Total Examinees & Subject')}
           </p>
@@ -573,7 +573,7 @@ export function MarksEntryView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('এন্ট্রি অগ্রগতি', 'Entry Progress')}
           </p>
@@ -597,7 +597,7 @@ export function MarksEntryView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('উপস্থিতি ও অনুপস্থিতি', 'Attendance & Absent')}
           </p>
@@ -618,7 +618,7 @@ export function MarksEntryView() {
           </p>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 bg-surface">
           <p className="text-xs font-medium text-muted-foreground">
             {pick('প্রাথমিক মূল্যায়ন (উত্তীর্ণ / ব্যর্থ)', 'Pass / Component Fail')}
           </p>
@@ -717,7 +717,7 @@ export function MarksEntryView() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-xs tabular-nums">
                 <tr>
                   <th className="px-3 py-2.5 text-center w-14">{pick('রোল', 'Roll')}</th>
