@@ -4,7 +4,7 @@ import React, { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import { setSelectedAcademicYear } from '@/src/store/slices/uiSlice';
 import { useI18n } from '@/src/lib/i18n';
-import { Card, FormField, Select } from '@/src/components/ui/primitives';
+import { Card, FormField, Select } from '@/src/components/ui';
 import type { AcademicYear } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
 
@@ -83,10 +83,10 @@ export function AcademicFoundation({
   db,
 }: {
   tab: FoundationTab;
-  db: MockDatabase;
+  db?: MockDatabase;
 }) {
-  if (tab === 'years') return <YearsPanel years={db.academicYears} />;
-  if (tab === 'groups') return <GroupsPanel groups={db.academicGroups} />;
+  if (tab === 'years') return <YearsPanel years={db?.academicYears} />;
+  if (tab === 'groups') return <GroupsPanel groups={db?.academicGroups} />;
   if (tab === 'classes') return <ClassesPanel db={db} />;
   return <SectionsPanel db={db} />;
 }

@@ -1,25 +1,32 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import {
   useCreateAcademicGroupMutation,
   useGetAcademicGroupsQuery,
   useUpdateAcademicGroupMutation,
-} from '@/src/services/academic/group.api';
-import { useI18n } from '@/src/lib/i18n';
-import { Button, Card, FormField, Input, Switch, Textarea } from '@/src/components/ui/primitives';
+} from '@/src/services/academic';
+import { Button, Card, FormField, Input, Switch, Textarea } from '@/src/components/ui';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import type { AcademicGroup } from '@/src/types/entities';
 import { errorMessage } from './shared';
+import { useAcademicI18n } from '../academic.i18n';
+import { groupSchema, type GroupFormValues } from '../academic.schema';
 
-const emptyGroup = { name: '', nameBn: '', description: '', isActive: true };
+const defaultValues: GroupFormValues = {
+  name: '',
+  nameBn: '',
+  description: '',
+  isActive: true,
+};
 
-export function GroupsPanel({ groups }: { groups: AcademicGroup[] }) {
-  const { locale, pick } = useI18n();
+export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
+  const { isBn, t, dict } = useAcademicI18n();
 
-  // Load groups from real backend with fallback
   const { data: realGroups } = useGetAcademicGroupsQuery();
   const groupList = realGroups && realGroups.length > 0 ? realGroups : (groups ?? []);
 
@@ -27,73 +34,60 @@ export function GroupsPanel({ groups }: { groups: AcademicGroup[] }) {
   const [updateGroup, { isLoading: updating }] = useUpdateAcademicGroupMutation();
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyGroup);
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<GroupFormValues>({
+    resolver: zodResolver(groupSchema),
+    defaultValues,
+  });
+
+  const isActive = watch('isActive');
   const saving = creating || updating;
 
   const startCreate = () => {
     setEditingId(null);
-    setForm(emptyGroup);
+    reset(defaultValues);
   };
 
-  const handleSave = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const trimmedName = form.name.trim();
+  const startEdit = (group: AcademicGroup) => {
+    setEditingId(group.id);
+    reset({
+      name: group.name,
+      nameBn: group.nameBn ?? '',
+      description: group.description ?? '',
+      isActive: group.isActive,
+    });
+  };
 
-    if (!trimmedName) {
-      toast.error(pick('ইংরেজি নাম আবশ্যক।', 'English name is required.'));
-      return;
-    }
-
-    if (trimmedName.length > 100) {
-      toast.error(
-        pick('ইংরেজি নাম ১০০ অক্ষরের বেশি হতে পারবে না।', 'English name cannot exceed 100 characters.')
-      );
-      return;
-    }
-
-    const trimmedNameBn = form.nameBn.trim();
-    if (trimmedNameBn.length > 100) {
-      toast.error(
-        pick('বাংলা নাম ১০০ অক্ষরের বেশি হতে পারবে না।', 'Bangla name cannot exceed 100 characters.')
-      );
-      return;
-    }
-
-    const trimmedDesc = form.description.trim();
-    if (trimmedDesc.length > 500) {
-      toast.error(
-        pick('বিবরণ ৫০০ অক্ষরের বেশি হতে পারবে না।', 'Description cannot exceed 500 characters.')
-      );
-      return;
-    }
-
+  const onSubmit = async (values: GroupFormValues) => {
     try {
       if (editingId) {
         await updateGroup({
           id: editingId,
-          name: trimmedName,
-          nameBn: trimmedNameBn || undefined,
-          description: trimmedDesc || undefined,
-          isActive: form.isActive,
+          name: values.name.trim(),
+          nameBn: values.nameBn?.trim() || undefined,
+          description: values.description?.trim() || undefined,
+          isActive: values.isActive,
         }).unwrap();
-        toast.success(
-          pick('বিভাগ হালনাগাদ হয়েছে।', 'Group updated.')
-        );
+        toast.success(t(dict.groups.updateSuccess));
       } else {
         await createGroup({
-          name: trimmedName,
-          nameBn: trimmedNameBn || undefined,
-          description: trimmedDesc || undefined,
-          isActive: form.isActive,
+          name: values.name.trim(),
+          nameBn: values.nameBn?.trim() || undefined,
+          description: values.description?.trim() || undefined,
+          isActive: values.isActive,
         }).unwrap();
-        toast.success(
-          pick('নতুন বিভাগ যুক্ত হয়েছে।', 'Group created.')
-        );
+        toast.success(t(dict.groups.createSuccess));
       }
       startCreate();
     } catch (err) {
-      toast.error(errorMessage(err, pick('বিভাগ সংরক্ষণ হয়নি।', 'Could not save the group.')));
+      toast.error(errorMessage(err, t(dict.groups.saveFailed)));
     }
   };
 
@@ -102,66 +96,108 @@ export function GroupsPanel({ groups }: { groups: AcademicGroup[] }) {
       <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-base font-bold">
-            {editingId ? pick('বিভাগ সম্পাদনা', 'Edit group') : pick('নতুন বিভাগ (৯ম–১০ম)', 'New group (classes 9–10)')}
+            {editingId ? t(dict.groups.editTitle) : t(dict.groups.newTitle)}
           </h3>
-          {editingId && (
-            <Button type="button" variant="outline" size="sm" onClick={startCreate}>
-              <Plus className="w-4 h-4" /> {pick('নতুন', 'New')}
-            </Button>
-          )}
         </div>
-        <form onSubmit={handleSave} className="space-y-3">
-          <FormField label={pick('ইংরেজি নাম', 'English name')}>
-            <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Science" />
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+          <FormField label={t(dict.groups.nameEnLabel)} error={errors.name?.message}>
+            <Input
+              {...register('name')}
+              placeholder={t(dict.groups.nameEnPlaceholder)}
+            />
           </FormField>
-          <FormField label={pick('বাংলা নাম', 'Bangla name')}>
-            <Input value={form.nameBn} onChange={(event) => setForm({ ...form, nameBn: event.target.value })} placeholder="বিজ্ঞান" />
+
+          <FormField label={t(dict.groups.nameBnLabel)} error={errors.nameBn?.message}>
+            <Input
+              {...register('nameBn')}
+              placeholder={t(dict.groups.nameBnPlaceholder)}
+            />
           </FormField>
-          <FormField label={pick('বিবরণ', 'Description')}>
-            <Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
+
+          <FormField label={t(dict.groups.descLabel)} error={errors.description?.message}>
+            <Textarea
+              {...register('description')}
+              placeholder={t(dict.groups.descPlaceholder)}
+            />
           </FormField>
-          <Switch
-            checked={form.isActive}
-            onChange={(isActive) => setForm({ ...form, isActive })}
-            label={pick('সক্রিয়', 'Active')}
-          />
-          <Button type="submit" variant="primary" disabled={saving}>
-            {saving ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save')}
-          </Button>
-        </form>
-      </Card>
-      <Card className="divide-y divide-border">
-        {groupList.map((group) => (
-          <div key={group.id} className="p-4 flex items-start justify-between gap-3">
-            <div>
-              <p className="font-semibold">{locale === 'bn' ? group.nameBn || group.name : group.name}</p>
-              <p className="text-sm text-muted-foreground">{group.description}</p>
-            </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <Switch
+              checked={isActive}
+              onChange={(checked) => setValue('isActive', checked)}
+              label={t(dict.common.active)}
+            />
+
             <div className="flex items-center gap-2">
-              <StatusBadge
-                value={group.isActive ? 'ACTIVE' : 'INACTIVE'}
-                customLabel={group.isActive ? pick('সক্রিয়', 'Active') : pick('বন্ধ', 'Inactive')}
-                customTone={group.isActive ? 'success' : 'neutral'}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditingId(group.id);
-                  setForm({
-                    name: group.name,
-                    nameBn: group.nameBn ?? '',
-                    description: group.description ?? '',
-                    isActive: group.isActive,
-                  });
-                }}
-              >
-                <Pencil className="w-4 h-4" />
+              {editingId && (
+                <Button type="button" variant="outline" onClick={startCreate}>
+                  {t(dict.common.cancel)}
+                </Button>
+              )}
+              <Button type="submit" variant="primary" disabled={saving}>
+                {saving
+                  ? t(dict.common.saving)
+                  : editingId
+                    ? t(dict.common.update)
+                    : t(dict.common.save)}
               </Button>
             </div>
           </div>
-        ))}
+        </form>
+      </Card>
+
+      <Card className="divide-y divide-border">
+        {groupList.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            {t(dict.groups.noGroups)}
+          </div>
+        ) : (
+          groupList.map((group) => {
+            const displayName = isBn ? group.nameBn || group.name : group.name;
+            const secondaryName =
+              group.nameBn && group.nameBn !== displayName
+                ? ` (${group.nameBn})`
+                : group.name !== displayName
+                  ? ` (${group.name})`
+                  : '';
+
+            return (
+              <div key={group.id} className="p-4 flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold">
+                    {displayName}
+                    {secondaryName && (
+                      <span className="text-sm font-normal text-muted-foreground ml-1.5">
+                        {secondaryName}
+                      </span>
+                    )}
+                  </p>
+                  {group.description && (
+                    <p className="text-sm text-muted-foreground">{group.description}</p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <StatusBadge
+                    value={group.isActive ? 'ACTIVE' : 'INACTIVE'}
+                    customLabel={group.isActive ? t(dict.common.active) : t(dict.common.inactive)}
+                    customTone={group.isActive ? 'success' : 'neutral'}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => startEdit(group)}
+                    title={t(dict.common.edit)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })
+        )}
       </Card>
     </div>
   );

@@ -1,0 +1,145 @@
+'use client';
+
+import { useI18n } from '@/src/lib/i18n';
+
+export const ACADEMIC_DICTIONARY = {
+  common: {
+    save: { bn: 'সংরক্ষণ করুন', en: 'Save' },
+    saving: { bn: 'সংরক্ষণ হচ্ছে...', en: 'Saving...' },
+    update: { bn: 'হালনাগাদ করুন', en: 'Update' },
+    updating: { bn: 'আপডেট হচ্ছে...', en: 'Updating...' },
+    cancel: { bn: 'বাতিল', en: 'Cancel' },
+    active: { bn: 'সক্রিয়', en: 'Active' },
+    inactive: { bn: 'বন্ধ', en: 'Inactive' },
+    edit: { bn: 'সম্পাদনা', en: 'Edit' },
+    status: { bn: 'অবস্থা', en: 'Status' },
+    actions: { bn: 'কাজ', en: 'Actions' },
+    loading: { bn: 'লোড হচ্ছে...', en: 'Loading...' },
+  },
+  years: {
+    panelTitle: { bn: 'শিক্ষাবর্ষ', en: 'Academic Year' },
+    newYearButton: { bn: 'নতুন শিক্ষাবর্ষ', en: 'New academic year' },
+    editTitle: { bn: 'শিক্ষাবর্ষ সম্পাদনা', en: 'Edit academic year' },
+    createTitle: { bn: 'নতুন শিক্ষাবর্ষ', en: 'New academic year' },
+    modalDescription: {
+      bn: 'শুরুর তারিখ শেষ তারিখের আগে হতে হবে। একটি বছর চলতি থাকবে।',
+      en: 'The start date must be before the end date. One year stays current.',
+    },
+    yearColumn: { bn: 'শিক্ষাবর্ষ', en: 'Year' },
+    datesColumn: { bn: 'সময়কাল', en: 'Dates' },
+    currentBadge: { bn: 'চলতি', en: 'Current' },
+    makeCurrent: { bn: 'চলতি করুন', en: 'Make current' },
+    nameLabel: { bn: 'নাম', en: 'Name' },
+    namePlaceholder: { bn: 'যেমন: 2026 বা 2026-2027', en: 'e.g. 2026 or 2026-2027' },
+    startsLabel: { bn: 'শুরু', en: 'Starts' },
+    endsLabel: { bn: 'শেষ', en: 'Ends' },
+    makeCurrentSwitch: {
+      bn: 'এটিকে চলতি শিক্ষাবর্ষ করুন',
+      en: 'Make this the current year',
+    },
+    nameRequired: { bn: 'শিক্ষাবর্ষের নাম আবশ্যক।', en: 'Academic year name is required.' },
+    nameTooLong: {
+      bn: 'শিক্ষাবর্ষের নাম সর্বোচ্চ ২০ অক্ষরের হতে পারে।',
+      en: 'Academic year name cannot exceed 20 characters.',
+    },
+    datesRequired: { bn: 'শুরু এবং শেষ তারিখ আবশ্যক।', en: 'Start and end dates are required.' },
+    dateOrderError: {
+      bn: 'শুরুর তারিখ শেষ তারিখের আগে হতে হবে।',
+      en: 'Start date must be earlier than end date.',
+    },
+    createSuccess: { bn: 'নতুন শিক্ষাবর্ষ যুক্ত হয়েছে।', en: 'Academic year created.' },
+    updateSuccess: { bn: 'শিক্ষাবর্ষ হালনাগাদ হয়েছে।', en: 'Academic year updated.' },
+    saveFailed: {
+      bn: 'শিক্ষাবর্ষ সংরক্ষণ হয়নি।',
+      en: 'Could not save the academic year.',
+    },
+    activeSuccess: {
+      bn: 'এই বছরটি এখন সক্রিয় শিক্ষাবর্ষ।',
+      en: 'This year is now the active academic year.',
+    },
+    activeFailed: { bn: 'সক্রিয় করা যায়নি।', en: 'Could not activate the year.' },
+  },
+  groups: {
+    newTitle: { bn: 'নতুন বিভাগ (৯ম–১০ম)', en: 'New group (classes 9–10)' },
+    editTitle: { bn: 'বিভাগ সম্পাদনা', en: 'Edit group' },
+    nameEnLabel: { bn: 'ইংরেজি নাম', en: 'English name' },
+    nameEnPlaceholder: { bn: 'Science', en: 'Science' },
+    nameBnLabel: { bn: 'বাংলা নাম', en: 'Bangla name' },
+    nameBnPlaceholder: { bn: 'বিজ্ঞান', en: 'বিজ্ঞান' },
+    descLabel: { bn: 'বিবরণ', en: 'Description' },
+    descPlaceholder: { bn: 'বিভাগের সংক্ষিপ্ত বিবরণ...', en: 'Brief description of the group...' },
+    nameRequired: { bn: 'ইংরেজি নাম আবশ্যক।', en: 'English name is required.' },
+    nameTooLong: {
+      bn: 'ইংরেজি নাম ১০০ অক্ষরের বেশি হতে পারবে না।',
+      en: 'English name cannot exceed 100 characters.',
+    },
+    nameBnTooLong: {
+      bn: 'বাংলা নাম ১০০ অক্ষরের বেশি হতে পারবে না।',
+      en: 'Bangla name cannot exceed 100 characters.',
+    },
+    descTooLong: {
+      bn: 'বিবরণ ৫০০ অক্ষরের বেশি হতে পারবে না।',
+      en: 'Description cannot exceed 500 characters.',
+    },
+    createSuccess: { bn: 'নতুন বিভাগ যুক্ত হয়েছে।', en: 'Group created.' },
+    updateSuccess: { bn: 'বিভাগ হালনাগাদ হয়েছে।', en: 'Group updated.' },
+    saveFailed: { bn: 'বিভাগ সংরক্ষণ হয়নি।', en: 'Could not save the group.' },
+    noGroups: { bn: 'কোনো বিভাগ পাওয়া যায়নি।', en: 'No academic groups found.' },
+  },
+  classes: {
+    newTitle: { bn: 'নতুন শ্রেণি তৈরি', en: 'New class' },
+    editTitle: { bn: 'শ্রেণি সম্পাদনা', en: 'Edit class' },
+    nameEnLabel: { bn: 'ইংরেজি নাম', en: 'English name' },
+    nameEnPlaceholder: { bn: 'Class 6', en: 'Class 6' },
+    nameBnLabel: { bn: 'বাংলা নাম', en: 'Bangla name' },
+    nameBnPlaceholder: { bn: '৬ষ্ঠ শ্রেণি', en: '৬ষ্ঠ শ্রেণি' },
+    numericLabel: { bn: 'শ্রেণি নম্বর (ক্রমিক)', en: 'Class number' },
+    sectionsLabel: { bn: 'শাখা (কমা দিয়ে পৃথক করুন)', en: 'Sections (comma separated)' },
+    sectionsPlaceholder: { bn: 'A, B, C বা ক, খ', en: 'A, B, C or ক, খ' },
+    nameRequired: { bn: 'শ্রেণির নাম আবশ্যক।', en: 'Class name is required.' },
+    numericInvalid: {
+      bn: 'শ্রেণি নম্বর ১ বা তার বেশি হতে হবে।',
+      en: 'Class number must be 1 or greater.',
+    },
+    createSuccess: { bn: 'নতুন শ্রেণি সফলভাবে যুক্ত হয়েছে।', en: 'Class created successfully.' },
+    updateSuccess: { bn: 'শ্রেণি সফলভাবে হালনাগাদ হয়েছে।', en: 'Class updated successfully.' },
+    createFailed: { bn: 'শ্রেণি সংরক্ষণ করা যায়নি।', en: 'Could not save the class.' },
+    updateFailed: { bn: 'শ্রেণি হালনাগাদ করা যায়নি।', en: 'Could not update the class.' },
+    loadingClasses: { bn: 'শ্রেণির তালিকা লোড হচ্ছে...', en: 'Loading classes...' },
+    sectionsHeader: { bn: 'শাখা সমূহ', en: 'Sections' },
+    noSections: { bn: 'এখনো কোনো শাখা নেই।', en: 'No sections yet.' },
+    studentsCount: { bn: 'শিক্ষার্থী', en: 'students' },
+    numericBadge: { bn: 'নম্বর', en: 'Numeric' },
+    secPrefix: { bn: 'শাখা', en: 'Sec' },
+    offBadge: { bn: ' (বন্ধ)', en: ' (off)' },
+  },
+  sections: {
+    newTitle: { bn: 'নতুন শাখা তৈরি', en: 'New section' },
+    editTitle: { bn: 'শাখা সম্পাদনা', en: 'Edit section' },
+    classLabel: { bn: 'শ্রেণি', en: 'Class' },
+    selectClassPlaceholder: { bn: 'শ্রেণি নির্বাচন করুন', en: 'Select a class' },
+    sectionNameLabel: { bn: 'শাখার নাম', en: 'Section name' },
+    sectionPlaceholder: { bn: 'যেমন: ক, খ, A, B', en: 'e.g. ক, খ, A, B' },
+    selectClassError: { bn: 'শ্রেণি নির্বাচন করুন।', en: 'Please select a class.' },
+    nameRequired: { bn: 'শাখার নাম আবশ্যক।', en: 'Section name is required.' },
+    createSuccess: { bn: 'নতুন শাখা সফলভাবে যুক্ত হয়েছে।', en: 'Section created successfully.' },
+    updateSuccess: { bn: 'শাখা সফলভাবে আপডেট হয়েছে।', en: 'Section updated successfully.' },
+    createFailed: { bn: 'শাখা তৈরি করা যায়নি।', en: 'Could not create the section.' },
+    updateFailed: { bn: 'শাখা আপডেট করা যায়নি।', en: 'Could not update the section.' },
+    loadingSections: { bn: 'শাখার তালিকা লোড হচ্ছে...', en: 'Loading sections...' },
+    classColumn: { bn: 'শ্রেণি', en: 'Class' },
+    sectionColumn: { bn: 'শাখা', en: 'Section' },
+    actionColumn: { bn: 'কাজ', en: 'Action' },
+  },
+} as const;
+
+export function useAcademicI18n() {
+  const { locale } = useI18n();
+  const isBn = locale === 'bn';
+
+  const t = <T extends { bn: string; en: string }>(item: T): string => {
+    return isBn ? item.bn : item.en;
+  };
+
+  return { locale, isBn, t, dict: ACADEMIC_DICTIONARY };
+}

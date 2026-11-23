@@ -2,77 +2,117 @@
 
 import React, { useState } from 'react';
 import { Pencil, Plus } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import {
-  useSaveAcademicYearMutation,
+  useCreateAcademicYearMutation,
+  useGetAcademicYearsQuery,
   useSetActiveAcademicYearMutation,
-} from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
-import { Button, Card, FormField, Input, Modal, Switch } from '@/src/components/ui/primitives';
+  useUpdateAcademicYearMutation,
+} from '@/src/services/academic';
+import { Button, Card, FormField, Input, Modal, Switch } from '@/src/components/ui';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import type { AcademicYear } from '@/src/types/entities';
 import { errorMessage } from './shared';
+import { useAcademicI18n } from '../academic.i18n';
+import { yearSchema, type YearFormValues } from '../academic.schema';
 
-const emptyYear = { name: '', startDate: '', endDate: '', isActive: false };
+const defaultValues: YearFormValues = {
+  name: '',
+  startDate: '',
+  endDate: '',
+  isActive: false,
+};
 
-export function YearsPanel({ years }: { years: AcademicYear[] }) {
-  const { pick } = useI18n();
-  const [saveYear, { isLoading: saving }] = useSaveAcademicYearMutation();
+const formatDisplayDate = (d?: string) => {
+  if (!d) return '—';
+  return d.includes('T') ? d.split('T')[0] : d;
+};
+
+export function YearsPanel({ years }: { years?: AcademicYear[] }) {
+  const { t, dict } = useAcademicI18n();
+
+  const { data: realYears } = useGetAcademicYearsQuery();
+  const yearList = realYears && realYears.length > 0 ? realYears : (years ?? []);
+
+  const [createYear, { isLoading: creating }] = useCreateAcademicYearMutation();
+  const [updateYear, { isLoading: updating }] = useUpdateAcademicYearMutation();
   const [setActive, { isLoading: activating }] = useSetActiveAcademicYearMutation();
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(emptyYear);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<YearFormValues>({
+    resolver: zodResolver(yearSchema),
+    defaultValues,
+  });
+
+  const isActive = watch('isActive');
+  const saving = creating || updating;
 
   const startCreate = () => {
     setEditingId(null);
-    setForm(emptyYear);
+    reset(defaultValues);
     setOpen(true);
   };
 
   const close = () => {
     setEditingId(null);
-    setForm(emptyYear);
+    reset(defaultValues);
     setOpen(false);
   };
 
   const startEdit = (year: AcademicYear) => {
     setEditingId(year.id);
-    setForm({
+    reset({
       name: year.name,
-      startDate: year.startDate,
-      endDate: year.endDate,
+      startDate: formatDisplayDate(year.startDate),
+      endDate: formatDisplayDate(year.endDate),
       isActive: year.isActive,
     });
     setOpen(true);
   };
 
-  const handleSave = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const onSubmit = async (values: YearFormValues) => {
     try {
-      await saveYear({
-        id: editingId ?? undefined,
-        name: form.name,
-        startDate: form.startDate,
-        endDate: form.endDate,
-        isActive: form.isActive,
-      }).unwrap();
-      toast.success(
-        editingId
-          ? pick('শিক্ষাবর্ষ হালনাগাদ হয়েছে।', 'Academic year updated.')
-          : pick('নতুন শিক্ষাবর্ষ যুক্ত হয়েছে।', 'Academic year created.')
-      );
+      if (editingId) {
+        await updateYear({
+          id: editingId,
+          name: values.name.trim(),
+          startDate: values.startDate,
+          endDate: values.endDate,
+          isActive: values.isActive,
+        }).unwrap();
+        toast.success(t(dict.years.updateSuccess));
+      } else {
+        await createYear({
+          name: values.name.trim(),
+          startDate: values.startDate,
+          endDate: values.endDate,
+          isActive: values.isActive,
+        }).unwrap();
+        toast.success(t(dict.years.createSuccess));
+      }
       close();
     } catch (err) {
-      toast.error(errorMessage(err, pick('শিক্ষাবর্ষ সংরক্ষণ হয়নি।', 'Could not save the academic year.')));
+      toast.error(errorMessage(err, t(dict.years.saveFailed)));
     }
   };
 
   const handleActivate = async (id: string) => {
     try {
       await setActive({ id }).unwrap();
-      toast.success(pick('এই বছরটি এখন সক্রিয় শিক্ষাবর্ষ।', 'This year is now the active academic year.'));
+      toast.success(t(dict.years.activeSuccess));
     } catch (err) {
-      toast.error(errorMessage(err, pick('সক্রিয় করা যায়নি।', 'Could not activate the year.')));
+      toast.error(errorMessage(err, t(dict.years.activeFailed)));
     }
   };
 
@@ -80,30 +120,31 @@ export function YearsPanel({ years }: { years: AcademicYear[] }) {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button type="button" variant="primary" onClick={startCreate}>
-          <Plus className="w-4 h-4" /> {pick('নতুন শিক্ষাবর্ষ', 'New academic year')}
+          <Plus className="w-4 h-4" /> {t(dict.years.newYearButton)}
         </Button>
       </div>
+
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-surface-muted text-muted-foreground">
             <tr>
-              <th className="p-3 text-left">{pick('শিক্ষাবর্ষ', 'Year')}</th>
-              <th className="p-3 text-left">{pick('সময়কাল', 'Dates')}</th>
-              <th className="p-3 text-left">{pick('অবস্থা', 'Status')}</th>
-              <th className="p-3 text-right">{pick('কাজ', 'Actions')}</th>
+              <th className="p-3 text-left">{t(dict.years.yearColumn)}</th>
+              <th className="p-3 text-left">{t(dict.years.datesColumn)}</th>
+              <th className="p-3 text-left">{t(dict.common.status)}</th>
+              <th className="p-3 text-right">{t(dict.common.actions)}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {years.map((year) => (
+            {yearList.map((year) => (
               <tr key={year.id}>
                 <td className="p-3 font-semibold tabular-nums">{year.name}</td>
                 <td className="p-3 text-muted-foreground tabular-nums">
-                  {year.startDate} — {year.endDate}
+                  {formatDisplayDate(year.startDate)} — {formatDisplayDate(year.endDate)}
                 </td>
                 <td className="p-3">
                   <StatusBadge
                     value={year.isActive ? 'ACTIVE' : 'INACTIVE'}
-                    customLabel={year.isActive ? pick('চলতি', 'Current') : pick('বন্ধ', 'Inactive')}
+                    customLabel={year.isActive ? t(dict.years.currentBadge) : t(dict.common.inactive)}
                     customTone={year.isActive ? 'success' : 'neutral'}
                   />
                 </td>
@@ -116,12 +157,12 @@ export function YearsPanel({ years }: { years: AcademicYear[] }) {
                       disabled={activating}
                       onClick={() => handleActivate(year.id)}
                     >
-                      {pick('চলতি করুন', 'Make current')}
+                      {t(dict.years.makeCurrent)}
                     </Button>
                   )}
                   <Button type="button" variant="ghost" size="sm" onClick={() => startEdit(year)}>
                     <Pencil className="w-4 h-4" />
-                    {pick('সম্পাদনা', 'Edit')}
+                    {t(dict.common.edit)}
                   </Button>
                 </td>
               </tr>
@@ -129,57 +170,52 @@ export function YearsPanel({ years }: { years: AcademicYear[] }) {
           </tbody>
         </table>
       </Card>
+
       <Modal
         open={open}
         onClose={close}
-        title={
-          editingId
-            ? pick('শিক্ষাবর্ষ সম্পাদনা', 'Edit academic year')
-            : pick('নতুন শিক্ষাবর্ষ', 'New academic year')
-        }
-        description={pick(
-          'শুরুর তারিখ শেষ তারিখের আগে হতে হবে। একটি বছর চলতি থাকবে।',
-          'The start date must be before the end date. One year stays current.'
-        )}
+        title={editingId ? t(dict.years.editTitle) : t(dict.years.createTitle)}
+        description={t(dict.years.modalDescription)}
       >
-        <form onSubmit={handleSave} className="space-y-3">
-          <FormField label={pick('নাম', 'Name')}>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
+          <FormField label={t(dict.years.nameLabel)} required error={errors.name?.message}>
             <Input
-              value={form.name}
-              onChange={(event) => setForm({ ...form, name: event.target.value })}
-              placeholder="2027"
-              required
+              {...register('name')}
+              placeholder={t(dict.years.namePlaceholder)}
             />
           </FormField>
+
           <div className="grid grid-cols-2 gap-3">
-            <FormField label={pick('শুরু', 'Starts')}>
+            <FormField label={t(dict.years.startsLabel)} required error={errors.startDate?.message}>
               <Input
                 type="date"
-                value={form.startDate}
-                onChange={(event) => setForm({ ...form, startDate: event.target.value })}
-                required
+                {...register('startDate')}
               />
             </FormField>
-            <FormField label={pick('শেষ', 'Ends')}>
+            <FormField label={t(dict.years.endsLabel)} required error={errors.endDate?.message}>
               <Input
                 type="date"
-                value={form.endDate}
-                onChange={(event) => setForm({ ...form, endDate: event.target.value })}
-                required
+                {...register('endDate')}
               />
             </FormField>
           </div>
+
           <Switch
-            checked={form.isActive}
-            onChange={(isActive) => setForm({ ...form, isActive })}
-            label={pick('এটিকে চলতি শিক্ষাবর্ষ করুন', 'Make this the current year')}
+            checked={isActive}
+            onChange={(val) => setValue('isActive', val)}
+            label={t(dict.years.makeCurrentSwitch)}
           />
+
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={close}>
-              {pick('বাতিল', 'Cancel')}
+              {t(dict.common.cancel)}
             </Button>
             <Button type="submit" variant="primary" disabled={saving}>
-              {saving ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save')}
+              {saving
+                ? t(dict.common.saving)
+                : editingId
+                  ? t(dict.common.update)
+                  : t(dict.common.save)}
             </Button>
           </div>
         </form>
