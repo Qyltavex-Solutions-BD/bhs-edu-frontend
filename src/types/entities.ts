@@ -270,6 +270,12 @@ export interface SchoolClass {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  sections?: Section[];
+  _count?: {
+    sections?: number;
+    enrollments?: number;
+    classSubjects?: number;
+  };
 }
 
 export interface Section {

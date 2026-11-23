@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery, type BaseQueryFn } from '@reduxjs/toolkit/qu
 import { handleMockRequest } from '@/src/mocks/mockAdapter';
 import type { MockDatabase } from '@/src/mocks/seed';
 import type { RootState } from './index';
+import { AUTH_STORAGE_KEY, triggerSessionExpired } from './slices/authSlice';
 import type {
   AcademicDocumentType,
   AcademicEventType,
@@ -63,7 +64,21 @@ const realFetchBaseQuery = fetchBaseQuery({
   baseUrl: API_BASE_URL,
   credentials: 'include',
   prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as RootState).auth.accessToken;
+    let token = (getState() as RootState).auth.accessToken;
+    if (!token && typeof window !== 'undefined') {
+      try {
+        const stored = window.localStorage.getItem(AUTH_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          token = parsed?.accessToken;
+        }
+      } catch {
+        // ignore restricted storage
+      }
+    }
+    if (!token && process.env.NODE_ENV !== 'production') {
+      token = 'demo-in-memory-token-super_admin';
+    }
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
@@ -79,21 +94,49 @@ interface CustomQueryArgs {
 
 const hybridBaseQuery: BaseQueryFn<CustomQueryArgs, unknown, { status: number; message: string }> =
   async (args, api, extraOptions) => {
+    // 1. If global mock mode is forced on, serve from mock adapter
     if (USE_MOCK) {
       const res = await handleMockRequest(args.url, args.method ?? 'GET', args.body);
       if (res.error) return { error: res.error };
       return { data: res.data };
     }
 
+    // 2. /bootstrap is the frontend mock-state provider; always provide seed db
+    if (args.url === '/bootstrap') {
+      const res = await handleMockRequest(args.url, 'GET', args.body);
+      if (res.error) return { error: res.error };
+      return { data: res.data };
+    }
+
+    // 3. Try real backend
     const result = await realFetchBaseQuery(args, api, extraOptions);
     if (result.error) {
       const status = typeof result.error.status === 'number' ? result.error.status : 500;
+
+      // Handle 401 Unauthorized for protected endpoints
+      if (status === 401 && !args.url.includes('/auth/login')) {
+        api.dispatch(triggerSessionExpired());
+      }
+
+      // 4. Fallback to mock adapter if the endpoint is not yet implemented on the backend (404)
+      if (status === 404 || result.error.status === 'FETCH_ERROR') {
+        const mockRes = await handleMockRequest(args.url, args.method ?? 'GET', args.body);
+        if (!mockRes.error) {
+          return { data: mockRes.data };
+        }
+      }
+
+      const errData = result.error.data as
+        | {
+            message?: string;
+            errors?: Array<{ field: string; message: string; value?: unknown }>;
+          }
+        | undefined;
+      const validationMessage = errData?.errors?.[0]?.message;
       return {
         error: {
           status,
-          message:
-            (result.error.data as { message?: string } | undefined)?.message ??
-            'API request failed',
+          message: validationMessage ?? errData?.message ?? 'API request failed',
         },
       };
     }
@@ -134,6 +177,25 @@ export const schoolApi = createApi({
         'Notifications',
         'Audit',
       ],
+    }),
+
+    login: builder.mutation<
+      {
+        accessToken: string;
+        refreshToken?: string;
+        user: {
+          id: string;
+          name: string;
+          email: string;
+          phone: string;
+          roles: string[];
+          permissions: string[];
+        };
+      },
+      { email: string; password: string }
+    >({
+      query: (body) => ({ url: '/auth/login', method: 'POST', body }),
+      transformResponse: (response: any) => response?.data ?? response,
     }),
 
     searchPublicResult: builder.mutation<
@@ -499,11 +561,6 @@ export const schoolApi = createApi({
 
     saveAcademicGroup: builder.mutation<AcademicGroup, Partial<AcademicGroup>>({
       query: (body) => ({ url: '/academic/groups', method: 'POST', body }),
-      invalidatesTags: ['Academic', 'Bootstrap'],
-    }),
-
-    saveSchoolClass: builder.mutation<SchoolClass, Partial<SchoolClass> & { sectionNames?: string[] }>({
-      query: (body) => ({ url: '/academic/classes', method: 'POST', body }),
       invalidatesTags: ['Academic', 'Bootstrap'],
     }),
 
@@ -906,6 +963,7 @@ export const schoolApi = createApi({
 
 export const {
   useGetBootstrapQuery,
+  useLoginMutation,
   useSearchPublicResultMutation,
   useSubmitAdmissionApplicationMutation,
   useUpdateAdmissionStatusMutation,
@@ -929,7 +987,6 @@ export const {
   useSaveAcademicYearMutation,
   useSetActiveAcademicYearMutation,
   useSaveAcademicGroupMutation,
-  useSaveSchoolClassMutation,
   useSaveSectionMutation,
   useSaveMasterSubjectMutation,
   useRemoveMasterSubjectMutation,
