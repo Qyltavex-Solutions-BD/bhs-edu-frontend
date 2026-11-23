@@ -16,6 +16,7 @@ import {
   Clock,
   Download,
   Eye,
+  ExternalLink,
   FileText,
   FlaskConical,
   Globe,
@@ -1319,16 +1320,6 @@ export function HomePage() {
                     {formatNumber(publishedNotices.length, locale)}
                   </span>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <Link
-                    href="/notices"
-                    className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
-                  >
-                    <span>{pick('সব নোটিশ', 'All')}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
               </div>
 
               {/* Category Filter Tabs & Search Filter Strip */}
@@ -1366,7 +1357,7 @@ export function HomePage() {
                 </div>
               </div>
 
-              {/* Notice List Rows (matches bteb.gov.bd layout) */}
+              {/* Notice List Rows (matches bteb.gov.bd layout: Full-row clickable, clear bold text) */}
               <div className="divide-y divide-border">
                 {publishedNotices.length === 0 ? (
                   <div className="p-10 text-center text-sm text-muted-foreground">
@@ -1384,151 +1375,184 @@ export function HomePage() {
                     const formattedDate = locale === 'bn' ? formatNumber(rawDate, 'bn') : rawDate;
 
                     return (
-                      <div
+                      <Link
                         key={notice.id}
-                        className="group px-4 sm:px-6 py-3.5 hover:bg-surface-muted/40 transition-colors flex items-start gap-3"
+                        href={`/notices/${notice.id}`}
+                        className="group flex items-start gap-3.5 px-4 sm:px-6 py-4 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition-colors cursor-pointer"
                       >
                         {/* Green Bullet Icon (bteb.gov.bd style) */}
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#0c5936] dark:bg-emerald-500 shrink-0 mt-1.5" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#0c5936] dark:bg-emerald-500 shrink-0 mt-2" />
 
                         {/* Notice Title & Metadata */}
-                        <div className="flex-1 min-w-0 space-y-1.5">
-                          <Link
-                            href={`/notices/${notice.id}`}
-                            className="block text-sm sm:text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2"
-                          >
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <h3 className="text-base sm:text-[17px] font-bold text-foreground group-hover:text-[#0c5936] transition-colors leading-snug line-clamp-2">
                             {notice.title}
-                          </Link>
+                          </h3>
 
                           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                            <span className="inline-flex items-center gap-1 tabular-nums">
-                              <Calendar className="w-3.5 h-3.5 text-muted-foreground/80" />
+                            <span className="inline-flex items-center gap-1.5 tabular-nums font-medium">
+                              <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                               <span>{formattedDate}</span>
                             </span>
 
                             {showNewBadge && (
-                              <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[11px] font-bold leading-none animate-pulse">
+                              <span className="px-2 py-0.5 rounded-sm bg-[#D32F2F] text-white text-[11px] font-bold leading-none">
                                 {pick('নতুন', 'New')}
                               </span>
                             )}
 
-                            <span className="px-2 py-0.5 rounded-md bg-surface-muted border border-border/80 text-[11px] font-medium text-muted-foreground">
+                            <span className="px-2 py-0.5 rounded-sm bg-surface-muted border border-border text-[11px] font-medium text-foreground">
                               {notice.isUrgent ? pick('জরুরি', 'Urgent') : pick('সাধারণ', 'General')}
                             </span>
 
                             {notice.memoNo && (
-                              <span className="text-[11px] text-muted-foreground/75 font-mono">
+                              <span className="text-[11px] text-muted-foreground font-mono">
                                 {notice.memoNo}
                               </span>
                             )}
                           </div>
                         </div>
 
-                        {/* Direct Preview & Details Navigation */}
-                        <div className="flex items-center gap-1.5 shrink-0 self-center">
-                          <button
-                            type="button"
-                            onClick={() => setPreviewNotice(notice)}
-                            title={pick('দ্রুত দেখুন', 'Quick Preview')}
-                            className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-border bg-surface text-muted-foreground hover:border-primary/45 hover:text-primary transition-colors cursor-pointer"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-                          <Link
-                            href={`/notices/${notice.id}`}
-                            className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </Link>
+                        {/* Trailing Arrow */}
+                        <div className="shrink-0 self-center pl-2 text-muted-foreground group-hover:text-[#0c5936] group-hover:translate-x-1 transition-all">
+                          <ChevronRight className="w-5 h-5" />
                         </div>
-                      </div>
+                      </Link>
                     );
                   })
                 )}
               </div>
 
-              {/* Bottom Action Footer (Solid Green Button as in bteb.gov.bd) */}
-              <div className="p-4 bg-surface-muted/20 border-t border-border flex items-center justify-between">
+              {/* Bottom Action Footer (Single Solid Green Button as in bteb.gov.bd, Zero Duplication) */}
+              <div className="p-4 bg-surface-muted/20 border-t border-border flex items-center justify-start">
                 <Link href="/notices">
                   <button
                     type="button"
-                    className="px-5 py-2.5 rounded-lg bg-[#0c5936] hover:bg-[#084529] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+                    className="px-5 py-2.5 rounded-lg bg-[#0c5936] hover:bg-[#084529] text-white text-xs sm:text-sm font-bold shadow-xs hover:shadow transition-all flex items-center gap-2 cursor-pointer"
                   >
-                    <span>{pick('সকল নোটিশ দেখুন', 'View All Notices')}</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <span>{pick('সকল নোটিশ দেখুন →', 'View All Notices →')}</span>
                   </button>
-                </Link>
-
-                <Link
-                  href="/notices"
-                  className="px-3.5 py-2 rounded-lg bg-surface border border-border hover:border-primary/40 text-xs font-semibold text-primary transition-colors"
-                >
-                  <span>{pick('আর্কাইভ দেখুন', 'View Archive')}</span>
                 </Link>
               </div>
             </div>
 
-            {/* Quick Action Cards Under Notice Board (matches bteb.gov.bd bottom left) */}
+            {/* Quick Action Cards Under Notice Board (Education Portals & Academic Resources — Non-duplicative) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Card 1: বিজ্ঞপ্তি ও সিলেবাস */}
+              {/* Card 1: শিক্ষা বোর্ড ও সরকারি পোর্টাল */}
               <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
                 <div className="flex items-center gap-2.5 text-foreground">
                   <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                    <Bell className="w-4 h-4" />
+                    <Globe className="w-4 h-4" />
                   </div>
                   <h3 className="text-base font-bold">
-                    {pick('বিজ্ঞপ্তি ও নির্দেশিকা', 'Announcements & Guidelines')}
+                    {pick('শিক্ষা বোর্ড ও সরকারি পোর্টাল', 'Education Boards & Portals')}
                   </h3>
                 </div>
-                <ul className="space-y-1.5 text-xs text-muted-foreground">
+                <ul className="space-y-2 text-xs text-muted-foreground">
                   <li>
-                    <Link href="/academics/routines" className="flex items-center gap-1.5 hover:text-primary transition-colors">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                      <span>{pick('পরীক্ষার রুটিন ও সময়সূচি', 'Exam Routines & Schedule')}</span>
-                    </Link>
+                    <a
+                      href="https://dshe.gov.bd"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between group hover:text-primary transition-colors py-0.5"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
+                        <span className="truncate">{pick('মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তর (মাউশি)', 'Directorate of Secondary and Higher Education')}</span>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
+                    </a>
                   </li>
                   <li>
-                    <Link href="/academics/academic-calendar" className="flex items-center gap-1.5 hover:text-primary transition-colors">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                      <span>{pick('বার্ষিক ছুটির তালিকা ও বর্ষপঞ্জি', 'Annual Holiday Calendar')}</span>
-                    </Link>
+                    <a
+                      href="https://dhakaeducationboard.gov.bd"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between group hover:text-primary transition-colors py-0.5"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
+                        <span className="truncate">{pick('মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড, ঢাকা', 'Dhaka Education Board')}</span>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
+                    </a>
                   </li>
                   <li>
-                    <Link href="/academics/syllabus" className="flex items-center gap-1.5 hover:text-primary transition-colors">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-                      <span>{pick('শ্রেণিভিত্তিক পাঠ্যসূচি ও সিলেবাস', 'Syllabus & Lesson Plan')}</span>
-                    </Link>
+                    <a
+                      href="https://nctb.gov.bd"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between group hover:text-primary transition-colors py-0.5"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
+                        <span className="truncate">{pick('জাতীয় শিক্ষাক্রম ও পাঠ্যপুস্তক বোর্ড (NCTB)', 'National Curriculum and Textbook Board')}</span>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="http://bteb.gov.bd"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between group hover:text-primary transition-colors py-0.5"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
+                        <span className="truncate">{pick('বাংলাদেশ কারিগরি শিক্ষা বোর্ড (BTEB)', 'Bangladesh Technical Education Board')}</span>
+                      </div>
+                      <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
+                    </a>
                   </li>
                 </ul>
               </div>
 
-              {/* Card 2: অনলাইনে ভর্তি */}
+              {/* Card 2: একাডেমিক তথ্য ও পাঠ্যক্রম */}
               <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
                 <div className="flex items-center gap-2.5 text-foreground">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <BookOpen className="w-4 h-4" />
                   </div>
                   <h3 className="text-base font-bold">
-                    {pick('অনলাইনে ভর্তি (সেশন: ২০২৬-২০২৭)', 'Online Admission (2026-2027)')}
+                    {pick('একাডেমিক তথ্য ও পাঠ্যক্রম', 'Academic Curriculum & Resources')}
                   </h3>
                 </div>
-                <ul className="space-y-1.5 text-xs text-muted-foreground">
+                <ul className="space-y-2 text-xs text-muted-foreground">
                   <li>
-                    <Link href="/admission/apply" className="flex items-center gap-1.5 hover:text-primary transition-colors">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      <span>{pick('সরাসরি অনলাইন ভর্তি আবেদন', 'Direct Online Admission Apply')}</span>
+                    <Link
+                      href="/academics/academic-calendar"
+                      className="flex items-center justify-between group hover:text-primary transition-colors py-0.5"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                        <span className="truncate">{pick('বাৎসরিক একাডেমিক ক্যালেন্ডার ও বর্ষপঞ্জি', 'Academic Calendar & Holidays')}</span>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
                     </Link>
                   </li>
                   <li>
-                    <Link href="/admission/guidelines" className="flex items-center gap-1.5 hover:text-primary transition-colors">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      <span>{pick('ভর্তির যোগ্যতা ও নীতিমালা', 'Admission Policy & Criteria')}</span>
+                    <Link
+                      href="/academics/syllabus"
+                      className="flex items-center justify-between group hover:text-primary transition-colors py-0.5"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                        <span className="truncate">{pick('শ্রেণিভিত্তিক পাঠ্যসূচি ও সিলেবাস', 'Class Syllabus & Outline')}</span>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
                     </Link>
                   </li>
                   <li>
-                    <Link href="/admission/status" className="flex items-center gap-1.5 hover:text-primary transition-colors">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      <span>{pick('আবেদনের অগ্রগতি ট্র্যাকিং', 'Track Application Status')}</span>
+                    <Link
+                      href="/academics/library"
+                      className="flex items-center justify-between group hover:text-primary transition-colors py-0.5"
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                        <span className="truncate">{pick('ডিজিটাল পাঠাগার ও পাঠ্যবই কর্নার', 'Digital Library & Reading Corner')}</span>
+                      </div>
+                      <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
                     </Link>
                   </li>
                 </ul>

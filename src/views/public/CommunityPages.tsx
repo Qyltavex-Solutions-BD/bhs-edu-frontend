@@ -48,6 +48,7 @@ import {
   NoticeDocumentViewer,
   downloadNoticeDocument,
 } from '@/src/components/shared/NoticeDocumentViewer';
+import { ChromePdfViewer } from '@/src/components/shared/ChromePdfViewer';
 import { Button, Card, FormField, Input, Select, Textarea } from '@/src/components/ui/primitives';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { AchievementType, MediaType, NoticeStatus, PublicationType } from '@/src/types/enums';
@@ -127,71 +128,60 @@ export function PublicNoticesListPage() {
             const formattedDate = locale === 'bn' ? formatNumber(rawDate, 'bn') : rawDate;
 
             return (
-              <div
+              <Link
                 key={n.id}
-                className="group flex items-start gap-3.5 p-4 sm:px-6 hover:bg-surface-muted/40 transition-colors"
+                href={`/notices/${n.id}`}
+                className="group flex items-start gap-3.5 p-4 sm:px-6 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition-colors cursor-pointer"
               >
                 {/* Green Bullet Icon (bteb.gov.bd style) */}
-                <span className="w-2.5 h-2.5 rounded-full bg-[#0c5936] dark:bg-emerald-500 shrink-0 mt-1.5" />
+                <span className="w-2.5 h-2.5 rounded-full bg-[#0c5936] dark:bg-emerald-500 shrink-0 mt-2" />
 
-                <div className="min-w-0 flex-1 space-y-1.5">
-                  <Link
-                    href={`/notices/${n.id}`}
-                    className="block text-sm sm:text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug"
-                  >
+                <div className="min-w-0 flex-1 space-y-2">
+                  <h2 className="text-base sm:text-[17px] font-bold text-foreground group-hover:text-[#0c5936] transition-colors leading-snug">
                     {n.title}
-                  </Link>
+                  </h2>
 
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1 tabular-nums">
-                      <Calendar className="w-3.5 h-3.5 text-muted-foreground/80" />
+                    <span className="inline-flex items-center gap-1.5 tabular-nums font-medium">
+                      <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                       <span>{formattedDate}</span>
                     </span>
 
                     {showNewBadge && (
-                      <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[11px] font-bold leading-none animate-pulse">
+                      <span className="px-2 py-0.5 rounded-sm bg-[#D32F2F] text-white text-[11px] font-bold leading-none">
                         {pick('নতুন', 'New')}
                       </span>
                     )}
 
-                    <span className="px-2 py-0.5 rounded-md bg-surface-muted border border-border/80 text-[11px] font-medium text-muted-foreground">
+                    <span className="px-2 py-0.5 rounded-sm bg-surface-muted border border-border text-[11px] font-medium text-foreground">
                       {n.isUrgent ? pick('জরুরি', 'Urgent') : pick('সাধারণ', 'General')}
                     </span>
 
                     {n.memoNo && (
-                      <span className="text-[11px] text-muted-foreground/75 font-mono">
+                      <span className="text-[11px] text-muted-foreground font-mono">
                         {n.memoNo}
                       </span>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0 self-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPreviewNotice(n)}
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{pick('প্রিভিউ', 'Preview')}</span>
-                  </Button>
+                <div className="flex items-center gap-2 shrink-0 self-center pl-2">
                   <button
                     type="button"
-                    onClick={() => downloadNoticeDocument(n, db.schoolProfile, locale)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      downloadNoticeDocument(n, db.schoolProfile, locale);
+                    }}
                     aria-label={pick('ডাউনলোড', 'Download')}
                     title={pick('ডাউনলোড করুন', 'Download')}
-                    className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-border bg-surface text-muted-foreground hover:text-primary hover:border-primary/45 transition-colors cursor-pointer"
+                    className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-border bg-surface text-muted-foreground hover:text-[#0c5936] hover:border-emerald-600 transition-colors cursor-pointer"
                   >
                     <Download className="w-3.5 h-3.5" />
                   </button>
-                  <Link
-                    href={`/notices/${n.id}`}
-                    className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
+                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-[#0c5936] group-hover:translate-x-1 transition-all" />
                 </div>
-              </div>
+              </Link>
             );
           })}
         </Card>
@@ -296,8 +286,8 @@ export function PublicNoticeDetailPage() {
         </div>
       </div>
 
-      {/* Full Official Pad / Document Viewer (Embedded) */}
-      <NoticeDocumentViewer notice={notice} school={db.schoolProfile} />
+      {/* Full Chrome-Like PDF Document Viewer (Embedded - matches Image 2 from bteb.gov.bd) */}
+      <ChromePdfViewer notice={notice} school={db.schoolProfile} />
 
       {/* Other Recent Notices (matches bteb.gov.bd bottom list) */}
       {recentOthers.length > 0 && (
