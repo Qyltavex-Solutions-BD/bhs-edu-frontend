@@ -25,6 +25,10 @@ import { loginSchema, type LoginFormValues } from '@/src/lib/validations/schemas
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import { DEMO_ACCOUNTS, loginWithDemoRole, setCredentials, type AppRole } from '@/src/store/slices/authSlice';
 import { useLoginMutation } from '@/src/store/api';
+import {
+  useForgotPasswordMutation,
+  useResetPasswordMutation,
+} from '@/src/services/auth/auth.api';
 import { useI18n } from '@/src/lib/i18n';
 import { SchoolEmblem } from '@/src/components/shared/Feedback';
 import { Button, Card, FormField, Input } from '@/src/components/ui/primitives';
@@ -44,99 +48,128 @@ export function LoginPage() {
   const [loginApi, { isLoading: isLoggingIn }] = useLoginMutation();
 
   const handleDemoLogin = async (role: AppRole) => {
-    const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API !== 'false';
-    if (!useMock && (role === 'SUPER_ADMIN' || role === 'SCHOOL_ADMIN' || role === 'PRINCIPAL')) {
-      try {
-        const res = await loginApi({
-          email: 'admin@example.com',
-          password: 'adminpassword',
-        }).unwrap();
+    // Map role to backend seeded credentials
+    let email = 'admin@example.com';
+    let password = 'adminpassword';
+    let targetPortal = DEMO_ACCOUNTS[role].redirect;
 
-        dispatch(
-          setCredentials({
-            accessToken: res.accessToken,
-            user: {
-              id: res.user.id,
-              name: res.user.name,
-              email: res.user.email,
-              phone: res.user.phone,
-              role,
-              isDemoSession: false,
-            },
-            role,
-            permissions: res.user.permissions ?? [],
-          })
-        );
-        toast.success(
-          pick(
-            `${DEMO_ACCOUNTS[role].user.name} হিসেবে অ্যাডমিন পোর্টালে প্রবেশ সম্পন্ন হয়েছে।`,
-            `Signed in as ${DEMO_ACCOUNTS[role].user.name}.`
-          )
-        );
-        router.push(DEMO_ACCOUNTS[role].redirect);
-        return;
-      } catch (err: any) {
-        toast.error(err?.message || 'Login failed');
-        return;
-      }
+    if (role === 'TEACHER') {
+      email = 'teacher@example.com';
+      password = 'teacherpassword';
+      targetPortal = '/teacher/dashboard';
+    } else if (role === 'PARENT') {
+      email = 'parent@example.com';
+      password = 'parentpassword';
+      targetPortal = '/parent/dashboard';
+    } else if (role === 'STUDENT') {
+      email = 'student@example.com';
+      password = 'studentpassword';
+      targetPortal = '/student/dashboard';
     }
 
-    dispatch(loginWithDemoRole(role));
-    toast.success(
-      pick(
-        `${DEMO_ACCOUNTS[role].user.name} হিসেবে পোর্টালে প্রবেশ সম্পন্ন হয়েছে।`,
-        `Signed in as ${DEMO_ACCOUNTS[role].user.name}.`
-      )
-    );
-    router.push(DEMO_ACCOUNTS[role].redirect);
+    try {
+      const res = await loginApi({ email, password }).unwrap();
+
+      const roles = res.user?.roles || [];
+      const primaryRole = roles[0] || 'ADMIN';
+      const resolvedRole: AppRole =
+        primaryRole === 'ADMIN'
+          ? role === 'PRINCIPAL' || role === 'SCHOOL_ADMIN'
+            ? role
+            : 'SUPER_ADMIN'
+          : (primaryRole as AppRole);
+
+      dispatch(
+        setCredentials({
+          accessToken: res.accessToken,
+          user: {
+            id: res.user.id,
+            name: res.user.name,
+            email: res.user.email,
+            phone: res.user.phone,
+            role: resolvedRole,
+            isDemoSession: false,
+          },
+          role: resolvedRole,
+          permissions: res.user.permissions ?? DEMO_ACCOUNTS[role].permissions,
+        })
+      );
+
+      toast.success(
+        pick(
+          `${res.user.name || DEMO_ACCOUNTS[role].user.name} হিসেবে সফলভাবে প্রবেশ করেছেন।`,
+          `Signed in as ${res.user.name || DEMO_ACCOUNTS[role].user.name}.`
+        )
+      );
+      router.push(targetPortal);
+      return;
+    } catch {
+      // Graceful fallback to local demo profile if backend is unreachable
+      dispatch(loginWithDemoRole(role));
+      toast.success(
+        pick(
+          `${DEMO_ACCOUNTS[role].user.name} হিসেবে ডেমো পোর্টালে প্রবেশ সম্পন্ন হয়েছে।`,
+          `Signed in as demo ${DEMO_ACCOUNTS[role].user.name}.`
+        )
+      );
+      router.push(targetPortal);
+    }
   };
 
   const onSubmit = async (values: LoginFormValues) => {
-    const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API !== 'false';
-    if (!useMock) {
-      try {
-        const res = await loginApi({
-          email: values.identifier,
-          password: values.password,
-        }).unwrap();
+    try {
+      const res = await loginApi({
+        email: values.identifier.trim(),
+        password: values.password,
+      }).unwrap();
 
-        const roleStr = res.user.roles?.[0] || 'SUPER_ADMIN';
-        const role: AppRole =
-          roleStr === 'ADMIN' ? 'SUPER_ADMIN' : (roleStr as AppRole);
+      const roles = res.user?.roles || [];
+      const primaryRole = roles[0] || 'ADMIN';
+      const role: AppRole =
+        primaryRole === 'ADMIN'
+          ? 'SUPER_ADMIN'
+          : primaryRole === 'TEACHER'
+            ? 'TEACHER'
+            : primaryRole === 'PARENT'
+              ? 'PARENT'
+              : primaryRole === 'STUDENT'
+                ? 'STUDENT'
+                : 'SUPER_ADMIN';
 
-        dispatch(
-          setCredentials({
-            accessToken: res.accessToken,
-            user: {
-              id: res.user.id,
-              name: res.user.name,
-              email: res.user.email,
-              phone: res.user.phone,
-              role,
-              isDemoSession: false,
-            },
+      dispatch(
+        setCredentials({
+          accessToken: res.accessToken,
+          user: {
+            id: res.user.id,
+            name: res.user.name,
+            email: res.user.email,
+            phone: res.user.phone,
             role,
-            permissions: res.user.permissions ?? [],
-          })
+            isDemoSession: false,
+          },
+          role,
+          permissions: res.user.permissions ?? [],
+        })
+      );
+
+      toast.success(pick('লগইন সফল হয়েছে।', 'Login successful.'));
+
+      let redirectUrl = '/admin';
+      if (role === 'TEACHER') redirectUrl = '/teacher/dashboard';
+      else if (role === 'PARENT') redirectUrl = '/parent/dashboard';
+      else if (role === 'STUDENT') redirectUrl = '/student/dashboard';
+
+      router.push(redirectUrl);
+    } catch (err: any) {
+      const errorMsg =
+        err?.data?.message ||
+        err?.message ||
+        pick(
+          'লগইন ব্যর্থ হয়েছে। সঠিক ইমেইল/ফোন ও পাসওয়ার্ড দিন।',
+          'Login failed. Please check your email/phone and password.'
         );
-
-        toast.success(pick('লগইন সফল হয়েছে।', 'Login successful.'));
-        router.push('/admin');
-        return;
-      } catch (err: any) {
-        toast.error(err?.message || pick('লগইন ব্যর্থ হয়েছে।', 'Login failed.'));
-        return;
-      }
+      toast.error(errorMsg);
     }
-
-    const id = values.identifier.toLowerCase();
-    let matchedRole: AppRole = 'SUPER_ADMIN';
-    if (id.includes('teacher') || id.includes('kamrul') || id.endsWith('003')) matchedRole = 'TEACHER';
-    else if (id.includes('parent') || id.endsWith('010')) matchedRole = 'PARENT';
-    else if (id.includes('principal') || id.endsWith('002')) matchedRole = 'PRINCIPAL';
-    else if (id.includes('student') || id.endsWith('020')) matchedRole = 'STUDENT';
-
-    handleDemoLogin(matchedRole);
   };
 
   const demoButtons: Array<{
@@ -150,28 +183,28 @@ export function LoginPage() {
       role: 'SUPER_ADMIN',
       labelBn: 'সুপার অ্যাডমিন',
       labelEn: 'Super Admin',
-      meta: 'admin@bhs.edu.bd',
+      meta: 'admin@example.com',
       icon: ShieldCheck,
     },
     {
       role: 'PRINCIPAL',
       labelBn: 'প্রধান শিক্ষক',
       labelEn: 'Head Teacher',
-      meta: 'principal@bhs.edu.bd',
+      meta: 'admin@example.com',
       icon: Award,
     },
     {
       role: 'TEACHER',
       labelBn: 'শিক্ষক পোর্টাল',
       labelEn: 'Teacher Portal',
-      meta: 'kamrul@bhs.edu.bd',
+      meta: 'teacher@example.com',
       icon: BookOpen,
     },
     {
       role: 'PARENT',
       labelBn: 'অভিভাবক পোর্টাল',
       labelEn: 'Parent Portal',
-      meta: '01711000010',
+      meta: 'parent@example.com',
       icon: Users,
     },
     ...(enableStudentPortal
@@ -180,7 +213,7 @@ export function LoginPage() {
             role: 'STUDENT' as AppRole,
             labelBn: 'শিক্ষার্থী পোর্টাল',
             labelEn: 'Student Portal',
-            meta: 'student@bhs.edu.bd',
+            meta: 'student@example.com',
             icon: GraduationCap,
           },
         ]
@@ -319,7 +352,7 @@ export function LoginPage() {
                     <Mail className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <Input
                       {...form.register('identifier')}
-                      placeholder="admin@bhs.edu.bd / 01711000010"
+                      placeholder="admin@example.com / 01700000000"
                       className="pl-10"
                     />
                   </div>
@@ -428,6 +461,27 @@ export function ForgotPasswordPage() {
   const { pick } = useI18n();
   const [sent, setSent] = useState(false);
   const [contact, setContact] = useState('');
+  const [forgotPasswordApi, { isLoading: sending }] = useForgotPasswordMutation();
+
+  const handleForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contact.trim()) return;
+
+    try {
+      await forgotPasswordApi({ email: contact.trim() }).unwrap();
+      setSent(true);
+      toast.success(
+        pick('পাসওয়ার্ড রিসেট নির্দেশনা সফলভাবে পাঠানো হয়েছে।', 'Password reset instructions sent.')
+      );
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message ||
+          err?.message ||
+          pick('অনুরোধ প্রক্রিয়া করা যায়নি।', 'Failed to process request.')
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
       <Card className="max-w-md w-full p-7 space-y-4">
@@ -437,23 +491,27 @@ export function ForgotPasswordPage() {
           <div className="space-y-3 text-sm text-muted-foreground">
             <p className="text-success font-medium flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4" />
-              {pick('পুনরুদ্ধার নির্দেশনা পাঠানো হয়েছে (ডেমো)।', 'Reset instructions sent (demo preview).')}
+              {pick('পুনরুদ্ধার নির্দেশনা আপনার ইমেইলে পাঠানো হয়েছে।', 'Reset instructions have been sent to your email.')}
             </p>
-            <Link href="/reset-password"><Button variant="primary" size="sm">{pick('নতুন পাসওয়ার্ড সেট করুন', 'Go to Reset Password')}</Button></Link>
+            <Link href="/reset-password">
+              <Button variant="primary" size="sm">
+                {pick('নতুন পাসওয়ার্ড সেট করুন', 'Go to Reset Password')}
+              </Button>
+            </Link>
           </div>
         ) : (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!contact.trim()) return;
-              setSent(true);
-            }}
-            className="space-y-4"
-          >
+          <form onSubmit={handleForgot} className="space-y-4">
             <FormField label={pick('ইমেইল অথবা মোবাইল নম্বর', 'Email or Phone')} required>
-              <Input value={contact} onChange={(e) => setContact(e.target.value)} placeholder="017XXXXXXXX" />
+              <Input
+                value={contact}
+                onChange={(e) => setContact(e.target.value)}
+                placeholder="admin@example.com / 017XXXXXXXX"
+                required
+              />
             </FormField>
-            <Button type="submit" variant="primary" className="w-full">{pick('রিসেট কোড পাঠান', 'Send Reset Code')}</Button>
+            <Button type="submit" variant="primary" className="w-full" disabled={sending}>
+              {sending ? pick('পাঠানো হচ্ছে...', 'Sending...') : pick('রিসেট কোড পাঠান', 'Send Reset Code')}
+            </Button>
             <Link href="/login" className="block text-center text-sm text-primary hover:underline">
               {pick('লগইনে ফিরে যান', 'Back to Login')}
             </Link>
@@ -467,27 +525,59 @@ export function ForgotPasswordPage() {
 export function ResetPasswordPage() {
   const { pick } = useI18n();
   const router = useRouter();
+  const [token, setToken] = useState('');
   const [pass, setPass] = useState('');
+  const [resetPasswordApi, { isLoading: resetting }] = useResetPasswordMutation();
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token.trim()) {
+      toast.error(pick('রিসেট টোকেন আবশ্যক', 'Reset token is required'));
+      return;
+    }
+    if (pass.length < 6) {
+      toast.error(pick('কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন', 'Minimum 6 characters required'));
+      return;
+    }
+
+    try {
+      await resetPasswordApi({ resetToken: token.trim(), newPassword: pass }).unwrap();
+      toast.success(pick('পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে।', 'Password reset successfully.'));
+      router.push('/login');
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message ||
+          err?.message ||
+          pick('পাসওয়ার্ড রিসেট ব্যর্থ হয়েছে।', 'Password reset failed.')
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
       <Card className="max-w-md w-full p-7 space-y-4">
         <h1 className="text-xl font-bold text-foreground">{pick('নতুন পাসওয়ার্ড নির্ধারণ', 'Reset Password')}</h1>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (pass.length < 6) {
-              toast.error(pick('কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন', 'Minimum 6 characters required'));
-              return;
-            }
-            toast.success(pick('পাসওয়ার্ড আপডেট হয়েছে (ডেমো)', 'Password updated (demo)'));
-            router.push('/login');
-          }}
-          className="space-y-4"
-        >
-          <FormField label={pick('নতুন পাসওয়ার্ড', 'New Password')} required>
-            <Input type="password" value={pass} onChange={(e) => setPass(e.target.value)} />
+        <form onSubmit={handleReset} className="space-y-4">
+          <FormField label={pick('রিসেট টোকেন', 'Reset Token')} required>
+            <Input
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder="e.g. eyJhbGci..."
+              required
+            />
           </FormField>
-          <Button type="submit" variant="primary" className="w-full">{pick('সংরক্ষণ করুন', 'Save Password')}</Button>
+          <FormField label={pick('নতুন পাসওয়ার্ড', 'New Password')} required>
+            <Input
+              type="password"
+              value={pass}
+              onChange={(e) => setPass(e.target.value)}
+              placeholder="••••••••"
+              required
+            />
+          </FormField>
+          <Button type="submit" variant="primary" className="w-full" disabled={resetting}>
+            {resetting ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save Password')}
+          </Button>
         </form>
       </Card>
     </div>

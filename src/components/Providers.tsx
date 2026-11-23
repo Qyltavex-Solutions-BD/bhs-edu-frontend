@@ -9,6 +9,7 @@ import { store } from '@/src/store';
 import { I18nProvider, useI18n } from '@/src/lib/i18n';
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import { hydratePreferences } from '@/src/store/slices/uiSlice';
+import { hydrateAuth, AUTH_STORAGE_KEY } from '@/src/store/slices/authSlice';
 import { CommandPalette } from '@/src/components/shared/CommandPalette';
 import { ErrorState } from '@/src/components/shared/Feedback';
 
@@ -54,6 +55,21 @@ function ThemeSync() {
       storedTheme = window.localStorage.getItem('bhs_theme') === 'dark' ? 'dark' : 'light';
       sidebarCollapsed = window.localStorage.getItem('bhs_sidebar_collapsed') === 'true';
       selectedAcademicYearId = window.localStorage.getItem('bhs_academic_year');
+
+      const storedAuth = window.localStorage.getItem(AUTH_STORAGE_KEY);
+      if (storedAuth) {
+        const parsed = JSON.parse(storedAuth);
+        if (parsed?.accessToken && parsed?.user && parsed?.role) {
+          dispatch(
+            hydrateAuth({
+              accessToken: parsed.accessToken,
+              user: parsed.user,
+              role: parsed.role,
+              permissions: parsed.permissions ?? [],
+            })
+          );
+        }
+      }
     } catch {
       // ignore restricted storage
     }

@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery, type BaseQueryFn } from '@reduxjs/toolkit/qu
 import { handleMockRequest } from '@/src/mocks/mockAdapter';
 import type { MockDatabase } from '@/src/mocks/seed';
 import type { RootState } from './index';
+import { AUTH_STORAGE_KEY, triggerSessionExpired } from './slices/authSlice';
 import type {
   AcademicDocumentType,
   AcademicEventType,
@@ -63,7 +64,18 @@ const realFetchBaseQuery = fetchBaseQuery({
   baseUrl: API_BASE_URL,
   credentials: 'include',
   prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as RootState).auth.accessToken;
+    let token = (getState() as RootState).auth.accessToken;
+    if (!token && typeof window !== 'undefined') {
+      try {
+        const stored = window.localStorage.getItem(AUTH_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          token = parsed?.accessToken;
+        }
+      } catch {
+        // ignore restricted storage
+      }
+    }
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
@@ -97,6 +109,11 @@ const hybridBaseQuery: BaseQueryFn<CustomQueryArgs, unknown, { status: number; m
     const result = await realFetchBaseQuery(args, api, extraOptions);
     if (result.error) {
       const status = typeof result.error.status === 'number' ? result.error.status : 500;
+
+      // Handle 401 Unauthorized for protected endpoints
+      if (status === 401 && !args.url.includes('/auth/login')) {
+        api.dispatch(triggerSessionExpired());
+      }
 
       // 4. Fallback to mock adapter if the endpoint is not yet implemented on the backend (404)
       if (status === 404 || result.error.status === 'FETCH_ERROR') {
