@@ -3,3 +3,4 @@ export * from './section.api';
 export * from './group.api';
 export * from './year.api';
 export * from './subject.api';
+export * from './class-subject.api';

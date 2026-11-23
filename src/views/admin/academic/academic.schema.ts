@@ -101,3 +101,19 @@ export const sectionSchema = z.object({
 });
 
 export type SectionFormValues = z.infer<typeof sectionSchema>;
+
+export const assignClassSubjectSchema = z.object({
+  classId: z.string().min(1, 'শ্রেণি নির্বাচন করুন'),
+  subjectId: z.string().min(1, 'বিষয় নির্বাচন করুন'),
+  groupId: z.string(),
+  isOptional: z.boolean(),
+});
+
+export type AssignClassSubjectFormValues = z.infer<typeof assignClassSubjectSchema>;
+
+export const rolloverClassSubjectSchema = z.object({
+  fromAcademicYearId: z.string().min(1, 'কপি করার উৎস শিক্ষাবর্ষ নির্বাচন করুন'),
+});
+
+export type RolloverClassSubjectFormValues = z.infer<typeof rolloverClassSubjectSchema>;
+
