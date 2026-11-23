@@ -25,6 +25,12 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "html-to-image": [
+        "./src/lib/shims/html-to-image.ts"
+      ],
+      "jspdf": [
+        "./src/lib/shims/jspdf.ts"
       ]
     },
     "strictNullChecks": false

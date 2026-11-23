@@ -144,26 +144,26 @@ function Directory({ db, kind, createOpen }: { db: MockDatabase; kind: 'all' | '
 
   return (
     <div className="space-y-5">
-      <div className="bg-surface border border-border rounded-[var(--radius)] grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x divide-border">
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('মোট কর্মরত স্টাফ', 'Total Active Staff')}</p>
-          <p className="text-2xl font-bold text-foreground tabular-nums mt-1">{formatNumber(activeStaff.length, locale)}</p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('শিক্ষকমণ্ডলী', 'Active Teachers')}</p>
-          <p className="text-2xl font-bold text-primary tabular-nums mt-1">{formatNumber(activeTeachers, locale)}</p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('কর্মকর্তা ও কর্মচারী', 'Officers & Support')}</p>
-          <p className="text-2xl font-bold text-foreground tabular-nums mt-1">{formatNumber(activeEmployees, locale)}</p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('অনুমোদিত পদ পূরণ', 'Sanctioned Posts Filled')}</p>
-          <p className="text-2xl font-bold text-success tabular-nums mt-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('মোট কর্মরত স্টাফ', 'Total Active Staff')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground tabular-nums mt-1">{formatNumber(activeStaff.length, locale)}</p>
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('শিক্ষকমণ্ডলী', 'Active Teachers')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary tabular-nums mt-1">{formatNumber(activeTeachers, locale)}</p>
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('কর্মকর্তা ও কর্মচারী', 'Officers & Support')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground tabular-nums mt-1">{formatNumber(activeEmployees, locale)}</p>
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('অনুমোদিত পদ পূরণ', 'Sanctioned Posts Filled')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-success tabular-nums mt-1">
             {formatNumber(activeStaff.length, locale)}
-            <span className="text-sm font-normal text-muted-foreground"> / {formatNumber(totalPosts, locale)}</span>
+            <span className="text-sm font-semibold text-muted-foreground"> / {formatNumber(totalPosts, locale)}</span>
           </p>
-        </div>
+        </Card>
       </div>
 
       <div className="flex flex-wrap justify-end gap-2">

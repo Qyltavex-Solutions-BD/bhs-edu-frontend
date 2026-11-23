@@ -15,11 +15,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  turbopack: {
-    resolveAlias: {
-      '@': rootDir,
-    },
-  },
+  turbopack: {},
   webpack: (config) => {
     config.resolve.alias['@'] = rootDir;
     return config;

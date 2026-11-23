@@ -2629,7 +2629,7 @@ export function AdminWebsiteMediaPage({
                     setGalleryModalOpen(false);
                     openCategoryManager();
                   }}
-                  className="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
+                  className="text-sm font-semibold text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
                 >
                   {pick('সব পরিচালনা', 'Manage All')}
                 </button>

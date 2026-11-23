@@ -466,64 +466,64 @@ export function GateMonitor({ db, yearId }: { db: MockDatabase; yearId: string }
 
   return (
     <div className="space-y-5">
-      {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+      {/* 4-Column KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('RFID শ্রেণির শিক্ষার্থী', 'RFID-Enabled Students')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(stats.total, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `সক্রিয় কার্ড ${formatNumber(stats.cardsAssigned, 'bn')}/${formatNumber(stats.total, 'bn')} · ${formatNumber(rfidClasses.length, 'bn')} টি শ্রেণি`,
               `${stats.cardsAssigned}/${stats.total} active cards · ${rfidClasses.length} class(es)`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('প্রবেশ নথিভুক্ত', 'Entered Today')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-success">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-success">
             {formatNumber(stats.entered, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `উপস্থিতির হার ${formatNumber(stats.entryRate, 'bn')}%`,
               `Entry rate ${stats.entryRate}%`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('দেরিতে প্রবেশ', 'Late Arrivals')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-warning">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-warning">
             {formatNumber(stats.late, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             {pick('নির্ধারিত সময়ের পর স্ক্যান', 'Scanned after late threshold')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('প্রবেশ বাকি / অনুপস্থিত', 'Not Entered / Absent')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-destructive">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-destructive">
             {formatNumber(stats.pending + stats.absent, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `অপেক্ষমাণ ${formatNumber(stats.pending, 'bn')} · অনুপস্থিত ${formatNumber(stats.absent, 'bn')}`,
               `Pending ${stats.pending} · Absent ${stats.absent}`
             )}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* RFID Gate Reader & Simulator Workstation */}
@@ -564,8 +564,8 @@ export function GateMonitor({ db, yearId }: { db: MockDatabase; yearId: string }
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          <div className="md:col-span-4 space-y-1">
-            <label className="text-xs font-medium text-muted-foreground block">
+          <div className="md:col-span-4 space-y-1.5">
+            <label className="text-sm font-bold text-foreground block">
               {pick('কার্ড নম্বর স্ক্যান / টাইপ করুন (Enter = প্রবেশ)', 'Scan or type card number (Enter = Entry)')}
             </label>
             <Input
@@ -578,18 +578,18 @@ export function GateMonitor({ db, yearId }: { db: MockDatabase; yearId: string }
                 }
               }}
               placeholder="RFID-10-8841"
-              className="font-mono h-9"
+              className="font-mono h-10 text-base"
             />
           </div>
 
-          <div className="md:col-span-5 space-y-1">
-            <label className="text-xs font-medium text-muted-foreground block">
+          <div className="md:col-span-5 space-y-1.5">
+            <label className="text-sm font-bold text-foreground block">
               {pick('অথবা তালিকা থেকে সক্রিয় কার্ড বাছাই করুন', 'Or pick an active student card')}
             </label>
             <Select
               value={selectableCards.some((c) => c.cardNumber === cardNumber) ? cardNumber : ''}
               onChange={(e) => setCardNumber(e.target.value)}
-              className="h-9"
+              className="h-10 text-base font-semibold"
             >
               <option value="">{pick('সক্রিয় কার্ড নির্বাচন করুন...', 'Select active RFID card...')}</option>
               {selectableCards.map((c) => (
@@ -813,7 +813,7 @@ export function GateMonitor({ db, yearId }: { db: MockDatabase; yearId: string }
                           {row.isMarkedAbsent ? (
                             <StatusBadge enumName="AttendanceStatus" value={AttendanceStatus.ABSENT} />
                           ) : (
-                            <span className="text-xs font-medium text-muted-foreground">
+                            <span className="text-sm font-semibold text-muted-foreground">
                               {pick('স্ক্যান অপেক্ষমাণ', 'Awaiting scan')}
                             </span>
                           )}

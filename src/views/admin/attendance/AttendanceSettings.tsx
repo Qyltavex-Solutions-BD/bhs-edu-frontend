@@ -109,58 +109,58 @@ export function AttendanceSettings({ db, yearId }: { db: MockDatabase; yearId: s
 
   return (
     <div className="space-y-5">
-      {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+      {/* 4-Column KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('হাতে রেজিস্টার শ্রেণি', 'Manual Register Classes')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(summary.manualCount, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             {pick('শ্রেণি শিক্ষক দৈনিক হাজিরা নেবেন', 'Marked daily by class teacher')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('RFID গেট শ্রেণি', 'RFID Gate Classes')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
             {formatNumber(summary.rfidCount, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             {pick('গেট রিডার স্ক্যানে স্বয়ংক্রিয় হাজিরা', 'Auto-marked on gate card scan')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('RFID কার্ড কাভারেজ', 'RFID Card Coverage')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(summary.coverage, locale)}%
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `${formatNumber(summary.totalCards, 'bn')}/${formatNumber(summary.totalStudents, 'bn')} শিক্ষার্থীর সক্রিয় কার্ড`,
               `${summary.totalCards}/${summary.totalStudents} students have active cards`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('স্বয়ংক্রিয় অনুপস্থিতি SMS', 'Auto-Absent SMS Active')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-success">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-success">
             {formatNumber(summary.autoAbsentCount, locale)} / {formatNumber(classRows.length, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             {pick('অনুপস্থিত হলে অভিভাবককে SMS', 'Notifies guardian when absent')}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* Rules Table */}
@@ -207,14 +207,14 @@ export function AttendanceSettings({ db, yearId }: { db: MockDatabase; yearId: s
                 return (
                   <tr key={row.cls.id} className="hover:bg-surface-muted/30">
                     <td className="py-3 px-4 font-semibold text-foreground">{row.classLabel}</td>
-                    <td className="py-3 px-4 text-xs tabular-nums">
+                    <td className="py-3 px-4 text-sm sm:text-base tabular-nums">
                       <span className={cn('font-medium', hasCardGap ? 'text-warning' : 'text-foreground')}>
                         {formatNumber(row.studentsWithCards, locale)} /{' '}
                         {formatNumber(row.totalStudents, locale)}
                       </span>{' '}
                       <span className="text-muted-foreground">{pick('কার্ড', 'cards')}</span>
                       {hasCardGap && (
-                        <span className="block text-[11px] text-warning">
+                        <span className="block text-xs text-warning">
                           {pick(
                             `${formatNumber(row.missingCards, 'bn')} জনের কার্ড নেই`,
                             `${row.missingCards} student(s) missing card`

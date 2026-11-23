@@ -303,17 +303,17 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
   return (
     <div className="space-y-5">
       {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+      <Card className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border overflow-hidden p-0">
+        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
+          <p className="text-base font-bold text-foreground">
             {viewMode === 'section'
               ? pick('শাখার গড় উপস্থিতি', 'Section Avg Attendance')
               : pick('বিদ্যালয়ের গড় উপস্থিতি', 'School Avg Attendance')}
           </p>
-          <p className={cn('mt-1 text-2xl font-bold tabular-nums', attendanceRateTone(kpi.avgRate))}>
+          <p className={cn('text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight', attendanceRateTone(kpi.avgRate))}>
             {kpi.avgRate !== null ? `${formatNumber(kpi.avgRate, locale)}%` : '—'}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="text-sm text-muted-foreground tabular-nums">
             {pick(
               `মোট ${formatNumber(kpi.studentCount, 'bn')} জন শিক্ষার্থী`,
               `${kpi.studentCount} active students`
@@ -321,59 +321,59 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
           </p>
         </div>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
+          <p className="text-base font-bold text-foreground">
             {pick('মোট কার্যদিবস', 'Recorded School Days')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-foreground">
             {formatNumber(kpi.workingDays, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="text-sm text-muted-foreground tabular-nums">
             {pick(`নির্বাচিত মাস: ${month}`, `Month: ${month}`)}
           </p>
         </div>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
+          <p className="text-base font-bold text-foreground">
             {pick('৭৫%-এর নিচে ঝুঁকিপূর্ণ', 'Below 75% (At-Risk)')}
           </p>
           <p
             className={cn(
-              'mt-1 text-2xl font-bold tabular-nums',
+              'text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight',
               kpi.atRisk > 0 ? 'text-destructive' : 'text-foreground'
             )}
           >
             {formatNumber(kpi.atRisk, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('অভিভাবকের সাথে যোগাযোগ প্রয়োজন', 'Requires attendance follow-up')}
           </p>
         </div>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
+          <p className="text-base font-bold text-foreground">
             {pick('শতভাগ উপস্থিতি (১০০%)', '100% Perfect Attendance')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-success">
+          <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-success">
             {formatNumber(kpi.perfect, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('কোনো অনুপস্থিতি বা ছুটি নেই', 'Zero absences in selected month')}
           </p>
         </div>
-      </div>
+      </Card>
 
       {/* Filter & View Mode Toolbar */}
-      <Card className="p-4 space-y-3 no-print">
+      <Card className="p-4 sm:p-5 space-y-3.5 no-print">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="inline-flex rounded-[var(--radius)] border border-border bg-background p-0.5">
+          <div className="inline-flex rounded-2xl border border-border bg-background p-1">
             <button
               type="button"
               onClick={() => setViewMode('section')}
               className={cn(
-                'px-3 py-1.5 rounded-[calc(var(--radius)-2px)] text-sm font-medium transition-colors cursor-pointer',
+                'px-4 py-2 rounded-xl text-sm sm:text-base font-semibold transition-all cursor-pointer',
                 viewMode === 'section'
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -383,9 +383,9 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
               type="button"
               onClick={() => setViewMode('summary')}
               className={cn(
-                'px-3 py-1.5 rounded-[calc(var(--radius)-2px)] text-sm font-medium transition-colors cursor-pointer',
+                'px-4 py-2 rounded-xl text-sm sm:text-base font-semibold transition-all cursor-pointer',
                 viewMode === 'summary'
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -394,34 +394,34 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleExportCsv}>
+            <Button variant="outline" size="sm" className="h-10 text-sm font-semibold" onClick={handleExportCsv}>
               <Download className="w-4 h-4" />
               {pick('CSV ডাউনলোড', 'Export CSV')}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => triggerPrint()}>
+            <Button variant="outline" size="sm" className="h-10 text-sm font-semibold" onClick={() => triggerPrint()}>
               <Printer className="w-4 h-4" />
               {pick('প্রিন্ট', 'Print')}
             </Button>
           </div>
         </div>
 
-        <div className="pt-3 border-t border-border flex flex-wrap items-end gap-3">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground block">
+        <div className="pt-3.5 border-t border-border flex flex-wrap items-end gap-3">
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-foreground block">
               {pick('মাস', 'Month')}
             </label>
             <Input
               type="month"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
-              className="w-44 h-9 tabular-nums"
+              className="w-44 h-10 text-sm sm:text-base tabular-nums"
             />
           </div>
 
           {viewMode === 'section' && (
             <>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground block">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-foreground block">
                   {pick('শ্রেণি', 'Class')}
                 </label>
                 <Select
@@ -431,7 +431,7 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                     setClassId(nextClassId);
                     setSectionId(db.sections.find((s) => s.classId === nextClassId)?.id ?? '');
                   }}
-                  className="w-40 h-9"
+                  className="w-40 h-10 text-sm sm:text-base font-semibold"
                 >
                   {db.classes.map((cls) => (
                     <option key={cls.id} value={cls.id}>
@@ -441,14 +441,14 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                 </Select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground block">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-foreground block">
                   {pick('শাখা', 'Section')}
                 </label>
                 <Select
                   value={activeSectionId}
                   onChange={(e) => setSectionId(e.target.value)}
-                  className="w-28 h-9"
+                  className="w-32 h-10 text-sm sm:text-base font-semibold"
                 >
                   {sections.map((sec) => (
                     <option key={sec.id} value={sec.id}>
@@ -458,8 +458,8 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                 </Select>
               </div>
 
-              <div className="space-y-1 flex-1 min-w-[200px]">
-                <label className="text-xs font-medium text-muted-foreground block">
+              <div className="space-y-1.5 flex-1 min-w-[200px]">
+                <label className="text-sm font-semibold text-foreground block">
                   {pick('শিক্ষার্থী খুঁজুন', 'Search student')}
                 </label>
                 <div className="relative">
@@ -468,7 +468,7 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder={pick('রোল, নাম বা আইডি...', 'Roll, name or ID...')}
-                    className="pl-9 h-9"
+                    className="pl-9 h-10 text-sm sm:text-base"
                   />
                 </div>
               </div>
@@ -477,13 +477,13 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                 type="button"
                 onClick={() => setOnlyAtRisk((v) => !v)}
                 className={cn(
-                  'h-9 px-3 rounded-[var(--radius)] border text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer',
+                  'h-10 px-3.5 rounded-2xl border text-sm font-semibold inline-flex items-center gap-1.5 transition-all cursor-pointer',
                   onlyAtRisk
                     ? 'border-destructive bg-destructive/10 text-destructive'
                     : 'border-border bg-background text-foreground hover:bg-surface-muted'
                 )}
               >
-                <AlertTriangle className="w-3.5 h-3.5" />
+                <AlertTriangle className="w-4 h-4" />
                 {pick('শুধু <৭৫% ঝুঁকিপূর্ণ', 'Only <75% At-Risk')}
               </button>
             </>
@@ -495,9 +495,9 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
       {viewMode === 'section' ? (
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-base">
               <thead>
-                <tr className="border-b border-border bg-surface-muted/60 text-left text-xs font-semibold text-muted-foreground">
+                <tr className="border-b border-border bg-surface-muted/60 text-left text-sm font-bold text-muted-foreground uppercase tracking-wider">
                   <th className="py-3 px-4 w-16">{pick('রোল', 'Roll')}</th>
                   <th className="py-3 px-4">{pick('শিক্ষার্থী', 'Student')}</th>
                   <th className="py-3 px-4 text-right">{pick('কার্যদিবস', 'Days')}</th>
@@ -527,32 +527,32 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                         row.isAtRisk && 'bg-destructive/[0.03]'
                       )}
                     >
-                      <td className="py-2.5 px-4 font-mono font-semibold tabular-nums">
+                      <td className="py-2.5 px-4 font-mono font-bold tabular-nums">
                         {formatNumber(row.enrollment.roll, locale)}
                       </td>
                       <td className="py-2.5 px-4">
                         <Link
                           href={`/admin/students/${row.enrollment.studentId}#attendance`}
-                          className="font-medium text-foreground hover:text-primary"
+                          className="font-bold text-foreground hover:text-primary transition-colors"
                         >
                           {locale === 'bn'
                             ? row.student?.nameBn || row.student?.nameEn
                             : row.student?.nameEn || row.student?.nameBn}
                         </Link>
-                        <p className="text-xs text-muted-foreground font-mono">
+                        <p className="text-sm text-muted-foreground font-mono">
                           {row.student?.studentId}
                         </p>
                       </td>
                       <td className="py-2.5 px-4 text-right tabular-nums text-muted-foreground">
                         {formatNumber(row.totalDays, locale)}
                       </td>
-                      <td className="py-2.5 px-4 text-right tabular-nums font-medium text-success">
+                      <td className="py-2.5 px-4 text-right tabular-nums font-bold text-success">
                         {formatNumber(row.present, locale)}
                       </td>
-                      <td className="py-2.5 px-4 text-right tabular-nums text-warning">
+                      <td className="py-2.5 px-4 text-right tabular-nums font-medium text-warning">
                         {formatNumber(row.late, locale)}
                       </td>
-                      <td className="py-2.5 px-4 text-right tabular-nums font-medium text-destructive">
+                      <td className="py-2.5 px-4 text-right tabular-nums font-bold text-destructive">
                         {formatNumber(row.absent, locale)}
                       </td>
                       <td className="py-2.5 px-4 text-right tabular-nums text-info">
@@ -560,7 +560,7 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                       </td>
                       <td className="py-2.5 px-4">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex-1 h-1.5 rounded-full bg-surface-muted overflow-hidden">
+                          <div className="flex-1 h-2 rounded-full bg-surface-muted overflow-hidden">
                             <div
                               className={cn('h-full rounded-full', attendanceBarTone(row.rate))}
                               style={{ width: `${row.rate ?? 0}%` }}
@@ -568,7 +568,7 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                           </div>
                           <span
                             className={cn(
-                              'w-10 text-right text-xs font-semibold tabular-nums',
+                              'w-12 text-right text-sm font-bold tabular-nums',
                               attendanceRateTone(row.rate)
                             )}
                           >
@@ -579,9 +579,9 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                       <td className="py-2.5 px-4 text-right no-print">
                         <Link
                           href={`/admin/students/${row.enrollment.studentId}#attendance`}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                          className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          <Eye className="w-4 h-4" />
                           {pick('দেখুন', 'View')}
                         </Link>
                       </td>
@@ -595,51 +595,51 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
       ) : (
         <Card className="p-0 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-base">
               <thead>
-                <tr className="border-b border-border bg-surface-muted/60 text-left text-xs font-semibold text-muted-foreground">
+                <tr className="border-b border-border bg-surface-muted/60 text-left text-sm font-bold text-muted-foreground uppercase tracking-wider">
                   <th className="py-3 px-4">{pick('শ্রেণি ও শাখা', 'Class & Section')}</th>
                   <th className="py-3 px-4 text-right">{pick('শিক্ষার্থী', 'Students')}</th>
                   <th className="py-3 px-4 text-right">{pick('কার্যদিবস', 'Days')}</th>
                   <th className="py-3 px-4 text-right">{pick('উপস্থিত + দেরি', 'Present + Late')}</th>
                   <th className="py-3 px-4 text-right">{pick('অনুপস্থিত', 'Absent')}</th>
                   <th className="py-3 px-4 text-right">{pick('<৭৫% ঝুঁকি', '<75% Risk')}</th>
-                  <th className="py-3 px-4 w-44">{pick('গড় উপস্থিতি', 'Avg Rate')}</th>
+                  <th className="py-3 px-4 w-48">{pick('গড় উপস্থিতি', 'Avg Rate')}</th>
                   <th className="py-3 px-4 text-right no-print">{pick('বিস্তারিত', 'Inspect')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {summaryRows.map((row) => (
                   <tr key={`${row.classId}-${row.sectionId}`} className="hover:bg-surface-muted/30">
-                    <td className="py-2.5 px-4 font-medium text-foreground">
+                    <td className="py-3 px-4 font-bold text-foreground">
                       {row.classLabel}{' '}
-                      <span className="text-muted-foreground">({row.sectionLabel})</span>
+                      <span className="text-muted-foreground font-medium">({row.sectionLabel})</span>
                     </td>
-                    <td className="py-2.5 px-4 text-right tabular-nums">
+                    <td className="py-3 px-4 text-right tabular-nums font-semibold">
                       {formatNumber(row.studentCount, locale)}
                     </td>
-                    <td className="py-2.5 px-4 text-right tabular-nums text-muted-foreground">
+                    <td className="py-3 px-4 text-right tabular-nums text-muted-foreground">
                       {formatNumber(row.workingDays, locale)}
                     </td>
-                    <td className="py-2.5 px-4 text-right tabular-nums text-success font-medium">
+                    <td className="py-3 px-4 text-right tabular-nums text-success font-bold">
                       {formatNumber(row.present + row.late, locale)}
                     </td>
-                    <td className="py-2.5 px-4 text-right tabular-nums text-destructive">
+                    <td className="py-3 px-4 text-right tabular-nums font-bold text-destructive">
                       {formatNumber(row.absent, locale)}
                     </td>
-                    <td className="py-2.5 px-4 text-right tabular-nums">
+                    <td className="py-3 px-4 text-right tabular-nums">
                       <span
                         className={cn(
-                          'font-medium',
+                          'font-bold',
                           row.atRiskCount > 0 ? 'text-destructive' : 'text-muted-foreground'
                         )}
                       >
                         {formatNumber(row.atRiskCount, locale)}
                       </span>
                     </td>
-                    <td className="py-2.5 px-4">
+                    <td className="py-3 px-4">
                       <div className="flex items-center gap-2.5">
-                        <div className="flex-1 h-1.5 rounded-full bg-surface-muted overflow-hidden">
+                        <div className="flex-1 h-2 rounded-full bg-surface-muted overflow-hidden">
                           <div
                             className={cn('h-full rounded-full', attendanceBarTone(row.avgRate))}
                             style={{ width: `${row.avgRate ?? 0}%` }}
@@ -647,7 +647,7 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                         </div>
                         <span
                           className={cn(
-                            'w-10 text-right text-xs font-semibold tabular-nums',
+                            'w-12 text-right text-sm font-bold tabular-nums',
                             attendanceRateTone(row.avgRate)
                           )}
                         >
@@ -655,18 +655,19 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                         </span>
                       </div>
                     </td>
-                    <td className="py-2.5 px-4 text-right no-print">
+                    <td className="py-3 px-4 text-right no-print">
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="h-8 text-sm font-semibold"
                         onClick={() => {
                           setClassId(row.classId);
                           setSectionId(row.sectionId);
                           setViewMode('section');
                         }}
                       >
-                        {pick('শাখা দেখুন', 'Open')}
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        {pick('শাখা দেখুন', 'Inspect')}
+                        <ArrowRight className="w-4 h-4 ml-1" />
                       </Button>
                     </td>
                   </tr>

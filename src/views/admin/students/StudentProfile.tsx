@@ -121,7 +121,7 @@ function AttendanceMonth({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-medium text-muted-foreground">
+      <div className="grid grid-cols-7 gap-1.5 text-center text-sm font-bold text-muted-foreground">
         {WEEKDAYS.map((day) => (
           <div key={day.en} className="py-1">
             {locale === 'bn' ? day.bn : day.en}
@@ -553,14 +553,14 @@ export function StudentProfile({
 
         {/* 4-Column Academic Snapshot Strip */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 border-t border-border divide-y sm:divide-y-0 sm:divide-x divide-border bg-surface-muted/30">
-          <div className="px-5 py-3.5 space-y-1">
-            <span className="text-xs text-muted-foreground">
+          <div className="p-5 space-y-1.5">
+            <span className="text-sm font-bold text-foreground">
               {pick('বার্ষিক উপস্থিতি', 'Annual Attendance')}
             </span>
             <div className="flex items-baseline gap-2 tabular-nums">
               <span
                 className={cn(
-                  'text-lg font-bold',
+                  'text-2xl sm:text-3xl font-extrabold tracking-tight',
                   annualAttendanceRate === null
                     ? 'text-foreground'
                     : annualAttendanceRate >= 85
@@ -574,7 +574,7 @@ export function StudentProfile({
                   ? `${formatNumber(annualAttendanceRate, locale)}%`
                   : '—'}
               </span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-sm font-semibold text-muted-foreground">
                 {totalWorkingDays > 0
                   ? pick(
                       `(${formatNumber(totalPresent + totalLate, locale)}/${formatNumber(totalWorkingDays, locale)} দিন)`,
@@ -585,16 +585,16 @@ export function StudentProfile({
             </div>
           </div>
 
-          <div className="px-5 py-3.5 space-y-1">
-            <span className="text-xs text-muted-foreground">
+          <div className="p-5 space-y-1.5">
+            <span className="text-sm font-bold text-foreground">
               {pick('সর্বশেষ পরীক্ষার ফলাফল', 'Latest Exam Standing')}
             </span>
             {latestResult ? (
               <div className="flex items-baseline gap-2 tabular-nums">
-                <span className="text-lg font-bold text-foreground">
+                <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
                   GPA {latestResult.gpa != null ? latestResult.gpa.toFixed(2) : '—'}
                 </span>
-                <span className="text-xs text-muted-foreground truncate">
+                <span className="text-sm font-semibold text-muted-foreground truncate">
                   {latestResult.letterGrade ? `${latestResult.letterGrade} · ` : ''}
                   {latestResult.meritPosition
                     ? pick(
@@ -605,62 +605,62 @@ export function StudentProfile({
                 </span>
               </div>
             ) : (
-              <p className="text-sm font-medium text-muted-foreground">
+              <p className="text-base font-semibold text-muted-foreground">
                 {pick('কোনো প্রকাশিত ফল নেই', 'No published result')}
               </p>
             )}
           </div>
 
-          <div className="px-5 py-3.5 space-y-1">
-            <span className="text-xs text-muted-foreground">
+          <div className="p-5 space-y-1.5">
+            <span className="text-sm font-bold text-foreground">
               {pick('আজকের উপস্থিতি', "Today's Status")}
             </span>
-            <div className="flex items-center gap-2 text-sm">
+            <div className="flex items-center gap-2 text-base">
               {todayClosed ? (
-                <span className="font-medium text-muted-foreground">{todayClosed}</span>
+                <span className="font-semibold text-muted-foreground">{todayClosed}</span>
               ) : todayMark ? (
                 <>
                   <StatusBadge enumName="AttendanceStatus" value={todayMark.status} />
                   {todayMark.inTime && (
-                    <span className="text-xs font-mono text-muted-foreground tabular-nums">
+                    <span className="text-sm font-mono text-muted-foreground tabular-nums font-semibold">
                       {todayMark.inTime.slice(11, 16)}
                     </span>
                   )}
                 </>
               ) : method === AttendanceMethod.RFID ? (
-                <span className="text-xs font-medium text-secondary">
+                <span className="text-sm font-semibold text-secondary">
                   {pick('এখনো স্ক্যান হয়নি', 'Not scanned yet')}
                 </span>
               ) : (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm font-medium text-muted-foreground">
                   {pick('এখনো নথিভুক্ত হয়নি', 'Not marked yet')}
                 </span>
               )}
             </div>
           </div>
 
-          <div className="px-5 py-3.5 space-y-1">
-            <span className="text-xs text-muted-foreground">
+          <div className="p-5 space-y-1.5">
+            <span className="text-sm font-bold text-foreground">
               {pick('প্রধান অভিভাবক', 'Primary Guardian')}
             </span>
             {primaryGuardian?.parent ? (
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-foreground truncate">
+                <span className="text-base font-bold text-foreground truncate">
                   {primaryGuardian.parent.nameBn || primaryGuardian.parent.name}
                 </span>
                 {primaryGuardian.parent.phone &&
                   !primaryGuardian.parent.phone.startsWith('unused-') && (
                     <a
                       href={`tel:${primaryGuardian.parent.phone}`}
-                      className="inline-flex items-center gap-1 text-xs font-mono text-primary hover:underline shrink-0"
+                      className="inline-flex items-center gap-1 text-sm font-mono text-primary font-bold hover:underline shrink-0"
                     >
-                      <Phone className="w-3 h-3" />
+                      <Phone className="w-3.5 h-3.5" />
                       <span>{primaryGuardian.parent.phone}</span>
                     </a>
                   )}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base font-medium text-muted-foreground">
                 {pick('সংযুক্ত নেই', 'Not linked')}
               </p>
             )}
@@ -1029,55 +1029,55 @@ export function StudentProfile({
       {activeTab === 'attendance' && (
         <div className="space-y-5">
           {/* Flat hairline-divided annual breakdown */}
-          <Card className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x divide-border">
-            <div className="p-4 sm:p-5">
-              <span className="text-xs text-muted-foreground">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="p-5 flex flex-col justify-between gap-2">
+              <span className="text-base font-bold text-foreground">
                 {pick('মোট উপস্থিত', 'Days Present')}
               </span>
-              <p className="text-2xl font-bold tabular-nums text-primary mt-1">
+              <p className="text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary mt-1">
                 {formatNumber(totalPresent, locale)}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-sm text-muted-foreground mt-0.5">
                 {pick('সময়মতো উপস্থিতি', 'On-time records')}
               </p>
-            </div>
-            <div className="p-4 sm:p-5">
-              <span className="text-xs text-muted-foreground">
+            </Card>
+            <Card className="p-5 flex flex-col justify-between gap-2">
+              <span className="text-base font-bold text-foreground">
                 {pick('বিলম্বে উপস্থিত', 'Days Late')}
               </span>
-              <p className="text-2xl font-bold tabular-nums text-secondary mt-1">
+              <p className="text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-secondary mt-1">
                 {formatNumber(totalLate, locale)}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-sm text-muted-foreground mt-0.5">
                 {pick('নির্ধারিত সময়ের পরে', 'Arrived after bell')}
               </p>
-            </div>
-            <div className="p-4 sm:p-5">
-              <span className="text-xs text-muted-foreground">
+            </Card>
+            <Card className="p-5 flex flex-col justify-between gap-2">
+              <span className="text-base font-bold text-foreground">
                 {pick('অনুপস্থিত', 'Days Absent')}
               </span>
-              <p className="text-2xl font-bold tabular-nums text-destructive mt-1">
+              <p className="text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-destructive mt-1">
                 {formatNumber(totalAbsent, locale)}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
+              <p className="text-sm text-muted-foreground mt-0.5">
                 {pick('অননুমোদিত অনুপস্থিতি', 'Unexcused absences')}
               </p>
-            </div>
-            <div className="p-4 sm:p-5">
-              <span className="text-xs text-muted-foreground">
+            </Card>
+            <Card className="p-5 flex flex-col justify-between gap-2">
+              <span className="text-base font-bold text-foreground">
                 {pick('অনুমোদিত ছুটি', 'Approved Leave')}
               </span>
-              <p className="text-2xl font-bold tabular-nums text-foreground mt-1">
+              <p className="text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground mt-1">
                 {formatNumber(totalLeave, locale)}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
+              <p className="text-sm text-muted-foreground mt-0.5 tabular-nums">
                 {pick(
                   `মোট কার্যদিবস ${formatNumber(totalWorkingDays, locale)} দিন`,
                   `${totalWorkingDays} total recorded days`
                 )}
               </p>
-            </div>
-          </Card>
+            </Card>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
             {/* Monthly Calendar */}
@@ -1161,7 +1161,7 @@ export function StudentProfile({
                           {formatDateShort(`${mark.date}T12:00:00`, locale)}
                         </p>
                         {mark.inTime && (
-                          <p className="text-[11px] font-mono text-muted-foreground tabular-nums">
+                          <p className="text-xs font-mono text-muted-foreground tabular-nums">
                             {pick('প্রবেশ:', 'In:')} {mark.inTime.slice(11, 16)}
                           </p>
                         )}

@@ -374,78 +374,78 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
   return (
     <div className="space-y-5">
       {/* 1. 4-Column Hairline-Divided Summary Strip */}
-      <Card className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden">
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('মোট ইস্যুকৃত প্রত্যয়নপত্র', 'Total Issued Certificates')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-foreground">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(totalIssued, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick(
                 `${activeYearName} সেশনে ${formatNumber(issuedThisYear, locale)}টি`,
                 `${issuedThisYear} in ${activeYearName}`
               )}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('ক্রমিক স্মারক নং সহ দাপ্তরিক রেজিস্টার', 'Official registry with sequential Ref. No.')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('অধ্যয়ন ও চারিত্রিক প্রত্যয়ন', 'Study & Character')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-foreground">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(studyCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি ইস্যুকৃত', 'issued')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('উপবৃত্তি, পাসপোর্ট ও ব্যাংক হিসাবের জন্য', 'For stipends, passport & official use')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('এসএসসি প্রশংসাপত্র', 'SSC Testimonials')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-foreground">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(sscCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি বোর্ড প্রশংসাপত্র', 'graduate copies')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('বোর্ড রোল, রেজিস্ট্রেশন ও জিপিএ যুক্ত', 'Includes board roll, reg. & GPA')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('বর্তমান সক্রিয় শিক্ষার্থী', 'Active Student Roster')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-primary">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
               {formatNumber(activeStudentsCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('জন অধ্যয়নরত', 'active students')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('প্রত্যয়নপত্র ইস্যুতে ভর্তি স্ট্যাটাস অপরিবর্তিত থাকে', 'Issuing never closes active enrollment')}
           </p>
-        </div>
-      </Card>
+        </Card>
+      </div>
 
       {/* 2. Unified Search, Filter & Action Toolbar */}
       <Card className="p-4 space-y-3">
@@ -583,7 +583,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
               <div className="max-w-[260px]">
                 <p className="text-xs text-foreground line-clamp-2">{row.original.purposeOrResult}</p>
                 {row.original.conductRemarks && (
-                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
                     {pick('আচরণ:', 'Conduct:')} {row.original.conductRemarks}
                   </p>
                 )}

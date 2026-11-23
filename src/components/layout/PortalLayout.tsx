@@ -24,6 +24,7 @@ import {
   MessageSquare,
   MonitorPlay,
   Moon,
+  MoreHorizontal,
   Search,
   Settings,
   ShieldCheck,
@@ -64,6 +65,7 @@ interface NavEntry {
   icon: React.ComponentType<{ className?: string }>;
   end?: boolean;
   children?: NavChild[];
+  badge?: string | number;
 }
 
 interface NavGroup {
@@ -77,19 +79,19 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
   {
     id: 'overview',
     labelBn: 'ওভারভিউ',
-    labelEn: 'Overview',
+    labelEn: 'OVERVIEW',
     items: [
       { to: '/admin', labelBn: 'ড্যাশবোর্ড', labelEn: 'Dashboard', icon: LayoutDashboard, end: true },
     ],
   },
   {
-    id: 'operations',
-    labelBn: 'একাডেমিক ও অপারেশন',
-    labelEn: 'School Operations',
+    id: 'people',
+    labelBn: 'শিক্ষার্থী ও শিক্ষক',
+    labelEn: 'PEOPLE',
     items: [
       {
         to: '/admin/students',
-        labelBn: 'শিক্ষার্থী',
+        labelBn: 'শিক্ষার্থী তালিকা',
         labelEn: 'Students',
         icon: GraduationCap,
         children: [
@@ -107,7 +109,7 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
       {
         to: '/admin/parents',
         labelBn: 'অভিভাবক',
-        labelEn: 'Parents',
+        labelEn: 'Parents & Guardians',
         icon: UsersRound,
         children: [
           { to: '/admin/parents', labelBn: 'অভিভাবক তালিকা', labelEn: 'Directory' },
@@ -118,7 +120,7 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
         to: '/admin/staff',
         labelBn: 'শিক্ষক ও কর্মচারী',
         labelEn: 'Staff & Teachers',
-        icon: UserCheck,
+        icon: Users,
         children: [
           { to: '/admin/staff', labelBn: 'সকল স্টাফ', labelEn: 'All staff' },
           { to: '/admin/staff/teachers', labelBn: 'শিক্ষকমণ্ডলী', labelEn: 'Teachers' },
@@ -127,6 +129,13 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
           { to: '/admin/staff/structures', labelBn: 'অনুমোদিত পদ', labelEn: 'Sanctioned posts' },
         ],
       },
+    ],
+  },
+  {
+    id: 'academics',
+    labelBn: 'একাডেমিক ও পরীক্ষা',
+    labelEn: 'ACADEMICS',
+    items: [
       {
         to: '/admin/academic',
         labelBn: 'একাডেমিক ও রুটিন',
@@ -157,7 +166,7 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
       },
       {
         to: '/admin/examinations',
-        labelBn: 'পরীক্ষা ও নম্বর',
+        labelBn: 'পরীক্ষা ও সূচি',
         labelEn: 'Examinations',
         icon: FileSpreadsheet,
         children: [
@@ -180,25 +189,30 @@ const ADMIN_NAV_GROUPS: NavGroup[] = [
           { to: '/admin/results/consolidated', labelBn: 'সমন্বিত ফলাফল', labelEn: 'Consolidated' },
         ],
       },
+    ],
+  },
+  {
+    id: 'engagement',
+    labelBn: 'ক্যাম্পাস ও রিসোর্স',
+    labelEn: 'CAMPUS',
+    items: [
       { to: '/admin/library', labelBn: 'গ্রন্থাগার', labelEn: 'Library', icon: BookOpen },
       { to: '/admin/digital-education/classrooms', labelBn: 'ডিজিটাল শিক্ষা', labelEn: 'Digital Education', icon: MonitorPlay },
     ],
   },
   {
-    id: 'website-cms',
-    labelBn: 'ওয়েবসাইট CMS',
-    labelEn: 'Website CMS',
+    id: 'communication',
+    labelBn: 'যোগাযোগ ও ওয়েবসাইট',
+    labelEn: 'COMMUNICATION',
     items: [
-      { to: '/admin/website/home', labelBn: 'হোম ও ব্র্যান্ডিং', labelEn: 'Home & Branding', icon: Globe },
-      { to: '/admin/website/about', labelBn: 'পরিচিতি ও নেতৃত্ব', labelEn: 'About & Leadership', icon: Building2 },
-      { to: '/admin/notices', labelBn: 'নোটিশ, সংবাদ ও ইভেন্ট', labelEn: 'Notices, News & Events', icon: MessageSquare },
-      { to: '/admin/website/media', labelBn: 'মিডিয়া, ভর্তি ও প্রকাশনা', labelEn: 'Media, Admission & Press', icon: ImageIcon },
+      { to: '/admin/notices', labelBn: 'নোটিশ ও ইভেন্ট', labelEn: 'Notices & Circulars', icon: MessageSquare, badge: '8' },
+      { to: '/admin/website/home', labelBn: 'ওয়েবসাইট CMS', labelEn: 'Website CMS', icon: Globe },
     ],
   },
   {
     id: 'system',
     labelBn: 'প্রশাসন ও সিস্টেম',
-    labelEn: 'System & Access',
+    labelEn: 'SYSTEM',
     items: [
       { to: '/admin/users', labelBn: 'ব্যবহারকারী ও রোল', labelEn: 'Users & Roles', icon: ShieldCheck },
       { to: '/admin/reports', labelBn: 'রিপোর্ট ও অডিট', labelEn: 'Reports & Audit', icon: FileBarChart2 },
@@ -466,16 +480,16 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
           : pick('শিক্ষার্থী পোর্টাল', 'Student Portal');
 
   const renderSidebarLinks = (closeOnClick = false) => (
-    <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-4">
+    <nav className="flex-1 overflow-y-auto px-2.5 py-2 space-y-3.5 scrollbar-thin relative z-10">
       {navGroups.map((group, groupIdx) => (
         <div
           key={group.id}
           className={cn(
-            groupIdx > 0 && sidebarCollapsed && !closeOnClick ? 'pt-2 border-t border-border' : ''
+            groupIdx > 0 && sidebarCollapsed && !closeOnClick ? 'pt-2 border-t border-white/10' : ''
           )}
         >
-          {group.labelBn && (!sidebarCollapsed || closeOnClick) && (
-            <p className="px-3 pb-1.5 text-xs font-semibold text-muted-foreground tracking-wide">
+          {group.labelEn && (!sidebarCollapsed || closeOnClick) && (
+            <p className="px-3 pt-3.5 pb-1.5 text-xs sm:text-[13px] font-bold text-white uppercase tracking-wider">
               {locale === 'bn' ? group.labelBn : group.labelEn}
             </p>
           )}
@@ -491,17 +505,22 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
                     href={item.to}
                     onClick={() => closeOnClick && setMobileOpen(false)}
                     className={cn(
-                      'flex items-center gap-2.5 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-colors',
+                      'flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-base font-medium transition-all duration-150',
                       selfActive
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-foreground/80 hover:bg-surface-muted hover:text-foreground',
+                        ? 'bg-white text-[#1C6440] font-bold shadow-xs'
+                        : 'text-white/95 hover:text-white hover:bg-white/10',
                       sidebarCollapsed && !closeOnClick ? 'justify-center px-2' : ''
                     )}
                     title={sidebarCollapsed ? (locale === 'bn' ? item.labelBn : item.labelEn) : undefined}
                   >
-                    <Icon className="w-4 h-4 shrink-0" />
+                    <Icon className={cn('w-4.5 h-4.5 shrink-0', selfActive ? 'text-[#1C6440]' : 'text-white/90')} />
                     {(!sidebarCollapsed || closeOnClick) && (
-                      <span className="truncate">{locale === 'bn' ? item.labelBn : item.labelEn}</span>
+                      <span className="truncate flex-1">{locale === 'bn' ? item.labelBn : item.labelEn}</span>
+                    )}
+                    {item.badge && (!sidebarCollapsed || closeOnClick) && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#DF6153] text-white leading-none shrink-0">
+                        {item.badge}
+                      </span>
                     )}
                   </Link>
                 );
@@ -513,16 +532,23 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
                     type="button"
                     onClick={() => setOpenMenus((prev) => ({ ...prev, [item.to]: !open }))}
                     className={cn(
-                      'flex w-full items-center gap-2.5 px-3 py-2 rounded-[var(--radius)] text-sm font-medium transition-colors cursor-pointer',
-                      selfActive ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-surface-muted hover:text-foreground'
+                      'flex w-full items-center gap-2.5 px-3 py-2.5 rounded-xl text-base font-medium transition-all duration-150 cursor-pointer',
+                      selfActive
+                        ? 'bg-white/15 text-white font-semibold'
+                        : 'text-white/95 hover:text-white hover:bg-white/10'
                     )}
                   >
-                    <Icon className="w-4 h-4 shrink-0" />
+                    <Icon className="w-4.5 h-4.5 shrink-0 text-white/90" />
                     <span className="truncate flex-1 text-left">{locale === 'bn' ? item.labelBn : item.labelEn}</span>
-                    <ChevronDown className={cn('w-4 h-4 shrink-0 transition-transform', open && 'rotate-180')} />
+                    {item.badge && (
+                      <span className="mr-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-[#DF6153] text-white leading-none shrink-0">
+                        {item.badge}
+                      </span>
+                    )}
+                    <ChevronDown className={cn('w-3.5 h-3.5 shrink-0 transition-transform opacity-75', open && 'rotate-180')} />
                   </button>
                   {open && (
-                    <div className="mt-1 ml-4 pl-2 border-l border-border space-y-0.5">
+                    <div className="mt-1 ml-3 pl-2.5 border-l border-white/20 space-y-0.5">
                       {item.children!.map((child) => {
                         const childActive = studentChildActive(pathname, child.to);
                         return (
@@ -531,10 +557,10 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
                             href={child.to}
                             onClick={() => closeOnClick && setMobileOpen(false)}
                             className={cn(
-                              'block px-2 py-1.5 rounded-md text-sm transition-colors',
+                              'block px-2.5 py-1.5 rounded-lg text-sm font-medium transition-colors',
                               childActive
-                                ? 'bg-primary text-primary-foreground font-semibold'
-                                : 'text-foreground/80 hover:bg-surface-muted hover:text-foreground'
+                                ? 'bg-white text-[#1C6440] font-bold shadow-xs'
+                                : 'text-white/85 hover:text-white hover:bg-white/10'
                             )}
                           >
                             {locale === 'bn' ? child.labelBn : child.labelEn}
@@ -553,88 +579,161 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
   );
 
   return (
-    <div className="min-h-screen flex bg-background text-foreground">
-      {/* Desktop Collapsible Sidebar */}
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden flex bg-background text-foreground">
+      {/* Desktop Floating Green Capsule Sidebar (Fixed position in layout) */}
       <aside
         className={cn(
-          'hidden lg:flex flex-col bg-surface border-r border-border transition-all duration-150 shrink-0 sticky top-0 h-screen no-print',
-          sidebarCollapsed ? 'w-16' : 'w-64'
+          'hidden lg:flex flex-col bg-gradient-to-b from-[#185536] via-[#1C6440] to-[#14492E] text-white shrink-0 my-3 ml-3 lg:ml-4 rounded-3xl shadow-xl border border-white/10 h-[calc(100vh-1.5rem)] no-print z-40 transition-all duration-200 overflow-hidden relative',
+          sidebarCollapsed ? 'w-20' : 'w-64'
         )}
       >
-        <div className="h-16 px-3 flex items-center justify-between border-t-2 border-t-primary border-b border-border">
-          <Link href="/" className="flex items-center gap-2.5 min-w-0">
-            <SchoolEmblem size={36} />
-            {!sidebarCollapsed && (
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-primary truncate">
-                  {pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}
-                </p>
-                <p className="text-xs text-muted-foreground truncate">{portalLabel}</p>
-              </div>
-            )}
-          </Link>
-          <button
-            type="button"
-            onClick={() => dispatch(toggleSidebar())}
-            aria-label="Toggle sidebar"
-            className="p-1.5 rounded-md text-muted-foreground hover:bg-surface-muted hover:text-foreground cursor-pointer"
+        {/* Decorative Translucent Bubble Overlays matching reference image */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+          {/* Top-Right Glowing Bubble Orb */}
+          <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-gradient-to-br from-[#2D8B59]/40 via-[#1C6440]/20 to-transparent blur-2xl" />
+          <div className="absolute -top-10 -right-10 w-44 h-44 rounded-full border border-white/[0.12] bg-white/[0.04] backdrop-blur-[1px]" />
+          <div className="absolute top-2 -right-2 w-28 h-28 rounded-full border border-white/[0.08]" />
+
+          {/* Middle-Left Organic Bubble Contour */}
+          <div className="absolute top-[35%] -left-20 w-60 h-60 rounded-full bg-gradient-to-tr from-[#247A4D]/35 via-[#1C6440]/15 to-transparent blur-xl" />
+          <div className="absolute top-[38%] -left-14 w-48 h-48 rounded-full border border-white/[0.08] bg-white/[0.03]" />
+          <div className="absolute top-[42%] -left-4 w-32 h-32 rounded-full border border-white/[0.06]" />
+
+          {/* Bottom-Right Soft Bubble Orb */}
+          <div className="absolute bottom-28 -right-16 w-56 h-56 rounded-full bg-gradient-to-tl from-[#34A870]/30 via-[#1C6440]/15 to-transparent blur-2xl" />
+          <div className="absolute bottom-32 -right-10 w-44 h-44 rounded-full border border-white/[0.12] bg-white/[0.04]" />
+
+          {/* Subtle SVG Concentric Watermark Bubble Rings */}
+          <svg
+            className="absolute inset-0 w-full h-full opacity-20 pointer-events-none"
+            viewBox="0 0 256 800"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
           >
-            {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
+            <circle cx="220" cy="110" r="140" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
+            <circle cx="220" cy="110" r="95" stroke="white" strokeWidth="1.2" />
+            <circle cx="20" cy="420" r="120" stroke="white" strokeWidth="1" strokeDasharray="3 3" />
+            <circle cx="20" cy="420" r="80" stroke="white" strokeWidth="1" />
+            <circle cx="210" cy="650" r="130" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
+          </svg>
+        </div>
+
+        {/* Top Header Inside Sidebar */}
+        <div className="h-16 px-4 flex items-center justify-between border-b border-white/10 shrink-0 relative z-10">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <button
+              type="button"
+              onClick={() => dispatch(toggleSidebar())}
+              aria-label="Toggle sidebar"
+              className="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition shrink-0"
+            >
+              <ChevronLeft className={cn('w-4 h-4 transition-transform', sidebarCollapsed && 'rotate-180')} />
+            </button>
+            {!sidebarCollapsed && (
+              <Link href="/" className="min-w-0 flex items-center gap-2">
+                <SchoolEmblem size={28} />
+                <div className="min-w-0 leading-tight">
+                  <span className="text-sm font-bold text-white tracking-tight truncate block">
+                    {pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}
+                  </span>
+                  <span className="text-xs text-white/80 truncate block">
+                    EIIN: 113587 · Admin
+                  </span>
+                </div>
+              </Link>
+            )}
+          </div>
         </div>
 
         {renderSidebarLinks(false)}
 
-        <div className="p-3 border-t border-border space-y-1.5">
-          <Link
-            href="/"
-            className={cn(
-              'flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted rounded-[var(--radius)]',
-              sidebarCollapsed ? 'justify-center px-2' : ''
+        {/* Mini Impact Widget Card */}
+        {!sidebarCollapsed && (
+          <div className="mx-3 mb-2.5 p-3.5 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-xs text-white shrink-0 relative z-10">
+            <div className="flex items-center gap-1.5 text-xs text-white/90 font-medium mb-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#EBAF3E]" />
+              {pick('সাপ্তাহিক সারসংক্ষেপ', 'Weekly Overview')}
+            </div>
+            <p className="font-bold text-base leading-snug">
+              {pick('একাডেমিক অগ্রগতি ও\nদৈনিক উপস্থিতি ৯৪%', 'Academic Attendance &\nActive Session')}
+            </p>
+            <Link href="/admin/reports" className="block mt-2">
+              <button
+                type="button"
+                className="w-full bg-white text-[#1C6440] hover:bg-white/90 text-sm font-semibold py-2 px-3 rounded-xl shadow-xs transition cursor-pointer"
+              >
+                {pick('রিপোর্ট দেখুন', 'View report')}
+              </button>
+            </Link>
+          </div>
+        )}
+
+        {/* User Profile Pill at Bottom */}
+        <div className="p-2.5 mx-2 mb-2 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between shrink-0 relative z-10">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-[#DCEFE0] text-[#1C6440] font-bold text-sm flex items-center justify-center shrink-0">
+              {auth.user?.name ? auth.user.name.slice(0, 2).toUpperCase() : 'AD'}
+            </div>
+            {!sidebarCollapsed && (
+              <div className="min-w-0 leading-tight">
+                <p className="text-base font-bold text-white truncate">
+                  {auth.user?.name ?? 'Admin'}
+                </p>
+                <p className="text-sm text-white/85 truncate">
+                  {auth.user?.role ?? 'SUPER_ADMIN'}
+                </p>
+              </div>
             )}
-          >
-            <Home className="w-4 h-4 shrink-0" />
-            {!sidebarCollapsed && <span>{pick('পাবলিক ওয়েবসাইট', 'Public Website')}</span>}
-          </Link>
-          <button
-            type="button"
-            onClick={() => {
-              dispatch(logout());
-              router.push('/login');
-            }}
-            className={cn(
-              'w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 rounded-[var(--radius)] cursor-pointer',
-              sidebarCollapsed ? 'justify-center px-2' : ''
-            )}
-          >
-            <LogOut className="w-4 h-4 shrink-0" />
-            {!sidebarCollapsed && <span>{pick('লগ আউট', 'Sign Out')}</span>}
-          </button>
+          </div>
+          {!sidebarCollapsed && (
+            <button
+              type="button"
+              onClick={() => {
+                dispatch(logout());
+                router.push('/login');
+              }}
+              title={pick('লগ আউট', 'Sign Out')}
+              className="p-1.5 text-white/60 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </aside>
 
       {/* Mobile Sidebar Drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden bg-black/50" onClick={() => setMobileOpen(false)}>
+        <div className="fixed inset-0 z-50 lg:hidden bg-black/60 backdrop-blur-xs" onClick={() => setMobileOpen(false)}>
           <div
-            className="w-72 max-w-[85vw] h-full bg-surface border-r border-border flex flex-col"
+            className="w-72 max-w-[85vw] h-full bg-gradient-to-b from-[#185536] via-[#1C6440] to-[#14492E] text-white border-r border-white/10 flex flex-col relative overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="h-16 px-4 flex items-center justify-between border-b border-border">
+            {/* Decorative Translucent Bubble Overlays for Mobile Drawer */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+              <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-gradient-to-br from-[#2D8B59]/40 via-[#1C6440]/20 to-transparent blur-2xl" />
+              <div className="absolute -top-6 -right-6 w-36 h-36 rounded-full border border-white/[0.12] bg-white/[0.04]" />
+              <div className="absolute top-[40%] -left-16 w-52 h-52 rounded-full bg-gradient-to-tr from-[#247A4D]/35 via-[#1C6440]/15 to-transparent blur-xl" />
+              <div className="absolute top-[42%] -left-10 w-40 h-40 rounded-full border border-white/[0.08]" />
+              <div className="absolute bottom-16 -right-12 w-44 h-44 rounded-full bg-gradient-to-tl from-[#34A870]/30 to-transparent blur-2xl" />
+            </div>
+
+            <div className="h-16 px-4 flex items-center justify-between border-b border-white/10 relative z-10">
               <div className="flex items-center gap-2">
-                <SchoolEmblem size={32} />
-                <span className="text-sm font-bold text-primary">{portalLabel}</span>
+                <SchoolEmblem size={28} />
+                <span className="text-sm font-bold text-white truncate">
+                  {pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}
+                </span>
               </div>
-              <button type="button" onClick={() => setMobileOpen(false)} className="p-1.5">
-                <X className="w-4 h-4" />
+              <button type="button" onClick={() => setMobileOpen(false)} className="p-1.5 text-white/80 hover:text-white">
+                <X className="w-5 h-5" />
               </button>
             </div>
             {renderSidebarLinks(true)}
-            <div className="p-3 border-t border-border">
+            <div className="p-3 border-t border-white/10 relative z-10">
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full"
+                className="w-full bg-white/10 text-white border-white/20 hover:bg-white/20"
                 onClick={() => {
                   setMobileOpen(false);
                   dispatch(logout());
@@ -649,47 +748,53 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
         </div>
       )}
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Bar */}
-        <header className="sticky top-0 z-30 h-16 bg-surface/95 backdrop-blur border-b border-border px-4 sm:px-6 flex items-center justify-between gap-4 no-print">
+      {/* Main Content Area (Independent scroll container) */}
+      <div className="flex-1 flex flex-col min-w-0 lg:h-screen lg:overflow-y-auto">
+        {/* Top Bar matching reference */}
+        <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md px-4 sm:px-6 py-4 flex items-center justify-between gap-4 no-print">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
               aria-label="Open navigation"
-              className="lg:hidden p-2 rounded-md border border-border hover:bg-surface-muted"
+              className="lg:hidden p-2 rounded-xl border border-border bg-surface hover:bg-surface-muted shadow-xs"
             >
-              <Menu className="w-4 h-4" />
+              <Menu className="w-5 h-5" />
             </button>
-            <nav aria-label="Breadcrumb" className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground truncate">
-              {breadcrumbs.map((b, i) => (
-                <React.Fragment key={b.to}>
-                  {i > 0 && <span>/</span>}
-                  <Link
-                    href={b.to}
-                    className={cn(
-                      'capitalize hover:text-primary truncate',
-                      i === breadcrumbs.length - 1 && 'text-foreground font-semibold'
-                    )}
-                  >
-                    {b.label}
-                  </Link>
-                </React.Fragment>
-              ))}
-            </nav>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-foreground flex items-center gap-1.5 truncate">
+                {pick(`শুভ সকাল, ${auth.user?.name ?? 'অ্যাডমিন'} 👋`, `Good morning, ${auth.user?.name ?? 'Admin'} 👋`)}
+              </h1>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                {pick('ভোজেশ্বর উচ্চ বিদ্যালয়ের আজকের সার্বিক অবস্থা ও আপডেট।', 'Here is what is happening across Bhojeshwar High School today.')}
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0">
+            {/* Search Capsule */}
             <button
               type="button"
               onClick={() => dispatch(setCommandPaletteOpen(true))}
-              className="hidden md:inline-flex items-center gap-2 h-9 px-3 text-sm text-muted-foreground border border-border rounded-[var(--radius)] hover:bg-surface-muted cursor-pointer"
+              className="hidden md:inline-flex items-center gap-3 h-10 px-4 text-xs text-muted-foreground bg-surface border border-border rounded-full hover:bg-surface-muted shadow-xs cursor-pointer min-w-[220px] lg:min-w-[260px] justify-between transition"
             >
-              <Search className="w-3.5 h-3.5" />
-              <span>{pick('দ্রুত খুঁজুন', 'Quick Jump')}</span>
-              <kbd className="font-mono text-xs border border-border rounded px-1">Ctrl+K</kbd>
+              <div className="flex items-center gap-2">
+                <Search className="w-3.5 h-3.5 text-muted-foreground" />
+                <span>{pick('কিছু খুঁজুন...', 'Search anything...')}</span>
+              </div>
+              <kbd className="font-mono text-xs text-muted-foreground bg-surface-muted border border-border px-1.5 py-0.5 rounded-md">⌘K</kbd>
             </button>
+
+            {/* Calendar Button */}
+            <Link href="/admin/academic/events" className="hidden sm:inline-flex">
+              <button
+                type="button"
+                title={pick('ক্যালেন্ডার', 'Calendar')}
+                className="h-10 w-10 inline-flex items-center justify-center bg-surface border border-border rounded-full hover:bg-surface-muted shadow-xs text-foreground cursor-pointer transition"
+              >
+                <Calendar className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </Link>
 
             {/* Notifications */}
             <div className="relative">
@@ -697,18 +802,18 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
                 type="button"
                 onClick={() => setNotifOpen((v) => !v)}
                 aria-label="Notifications"
-                className="relative h-9 w-9 inline-flex items-center justify-center border border-border rounded-[var(--radius)] hover:bg-surface-muted cursor-pointer"
+                className="relative h-10 w-10 inline-flex items-center justify-center bg-surface border border-border rounded-full hover:bg-surface-muted shadow-xs text-foreground cursor-pointer transition"
               >
-                <Bell className="w-4 h-4" />
+                <Bell className="w-4 h-4 text-muted-foreground" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1 rounded-full bg-destructive text-white text-xs font-bold flex items-center justify-center tabular-nums leading-none">
+                  <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-[#DF6153] text-white text-xs font-bold flex items-center justify-center tabular-nums leading-none">
                     {unreadCount}
                   </span>
                 )}
               </button>
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-surface border border-border rounded-[var(--radius)] shadow-lg z-50 overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
+                <div className="absolute right-0 mt-2 w-80 bg-surface border border-border rounded-2xl shadow-xl z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                     <span className="text-sm font-semibold">
                       {pick('নোটিফিকেশন', 'Notifications')}
                     </span>
@@ -757,30 +862,25 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
               )}
             </div>
 
+            {/* Theme Toggle */}
             <button
               type="button"
               onClick={() => dispatch(toggleTheme())}
-              aria-label={pick('থিম পরিবর্তন করুন', 'থিম')}
-              className="h-9 w-9 inline-flex items-center justify-center border border-border rounded-[var(--radius)] hover:bg-surface-muted cursor-pointer"
+              aria-label={pick('থিম পরিবর্তন করুন', 'Toggle theme')}
+              className="h-10 w-10 inline-flex items-center justify-center bg-surface border border-border rounded-full hover:bg-surface-muted shadow-xs text-foreground cursor-pointer transition"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
 
-            <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-border">
-              <div className="text-right leading-tight">
-                <p className="text-sm font-semibold text-foreground max-w-[150px] truncate">
-                  {auth.user?.name}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {auth.user?.isDemoSession ? pick('ডেমো সেশন', 'Demo Session') : auth.role}
-                </p>
-              </div>
+            {/* User Avatar Circle */}
+            <div className="w-10 h-10 rounded-full bg-[#DCEFE0] text-[#1C6440] font-bold text-xs flex items-center justify-center border-2 border-white shadow-xs shrink-0 cursor-pointer">
+              {auth.user?.name ? auth.user.name.slice(0, 2).toUpperCase() : 'AD'}
             </div>
           </div>
         </header>
 
         {/* Page Viewport */}
-        <main className="flex-1 p-4 sm:p-6 w-full">
+        <main className="flex-1 px-4 sm:px-6 pb-6 w-full">
           {children}
         </main>
       </div>

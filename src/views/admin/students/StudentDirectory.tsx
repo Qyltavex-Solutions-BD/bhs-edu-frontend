@@ -229,18 +229,18 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
       {/* 1. Institutional Summary Strip — Single flat container divided by hairlines */}
       <Card className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden">
         <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
-          <span className="text-xs font-medium text-muted-foreground">
+          <span className="text-base font-bold text-foreground">
             {pick('মোট ভর্তি শিক্ষার্থী', 'Total Enrolled')}
           </span>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold tabular-nums text-foreground">
+            <span className="text-2xl sm:text-3xl font-extrabold tabular-nums text-foreground tracking-tight">
               {formatNumber(totalEnrolled, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {pick(`সেশন ${yearObj?.name ?? ''}`, `Session ${yearObj?.name ?? ''}`)}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground tabular-nums">
+          <p className="text-sm text-muted-foreground tabular-nums">
             {pick(
               `সক্রিয় ${formatNumber(activeCount, locale)} · অন্যান্য ${formatNumber(inactiveOrOtherCount, locale)}`,
               `${activeCount} active · ${inactiveOrOtherCount} other`
@@ -249,42 +249,42 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
         </div>
 
         <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
-          <span className="text-xs font-medium text-muted-foreground">
+          <span className="text-base font-bold text-foreground">
             {pick('ছাত্র ও ছাত্রী অনুপাত', 'Gender Ratio')}
           </span>
           <div className="flex items-baseline justify-between gap-3 tabular-nums">
             <div>
-              <span className="text-2xl font-bold text-foreground">
+              <span className="text-2xl font-extrabold text-foreground tracking-tight">
                 {formatNumber(boysCount, locale)}
               </span>
-              <span className="ml-1.5 text-xs text-muted-foreground">
+              <span className="ml-1.5 text-sm text-muted-foreground font-medium">
                 {pick('ছাত্র', 'Boys')} ({formatNumber(boysPercent, locale)}%)
               </span>
             </div>
             <div className="text-right">
-              <span className="text-2xl font-bold text-foreground">
+              <span className="text-2xl font-extrabold text-foreground tracking-tight">
                 {formatNumber(girlsCount, locale)}
               </span>
-              <span className="ml-1.5 text-xs text-muted-foreground">
+              <span className="ml-1.5 text-sm text-muted-foreground font-medium">
                 {pick('ছাত্রী', 'Girls')} ({formatNumber(girlsPercent, locale)}%)
               </span>
             </div>
           </div>
-          <div className="h-1.5 w-full rounded-full bg-surface-muted overflow-hidden flex">
-            <div style={{ width: `${boysPercent}%` }} className="bg-primary h-full" />
-            <div style={{ width: `${girlsPercent}%` }} className="bg-secondary h-full" />
+          <div className="h-2 w-full rounded-full bg-surface-muted overflow-hidden flex">
+            <div style={{ width: `${boysPercent}%` }} className="bg-[#1C6440] h-full" />
+            <div style={{ width: `${girlsPercent}%` }} className="bg-[#124B96] h-full" />
           </div>
         </div>
 
         <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
-          <span className="text-xs font-medium text-muted-foreground">
+          <span className="text-base font-bold text-foreground">
             {pick('গড় বার্ষিক উপস্থিতি', 'Average Attendance')}
           </span>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold tabular-nums text-primary">
+            <span className="text-2xl sm:text-3xl font-extrabold tabular-nums text-primary tracking-tight">
               {avgAttendance !== null ? `${formatNumber(avgAttendance, locale)}%` : '—'}
             </span>
-            <span className="text-xs text-muted-foreground tabular-nums">
+            <span className="text-sm text-muted-foreground tabular-nums">
               {lowAttendanceCount > 0
                 ? pick(
                     `· ${formatNumber(lowAttendanceCount, locale)} জন ৭৫%-এর নিচে`,
@@ -295,33 +295,33 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
           </div>
           <Link
             href="/admin/attendance/daily"
-            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline w-fit"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline w-fit"
           >
             <span>{pick('দৈনিক হাজিরা রেজিস্টার', 'Daily attendance register')}</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <ArrowUpRight className="w-4 h-4" />
           </Link>
         </div>
 
         <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
-          <span className="text-xs font-medium text-muted-foreground">
+          <span className="text-base font-bold text-foreground">
             {pick('অনলাইন ভর্তি আবেদন', 'Admission Queue')}
           </span>
           <div className="flex items-baseline gap-2">
             <span
               className={cn(
-                'text-2xl sm:text-3xl font-bold tabular-nums',
-                pendingAdmissions > 0 ? 'text-secondary' : 'text-foreground'
+                'text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight',
+                pendingAdmissions > 0 ? 'text-[#124B96]' : 'text-foreground'
               )}
             >
               {formatNumber(pendingAdmissions, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm text-muted-foreground">
               {pick('টি পর্যালোচনার অপেক্ষায়', 'pending review')}
             </span>
           </div>
           <Link
             href="/admin/students/admissions"
-            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline w-fit"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline w-fit"
           >
             <span>
               {pick(
@@ -329,7 +329,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
                 `Review applications (${db.onlineAdmissions.length})`
               )}
             </span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <ArrowUpRight className="w-4 h-4" />
           </Link>
         </div>
       </Card>
@@ -351,14 +351,14 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
               setSectionId('ALL');
             }}
             className={cn(
-              'px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
+              'px-4 py-2.5 text-base font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
               classId === 'ALL'
-                ? 'border-primary text-primary font-semibold'
+                ? 'border-primary text-primary font-bold'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
             {pick('সকল শ্রেণি', 'All Classes')}{' '}
-            <span className="text-xs opacity-75">({formatNumber(totalEnrolled, locale)})</span>
+            <span className="text-sm font-medium opacity-80">({formatNumber(totalEnrolled, locale)})</span>
           </button>
 
           {classCounts.map((cls) => {
@@ -374,14 +374,14 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
                   setSectionId('ALL');
                 }}
                 className={cn(
-                  'px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
+                  'px-4 py-2.5 text-base font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
                   active
-                    ? 'border-primary text-primary font-semibold'
+                    ? 'border-primary text-primary font-bold'
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 )}
               >
                 {cls.label}{' '}
-                <span className="text-xs opacity-75">({formatNumber(cls.count, locale)})</span>
+                <span className="text-sm font-medium opacity-80">({formatNumber(cls.count, locale)})</span>
               </button>
             );
           })}
@@ -399,7 +399,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
                   'শিক্ষার্থীর নাম, রোল, আইডি, অভিভাবকের নাম বা মোবাইল নম্বর খুঁজুন...',
                   'Search student name, roll, ID, guardian or phone...'
                 )}
-                className="pl-9 pr-9 h-9 text-sm"
+                className="pl-9 pr-9 h-10 text-base"
               />
               {searchQuery && (
                 <button
@@ -417,7 +417,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
               <Select
                 value={sectionId}
                 onChange={(event) => setSectionId(event.target.value)}
-                className="w-32 h-9 text-sm"
+                className="w-32 h-10 text-sm font-medium"
                 aria-label={pick('শাখা', 'Section')}
               >
                 <option value="ALL">{pick('সকল শাখা', 'All sections')}</option>
@@ -431,7 +431,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
               <Select
                 value={groupId}
                 onChange={(event) => setGroupId(event.target.value)}
-                className="w-34 h-9 text-sm"
+                className="w-34 h-10 text-sm font-medium"
                 aria-label={pick('বিভাগ', 'Stream')}
               >
                 <option value="ALL">{pick('সকল বিভাগ', 'All streams')}</option>
@@ -445,7 +445,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
               <Select
                 value={genderFilter}
                 onChange={(event) => setGenderFilter(event.target.value)}
-                className="w-28 h-9 text-sm"
+                className="w-28 h-10 text-sm font-medium"
                 aria-label={pick('লিঙ্গ', 'Gender')}
               >
                 <option value="ALL">{pick('সকল লিঙ্গ', 'All')}</option>
@@ -456,7 +456,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
               <Select
                 value={status}
                 onChange={(event) => setStatus(event.target.value)}
-                className="w-32 h-9 text-sm"
+                className="w-32 h-10 text-sm font-medium"
                 aria-label={pick('অবস্থা', 'Status')}
               >
                 <option value="ALL">{pick('সকল অবস্থা', 'All statuses')}</option>
@@ -469,7 +469,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9"
+                className="h-10 text-sm font-semibold"
                 onClick={handleExportCsv}
                 disabled={rows.length === 0}
               >
@@ -480,7 +480,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
           </div>
 
           {/* Quiet metadata strip */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border text-sm text-muted-foreground">
             <span className="tabular-nums">
               {hasActiveFilters
                 ? pick(
@@ -497,7 +497,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
               <button
                 type="button"
                 onClick={resetFilters}
-                className="inline-flex items-center gap-1 text-primary hover:underline font-medium cursor-pointer"
+                className="inline-flex items-center gap-1 text-primary hover:underline font-semibold cursor-pointer text-sm"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>{pick('ফিল্টার রিসেট করুন', 'Reset filters')}</span>
@@ -532,7 +532,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
             accessorKey: 'roll',
             header: pick('রোল', 'Roll'),
             cell: ({ row }) => (
-              <span className="font-mono text-sm font-semibold text-foreground tabular-nums">
+              <span className="font-mono text-base font-bold text-foreground tabular-nums">
                 {String(row.original.roll).padStart(2, '0')}
               </span>
             ),
@@ -544,7 +544,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
               <div className="flex items-center gap-3 min-w-[220px]">
                 <div
                   className={cn(
-                    'w-9 h-9 rounded-[var(--radius)] flex items-center justify-center font-semibold text-xs shrink-0 border border-border',
+                    'w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border border-border',
                     row.original.gender === Gender.FEMALE
                       ? 'bg-secondary/10 text-secondary'
                       : 'bg-primary/10 text-primary'
@@ -555,11 +555,11 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
                 <div className="min-w-0">
                   <Link
                     href={`/admin/students/${row.original.id}`}
-                    className="font-semibold text-foreground hover:text-primary hover:underline block truncate leading-snug"
+                    className="font-bold text-base text-foreground hover:text-primary hover:underline block truncate leading-snug"
                   >
                     {row.original.nameBn}
                   </Link>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
                     <span className="truncate max-w-[140px]">{row.original.nameEn}</span>
                     <span aria-hidden="true">·</span>
                     <button
@@ -572,9 +572,9 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
                     >
                       <span>{row.original.studentId}</span>
                       {copiedId === row.original.studentId ? (
-                        <Check className="w-3 h-3 text-success" />
+                        <Check className="w-3.5 h-3.5 text-success" />
                       ) : (
-                        <Copy className="w-3 h-3 opacity-60" />
+                        <Copy className="w-3.5 h-3.5 opacity-60" />
                       )}
                     </button>
                   </div>
@@ -587,10 +587,10 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
             header: pick('শ্রেণি ও শাখা', 'Class & Section'),
             cell: ({ row }) => (
               <div className="whitespace-nowrap">
-                <span className="font-medium text-foreground">{row.original.classLabel}</span>
-                <span className="text-muted-foreground"> · {row.original.sectionLabel}</span>
+                <span className="font-bold text-base text-foreground">{row.original.classLabel}</span>
+                <span className="text-base text-muted-foreground"> · {row.original.sectionLabel}</span>
                 {row.original.groupLabel && (
-                  <span className="block text-xs text-muted-foreground mt-0.5">
+                  <span className="block text-sm text-muted-foreground mt-0.5">
                     {row.original.groupLabel}
                   </span>
                 )}
@@ -603,7 +603,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
             cell: ({ row }) => {
               const rate = row.original.attendanceRate;
               if (rate === null) {
-                return <span className="text-xs text-muted-foreground">—</span>;
+                return <span className="text-sm text-muted-foreground">—</span>;
               }
               const tone =
                 rate >= 85
@@ -620,14 +620,14 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
               return (
                 <div className="min-w-[84px] space-y-1">
                   <div className="flex items-baseline justify-between gap-2 tabular-nums">
-                    <span className={cn('text-sm font-semibold', tone)}>
+                    <span className={cn('text-base font-bold', tone)}>
                       {formatNumber(rate, locale)}%
                     </span>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-sm font-semibold text-muted-foreground tabular-nums">
                       {formatNumber(row.original.attendanceDays, locale)}d
                     </span>
                   </div>
-                  <div className="h-1 w-full rounded-full bg-surface-muted overflow-hidden">
+                  <div className="h-1.5 w-full rounded-full bg-surface-muted overflow-hidden">
                     <div
                       style={{ width: `${Math.min(100, rate)}%` }}
                       className={cn('h-full', barTone)}
@@ -642,17 +642,17 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
             header: pick('অভিভাবক ও যোগাযোগ', 'Guardian & Phone'),
             cell: ({ row }) => (
               <div className="whitespace-nowrap">
-                <p className="text-sm text-foreground leading-snug">{row.original.guardianName}</p>
+                <p className="text-base font-medium text-foreground leading-snug">{row.original.guardianName}</p>
                 {row.original.guardianPhone !== '—' ? (
                   <a
                     href={`tel:${row.original.guardianPhone}`}
-                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-mono mt-0.5"
+                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline font-mono mt-0.5"
                   >
-                    <Phone className="w-3 h-3 text-muted-foreground" />
+                    <Phone className="w-3.5 h-3.5 text-muted-foreground" />
                     <span>{row.original.guardianPhone}</span>
                   </a>
                 ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
+                  <span className="text-sm text-muted-foreground">—</span>
                 )}
               </div>
             ),
@@ -672,7 +672,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
               <div className="flex items-center justify-end gap-1">
                 <Link
                   href={`/admin/students/${row.original.id}`}
-                  className="inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md text-xs font-medium text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-semibold text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
                 >
                   <Eye className="w-3.5 h-3.5" />
                   <span>{pick('প্রোফাইল', 'Profile')}</span>

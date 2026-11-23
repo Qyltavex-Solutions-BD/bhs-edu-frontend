@@ -488,45 +488,45 @@ export function ConsolidatedResultsView() {
       </Card>
 
       {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5">
+          <p className="text-base font-bold text-foreground">
             {pick('মোট তালিকাভুক্ত শিক্ষার্থী', 'Enrolled Students')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-foreground">
             {formatNumber(stats.total, locale)}{' '}
-            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+            <span className="text-sm font-medium text-muted-foreground">{pick('জন', '')}</span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums truncate">
+          <p className="mt-1.5 text-sm text-muted-foreground tabular-nums truncate">
             {selectedExam ? selectedExam.name : pick('কনফিগারেশন নির্বাচন করুন', 'Select configuration')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5">
+          <p className="text-base font-bold text-foreground">
             {pick('সমন্বিত উত্তীর্ণ ও পাসের হার', 'Consolidated Passed & Rate')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-success">
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-success">
             {formatNumber(stats.passed, locale)}{' '}
-            <span className="text-sm font-normal text-muted-foreground">({formatNumber(stats.passRate, locale)}%)</span>
+            <span className="text-sm font-medium text-muted-foreground">({formatNumber(stats.passRate, locale)}%)</span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1.5 text-sm text-muted-foreground tabular-nums">
             {pick(
               `উত্তীর্ণ ${formatNumber(stats.passed, 'bn')} · অনুত্তীর্ণ ${formatNumber(stats.total - stats.passed, 'bn')}`,
               `Passed ${stats.passed} · Failed ${stats.total - stats.passed}`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5">
+          <p className="text-base font-bold text-foreground">
             {pick('চূড়ান্ত জিপিএ ৫.০০', 'Final GPA 5.00')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-primary">
             {formatNumber(stats.gpa5, locale)}{' '}
-            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+            <span className="text-sm font-medium text-muted-foreground">{pick('জন', '')}</span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1.5 text-sm text-muted-foreground tabular-nums">
             {stats.total > 0
               ? pick(
                   `মোট শিক্ষার্থীর ${formatNumber(Math.round((stats.gpa5 / stats.total) * 100), locale)}%`,
@@ -534,22 +534,22 @@ export function ConsolidatedResultsView() {
                 )
               : pick('কোনো ফলাফল নেই', 'No results')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5">
+          <p className="text-base font-bold text-foreground">
             {pick('অসম্পূর্ণ / অনুত্তীর্ণ', 'Incomplete / Failed')}
           </p>
           <p
             className={cn(
-              'mt-1 text-2xl font-bold tabular-nums',
+              'mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight',
               stats.total - stats.passed > 0 ? 'text-destructive' : 'text-foreground'
             )}
           >
             {formatNumber(stats.total - stats.passed, locale)}{' '}
-            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+            <span className="text-sm font-medium text-muted-foreground">{pick('জন', '')}</span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums truncate">
+          <p className="mt-1.5 text-sm text-muted-foreground tabular-nums truncate">
             {stats.incomplete > 0
               ? pick(
                   `${formatNumber(stats.incomplete, locale)} জনের উৎস পরীক্ষার ফল অসম্পূর্ণ`,
@@ -559,7 +559,7 @@ export function ConsolidatedResultsView() {
                 ? pick('সমন্বিত মূল্যায়নে অনুত্তীর্ণ', 'Failed in combined assessment')
                 : pick('সকল শিক্ষার্থী উত্তীর্ণ', 'All students passed')}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* Main Consolidated Table */}
@@ -605,16 +605,16 @@ export function ConsolidatedResultsView() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[760px] text-base">
               <thead>
-                <tr className="border-b border-border bg-surface-muted/70 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <tr className="border-b border-border bg-surface-muted/70 text-sm font-bold text-muted-foreground uppercase tracking-wider">
                   <th className="px-4 py-3 text-center w-16">{pick('মেধা', 'Merit')}</th>
                   <th className="px-3 py-3 text-center w-16">{pick('রোল', 'Roll')}</th>
                   <th className="px-4 py-3 text-left">{pick('শিক্ষার্থী ও শাখা', 'Student & Section')}</th>
                   {activeConfigs.map((cfg) => (
                     <th key={cfg.id} className="px-3 py-3 text-center">
                       <div>{cfg.sourceExamName}</div>
-                      <div className="text-[10px] font-medium text-primary normal-case">
+                      <div className="text-xs font-bold text-primary normal-case">
                         ({formatNumber(cfg.weightagePercentage, locale)}%)
                       </div>
                     </th>
@@ -631,7 +631,7 @@ export function ConsolidatedResultsView() {
                     <td className="px-4 py-3 text-center">
                       {row.merit ? (
                         <span
-                          className={`inline-flex items-center justify-center min-w-[2.1rem] px-2 py-0.5 rounded text-xs font-bold ${
+                          className={`inline-flex items-center justify-center min-w-[2.1rem] px-2.5 py-0.5 rounded-lg text-sm font-bold ${
                             row.merit <= 3
                               ? 'bg-warning/15 text-warning border border-warning/30'
                               : 'bg-surface-muted text-foreground'
@@ -640,15 +640,15 @@ export function ConsolidatedResultsView() {
                           #{formatNumber(row.merit, locale)}
                         </span>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground font-semibold">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-center font-semibold text-foreground">
+                    <td className="px-3 py-3 text-center font-bold text-foreground">
                       {formatNumber(row.roll, locale)}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-semibold text-foreground">{row.studentName}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="font-bold text-foreground">{row.studentName}</div>
+                      <div className="text-sm text-muted-foreground font-medium">
                         <span className="font-mono">{row.studentId}</span> · {pick('শাখা', 'Sec')}: {row.sectionName}
                         {row.groupName ? ` · ${row.groupName}` : ''}
                       </div>
@@ -658,17 +658,17 @@ export function ConsolidatedResultsView() {
                       return (
                         <td key={cfg.id} className="px-3 py-3 text-center">
                           {!sc || sc.marks === null ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-warning/10 text-warning border border-warning/25">
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-warning/10 text-warning border border-warning/25">
                               {pick('ফলাফল নেই', 'Missing')}
                             </span>
                           ) : (
                             <div>
-                              <span className="font-semibold text-foreground">
+                              <span className="font-bold text-foreground">
                                 {formatNumber(sc.marks, locale)}
                               </span>
                               <div
-                                className={`text-[11px] ${
-                                  sc.status === ResultStatus.PASS ? 'text-muted-foreground' : 'text-destructive font-semibold'
+                                className={`text-sm ${
+                                  sc.status === ResultStatus.PASS ? 'text-muted-foreground font-medium' : 'text-destructive font-bold'
                                 }`}
                               >
                                 GPA {formatNumber(sc.gpa ?? 0, locale, 2)}

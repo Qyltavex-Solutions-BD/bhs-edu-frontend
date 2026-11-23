@@ -557,29 +557,29 @@ export function MarksEntryView() {
       </Card>
 
       {/* KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5">
+          <p className="text-base font-bold text-foreground">
             {pick('মোট পরীক্ষার্থী ও বিষয়', 'Total Examinees & Subject')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-foreground">
             {formatNumber(kpis.total, locale)}{' '}
-            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+            <span className="text-sm font-medium text-muted-foreground">{pick('জন', '')}</span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground truncate">
+          <p className="mt-1.5 text-sm text-muted-foreground truncate">
             {activeExamSubject
               ? `${pick('পূর্ণমান', 'Full')}: ${formatNumber(activeExamSubject.fullMarks, locale)} | ${activeSubjectMeta?.officialCode ?? ''}`
               : pick('বিষয় নির্বাচিত হয়নি', 'No subject selected')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5">
+          <p className="text-base font-bold text-foreground">
             {pick('এন্ট্রি অগ্রগতি', 'Entry Progress')}
           </p>
           <p
             className={cn(
-              'mt-1 text-2xl font-bold tabular-nums',
+              'mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight',
               kpis.progressPct === 100
                 ? 'text-success'
                 : kpis.progressPct > 0
@@ -589,49 +589,49 @@ export function MarksEntryView() {
           >
             {formatNumber(kpis.progressPct, locale)}%
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1.5 text-sm text-muted-foreground tabular-nums">
             {pick(
               `${formatNumber(kpis.enteredCount, locale)} / ${formatNumber(kpis.total, locale)} জনের নম্বর এন্ট্রি`,
               `${kpis.enteredCount} of ${kpis.total} marks recorded`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5">
+          <p className="text-base font-bold text-foreground">
             {pick('উপস্থিতি ও অনুপস্থিতি', 'Attendance & Absent')}
           </p>
           <p
             className={cn(
-              'mt-1 text-2xl font-bold tabular-nums',
+              'mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight',
               kpis.absentCount > 0 ? 'text-destructive' : 'text-foreground'
             )}
           >
             {formatNumber(kpis.absentCount, locale)}{' '}
-            <span className="text-sm font-normal text-muted-foreground">{pick('অনুপস্থিত', 'absent')}</span>
+            <span className="text-sm font-medium text-muted-foreground">{pick('অনুপস্থিত', 'absent')}</span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1.5 text-sm text-muted-foreground tabular-nums">
             {pick(
               `উপস্থিত: ${formatNumber(kpis.total - kpis.absentCount, locale)} জন (${formatNumber(kpis.total > 0 ? Math.round(((kpis.total - kpis.absentCount) / kpis.total) * 100) : 0, locale)}%)`,
               `Present: ${kpis.total - kpis.absentCount} (${kpis.total > 0 ? Math.round(((kpis.total - kpis.absentCount) / kpis.total) * 100) : 0}%)`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5">
+          <p className="text-base font-bold text-foreground">
             {pick('প্রাথমিক মূল্যায়ন (উত্তীর্ণ / ব্যর্থ)', 'Pass / Component Fail')}
           </p>
           <p
             className={cn(
-              'mt-1 text-2xl font-bold tabular-nums',
+              'mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight',
               kpis.failedCount > 0 ? 'text-warning' : 'text-success'
             )}
           >
             {formatNumber(kpis.passedCount, locale)}{' '}
-            <span className="text-sm font-normal text-muted-foreground">{pick('পাস', 'passed')}</span>
+            <span className="text-sm font-medium text-muted-foreground">{pick('পাস', 'passed')}</span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums truncate">
+          <p className="mt-1.5 text-sm text-muted-foreground tabular-nums truncate">
             {kpis.failedCount > 0
               ? pick(
                   `${formatNumber(kpis.failedCount, locale)} জন উপাংশে অকৃতকার্য`,
@@ -639,7 +639,7 @@ export function MarksEntryView() {
                 )
               : pick('সকল মূল্যায়নকৃত শিক্ষার্থী উত্তীর্ণ', 'All evaluated passed')}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* Lock / Deadline Notice Banner */}
@@ -717,50 +717,50 @@ export function MarksEntryView() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-xs tabular-nums">
+            <table className="w-full min-w-[760px] text-base">
+              <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-sm font-bold uppercase tracking-wider tabular-nums">
                 <tr>
-                  <th className="px-3 py-2.5 text-center w-14">{pick('রোল', 'Roll')}</th>
-                  <th className="px-3 py-2.5 text-left min-w-[180px]">{pick('শিক্ষার্থী ও শাখা', 'Student')}</th>
-                  <th className="px-2.5 py-2.5 text-center w-16">{pick('অনুপস্থিত', 'Absent')}</th>
+                  <th className="px-3 py-3 text-center w-16">{pick('রোল', 'Roll')}</th>
+                  <th className="px-3 py-3 text-left min-w-[180px]">{pick('শিক্ষার্থী ও শাখা', 'Student')}</th>
+                  <th className="px-2.5 py-3 text-center w-20">{pick('অনুপস্থিত', 'Absent')}</th>
                   {activeExamSubject.hasWritten && (
-                    <th className="px-2.5 py-2.5 text-right w-28">
+                    <th className="px-2.5 py-3 text-right w-28">
                       <div>{pick('লিখিত', 'Written')}</div>
-                      <div className="text-[11px] font-normal">
+                      <div className="text-xs font-bold text-primary normal-case">
                         {formatNumber(activeExamSubject.writtenFullMarks ?? 0, locale)} ({pick('পাশ', 'Pass')}{' '}
                         {formatNumber(activeExamSubject.writtenPassMarks ?? 0, locale)})
                       </div>
                     </th>
                   )}
                   {activeExamSubject.hasMcq && (
-                    <th className="px-2.5 py-2.5 text-right w-28">
+                    <th className="px-2.5 py-3 text-right w-28">
                       <div>MCQ</div>
-                      <div className="text-[11px] font-normal">
+                      <div className="text-xs font-bold text-primary normal-case">
                         {formatNumber(activeExamSubject.mcqFullMarks ?? 0, locale)} ({pick('পাশ', 'Pass')}{' '}
                         {formatNumber(activeExamSubject.mcqPassMarks ?? 0, locale)})
                       </div>
                     </th>
                   )}
                   {activeExamSubject.hasPractical && (
-                    <th className="px-2.5 py-2.5 text-right w-28">
+                    <th className="px-2.5 py-3 text-right w-28">
                       <div>{pick('ব্যবহারিক', 'Practical')}</div>
-                      <div className="text-[11px] font-normal">
+                      <div className="text-xs font-bold text-primary normal-case">
                         {formatNumber(activeExamSubject.practicalFullMarks ?? 0, locale)} ({pick('পাশ', 'Pass')}{' '}
                         {formatNumber(activeExamSubject.practicalPassMarks ?? 0, locale)})
                       </div>
                     </th>
                   )}
                   {activeExamSubject.hasContinuousAssessment && (
-                    <th className="px-2.5 py-2.5 text-right w-28">
+                    <th className="px-2.5 py-3 text-right w-28">
                       <div>{pick('ধারাবাহিক (CA)', 'CA')}</div>
-                      <div className="text-[11px] font-normal">
+                      <div className="text-xs font-bold text-primary normal-case">
                         {formatNumber(activeExamSubject.continuousAssessmentFullMarks ?? 0, locale)} ({pick('পাশ', 'Pass')}{' '}
                         {formatNumber(activeExamSubject.continuousAssessmentPassMarks ?? 0, locale)})
                       </div>
                     </th>
                   )}
-                  <th className="px-3 py-2.5 text-right w-20">{pick('মোট', 'Total')}</th>
-                  <th className="px-3 py-2.5 text-center w-32">{pick('তাৎক্ষণিক গ্রেড', 'Live Grade')}</th>
+                  <th className="px-3 py-3 text-right w-24">{pick('মোট', 'Total')}</th>
+                  <th className="px-3 py-3 text-center w-36">{pick('তাৎক্ষণিক গ্রেড', 'Live Grade')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border tabular-nums">
@@ -793,15 +793,15 @@ export function MarksEntryView() {
                   return (
                     <tr
                       key={enr.id}
-                      className={`${isDirty ? 'bg-primary/5' : 'hover:bg-surface-muted/40'}`}
+                      className={`${isDirty ? 'bg-primary/5' : 'hover:bg-surface-muted/40'} transition-colors`}
                     >
-                      <td className="px-3 py-2 text-center font-bold">{formatNumber(enr.roll, locale)}</td>
-                      <td className="px-3 py-2">
-                        <div className="font-medium text-foreground">
+                      <td className="px-3 py-2.5 text-center font-bold text-base">{formatNumber(enr.roll, locale)}</td>
+                      <td className="px-3 py-2.5">
+                        <div className="font-bold text-base text-foreground">
                           {locale === 'bn' ? stu?.nameBn || stu?.nameEn : stu?.nameEn}
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {pick('শাখা', 'Sec')} {sec?.name} · {stu?.studentId}
+                        <p className="text-sm text-muted-foreground font-medium">
+                          {pick('শাখা', 'Sec')} {sec?.name} · <span className="font-mono">{stu?.studentId}</span>
                         </p>
                       </td>
                       <td className="px-2.5 py-2 text-center">
@@ -892,7 +892,7 @@ export function MarksEntryView() {
                           {evalRes.letterGrade} ({formatNumber(evalRes.gradePoint, locale, 2)})
                         </span>
                         {reasonText && (
-                          <span className="block text-[11px] text-destructive font-medium">
+                          <span className="block text-xs text-destructive font-medium">
                             {reasonText}
                           </span>
                         )}

@@ -13,7 +13,7 @@ import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { cn } from '@/src/lib/utils/cn';
 import { DataTable, type DataColumn } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
-import { Button, Input, Modal, Select } from '@/src/components/ui/primitives';
+import { Button, Card, Input, Modal, Select } from '@/src/components/ui/primitives';
 import { AttendanceSmsType, SmsStatus } from '@/src/types/enums';
 import type { MockDatabase } from '@/src/mocks/seed';
 import { errorMessage, formatClockTime } from './attendanceShared';
@@ -227,67 +227,67 @@ export function AttendanceSmsLogs({ db }: { db: MockDatabase }) {
 
   return (
     <div className="space-y-5">
-      {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface">
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+      {/* 4-Column KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('মোট প্রেরিত লগ', 'Total SMS Logged')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(metrics.total, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             {pick('হাজিরা ও গেট নোটিফিকেশন', 'Attendance & gate notifications')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('সফলভাবে প্রেরিত', 'Delivered / Sent')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-success">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-success">
             {formatNumber(metrics.sent, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `সফলতার হার ${formatNumber(metrics.deliveryRate, 'bn')}%`,
               `Delivery rate ${metrics.deliveryRate}%`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('ব্যর্থ (পুনরায় পাঠান)', 'Failed (Action Needed)')}
           </p>
           <p
             className={cn(
-              'mt-1 text-2xl font-bold tabular-nums',
+              'mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums',
               metrics.failed > 0 ? 'text-destructive' : 'text-foreground'
             )}
           >
             {formatNumber(metrics.failed, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             {metrics.failed > 0
               ? pick('নিচে থেকে এক ক্লিকে পুনরায় পাঠান', 'Use Retry All Failed below')
               : pick('সব বার্তা সফলভাবে পৌঁছেছে', 'All messages delivered')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('ধরনভিত্তিক বিভাজন', 'Message Breakdown')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(metrics.absent, locale)}{' '}
-            <span className="text-sm font-normal text-muted-foreground">/</span>{' '}
+            <span className="text-sm font-semibold text-muted-foreground">/</span>{' '}
             {formatNumber(metrics.gate, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             {pick('অনুপস্থিতি বনাম গেট প্রবেশ/প্রস্থান', 'Absent alerts vs Gate scans')}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* SMS Log Table */}

@@ -1,7 +1,7 @@
 'use client';
 
-import { toCanvas } from 'html-to-image';
-import { jsPDF } from 'jspdf';
+import { toCanvas } from '@/src/lib/shims/html-to-image';
+import { jsPDF } from '@/src/lib/shims/jspdf';
 
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;

@@ -256,87 +256,87 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
   return (
     <div className="space-y-5">
       {/* 1. 4-Column Session Placement Summary Strip */}
-      <Card className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden">
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('সেশন এনরোলমেন্ট', 'Session Enrollments')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-foreground">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(totalCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick(`সেশন ${yearObj?.name ?? ''}`, `Session ${yearObj?.name ?? ''}`)}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground tabular-nums">
+          <p className="text-sm text-muted-foreground tabular-nums">
             {pick(
               `সক্রিয় ${formatNumber(activeCount, locale)} · উত্তীর্ণ ${formatNumber(promotedCount, locale)} · সমাপ্ত/অন্যান্য ${formatNumber(completedOrOtherCount, locale)}`,
               `${activeCount} active · ${promotedCount} promoted · ${completedOrOtherCount} other`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('শ্রেণি ও শাখা কভারেজ', 'Class & Section Coverage')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-foreground">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(populatedSections, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি সক্রিয় শাখা', 'active sections')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground tabular-nums">
+          <p className="text-sm text-muted-foreground tabular-nums">
             {pick(
               `মোট ${formatNumber(populatedClasses, locale)}টি শ্রেণিতে শিক্ষার্থী বিন্যস্ত`,
               `Distributed across ${populatedClasses} classes`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('বিভাগ বণ্টন (৯ম–১০ম)', 'Streams (Classes 9–10)')}
           </span>
-          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 tabular-nums pt-0.5">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1.5 tabular-nums pt-0.5">
             {streamCounts.map((st) => (
-              <div key={st.id} className="text-xs">
-                <span className="text-base font-bold text-foreground">
+              <div key={st.id} className="text-sm">
+                <span className="text-lg font-bold text-foreground">
                   {formatNumber(st.count, locale)}
                 </span>{' '}
-                <span className="text-muted-foreground">{st.label}</span>
+                <span className="text-muted-foreground font-medium">{st.label}</span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা', 'Science, Humanities & Business')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('বছর শেষে শ্রেণি উত্তরণ', 'Year-End Promotion')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-primary">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
               {formatNumber(activeCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('জন উত্তরণের উপযোগী', 'active eligible')}
             </span>
           </div>
           <Link
             href="/admin/students/promotions"
-            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline w-fit"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline w-fit"
           >
             <span>{pick('প্রমোশন কনসোলে যান', 'Open promotion console')}</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <ArrowUpRight className="w-4 h-4" />
           </Link>
-        </div>
-      </Card>
+        </Card>
+      </div>
 
       {/* 2. Class Tabs & Filter Bar */}
       <Card className="overflow-hidden">
@@ -611,7 +611,7 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
                 <div className="text-xs text-muted-foreground whitespace-nowrap">
                   <span>{tags.length ? tags.join(' · ') : pick('নিয়মিত', 'Regular')}</span>
                   {row.original.remarks && (
-                    <span className="block max-w-[160px] truncate text-[11px] opacity-80">
+                    <span className="block max-w-[160px] truncate text-xs opacity-80">
                       {row.original.remarks}
                     </span>
                   )}

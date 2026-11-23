@@ -1,22 +1,7 @@
 import type { Metadata } from 'next';
-import { Noto_Sans_Bengali, Plus_Jakarta_Sans } from 'next/font/google';
 import { Suspense } from 'react';
 import { Providers } from '@/src/components/Providers';
 import '@/src/index.css';
-
-const notoBengali = Noto_Sans_Bengali({
-  subsets: ['bengali', 'latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-bengali',
-  display: 'swap',
-});
-
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-latin',
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: 'ভোজেশ্বর উচ্চ বিদ্যালয় | Bhojeshwar High School (BHS)',
@@ -31,9 +16,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="bn"
-      className={`${plusJakarta.variable} ${notoBengali.variable}`}
+      className="font-sans"
       suppressHydrationWarning
     >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="bg-background text-foreground antialiased" suppressHydrationWarning>
         <Providers>
           <Suspense fallback={null}>{children}</Suspense>

@@ -458,91 +458,91 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
   return (
     <div className="space-y-6">
       {/* 1. Large KPI Summary Cards (Informational Display) */}
-      <Card className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Total Applications */}
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
+        <Card className="p-5 flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">
+            <span className="text-base font-bold text-foreground">
               {pick('মোট আবেদন', 'Total Applications')}
             </span>
-            <FileText className="w-4 h-4 text-muted-foreground" />
+            <FileText className="w-5 h-5 text-muted-foreground" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold tabular-nums text-foreground">
+            <span className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-foreground">
               {formatNumber(totalCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি জমা', 'submitted')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('চলতি শিক্ষাবর্ষের সকল অনলাইন আবেদন', 'All online applications in current session')}
           </p>
-        </div>
+        </Card>
 
         {/* Pending Review */}
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
+        <Card className="p-5 flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-warning">
+            <span className="text-base font-bold text-warning">
               {pick('অপেক্ষমান আবেদন', 'Pending Review')}
             </span>
-            <Clock className="w-4 h-4 text-warning" />
+            <Clock className="w-5 h-5 text-warning" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold tabular-nums text-warning">
+            <span className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-warning">
               {formatNumber(pendingCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি যাচাই বাকি', 'pending action')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('যাচাই ও ভর্তি সম্পন্নকরণের অপেক্ষায়', 'Awaiting review and enrollment')}
           </p>
-        </div>
+        </Card>
 
         {/* Admitted / Approved */}
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
+        <Card className="p-5 flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-success">
+            <span className="text-base font-bold text-success">
               {pick('ভর্তি সম্পন্ন ও অনুমোদিত', 'Admitted & Approved')}
             </span>
-            <CheckCircle2 className="w-4 h-4 text-success" />
+            <CheckCircle2 className="w-5 h-5 text-success" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold tabular-nums text-success">
+            <span className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-success">
               {formatNumber(admittedCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('জন শিক্ষার্থী', 'students')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('শিক্ষার্থী ডিরেক্টরিতে রোল ও শাখা বরাদ্দকৃত', 'Enrolled with assigned roll and section')}
           </p>
-        </div>
+        </Card>
 
         {/* Rejected */}
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
+        <Card className="p-5 flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-destructive">
+            <span className="text-base font-bold text-destructive">
               {pick('বাতিলকৃত আবেদন', 'Rejected')}
             </span>
-            <XCircle className="w-4 h-4 text-destructive" />
+            <XCircle className="w-5 h-5 text-destructive" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold tabular-nums text-destructive">
+            <span className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-destructive">
               {formatNumber(rejectedCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি আবেদন', 'applications')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('অসম্পূর্ণ বা ত্রুটিযুক্ত আবেদন', 'Incomplete or invalid applications')}
           </p>
-        </div>
-      </Card>
+        </Card>
+      </div>
 
       {/* 2. Applications DataTable with Inline Status & Class Dropdowns */}
       <DataTable
@@ -553,7 +553,7 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
             <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'PENDING' | 'ADMITTED' | 'REJECTED')}
-              className="text-xs h-9 py-1 px-2.5 min-w-[130px] w-auto bg-surface"
+              className="text-sm sm:text-base h-10 min-w-[160px] w-auto bg-surface font-semibold"
               aria-label={pick('আবেদনের অবস্থা নির্বাচন করুন', 'Select status')}
             >
               <option value="ALL">{pick('সকল অবস্থা', 'All Statuses')}</option>
@@ -571,7 +571,7 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
             <Select
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value)}
-              className="text-xs h-9 py-1 px-2.5 min-w-[125px] w-auto bg-surface"
+              className="text-sm sm:text-base h-10 min-w-[150px] w-auto bg-surface font-semibold"
               aria-label={pick('শ্রেণি নির্বাচন করুন', 'Select class')}
             >
               <option value="ALL">{pick('সকল শ্রেণি', 'All Classes')}</option>
@@ -590,10 +590,10 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
                   setStatusFilter('ALL');
                   setClassFilter('ALL');
                 }}
-                className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground"
+                className="h-10 px-3 text-sm font-semibold text-muted-foreground hover:text-foreground"
                 title={pick('ফিল্টার রিসেট করুন', 'Reset filter')}
               >
-                <RotateCcw className="w-3.5 h-3.5 mr-1" />
+                <RotateCcw className="w-4 h-4 mr-1.5" />
                 {pick('রিসেট', 'Reset')}
               </Button>
             )}
@@ -610,43 +610,43 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
                 setClassFilter('ALL');
               }}
             >
-              <RotateCcw className="w-3.5 h-3.5 mr-1" />
+              <RotateCcw className="w-4 h-4 mr-1.5" />
               {pick('ফিল্টার রিসেট করুন', 'Reset filter')}
             </Button>
           ) : undefined
         }
         columns={[
-          { accessorKey: 'applicationNumber', header: pick('আবেদন নং', 'Application'), cell: ({ row }) => <span className="font-mono text-sm tabular-nums">{row.original.applicationNumber}</span> },
+          { accessorKey: 'applicationNumber', header: pick('আবেদন নং', 'Application'), cell: ({ row }) => <span className="font-mono text-base font-bold tabular-nums text-foreground">{row.original.applicationNumber}</span> },
           {
             accessorKey: 'studentNameBn',
             header: pick('শিক্ষার্থী', 'Student'),
             cell: ({ row }) => (
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 {row.original.photoPreview && (
                   <img
                     src={row.original.photoPreview}
                     alt={row.original.studentNameEn}
                     referrerPolicy="no-referrer"
-                    className="w-8 h-9 rounded object-cover border border-border shrink-0"
+                    className="w-9 h-10 rounded-lg object-cover border border-border shrink-0"
                   />
                 )}
                 <span>
-                  {row.original.studentNameBn}
-                  <span className="block text-xs text-muted-foreground font-mono uppercase">{row.original.studentNameEn}</span>
+                  <span className="font-bold text-base text-foreground block">{row.original.studentNameBn}</span>
+                  <span className="block text-sm text-muted-foreground font-mono uppercase font-medium">{row.original.studentNameEn}</span>
                 </span>
               </div>
             ),
           },
-          { accessorKey: 'classLabel', header: pick('শ্রেণি ও বিভাগ', 'Class & Group') },
-          { accessorKey: 'typeLabel', header: pick('ধরন', 'Type') },
-          { accessorKey: 'guardianPhone', header: pick('মোবাইল', 'Phone'), cell: ({ row }) => <span className="font-mono tabular-nums">{row.original.guardianPhone}</span> },
-          { accessorKey: 'when', header: pick('তারিখ', 'Date') },
+          { accessorKey: 'classLabel', header: pick('শ্রেণি ও বিভাগ', 'Class & Group'), cell: ({ row }) => <span className="font-semibold text-base text-foreground">{row.original.classLabel}</span> },
+          { accessorKey: 'typeLabel', header: pick('ধরন', 'Type'), cell: ({ row }) => <span className="font-medium text-base">{row.original.typeLabel}</span> },
+          { accessorKey: 'guardianPhone', header: pick('মোবাইল', 'Phone'), cell: ({ row }) => <span className="font-mono text-base tabular-nums font-semibold">{row.original.guardianPhone}</span> },
+          { accessorKey: 'when', header: pick('তারিখ', 'Date'), cell: ({ row }) => <span className="text-base text-muted-foreground tabular-nums">{row.original.when}</span> },
           { accessorKey: 'status', header: pick('অবস্থা', 'Status'), cell: ({ row }) => <StatusBadge enumName="AdmissionApplicationStatus" value={row.original.status} /> },
           {
             id: 'open',
             header: '',
             cell: ({ row }) => (
-              <Button size="sm" variant="outline" onClick={() => open(row.original.id)}>
+              <Button size="sm" variant="outline" className="h-9 px-3 text-sm font-semibold" onClick={() => open(row.original.id)}>
                 {pick('যাচাই ও ভর্তি', 'Review')}
               </Button>
             ),

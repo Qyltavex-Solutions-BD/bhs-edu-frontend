@@ -483,7 +483,7 @@ export function ResultPublicationView() {
                   style={{ width: `${item.pct}%` }}
                 />
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1.5 tabular-nums">
+              <p className="text-xs text-muted-foreground mt-1.5 tabular-nums">
                 {formatNumber(item.entered, locale)} / {formatNumber(item.expected, locale)}{' '}
                 {pick('শিক্ষার্থী', 'students')}
                 {item.group ? ` · ${locale === 'bn' ? item.group.nameBn : item.group.name}` : ''}
@@ -629,7 +629,7 @@ export function ResultPublicationView() {
                         </div>
                         <div className="text-muted-foreground">{req.reason}</div>
                         {req.reviewerNote && (
-                          <div className="text-[11px] text-primary mt-0.5">
+                          <div className="text-xs text-primary mt-0.5">
                             {pick('মন্তব্য:', 'Note:')} {req.reviewerNote}
                           </div>
                         )}

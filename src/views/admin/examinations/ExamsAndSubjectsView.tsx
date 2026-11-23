@@ -213,67 +213,67 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
         }
       />
 
-      {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+      {/* 4-Column KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('সক্রিয় পরীক্ষা ও শিক্ষাবর্ষ', 'Active Exams & Year')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(activeExams.length, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `শিক্ষাবর্ষ ২০২৬ · মোট শ্রেণি ${formatNumber(db.classes.length, 'bn')}`,
               `Academic Year 2026 · Classes ${db.classes.length}`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('ফলাফল স্থিতি', 'Results Status')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
             {formatNumber(publishedCount, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `প্রকাশিত ${formatNumber(publishedCount, 'bn')} · চলমান/খসড়া ${formatNumber(draftCount, 'bn')}`,
               `Published ${publishedCount} · Draft ${draftCount}`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('বিষয় ও উপাংশ সেটআপ', 'Configured Subjects')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(db.examSubjects.length, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `মোট পরীক্ষা বিষয় · ঐচ্ছিক ${formatNumber(db.examSubjects.filter((es) => es.isOptional).length, 'bn')}`,
               `Total Exam Subjects · 4th/Opt ${db.examSubjects.filter((es) => es.isOptional).length}`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('নম্বর এন্ট্রি ডেডলাইন স্থিতি', 'Marks Deadline Status')}
           </p>
-          <p className={cn('mt-1 text-2xl font-bold tabular-nums', expiredDeadlinesCount > 0 ? 'text-destructive' : 'text-foreground')}>
+          <p className={cn('mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums', expiredDeadlinesCount > 0 ? 'text-destructive' : 'text-foreground')}>
             {formatNumber(expiredDeadlinesCount, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               expiredDeadlinesCount > 0 ? 'সময়সীমা অতিক্রান্ত পরীক্ষা আছে' : 'সকল পরীক্ষার ডেডলাইন সঠিক আছে',
               expiredDeadlinesCount > 0 ? 'Deadlines expired' : 'All deadlines active'
             )}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* Responsive Examinations DataTable (Desktop Table + Mobile Cards, matching portal standard) */}
@@ -451,7 +451,7 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
             cell: ({ row }) => (
               <div className="flex flex-col items-start gap-1">
                 <StatusBadge enumName="ResultPublicationStatus" value={row.original.resultStatus} />
-                <span className="text-[11px] text-muted-foreground">{row.original.statusLabel}</span>
+                <span className="text-xs text-muted-foreground">{row.original.statusLabel}</span>
               </div>
             ),
           },
@@ -1023,67 +1023,67 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
         )}
       </Card>
 
-      {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+      {/* 4-Column KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('মোট বিষয় ও পূর্ণমান', 'Total Subjects & Full Marks')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(examSubjects.length, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `সর্বমোট পূর্ণমান ${formatNumber(totalFullMarks, 'bn')} নম্বর`,
               `Total ${totalFullMarks} Full Marks`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('আবশ্যিক ও ঐচ্ছিক বিষয়', 'Compulsory & Optional')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
             {formatNumber(compulsoryCount, locale)} / {formatNumber(optionalCount, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `আবশ্যিক ${formatNumber(compulsoryCount, 'bn')} · ৪র্থ ঐচ্ছিক ${formatNumber(optionalCount, 'bn')}`,
               `Compulsory ${compulsoryCount} · 4th Opt ${optionalCount}`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('উপাংশ বণ্টন স্থিতি', 'Component Distribution')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(writtenMcqCount, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `লিখিত+MCQ ${formatNumber(writtenMcqCount, 'bn')} · ব্যবহারিক/CA ${formatNumber(practicalCaCount, 'bn')}`,
               `Written+MCQ ${writtenMcqCount} · Practical/CA ${practicalCaCount}`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('যৌথ পাস ও লক অবস্থা', 'Combined Pass & Lock')}
           </p>
-          <p className={cn('mt-1 text-2xl font-bold tabular-nums', activeExam?.isLocked ? 'text-warning' : 'text-success')}>
+          <p className={cn('mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums', activeExam?.isLocked ? 'text-warning' : 'text-success')}>
             {activeExam?.isLocked ? pick('লকড', 'Locked') : pick('উন্মুক্ত', 'Unlocked')}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `যৌথ পাস: ${activeExam?.allowCombinedPass ? 'চালু (NCTB)' : 'বন্ধ'}`,
               `Combined pass: ${activeExam?.allowCombinedPass ? 'Enabled' : 'Disabled'}`
             )}
           </p>
-        </div>
+        </Card>
       </div>
 
       {activeExam?.isLocked && (
@@ -1256,25 +1256,25 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
               </div>
               <div className="grid grid-cols-4 gap-1.5 text-center text-xs tabular-nums bg-surface-muted/50 rounded-md p-2">
                 <div>
-                  <span className="text-[10px] text-muted-foreground block">{pick('লিখিত', 'Written')}</span>
+                  <span className="text-xs text-muted-foreground block">{pick('লিখিত', 'Written')}</span>
                   <span className="font-semibold">
                     {es.hasWritten ? `${formatNumber(es.writtenFullMarks ?? 0, locale)}/${formatNumber(es.writtenPassMarks ?? 0, locale)}` : '—'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-muted-foreground block">MCQ</span>
+                  <span className="text-xs text-muted-foreground block">MCQ</span>
                   <span className="font-semibold">
                     {es.hasMcq ? `${formatNumber(es.mcqFullMarks ?? 0, locale)}/${formatNumber(es.mcqPassMarks ?? 0, locale)}` : '—'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-muted-foreground block">{pick('ব্যবহারিক', 'Prac')}</span>
+                  <span className="text-xs text-muted-foreground block">{pick('ব্যবহারিক', 'Prac')}</span>
                   <span className="font-semibold">
                     {es.hasPractical ? `${formatNumber(es.practicalFullMarks ?? 0, locale)}/${formatNumber(es.practicalPassMarks ?? 0, locale)}` : '—'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-muted-foreground block">{pick('ধারাবাহিক', 'CA')}</span>
+                  <span className="text-xs text-muted-foreground block">{pick('ধারাবাহিক', 'CA')}</span>
                   <span className="font-semibold">
                     {es.hasContinuousAssessment
                       ? `${formatNumber(es.continuousAssessmentFullMarks ?? 0, locale)}/${formatNumber(es.continuousAssessmentPassMarks ?? 0, locale)}`

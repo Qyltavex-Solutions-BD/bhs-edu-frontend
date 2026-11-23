@@ -33,7 +33,7 @@ export function AttendanceShell({
       <Select
         value={selectedYear.id}
         onChange={(event) => dispatch(setSelectedAcademicYear(event.target.value))}
-        className="w-auto min-w-40 h-9 text-sm"
+        className="w-auto min-w-44 h-10 text-base font-semibold"
         aria-label={pick('শিক্ষাবর্ষ', 'Academic year')}
       >
         {years.map((year) => (

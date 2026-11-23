@@ -368,40 +368,40 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
   return (
     <div className="space-y-5">
       {/* 1. 4-Column Hairline-Divided Summary Strip */}
-      <Card className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden">
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('মোট ইস্যুকৃত ছাড়পত্র', 'Total Issued TCs')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-foreground">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(totalIssued, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick(
                 `${activeYearName} সেশনে ${formatNumber(issuedThisYear, locale)}টি`,
                 `${issuedThisYear} in ${activeYearName}`
               )}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('স্থায়ী নথি হিসেবে সংরক্ষিত', 'Archived in permanent registry')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('বকেয়া নিষ্পত্তি', 'Dues Clearance')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-foreground">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(duesClearedCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি পরিশোধিত', 'cleared')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground tabular-nums">
+          <p className="text-sm text-muted-foreground tabular-nums">
             {duesPendingCount > 0
               ? pick(
                   `${formatNumber(duesPendingCount, locale)}টি টিসি-তে বকেয়া চিহ্নিত`,
@@ -409,45 +409,45 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
                 )
               : pick('সকল ইস্যুকৃত টিসি বকেয়া মুক্ত', 'All issued certificates cleared')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('উত্তরণ অবস্থা (ত্যাগকালে)', 'Promotion Standing')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-foreground">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(promotedLeavingCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('জন উত্তীর্ণ হয়ে ত্যাগ', 'promoted before leaving')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground tabular-nums">
+          <p className="text-sm text-muted-foreground tabular-nums">
             {pick(
               `মধ্য-সেশনে স্থানান্তর ${formatNumber(midSessionCount, locale)} জন`,
               `${midSessionCount} mid-session transfers`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('বর্তমান সক্রিয় শিক্ষার্থী', 'Active Student Roster')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-primary">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
               {formatNumber(eligibleStudents.length, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('জন অধ্যয়নরত', 'currently enrolled')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('টিসি ইস্যু হলে সক্রিয় কার্ড অটো-ব্লক হয়', 'Active RFID cards auto-block on TC')}
           </p>
-        </div>
-      </Card>
+        </Card>
+      </div>
 
       {/* 2. Unified Search, Filter & Action Toolbar */}
       <Card className="p-4 space-y-3">

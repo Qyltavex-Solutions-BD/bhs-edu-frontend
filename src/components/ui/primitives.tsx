@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
+import * as RadixSelect from '@radix-ui/react-select';
 import { cn } from '@/src/lib/utils/cn';
-import { X } from 'lucide-react';
+import { Check, ChevronDown, X } from 'lucide-react';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
@@ -13,21 +14,21 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', type = 'button', ...props }, ref) => {
     const variants: Record<NonNullable<ButtonProps['variant']>, string> = {
       primary:
-        'bg-primary text-primary-foreground hover:opacity-92 border border-transparent',
+        'bg-[#1C6440] text-white hover:bg-[#165033] shadow-xs active:scale-[0.99] border border-transparent',
       secondary:
-        'bg-secondary text-secondary-foreground hover:opacity-92 border border-transparent',
+        'bg-[#124B96] text-white hover:bg-[#0E3B77] shadow-xs active:scale-[0.99] border border-transparent',
       outline:
-        'bg-surface text-foreground border border-border hover:bg-surface-muted',
+        'bg-surface text-foreground border border-border hover:bg-surface-muted/60 shadow-xs active:scale-[0.99]',
       ghost:
         'bg-transparent text-foreground hover:bg-surface-muted border border-transparent',
       destructive:
-        'bg-destructive text-destructive-foreground hover:opacity-92 border border-transparent',
+        'bg-[#DF6153] text-white hover:bg-[#C94F42] shadow-xs active:scale-[0.99] border border-transparent',
     };
 
     const sizes: Record<NonNullable<ButtonProps['size']>, string> = {
-      sm: 'h-9 px-3.5 text-sm gap-1.5',
-      md: 'h-10 px-4 text-sm gap-2',
-      lg: 'h-11 px-5 text-base gap-2',
+      sm: 'h-9 px-3.5 text-sm gap-1.5 font-medium',
+      md: 'h-10 px-4 text-sm sm:text-base gap-2 font-semibold',
+      lg: 'h-11 px-5 text-base gap-2 font-semibold',
     };
 
     return (
@@ -35,7 +36,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         type={type}
         className={cn(
-          'inline-flex items-center justify-center font-medium rounded-[var(--radius)] transition-colors duration-150 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+          'inline-flex items-center justify-center rounded-2xl transition-all duration-150 whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
           variants[variant],
           sizes[size],
           className
@@ -54,7 +55,7 @@ export const Input = React.forwardRef<
   <input
     ref={ref}
     className={cn(
-      'w-full h-10 px-3 rounded-[var(--radius)] border border-border bg-surface text-foreground text-base placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary disabled:opacity-60',
+      'w-full h-10 px-3.5 rounded-2xl border border-border bg-surface text-foreground text-sm sm:text-base placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1C6440]/25 focus:border-[#1C6440] shadow-xs transition-all disabled:opacity-60',
       className
     )}
     {...props}
@@ -62,21 +63,175 @@ export const Input = React.forwardRef<
 ));
 Input.displayName = 'Input';
 
-export const Select = React.forwardRef<
-  HTMLSelectElement,
-  React.SelectHTMLAttributes<HTMLSelectElement>
->(({ className, children, ...props }, ref) => (
-  <select
-    ref={ref}
-    className={cn(
-      'w-full h-10 px-3 rounded-[var(--radius)] border border-border bg-surface text-foreground text-base focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary disabled:opacity-60',
-      className
-    )}
-    {...props}
-  >
-    {children}
-  </select>
-));
+export interface SelectOption {
+  value: string;
+  label: React.ReactNode;
+  disabled?: boolean;
+}
+
+export interface SelectProps extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
+  options?: SelectOption[];
+  placeholder?: string;
+  triggerClassName?: string;
+}
+
+export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
+  (
+    {
+      className,
+      children,
+      value,
+      defaultValue,
+      onChange,
+      disabled,
+      placeholder,
+      name,
+      id,
+      options: directOptions,
+      ...props
+    },
+    ref
+  ) => {
+    const parsedOptions = React.useMemo(() => {
+      if (directOptions && directOptions.length > 0) return directOptions;
+      const items: SelectOption[] = [];
+      React.Children.forEach(children, (child) => {
+        if (!React.isValidElement(child)) return;
+        const childProps = child.props as {
+          value?: unknown;
+          children?: React.ReactNode;
+          disabled?: boolean;
+        };
+        const val = childProps.value !== undefined ? String(childProps.value) : '';
+        const lbl = childProps.children ?? val;
+        items.push({ value: val, label: lbl, disabled: childProps.disabled });
+      });
+      return items;
+    }, [directOptions, children]);
+
+    const EMPTY_TOKEN = '__EMPTY__';
+
+    const encodeValue = (v: unknown): string => {
+      if (v === undefined || v === null) return '';
+      const s = String(v);
+      return s === '' ? EMPTY_TOKEN : s;
+    };
+
+    const decodeValue = (s: string): string => {
+      return s === EMPTY_TOKEN ? '' : s;
+    };
+
+    const controlled = value !== undefined;
+    const initialInternal = encodeValue(
+      controlled ? value : defaultValue ?? parsedOptions[0]?.value ?? ''
+    );
+    const [internalValue, setInternalValue] = React.useState(initialInternal);
+
+    React.useEffect(() => {
+      if (controlled) {
+        setInternalValue(encodeValue(value));
+      }
+    }, [controlled, value]);
+
+    const handleValueChange = (nextEncoded: string) => {
+      const decoded = decodeValue(nextEncoded);
+      if (!controlled) {
+        setInternalValue(nextEncoded);
+      }
+      if (onChange) {
+        const syntheticEvent = {
+          target: { value: decoded, name },
+          currentTarget: { value: decoded, name },
+          preventDefault: () => {},
+          stopPropagation: () => {},
+        } as unknown as React.ChangeEvent<HTMLSelectElement>;
+        onChange(syntheticEvent);
+      }
+    };
+
+    const currentOption = parsedOptions.find((opt) => encodeValue(opt.value) === internalValue);
+    const displayLabel = currentOption ? currentOption.label : placeholder ?? '';
+
+    return (
+      <div className={cn('relative inline-block w-full min-w-0', className)}>
+        {/* Hidden native select for form accessibility and DOM inspection */}
+        <select
+          ref={ref}
+          value={decodeValue(internalValue)}
+          onChange={onChange}
+          name={name}
+          id={id}
+          disabled={disabled}
+          tabIndex={-1}
+          aria-hidden="true"
+          className="sr-only pointer-events-none absolute"
+          {...props}
+        >
+          {parsedOptions.map((opt) => (
+            <option key={opt.value} value={opt.value} disabled={opt.disabled}>
+              {typeof opt.label === 'string' ? opt.label : opt.value}
+            </option>
+          ))}
+        </select>
+
+        <RadixSelect.Root
+          value={internalValue || undefined}
+          onValueChange={handleValueChange}
+          disabled={disabled}
+        >
+          <RadixSelect.Trigger
+            type="button"
+            className={cn(
+              'group inline-flex items-center justify-between gap-2.5 w-full h-10 px-3.5 rounded-2xl border border-border bg-surface text-foreground text-sm sm:text-base font-semibold shadow-xs hover:border-[#1C6440]/60 hover:bg-surface-muted/30 focus:outline-none focus:ring-2 focus:ring-[#1C6440]/25 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+              disabled && 'opacity-60 cursor-not-allowed'
+            )}
+            aria-label={props['aria-label']}
+          >
+            <span className="truncate flex-1 text-left">
+              {displayLabel || (
+                <span className="text-muted-foreground font-normal">{placeholder || '—'}</span>
+              )}
+            </span>
+            <RadixSelect.Icon asChild>
+              <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200 shrink-0 group-data-[state=open]:rotate-180 group-data-[state=open]:text-[#1C6440]" />
+            </RadixSelect.Icon>
+          </RadixSelect.Trigger>
+
+          <RadixSelect.Portal>
+            <RadixSelect.Content
+              position="popper"
+              sideOffset={6}
+              className="z-[9999] min-w-[var(--radix-select-trigger-width)] max-h-72 overflow-hidden rounded-2xl border border-border/80 bg-surface/98 backdrop-blur-md p-1.5 shadow-2xl animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2"
+            >
+              <RadixSelect.Viewport className="p-1 space-y-0.5 max-h-64 overflow-y-auto scrollbar-thin">
+                {parsedOptions.map((opt) => {
+                  const encoded = encodeValue(opt.value);
+                  const isChecked = encoded === internalValue;
+                  return (
+                    <RadixSelect.Item
+                      key={encoded}
+                      value={encoded}
+                      disabled={opt.disabled}
+                      className={cn(
+                        'relative flex w-full cursor-pointer select-none items-center justify-between rounded-xl px-3 py-2 text-sm sm:text-base font-medium outline-none transition-colors data-[highlighted]:bg-[#1C6440]/10 data-[highlighted]:text-[#1C6440] data-[state=checked]:bg-[#1C6440]/10 data-[state=checked]:text-[#1C6440] data-[state=checked]:font-bold data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+                        isChecked && 'bg-[#1C6440]/10 text-[#1C6440] font-bold'
+                      )}
+                    >
+                      <RadixSelect.ItemText>{opt.label}</RadixSelect.ItemText>
+                      <RadixSelect.ItemIndicator>
+                        <Check className="w-4 h-4 text-[#1C6440] shrink-0 ml-2" />
+                      </RadixSelect.ItemIndicator>
+                    </RadixSelect.Item>
+                  );
+                })}
+              </RadixSelect.Viewport>
+            </RadixSelect.Content>
+          </RadixSelect.Portal>
+        </RadixSelect.Root>
+      </div>
+    );
+  }
+);
 Select.displayName = 'Select';
 
 export const Textarea = React.forwardRef<
@@ -86,7 +241,7 @@ export const Textarea = React.forwardRef<
   <textarea
     ref={ref}
     className={cn(
-      'w-full min-h-[96px] p-3 rounded-[var(--radius)] border border-border bg-surface text-foreground text-base placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary disabled:opacity-60',
+      'w-full min-h-[96px] p-3.5 rounded-2xl border border-border bg-surface text-foreground text-sm sm:text-base placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#1C6440]/25 focus:border-[#1C6440] shadow-xs transition-all disabled:opacity-60',
       className
     )}
     {...props}
@@ -104,7 +259,7 @@ export function Card({
   return (
     <div
       className={cn(
-        'bg-surface border border-border rounded-[var(--radius)] text-foreground',
+        'bg-surface border border-border rounded-3xl shadow-[0_2px_12px_-4px_rgba(28,100,64,0.06)] text-foreground transition-all duration-200',
         className
       )}
     >

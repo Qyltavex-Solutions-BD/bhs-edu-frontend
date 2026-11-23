@@ -587,36 +587,36 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
         </div>
 
         {/* Decision Summary Strip inside Configuration */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 border border-border rounded-[var(--radius)] divide-y lg:divide-y-0 divide-x divide-border bg-surface-muted/30">
-          <div className="px-4 py-3">
-            <span className="text-xs text-muted-foreground">
+        <div className="grid grid-cols-2 lg:grid-cols-4 border border-border rounded-2xl divide-y lg:divide-y-0 divide-x divide-border bg-surface-muted/30">
+          <div className="p-4">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('সক্রিয় প্রার্থী', 'Eligible Candidates')}
             </span>
-            <p className="text-xl font-bold tabular-nums text-foreground mt-0.5">
+            <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-foreground mt-1">
               {formatNumber(candidates.length, locale)}
             </p>
           </div>
-          <div className="px-4 py-3">
-            <span className="text-xs text-muted-foreground">
+          <div className="p-4">
+            <span className="text-sm font-semibold text-muted-foreground">
               {isTopClass ? pick('সমাপ্ত নির্বাচিত', 'Selected to Graduate') : pick('উত্তীর্ণ নির্বাচিত', 'Selected to Promote')}
             </span>
-            <p className="text-xl font-bold tabular-nums text-primary mt-0.5">
+            <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-primary mt-1">
               {formatNumber(isTopClass ? summary.graduateCount : summary.promoteCount, locale)}
             </p>
           </div>
-          <div className="px-4 py-3">
-            <span className="text-xs text-muted-foreground">
+          <div className="p-4">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('একই শ্রেণিতে (Retained)', 'Selected to Retain')}
             </span>
-            <p className="text-xl font-bold tabular-nums text-secondary mt-0.5">
+            <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-secondary mt-1">
               {formatNumber(summary.retainCount, locale)}
             </p>
           </div>
-          <div className="px-4 py-3">
-            <span className="text-xs text-muted-foreground">
+          <div className="p-4">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('অনির্বাচিত / স্থগিত', 'Skipped / Pending')}
             </span>
-            <p className="text-xl font-bold tabular-nums text-muted-foreground mt-0.5">
+            <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-muted-foreground mt-1">
               {formatNumber(summary.skippedCount, locale)}
             </p>
           </div>
@@ -819,7 +819,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                       <td className="px-4 py-3">
                         {moving ? (
                           <div className="flex items-center gap-2 whitespace-nowrap">
-                            <span className="text-xs font-medium text-muted-foreground">
+                            <span className="text-sm font-semibold text-muted-foreground">
                               {classLabel(db, targetClassId, locale)}
                             </span>
                             <Select

@@ -447,46 +447,46 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
         </div>
       </Card>
 
-      {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+      {/* 4-Column KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('মোট ফলাফল (ফিল্টারকৃত)', 'Filtered Examinees')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(stats.total, locale)}{' '}
-            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+            <span className="text-sm font-semibold text-muted-foreground">{pick('জন', '')}</span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums truncate">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums truncate">
             {activeSectionLabel}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('উত্তীর্ণ ও পাসের হার', 'Passed & Pass Rate')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-success">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-success">
             {formatNumber(stats.passed, locale)}{' '}
-            <span className="text-sm font-normal text-muted-foreground">({formatNumber(stats.passRate, locale)}%)</span>
+            <span className="text-sm font-semibold text-muted-foreground">({formatNumber(stats.passRate, locale)}%)</span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `উত্তীর্ণ ${formatNumber(stats.passed, 'bn')} · অনুত্তীর্ণ ${formatNumber(stats.failed, 'bn')}`,
               `Passed ${stats.passed} · Failed ${stats.failed}`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('জিপিএ ৫.০০ (A+)', 'GPA 5.00 (A+)')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
             {formatNumber(stats.gpa5, locale)}{' '}
-            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+            <span className="text-sm font-semibold text-muted-foreground">{pick('জন', '')}</span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {stats.total > 0
               ? pick(
                   `মোট পরীক্ষার্থীর ${formatNumber(Math.round((stats.gpa5 / stats.total) * 100), locale)}%`,
@@ -494,22 +494,22 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                 )
               : pick('কোনো ফলাফল নেই', 'No results')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('অনুত্তীর্ণ শিক্ষার্থী', 'Failed Examinees')}
           </p>
           <p
             className={cn(
-              'mt-1 text-2xl font-bold tabular-nums',
+              'mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums',
               stats.failed > 0 ? 'text-destructive' : 'text-foreground'
             )}
           >
             {formatNumber(stats.failed, locale)}{' '}
-            <span className="text-sm font-normal text-muted-foreground">{pick('জন', '')}</span>
+            <span className="text-sm font-semibold text-muted-foreground">{pick('জন', '')}</span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {stats.failed > 0
               ? pick(
                   `ফেলের হার: ${formatNumber(stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0, locale)}%`,
@@ -517,7 +517,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                 )
               : pick('শতভাগ পাস অর্জিত', '100% pass achieved')}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* Main Merit List Table */}
@@ -613,7 +613,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                           )}
                         </div>
                         {row.summary.teacherRemarks && (
-                          <p className="text-[11px] text-muted-foreground italic mt-1 line-clamp-1">
+                          <p className="text-xs text-muted-foreground italic mt-1 line-clamp-1">
                             “{row.summary.teacherRemarks}”
                           </p>
                         )}
@@ -625,7 +625,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                             /{formatNumber(row.summary.totalFullMarks, locale)}
                           </span>
                         </div>
-                        <div className="text-[11px] text-muted-foreground">
+                        <div className="text-xs text-muted-foreground">
                           {formatNumber(Number(pct), locale, 1)}%
                         </div>
                       </td>
@@ -638,7 +638,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                         {row.summary.gpaWithoutOptional !== null &&
                           row.summary.gpaWithoutOptional !== undefined &&
                           row.summary.gpaWithoutOptional !== row.summary.gpa && (
-                            <div className="text-[10px] text-muted-foreground">
+                            <div className="text-xs text-muted-foreground">
                               {pick('৪র্থ ছাড়া:', 'w/o 4th:')}{' '}
                               {formatNumber(row.summary.gpaWithoutOptional, locale, 2)}
                             </div>

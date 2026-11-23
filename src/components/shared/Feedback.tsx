@@ -349,12 +349,12 @@ export function StatCard({
             : 'text-foreground';
 
   return (
-    <Card className="p-4 flex flex-col justify-between">
+    <Card className="p-4 sm:p-5 flex flex-col justify-between">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
+        <span className="text-base font-bold text-foreground">{label}</span>
         {icon && <span className="text-muted-foreground shrink-0">{icon}</span>}
       </div>
-      <div className={cn('text-2xl sm:text-3xl font-bold tabular-nums mt-2', valueTone)}>{value}</div>
+      <div className={cn('text-2xl sm:text-3xl font-extrabold tabular-nums mt-2 tracking-tight', valueTone)}>{value}</div>
       {meta && <span className="text-sm text-muted-foreground mt-1.5">{meta}</span>}
     </Card>
   );

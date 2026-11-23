@@ -353,66 +353,66 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
 
   return (
     <div className="space-y-5">
-      {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border border border-border rounded-[var(--radius)] bg-surface no-print">
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+      {/* 4-Column KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {viewMode === 'section'
               ? pick('নির্ধারিত সাপ্তাহিক পিরিয়ড', 'Scheduled Weekly Periods')
               : pick('শিক্ষকের সাপ্তাহিক ক্লাস', 'Teacher Weekly Load')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(viewMode === 'section' ? slots.length : teacherSlots.length, locale)}{' '}
-            <span className="text-sm font-normal text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               / {formatNumber(maxWeeklySlots, locale)}
             </span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             {pick('রবি–বৃহস্পতিবার · দৈনিক ৬ পিরিয়ড', 'Sun–Thu · 6 periods/day')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {viewMode === 'section'
               ? pick('শ্রেণিশিক্ষক', 'Class Teacher')
               : pick('অবসর পিরিয়ড', 'Free Periods / Week')}
           </p>
-          <p className="mt-1 text-base font-bold text-foreground truncate pt-1">
+          <p className="mt-1 text-xl font-bold text-foreground truncate pt-0.5">
             {viewMode === 'section'
               ? classTeacher?.name || pick('নির্ধারিত হয়নি', 'Not assigned')
               : `${formatNumber(teacherFreeSlots, locale)} ${pick('টি পিরিয়ড', 'periods')}`}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             {viewMode === 'section'
               ? pick(`${formatNumber(uniqueTeachersInSection, 'bn')} জন বিষয় শিক্ষক যুক্ত`, `${uniqueTeachersInSection} subject teachers`)
               : selectedTeacher?.designation || '—'}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('বিদ্যালয়ের সময়সূচি', 'School Bell Hours')}
           </p>
-          <p className="mt-1 text-base font-bold tabular-nums text-foreground pt-1">
+          <p className="mt-1 text-xl font-bold tabular-nums text-foreground pt-0.5">
             {pick('সকাল ১০:০০ – বিকাল ৩:০০', '10:00 AM – 3:00 PM')}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick('সমাবেশ ৯:৪৫ · টিফিন ১২:১৫–১২:৪৫', 'Assembly 9:45 · Tiffin 12:15–12:45')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('মোট সক্রিয় পিরিয়ড (বিদ্যালয়)', 'Total School Slots')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
             {formatNumber(yearRoutines.length, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             {pick('কনফ্লিক্ট-মুক্ত (পাবলিক সাইটে সিঙ্কড)', 'Conflict-free · synced with public site')}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* Controls Bar */}

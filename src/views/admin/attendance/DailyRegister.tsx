@@ -371,15 +371,15 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
   return (
     <div className="space-y-5">
       {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+      <Card className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden p-0">
+        <div className="p-4 sm:p-5 bg-surface flex flex-col justify-between gap-1.5">
+          <p className="text-base font-bold text-foreground">
             {pick('শাখার উপস্থিতির হার', 'Section Attendance Rate')}
           </p>
-          <p className={cn('mt-1 text-2xl font-bold tabular-nums', attendanceRateTone(sectionRate))}>
+          <p className={cn('text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight', attendanceRateTone(sectionRate))}>
             {sectionRate !== null ? `${formatNumber(sectionRate, locale)}%` : '—'}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="text-sm text-muted-foreground tabular-nums">
             {pick(
               `উপস্থিত ${formatNumber(tally.present, 'bn')} · দেরি ${formatNumber(tally.late, 'bn')}`,
               `Present ${tally.present} · Late ${tally.late}`
@@ -387,14 +387,14 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
           </p>
         </div>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="p-4 sm:p-5 bg-surface flex flex-col justify-between gap-1.5">
+          <p className="text-base font-bold text-foreground">
             {pick('অনুপস্থিত ও ছুটি', 'Absent & Leave')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-destructive">
+          <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-destructive">
             {formatNumber(tally.absent + tally.leave, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="text-sm text-muted-foreground tabular-nums">
             {pick(
               `অনুপস্থিত ${formatNumber(tally.absent, 'bn')} · ছুটি ${formatNumber(tally.leave, 'bn')}`,
               `Absent ${tally.absent} · Leave ${tally.leave}`
@@ -402,28 +402,28 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
           </p>
         </div>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="p-4 sm:p-5 bg-surface flex flex-col justify-between gap-1.5">
+          <p className="text-base font-bold text-foreground">
             {pick('অচিহ্নিত / অপেক্ষমাণ', 'Unmarked / Pending')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-foreground">
             {formatNumber(tally.open, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {manual
               ? pick('মোট শিক্ষার্থী: ' + formatNumber(enrollments.length, 'bn'), `Total students: ${enrollments.length}`)
               : pick('গেট স্ক্যান হয়নি', 'Not scanned at gate')}
           </p>
         </div>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <div className="p-4 sm:p-5 bg-surface flex flex-col justify-between gap-1.5">
+          <p className="text-base font-bold text-foreground">
             {pick('বিদ্যালয়ব্যাপী সম্পন্ন শাখা', 'School Sections Marked')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-foreground">
             {formatNumber(sectionMatrix.completedCount, locale)} / {formatNumber(sectionMatrix.totalSections, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="text-sm text-muted-foreground tabular-nums">
             {sectionMatrix.schoolRate !== null
               ? pick(
                   `সর্বমোট উপস্থিতি ${formatNumber(sectionMatrix.schoolRate, 'bn')}% (${formatNumber(sectionMatrix.totalMarked, 'bn')}/${formatNumber(sectionMatrix.totalStudents, 'bn')})`,
@@ -432,7 +432,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
               : pick('এই তারিখে এখনো হাজিরা নেই', 'No attendance recorded on this date')}
           </p>
         </div>
-      </div>
+      </Card>
 
       {/* School-Wide Section Completion Matrix */}
       <Card className="p-0 overflow-hidden">
@@ -442,10 +442,10 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
           className="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-surface-muted/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-2.5">
-            <span className="text-sm font-semibold text-foreground">
+            <span className="text-base font-bold text-foreground">
               {pick('সকল শ্রেণি ও শাখার আজকের অবস্থা', 'School-Wide Section Progress')}
             </span>
-            <span className="text-xs text-muted-foreground tabular-nums">
+            <span className="text-sm text-muted-foreground tabular-nums">
               {pick(
                 `(${formatNumber(sectionMatrix.completedCount, 'bn')}/${formatNumber(sectionMatrix.totalSections, 'bn')} শাখা সম্পূর্ণ)`,
                 `(${sectionMatrix.completedCount}/${sectionMatrix.totalSections} sections complete)`
@@ -491,7 +491,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                     {formatNumber(item.marked, locale)}/{formatNumber(item.total, locale)}
                   </span>
                   {item.method === AttendanceMethod.RFID && (
-                    <span className="text-[10px] font-mono uppercase px-1 py-0.5 rounded bg-surface-muted text-muted-foreground">
+                    <span className="text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-surface-muted text-muted-foreground">
                       RFID
                     </span>
                   )}
@@ -503,11 +503,11 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
       </Card>
 
       {/* Controls Toolbar */}
-      <Card className="p-4 space-y-3">
+      <Card className="p-4 sm:p-5 space-y-3">
         <div className="flex flex-wrap items-end gap-3">
           {/* Date Stepper */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground block">
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-foreground block">
               {pick('তারিখ', 'Date')}
             </label>
             <div className="flex items-center gap-1">
@@ -515,7 +515,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                 type="button"
                 variant="outline"
                 size="sm"
-                className="px-2"
+                className="h-10 px-2.5"
                 disabled={!prevOpen}
                 onClick={() => prevOpen && setDate(prevOpen)}
                 title={pick('আগের খোলা দিন', 'Previous open day')}
@@ -527,13 +527,13 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                 value={date}
                 max={today}
                 onChange={(event) => setDate(event.target.value)}
-                className="w-40 h-9 tabular-nums"
+                className="w-40 h-10 text-sm sm:text-base tabular-nums"
               />
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="px-2"
+                className="h-10 px-2.5"
                 disabled={!nextOpen}
                 onClick={() => nextOpen && setDate(nextOpen)}
                 title={pick('পরের খোলা দিন', 'Next open day')}
@@ -545,6 +545,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                   type="button"
                   variant="ghost"
                   size="sm"
+                  className="h-10 text-sm font-medium"
                   onClick={() => setDate(defaultOpenDate)}
                 >
                   {pick('সর্বশেষ দিন', 'Latest')}
@@ -554,8 +555,8 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
           </div>
 
           {/* Class Selector */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground block">
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-foreground block">
               {pick('শ্রেণি', 'Class')}
             </label>
             <Select
@@ -566,7 +567,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                 const firstSec = db.sections.find((s) => s.classId === nextClassId)?.id ?? '';
                 setSectionId(firstSec);
               }}
-              className="w-40 h-9"
+              className="w-40 h-10 text-sm sm:text-base font-semibold"
             >
               {db.classes.map((cls) => (
                 <option key={cls.id} value={cls.id}>
@@ -577,14 +578,14 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
           </div>
 
           {/* Section Selector */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground block">
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-foreground block">
               {pick('শাখা', 'Section')}
             </label>
             <Select
               value={activeSectionId}
               onChange={(event) => setSectionId(event.target.value)}
-              className="w-28 h-9"
+              className="w-32 h-10 text-sm sm:text-base font-semibold"
             >
               {sections.map((sec) => (
                 <option key={sec.id} value={sec.id}>
@@ -595,8 +596,8 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
           </div>
 
           {/* Search */}
-          <div className="space-y-1 flex-1 min-w-[200px]">
-            <label className="text-xs font-medium text-muted-foreground block">
+          <div className="space-y-1.5 flex-1 min-w-[200px]">
+            <label className="text-sm font-semibold text-foreground block">
               {pick('শিক্ষার্থী খুঁজুন', 'Search student')}
             </label>
             <div className="relative">
@@ -605,20 +606,20 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={pick('রোল, নাম, আইডি বা RFID...', 'Roll, name, ID or RFID...')}
-                className="pl-9 h-9"
+                className="pl-9 h-10 text-sm sm:text-base"
               />
             </div>
           </div>
 
           {/* Status Filter */}
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground block">
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-foreground block">
               {pick('অবস্থা ফিল্টার', 'Filter status')}
             </label>
             <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
-              className="w-36 h-9"
+              className="w-36 h-10 text-sm sm:text-base font-semibold"
             >
               <option value="ALL">{pick('সব অবস্থা', 'All statuses')}</option>
               <option value={AttendanceStatus.PRESENT}>{pick('উপস্থিত', 'Present')}</option>
@@ -631,33 +632,33 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
         </div>
 
         {/* Method Context & Action Bar */}
-        <div className="pt-3 border-t border-border flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2 text-xs">
+        <div className="pt-3.5 border-t border-border flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 text-sm">
             <span
               className={cn(
-                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[var(--radius)] border font-medium',
+                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-sm font-semibold shadow-2xs',
                 manual
                   ? 'border-border bg-surface-muted text-foreground'
                   : 'border-primary/30 bg-primary/10 text-primary'
               )}
             >
-              {manual ? <Calendar className="w-3.5 h-3.5" /> : <CreditCard className="w-3.5 h-3.5" />}
+              {manual ? <Calendar className="w-4 h-4" /> : <CreditCard className="w-4 h-4" />}
               {manual ? pick('পদ্ধতি: হাতে রেজিস্টার', 'Method: Manual Register') : pick('পদ্ধতি: RFID গেট স্ক্যান', 'Method: RFID Gate')}
             </span>
             {classConfig && (
-              <span className="text-muted-foreground tabular-nums">
+              <span className="text-muted-foreground font-medium tabular-nums">
                 {pick(`দেরির সীমা: ${classConfig.lateThresholdTime}`, `Late after: ${classConfig.lateThresholdTime}`)}
               </span>
             )}
             <Link
               href="/admin/attendance/settings"
-              className="inline-flex items-center gap-1 text-primary hover:underline font-medium"
+              className="inline-flex items-center gap-1 text-primary hover:underline font-semibold"
             >
-              <Settings className="w-3.5 h-3.5" />
+              <Settings className="w-4 h-4" />
               {pick('পদ্ধতি বদলান', 'Configure')}
             </Link>
             {dirtyCount > 0 && (
-              <span className="text-warning font-semibold tabular-nums">
+              <span className="text-warning font-bold tabular-nums">
                 · {pick(`${formatNumber(dirtyCount, 'bn')} টি অসংরক্ষিত পরিবর্তন`, `${dirtyCount} unsaved change(s)`)}
               </span>
             )}
@@ -665,30 +666,31 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
 
           <div className="flex flex-wrap items-center gap-2">
             {manual && !blocked && (
-              <Button variant="outline" size="sm" onClick={handleMarkAllPresent}>
+              <Button variant="outline" size="sm" className="h-10 text-sm font-semibold" onClick={handleMarkAllPresent}>
                 <CheckCheck className="w-4 h-4" />
                 {pick('সবাই উপস্থিত', 'Mark all present')}
               </Button>
             )}
             {!manual && !blocked && tally.open > 0 && (
-              <Button variant="outline" size="sm" onClick={handleMarkUnmarkedAbsent}>
+              <Button variant="outline" size="sm" className="h-10 text-sm font-semibold" onClick={handleMarkUnmarkedAbsent}>
                 <UserX className="w-4 h-4" />
                 {pick('বাকিদের অনুপস্থিত', 'Mark unscanned absent')}
               </Button>
             )}
             {dirtyCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={handleResetDraft}>
+              <Button variant="ghost" size="sm" className="h-10 text-sm font-semibold" onClick={handleResetDraft}>
                 <RotateCcw className="w-4 h-4" />
                 {pick('রিসেট', 'Reset')}
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={!enrollments.length}>
+            <Button variant="outline" size="sm" className="h-10 text-sm font-semibold" onClick={handleExportCsv} disabled={!enrollments.length}>
               <Download className="w-4 h-4" />
               {pick('CSV', 'CSV')}
             </Button>
             <Button
               variant="primary"
               size="sm"
+              className="h-10 text-sm font-semibold shadow-xs"
               disabled={Boolean(blocked) || !enrollments.length || isLoading}
               onClick={handleSave}
             >
@@ -701,9 +703,9 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
 
       {/* Closed Day Alert Banner */}
       {blocked && (
-        <div className="rounded-[var(--radius)] border border-warning/40 bg-warning/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 text-sm text-foreground">
-            <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
+        <div className="rounded-2xl border border-warning/40 bg-warning/10 px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 text-sm sm:text-base text-foreground">
+            <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
             <span>
               <strong>{blocked}</strong>{' '}
               {pick(
@@ -715,6 +717,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
           <Button
             variant="outline"
             size="sm"
+            className="h-10 text-sm font-semibold"
             onClick={() => setDate(latestOpenDay(db, yearId, today))}
           >
             {pick('সর্বশেষ খোলা দিনে যান', 'Jump to latest open day')}
@@ -724,7 +727,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
 
       {/* RFID Auto-SMS Info Hint */}
       {!blocked && autoSmsOnAbsent && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {manual
             ? pick(
                 'নোট: অনুপস্থিত চিহ্নিত শিক্ষার্থীদের নিবন্ধিত অভিভাবকের কাছে সংরক্ষণের সাথে সাথে স্বয়ংক্রিয় SMS পাঠানো হবে।',
@@ -740,20 +743,20 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
       {/* High-Density Register Table */}
       <Card className="p-0 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead>
-              <tr className="border-b border-border bg-surface-muted/60 text-left text-xs font-semibold text-muted-foreground">
-                <th className="py-3 px-4 w-16">{pick('রোল', 'Roll')}</th>
-                <th className="py-3 px-4">{pick('শিক্ষার্থী', 'Student')}</th>
-                <th className="py-3 px-4 w-36">{pick('প্রবেশ / প্রস্থান', 'In / Out')}</th>
-                <th className="py-3 px-4">{pick('হাজিরা অবস্থা', 'Attendance Status')}</th>
-                <th className="py-3 px-4 w-56">{pick('মন্তব্য (ঐচ্ছিক)', 'Remarks')}</th>
+              <tr className="border-b border-border bg-surface-muted/60 text-left text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                <th className="py-3.5 px-4 w-16">{pick('রোল', 'Roll')}</th>
+                <th className="py-3.5 px-4">{pick('শিক্ষার্থী', 'Student')}</th>
+                <th className="py-3.5 px-4 w-44">{pick('প্রবেশ / প্রস্থান', 'In / Out')}</th>
+                <th className="py-3.5 px-4">{pick('হাজিরা অবস্থা', 'Attendance Status')}</th>
+                <th className="py-3.5 px-4 w-60">{pick('মন্তব্য (ঐচ্ছিক)', 'Remarks')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filteredEnrollments.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 px-4 text-center text-muted-foreground">
+                  <td colSpan={5} className="py-12 px-4 text-center text-base text-muted-foreground">
                     {enrollments.length === 0
                       ? pick('এই শাখায় কোনো সক্রিয় শিক্ষার্থী ভর্তি নেই।', 'No active students enrolled in this section.')
                       : pick('ফিল্টারের সাথে মিলে এমন কোনো শিক্ষার্থী পাওয়া যায়নি।', 'No students match your current search or filter.')}
@@ -775,20 +778,20 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                         dirty && 'bg-primary/[0.04]'
                       )}
                     >
-                      <td className="py-2.5 px-4 font-mono font-semibold tabular-nums text-foreground">
+                      <td className="py-3 px-4 font-mono font-bold text-base tabular-nums text-foreground">
                         {formatNumber(enrollment.roll, locale)}
                       </td>
-                      <td className="py-2.5 px-4">
+                      <td className="py-3 px-4">
                         <div className="flex flex-col">
                           <Link
                             href={`/admin/students/${enrollment.studentId}#attendance`}
-                            className="font-medium text-foreground hover:text-primary transition-colors"
+                            className="font-bold text-base text-foreground hover:text-primary transition-colors"
                           >
                             {locale === 'bn'
                               ? student?.nameBn || student?.nameEn
                               : student?.nameEn || student?.nameBn}
                           </Link>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground font-mono mt-0.5">
                             <span>{student?.studentId}</span>
                             {!manual && (
                               <span>
@@ -796,17 +799,17 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                                 {cardNo ? (
                                   <span className="text-foreground/80">{cardNo}</span>
                                 ) : (
-                                  <span className="text-warning">{pick('কার্ড নেই', 'No card')}</span>
+                                  <span className="text-warning font-semibold">{pick('কার্ড নেই', 'No card')}</span>
                                 )}
                               </span>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="py-2.5 px-4 text-xs tabular-nums text-muted-foreground">
+                      <td className="py-3 px-4 text-sm tabular-nums text-muted-foreground">
                         {saved?.inTime || saved?.outTime ? (
                           <div className="flex flex-col gap-0.5">
-                            <span className="text-foreground font-medium">
+                            <span className="text-foreground font-semibold">
                               {pick('প্রবেশ:', 'In:')} {formatClockTime(saved?.inTime)}
                             </span>
                             {saved?.outTime && (
@@ -819,7 +822,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                           <span>—</span>
                         )}
                       </td>
-                      <td className="py-2.5 px-4">
+                      <td className="py-3 px-4">
                         <div className="flex flex-wrap items-center gap-1.5">
                           {STATUS_OPTIONS.map((opt) => {
                             const active = currentStatus === opt.value;
@@ -835,7 +838,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                                   }))
                                 }
                                 className={cn(
-                                  'px-2.5 py-1 rounded-[var(--radius)] text-xs font-medium border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+                                  'px-3 py-1.5 rounded-xl text-sm font-bold border transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
                                   active
                                     ? opt.on
                                     : 'bg-background border-border text-foreground/80 hover:bg-surface-muted'
@@ -846,13 +849,13 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                             );
                           })}
                           {!currentStatus && (
-                            <span className="text-xs text-muted-foreground ml-1">
+                            <span className="text-sm text-muted-foreground ml-1">
                               {manual ? pick('অচিহ্নিত', 'Unmarked') : pick('স্ক্যান হয়নি', 'Not scanned')}
                             </span>
                           )}
                         </div>
                       </td>
-                      <td className="py-2.5 px-4">
+                      <td className="py-3 px-4">
                         <Input
                           value={remarksOf(enrollment.id)}
                           disabled={Boolean(blocked)}
@@ -863,7 +866,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                             }))
                           }
                           placeholder={pick('কারণ বা নোট...', 'Reason or note...')}
-                          className="h-8 text-xs"
+                          className="h-10 text-sm sm:text-base"
                         />
                       </td>
                     </tr>

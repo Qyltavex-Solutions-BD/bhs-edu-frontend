@@ -2,63 +2,77 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Design Tokens — Calibrated Bhojeshwar High School (BHS) Brand System
- * Faithful to the official BHS Emblem with strict institutional UI/UX restraint:
- * - 70% Clean neutral canvas (#F9FBFA light / #0A100D dark) & pure #FFFFFF surfaces
- * - 20% BHS Heritage Forest Green (#0A6E31 primary, #093B1F deep heritage anchors)
- * - 8%  Quiet BHS Royal Academic Blue (#124B96) for subtle tinted accents & metadata
- * - 2%  Restrained Crest Crimson (#C81E24) strictly for urgent circulars & errors
+ * Design Tokens — Calibrated Reference Theme System
+ * Exact Palette:
+ * - #1C6440: Forest Green (Primary)
+ * - #EBAF3E: Amber Gold (Secondary / Highlight)
+ * - #5E99D1: Sky / Steel Blue (Accent / Info)
+ * - #DF6153: Coral Crimson (Destructive / Alert)
+ * - #DCEFE0: Mint Light Tint
+ * - #FBE9C4: Amber Light Tint
+ * - #DCEAF8: Blue Light Tint
+ * - #F4DAD5: Coral Light Tint
  */
 
 :root {
-  --primary: #0A6E31;
+  --primary: #1C6440;
   --primary-foreground: #FFFFFF;
   --secondary: #124B96;
   --secondary-foreground: #FFFFFF;
-  --accent: #0B5D2A;
-  --accent-foreground: #FFFFFF;
+  --accent: #EBAF3E;
+  --accent-foreground: #1E1504;
   --info: #124B96;
   --info-foreground: #FFFFFF;
-  --destructive: #C81E24;
+  --destructive: #DF6153;
   --destructive-foreground: #FFFFFF;
-  --success: #0E7A38;
+  --success: #1C6440;
   --success-foreground: #FFFFFF;
-  --warning: #B45309;
-  --warning-foreground: #FFFFFF;
+  --warning: #EBAF3E;
+  --warning-foreground: #1E1504;
 
-  --background: #F9FBFA;
+  --tint-green: #DCEFE0;
+  --tint-amber: #FBE9C4;
+  --tint-blue: #DCEAF8;
+  --tint-coral: #F4DAD5;
+
+  --background: #F4F6F4;
   --surface: #FFFFFF;
-  --surface-muted: #F2F5F3;
-  --foreground: #0F1C15;
-  --muted-foreground: #4B5C53;
-  --border: #E2E8E4;
-  --ring: #0A6E31;
-  --radius: 0.625rem;
+  --surface-muted: #ECF0EC;
+  --foreground: #10241A;
+  --muted-foreground: #5B6D62;
+  --border: #E0E7E2;
+  --ring: #1C6440;
+  --radius: 1.25rem;
 }
 
 .dark {
-  --primary: #2EC46E;
-  --primary-foreground: #042010;
-  --secondary: #60A5FA;
-  --secondary-foreground: #071526;
-  --accent: #34D374;
-  --accent-foreground: #042010;
-  --info: #60A5FA;
-  --info-foreground: #071526;
-  --destructive: #EF4444;
+  --primary: #34A870;
+  --primary-foreground: #041B0E;
+  --secondary: #7EB5E8;
+  --secondary-foreground: #081B2B;
+  --accent: #F3BF59;
+  --accent-foreground: #241703;
+  --info: #7EB5E8;
+  --info-foreground: #081B2B;
+  --destructive: #E87A6F;
   --destructive-foreground: #FFFFFF;
-  --success: #2EC46E;
-  --success-foreground: #042010;
-  --warning: #F59E0B;
-  --warning-foreground: #1C1003;
+  --success: #34A870;
+  --success-foreground: #041B0E;
+  --warning: #F3BF59;
+  --warning-foreground: #241703;
 
-  --background: #0A100D;
-  --surface: #111915;
-  --surface-muted: #18231D;
-  --foreground: #F1F5F3;
-  --muted-foreground: #96A89E;
-  --border: #233229;
-  --ring: #2EC46E;
+  --tint-green: #113421;
+  --tint-amber: #39280B;
+  --tint-blue: #14283C;
+  --tint-coral: #3D1C18;
+
+  --background: #0B1410;
+  --surface: #121F18;
+  --surface-muted: #1A2C23;
+  --foreground: #F2F7F4;
+  --muted-foreground: #99ACA1;
+  --border: #23372C;
+  --ring: #34A870;
 }
 
 @theme inline {
@@ -76,6 +90,14 @@
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-forest: #1C6440;
+  --color-amber: #EBAF3E;
+  --color-sky: #5E99D1;
+  --color-coral: #DF6153;
+  --color-tint-green: var(--tint-green);
+  --color-tint-amber: var(--tint-amber);
+  --color-tint-blue: var(--tint-blue);
+  --color-tint-coral: var(--tint-coral);
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
@@ -84,34 +106,34 @@
   --color-border: var(--border);
   --color-ring: var(--ring);
   --radius-md: var(--radius);
-  --font-sans: var(--font-latin), var(--font-bengali), "Noto Sans Bengali", system-ui, -apple-system, sans-serif;
-  --font-display: var(--font-latin), var(--font-bengali), "Noto Sans Bengali", system-ui, sans-serif;
+  --font-sans: 'Noto Sans Bengali', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Noto Sans Bengali', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Calibrated Institutional Typography Scale — Bangla-optimized legibility across public & portals */
-  --text-xs: 0.875rem;
-  --text-xs--line-height: 1.48;
-  --text-sm: 0.96875rem;
-  --text-sm--line-height: 1.58;
-  --text-base: 1.0625rem;
-  --text-base--line-height: 1.7;
-  --text-lg: 1.1875rem;
-  --text-lg--line-height: 1.52;
-  --text-xl: 1.3125rem;
-  --text-xl--line-height: 1.42;
-  --text-2xl: 1.5625rem;
-  --text-2xl--line-height: 1.34;
-  --text-3xl: 1.9375rem;
-  --text-3xl--line-height: 1.26;
-  --text-4xl: 2.375rem;
+  /* Calibrated Institutional Typography Scale — 12px Hard Floor, 14px Preferred Standard */
+  --text-xs: 0.75rem; /* 12px absolute hard floor */
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.875rem; /* 14px standard body & controls */
+  --text-sm--line-height: 1.55;
+  --text-base: 1rem; /* 16px section base */
+  --text-base--line-height: 1.65;
+  --text-lg: 1.125rem; /* 18px card headers */
+  --text-lg--line-height: 1.5;
+  --text-xl: 1.25rem; /* 20px */
+  --text-xl--line-height: 1.4;
+  --text-2xl: 1.5rem; /* 24px KPI metrics */
+  --text-2xl--line-height: 1.32;
+  --text-3xl: 1.875rem; /* 30px */
+  --text-3xl--line-height: 1.25;
+  --text-4xl: 2.25rem; /* 36px */
   --text-4xl--line-height: 1.2;
-  --text-5xl: 3.125rem;
+  --text-5xl: 3rem; /* 48px */
   --text-5xl--line-height: 1.15;
 }
 
 @layer base {
   html {
-    font-family: var(--font-latin), var(--font-bengali), "Noto Sans Bengali", system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-size: 16px;
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
@@ -122,8 +144,8 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-size: 1.0625rem;
-    line-height: 1.7;
+    font-size: 1rem;
+    line-height: 1.65;
   }
 
   .dark body {
@@ -142,6 +164,7 @@
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
 /* Deep Forest-Charcoal Frosted Glass Surfaces (subtle BHS heritage depth, crisp white borders) */
@@ -235,7 +258,7 @@
     color: #111111 !important;
     font-size: 13.5px !important;
     line-height: 1.42 !important;
-    font-family: var(--font-latin), var(--font-bengali), "Noto Sans Bengali", sans-serif !important;
+    font-family: var(--font-sans) !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }

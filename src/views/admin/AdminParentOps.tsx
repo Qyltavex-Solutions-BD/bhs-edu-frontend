@@ -115,28 +115,28 @@ function Directory({ db, createOpen }: { db: MockDatabase; createOpen: boolean }
 
   return (
     <div className="space-y-5">
-      <div className="bg-surface border border-border rounded-[var(--radius)] grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x divide-border">
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('মোট নিবন্ধিত অভিভাবক', 'Registered Guardians')}</p>
-          <p className="text-2xl font-bold text-foreground tabular-nums mt-1">{formatNumber(db.parents.length, locale)}</p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('সংযুক্ত সক্রিয় শিক্ষার্থী', 'Linked Active Students')}</p>
-          <p className="text-2xl font-bold text-primary tabular-nums mt-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('মোট নিবন্ধিত অভিভাবক', 'Registered Guardians')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground tabular-nums mt-1">{formatNumber(db.parents.length, locale)}</p>
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('সংযুক্ত সক্রিয় শিক্ষার্থী', 'Linked Active Students')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary tabular-nums mt-1">
             {formatNumber(activeStudents.filter((s) => linkedStudentIds.has(s.id)).length, locale)}
-            <span className="text-sm font-normal text-muted-foreground"> / {formatNumber(activeStudents.length, locale)}</span>
+            <span className="text-sm font-semibold text-muted-foreground"> / {formatNumber(activeStudents.length, locale)}</span>
           </p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('সক্রিয় SMS প্রাপক সংযোগ', 'Active SMS Links')}</p>
-          <p className="text-2xl font-bold text-success tabular-nums mt-1">{formatNumber(smsReceiverLinks, locale)}</p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('অসম্পূর্ণ তথ্য', 'Incomplete Records')}</p>
-          <p className={`text-2xl font-bold tabular-nums mt-1 ${coverageGapCount > 0 ? 'text-warning' : 'text-success'}`}>
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('সক্রিয় SMS প্রাপক সংযোগ', 'Active SMS Links')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-success tabular-nums mt-1">{formatNumber(smsReceiverLinks, locale)}</p>
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('অসম্পূর্ণ তথ্য', 'Incomplete Records')}</p>
+          <p className={`text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums mt-1 ${coverageGapCount > 0 ? 'text-warning' : 'text-success'}`}>
             {formatNumber(coverageGapCount, locale)}
           </p>
-        </div>
+        </Card>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
@@ -576,25 +576,25 @@ function Coverage({ db }: { db: MockDatabase }) {
 
   return (
     <div className="space-y-5">
-      <div className="bg-surface border border-border rounded-[var(--radius)] grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x divide-border">
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('মোট সক্রিয় শিক্ষার্থী', 'Active Students')}</p>
-          <p className="text-2xl font-bold text-foreground tabular-nums mt-1">{formatNumber(allRows.length, locale)}</p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('সম্পূর্ণ কভারেজ', 'Full Coverage')}</p>
-          <p className="text-2xl font-bold text-success tabular-nums mt-1">{formatNumber(completeCount, locale)}</p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('SMS প্রাপক নির্ধারিত', 'SMS Ready')}</p>
-          <p className="text-2xl font-bold text-primary tabular-nums mt-1">{formatNumber(smsReadyCount, locale)}</p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('তথ্য ঘাটতি (Gap)', 'Needs Attention')}</p>
-          <p className={`text-2xl font-bold tabular-nums mt-1 ${gapCount > 0 ? 'text-warning' : 'text-success'}`}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('মোট সক্রিয় শিক্ষার্থী', 'Active Students')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground tabular-nums mt-1">{formatNumber(allRows.length, locale)}</p>
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('সম্পূর্ণ কভারেজ', 'Full Coverage')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-success tabular-nums mt-1">{formatNumber(completeCount, locale)}</p>
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('SMS প্রাপক নির্ধারিত', 'SMS Ready')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary tabular-nums mt-1">{formatNumber(smsReadyCount, locale)}</p>
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('তথ্য ঘাটতি (Gap)', 'Needs Attention')}</p>
+          <p className={`text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums mt-1 ${gapCount > 0 ? 'text-warning' : 'text-success'}`}>
             {formatNumber(gapCount, locale)}
           </p>
-        </div>
+        </Card>
       </div>
 
       <div className="flex justify-end">

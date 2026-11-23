@@ -170,8 +170,8 @@ export function DataTable<T extends object>({
                 : 'overflow-x-auto bg-surface border border-border rounded-[var(--radius)]'
             }
           >
-            <table className="w-full text-sm text-left border-collapse">
-              <thead className="bg-surface-muted/70 border-b border-border text-sm font-semibold text-muted-foreground">
+            <table className="w-full text-base text-left border-collapse">
+              <thead className="bg-surface-muted/70 border-b border-border text-sm font-bold text-muted-foreground uppercase tracking-wider">
                 <tr>
                   {columns.map((col, idx) => {
                     const colId = col.id ?? col.accessorKey ?? `col-${idx}`;
@@ -220,7 +220,7 @@ export function DataTable<T extends object>({
             </table>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm sm:text-base text-muted-foreground">
             <span className="tabular-nums">{paginationSummary}</span>
             <div className="flex items-center gap-1.5">
               <Button

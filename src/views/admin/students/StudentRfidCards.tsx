@@ -523,87 +523,87 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
   return (
     <div className="space-y-5">
       {/* 1. 4-Column Hairline-Divided Coverage & Card Health Strip */}
-      <Card className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden">
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('সক্রিয় RFID কার্ড', 'Active RFID Cards')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-primary">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
               {formatNumber(activeCardCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               / {formatNumber(totalActiveStudents, locale)} {pick('সক্রিয় শিক্ষার্থী', 'active students')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground tabular-nums">
+          <p className="text-sm text-muted-foreground tabular-nums">
             {pick(
               `মোট ${formatNumber(coveragePct, locale)}% শিক্ষার্থীর হাতে সক্রিয় কার্ড`,
               `${coveragePct}% active student gate coverage`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('কার্ডবিহীন সক্রিয় শিক্ষার্থী', 'Unassigned Active Students')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-foreground">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(unassignedStudents.length, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('জনের কার্ড বাকি', 'pending card')}
             </span>
           </div>
           <button
             type="button"
             onClick={() => setActiveTab('unassigned')}
-            className="text-xs font-medium text-primary hover:underline text-left w-fit cursor-pointer"
+            className="text-sm font-semibold text-primary hover:underline text-left w-fit cursor-pointer"
           >
             {pick('কার্ডবিহীন তালিকা দেখুন →', 'View unassigned roster →')}
           </button>
-        </div>
+        </Card>
 
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('হারানো ও ক্ষতিগ্রস্ত', 'Lost & Damaged')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span
               className={cn(
-                'text-2xl sm:text-3xl font-bold',
+                'text-2xl sm:text-3xl font-extrabold tracking-tight',
                 lostOrDamagedCount > 0 ? 'text-warning' : 'text-foreground'
               )}
             >
               {formatNumber(lostOrDamagedCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি রিপ্লেসমেন্ট প্রয়োজন', 'need replacement')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('১-ক্লিকে নতুন কার্ড দিয়ে রিপ্লেস করা যায়', 'Replace in 1 click from card row')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 sm:p-5 flex flex-col justify-between gap-1.5">
-          <span className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-3">
+          <span className="text-base font-bold text-foreground">
             {pick('বন্ধকৃত কার্ড (Blocked)', 'Blocked Cards')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-bold text-foreground">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(blockedCount, locale)}
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি নিষ্ক্রিয় রেকর্ড', 'deactivated records')}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {pick('টিসি বা রিপ্লেসমেন্টে স্বয়ংক্রিয়ভাবে বন্ধ', 'Auto-blocked on transfer or replace')}
           </p>
-        </div>
-      </Card>
+        </Card>
+      </div>
 
       {/* 2. Workspace Tabs & Unified Filter Toolbar */}
       <Card className="overflow-hidden">
@@ -1223,7 +1223,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
             )}
 
             <div className="space-y-2">
-              <span className="text-xs font-medium text-muted-foreground block">
+              <span className="text-sm font-bold text-foreground block">
                 {pick('নতুন অবস্থা নির্বাচন করুন', 'Select new status')}
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

@@ -262,68 +262,68 @@ export function ExamSeatPlanView() {
         </div>
       </Card>
 
-      {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+      {/* 4-Column KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('মোট আসন ধারণক্ষমতা', 'Total Seating Capacity')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(allocation.totalCapacity, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `মোট পরীক্ষার্থী ${formatNumber(enrolledCount, 'bn')} জন`,
               `Total examinees: ${enrolledCount}`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('কনফিগারকৃত হল ও কক্ষ', 'Configured Hall Rooms')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
             {formatNumber(configuredRooms.length, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `সক্রিয় পরীক্ষা কক্ষ · ভবনভিত্তিক বিন্যাস`,
               `Active examination rooms`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('হল পরিদর্শক শিক্ষক', 'Assigned Invigilators')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(assignedInvigilatorsCount, locale)} / {formatNumber(configuredRooms.length, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `নিযুক্ত শিক্ষক · কক্ষের অনুপাত ${formatNumber(configuredRooms.length > 0 ? Math.round((assignedInvigilatorsCount / configuredRooms.length) * 100) : 0, 'bn')}%`,
               `Invigilation coverage ${configuredRooms.length > 0 ? Math.round((assignedInvigilatorsCount / configuredRooms.length) * 100) : 0}%`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('আসন বরাদ্দের স্থিতি', 'Seat Allocation Status')}
           </p>
-          <p className={cn('mt-1 text-2xl font-bold tabular-nums', allocation.unallocatedCount > 0 ? 'text-destructive' : 'text-success')}>
+          <p className={cn('mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums', allocation.unallocatedCount > 0 ? 'text-destructive' : 'text-success')}>
             {allocation.unallocatedCount > 0
               ? pick(`ঘাটতি ${formatNumber(allocation.unallocatedCount, locale)}`, `Deficit ${allocation.unallocatedCount}`)
               : pick('১০০% সম্পন্ন', '100% Allocated')}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {allocation.unallocatedCount > 0
               ? pick('অতিরিক্ত আসন প্রয়োজন', 'More seats required')
               : pick(`উদ্বৃত্ত আসন ${formatNumber(Math.max(0, allocation.totalCapacity - enrolledCount), 'bn')}টি`, `Surplus ${Math.max(0, allocation.totalCapacity - enrolledCount)} seats`)}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* Insufficient Capacity Warning */}

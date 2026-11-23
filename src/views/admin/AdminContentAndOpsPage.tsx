@@ -170,31 +170,31 @@ export function AdminLibraryPage() {
       />
 
       {/* 4-Column Institutional KPI Strip */}
-      <div className="bg-surface border border-border rounded-[var(--radius)] grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x divide-border">
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('মোট তালিকাভুক্ত বই', 'Catalog Titles')}</p>
-          <p className="text-2xl font-bold text-foreground tabular-nums mt-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('মোট তালিকাভুক্ত বই', 'Catalog Titles')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground tabular-nums mt-1">
             {formatNumber(db.libraryBooks.length, locale)}
           </p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('বিষয়শ্রেণি / বিভাগ', 'Book Categories')}</p>
-          <p className="text-2xl font-bold text-primary tabular-nums mt-1">
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('বিষয়শ্রেণি / বিভাগ', 'Book Categories')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary tabular-nums mt-1">
             {formatNumber(categories.length, locale)}
           </p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('বিতরণ কার্যক্রম', 'Distribution Records')}</p>
-          <p className="text-2xl font-bold text-foreground tabular-nums mt-1">
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('বিতরণ কার্যক্রম', 'Distribution Records')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground tabular-nums mt-1">
             {formatNumber(db.libraryDistributions.length, locale)}
           </p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('পাবলিক সাইটে প্রকাশিত', 'Published Notices')}</p>
-          <p className="text-2xl font-bold text-success tabular-nums mt-1">
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('পাবলিক সাইটে প্রকাশিত', 'Published Notices')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-success tabular-nums mt-1">
             {formatNumber(publishedDistributions, locale)}
           </p>
-        </div>
+        </Card>
       </div>
 
       <SegmentedTabs
@@ -612,31 +612,31 @@ export function AdminDigitalEducationPage({
       />
 
       {/* 4-Column Institutional KPI Strip */}
-      <div className="bg-surface border border-border rounded-[var(--radius)] grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 divide-x divide-border">
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('স্মার্ট ক্লাসরুম', 'Smart Classrooms')}</p>
-          <p className="text-2xl font-bold text-foreground tabular-nums mt-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('স্মার্ট ক্লাসরুম', 'Smart Classrooms')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground tabular-nums mt-1">
             {formatNumber(db.digitalClassrooms.length, locale)}
           </p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('মোট ডিজিটাল রিসোর্স', 'Digital Resources')}</p>
-          <p className="text-2xl font-bold text-primary tabular-nums mt-1">
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('মোট ডিজিটাল রিসোর্স', 'Digital Resources')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary tabular-nums mt-1">
             {formatNumber(db.digitalResources.length, locale)}
           </p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('পাবলিক সাইটে প্রকাশিত', 'Published')}</p>
-          <p className="text-2xl font-bold text-success tabular-nums mt-1">
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('পাবলিক সাইটে প্রকাশিত', 'Published')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-success tabular-nums mt-1">
             {formatNumber(publishedResources, locale)}
           </p>
-        </div>
-        <div className="p-4">
-          <p className="text-xs font-medium text-muted-foreground">{pick('খসড়া রিসোর্স', 'Drafts')}</p>
-          <p className="text-2xl font-bold text-muted-foreground tabular-nums mt-1">
+        </Card>
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{pick('খসড়া রিসোর্স', 'Drafts')}</p>
+          <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-muted-foreground tabular-nums mt-1">
             {formatNumber(draftResources, locale)}
           </p>
-        </div>
+        </Card>
       </div>
 
       <SegmentedTabs
@@ -681,12 +681,12 @@ export function AdminDigitalEducationPage({
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge enumName="ResourceType" value={r.resourceType} />
                       {cls && (
-                        <span className="text-xs font-medium text-muted-foreground">
+                        <span className="text-sm font-semibold text-muted-foreground">
                           {locale === 'bn' ? cls.nameBn : cls.name}
                         </span>
                       )}
                       {sub && (
-                        <span className="text-xs font-medium text-primary">
+                        <span className="text-sm font-semibold text-primary">
                           · {locale === 'bn' ? sub.nameBn : sub.name}
                         </span>
                       )}

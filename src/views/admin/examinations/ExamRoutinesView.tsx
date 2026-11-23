@@ -321,16 +321,16 @@ export function ExamRoutinesView() {
         </div>
       </Card>
 
-      {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-border border border-border rounded-[var(--radius)] overflow-hidden">
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+      {/* 4-Column KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('নির্ধারিত পরীক্ষার দিন', 'Scheduled Exam Days')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(uniqueDates, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {routines.length > 0
               ? pick(
                   `প্রথম পরীক্ষা ${formatDateShort(routines[0].examDate, 'bn')}`,
@@ -338,51 +338,51 @@ export function ExamRoutinesView() {
                 )
               : pick('রুটিন এন্ট্রি নেই', 'No routines entered')}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('বিষয় কভারেজ', 'Subject Coverage')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-primary">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
             {formatNumber(coveredSubjectIds, locale)} / {formatNumber(examSubjects.length, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `রুটিনভুক্ত ${formatNumber(coveredSubjectIds, 'bn')} · বাকি ${formatNumber(Math.max(0, examSubjects.length - coveredSubjectIds), 'bn')}`,
               `Scheduled ${coveredSubjectIds} · Remaining ${Math.max(0, examSubjects.length - coveredSubjectIds)}`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('ব্যবহৃত হল ও কক্ষ', 'Assigned Rooms & Halls')}
           </p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-foreground">
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(uniqueRooms, locale)}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
               `মোট রুম সংখ্যা · শাখা ${sectionFilter === 'ALL' ? 'সকল শাখা' : 'শাখা ভিত্তিক'}`,
               `Total rooms · Section: ${sectionFilter}`
             )}
           </p>
-        </div>
+        </Card>
 
-        <div className="p-4 bg-surface">
-          <p className="text-xs font-medium text-muted-foreground">
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">
             {pick('সময়সূচি ও কনফ্লিক্ট স্থিতি', 'Schedule Conflict Status')}
           </p>
-          <p className={cn('mt-1 text-2xl font-bold tabular-nums', hasConflict ? 'text-destructive' : 'text-success')}>
+          <p className={cn('mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums', hasConflict ? 'text-destructive' : 'text-success')}>
             {hasConflict ? pick('সংঘর্ষ আছে', 'Clash Detected') : pick('কনফ্লিক্ট-মুক্ত', 'Clash-Free')}
           </p>
-          <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {hasConflict
               ? pick(`${formatNumber(conflicts.length, 'bn')}টি সময়/কক্ষ সংঘর্ষ চিহ্নিত`, `${conflicts.length} schedule conflict(s)`)
               : pick('সব রুম ও সময় ওভারল্যাপ-মুক্ত', 'All slots verified clash-free')}
           </p>
-        </div>
+        </Card>
       </div>
 
       {/* Live Conflict Detection Alert */}
