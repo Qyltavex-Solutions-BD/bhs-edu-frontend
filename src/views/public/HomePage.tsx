@@ -10,6 +10,7 @@ import {
   Bell,
   BookOpen,
   Briefcase,
+  Building2,
   Calendar,
   ChevronLeft,
   ChevronRight,
@@ -21,6 +22,7 @@ import {
   FlaskConical,
   Globe,
   GraduationCap,
+  Landmark,
   Laptop,
   Library,
   LogIn,
@@ -825,6 +827,51 @@ export function HomePage() {
     },
   ];
 
+  const campusFacilityStats = [
+    {
+      icon: Building2,
+      valBn: '৪টি',
+      valEn: '4',
+      labelBn: 'পাকা ভবন',
+      labelEn: 'Pucca Buildings',
+    },
+    {
+      icon: MapPin,
+      valBn: '৩.৮৫ একর',
+      valEn: '3.85 Acres',
+      labelBn: 'ক্যাম্পাস জমি',
+      labelEn: 'Campus Area',
+    },
+    {
+      icon: BookOpen,
+      valBn: '১৮টি',
+      valEn: '18',
+      labelBn: 'শ্রেণিকক্ষ',
+      labelEn: 'Classrooms',
+    },
+    {
+      icon: FlaskConical,
+      valBn: '৪টি',
+      valEn: '4',
+      labelBn: 'বিজ্ঞান ও আইসিটি ল্যাব',
+      labelEn: 'Science & ICT Labs',
+    },
+    {
+      icon: Laptop,
+      valBn: '৬টি',
+      valEn: '6',
+      labelBn: 'মাল্টিমিডিয়া কক্ষ',
+      labelEn: 'Multimedia Rooms',
+    },
+    {
+      icon: Library,
+      valBn: '৩,৫০০+',
+      valEn: '3,500+',
+      labelBn: 'গ্রন্থাগারের বই',
+      labelEn: 'Library Books',
+    },
+  ];
+
   const handleQuickResultSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const params = new URLSearchParams();
@@ -1320,6 +1367,13 @@ export function HomePage() {
                     {formatNumber(publishedNotices.length, locale)}
                   </span>
                 </div>
+                <Link
+                  href="/notices"
+                  className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-muted-foreground hover:text-[#0c5936] dark:hover:text-emerald-400 transition-colors group"
+                >
+                  <span className="group-hover:underline">{pick('সকল নোটিশ', 'All Notices')}</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </Link>
               </div>
 
               {/* Category Filter Tabs & Search Filter Strip */}
@@ -1396,17 +1450,17 @@ export function HomePage() {
                             </span>
 
                             {showNewBadge && (
-                              <span className="px-2 py-0.5 rounded-sm bg-[#D32F2F] text-white text-[11px] font-bold leading-none">
+                              <span className="px-2 py-0.5 rounded-sm bg-[#D32F2F] text-white text-[12px] font-bold leading-none">
                                 {pick('নতুন', 'New')}
                               </span>
                             )}
 
-                            <span className="px-2 py-0.5 rounded-sm bg-surface-muted border border-border text-[11px] font-medium text-foreground">
+                            <span className="px-2 py-0.5 rounded-sm bg-surface-muted border border-border text-[12px] font-medium text-foreground">
                               {notice.isUrgent ? pick('জরুরি', 'Urgent') : pick('সাধারণ', 'General')}
                             </span>
 
                             {notice.memoNo && (
-                              <span className="text-[11px] text-muted-foreground font-mono">
+                              <span className="text-[12px] text-muted-foreground font-mono">
                                 {notice.memoNo}
                               </span>
                             )}
@@ -1422,18 +1476,6 @@ export function HomePage() {
                   })
                 )}
               </div>
-
-              {/* Bottom Action Footer (Single Solid Green Button as in bteb.gov.bd, Zero Duplication) */}
-              <div className="p-4 bg-surface-muted/20 border-t border-border flex items-center justify-start">
-                <Link href="/notices">
-                  <button
-                    type="button"
-                    className="px-5 py-2.5 rounded-lg bg-[#0c5936] hover:bg-[#084529] text-white text-xs sm:text-sm font-bold shadow-xs hover:shadow transition-all flex items-center gap-2 cursor-pointer"
-                  >
-                    <span>{pick('সকল নোটিশ দেখুন →', 'View All Notices →')}</span>
-                  </button>
-                </Link>
-              </div>
             </div>
 
             {/* Quick Action Cards Under Notice Board (Education Portals & Academic Resources — Non-duplicative) */}
@@ -1444,11 +1486,11 @@ export function HomePage() {
                   <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
                     <Globe className="w-4 h-4" />
                   </div>
-                  <h3 className="text-base font-bold">
+                  <h3 className="text-[18px] font-bold">
                     {pick('শিক্ষা বোর্ড ও সরকারি পোর্টাল', 'Education Boards & Portals')}
                   </h3>
                 </div>
-                <ul className="space-y-2 text-xs text-muted-foreground">
+                <ul className="space-y-2.5 text-[14px] text-muted-foreground">
                   <li>
                     <a
                       href="https://dshe.gov.bd"
@@ -1460,7 +1502,7 @@ export function HomePage() {
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
                         <span className="truncate">{pick('মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তর (মাউশি)', 'Directorate of Secondary and Higher Education')}</span>
                       </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
+                      <ExternalLink className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
                     </a>
                   </li>
                   <li>
@@ -1474,7 +1516,7 @@ export function HomePage() {
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
                         <span className="truncate">{pick('মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড, ঢাকা', 'Dhaka Education Board')}</span>
                       </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
+                      <ExternalLink className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
                     </a>
                   </li>
                   <li>
@@ -1488,7 +1530,7 @@ export function HomePage() {
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
                         <span className="truncate">{pick('জাতীয় শিক্ষাক্রম ও পাঠ্যপুস্তক বোর্ড (NCTB)', 'National Curriculum and Textbook Board')}</span>
                       </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
+                      <ExternalLink className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
                     </a>
                   </li>
                   <li>
@@ -1502,7 +1544,7 @@ export function HomePage() {
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
                         <span className="truncate">{pick('বাংলাদেশ কারিগরি শিক্ষা বোর্ড (BTEB)', 'Bangladesh Technical Education Board')}</span>
                       </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
+                      <ExternalLink className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
                     </a>
                   </li>
                 </ul>
@@ -1514,11 +1556,11 @@ export function HomePage() {
                   <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                     <BookOpen className="w-4 h-4" />
                   </div>
-                  <h3 className="text-base font-bold">
+                  <h3 className="text-[18px] font-bold">
                     {pick('একাডেমিক তথ্য ও পাঠ্যক্রম', 'Academic Curriculum & Resources')}
                   </h3>
                 </div>
-                <ul className="space-y-2 text-xs text-muted-foreground">
+                <ul className="space-y-2.5 text-[14px] text-muted-foreground">
                   <li>
                     <Link
                       href="/academics/academic-calendar"
@@ -1528,7 +1570,7 @@ export function HomePage() {
                         <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                         <span className="truncate">{pick('বাৎসরিক একাডেমিক ক্যালেন্ডার ও বর্ষপঞ্জি', 'Academic Calendar & Holidays')}</span>
                       </div>
-                      <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
+                      <ArrowRight className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
                     </Link>
                   </li>
                   <li>
@@ -1540,7 +1582,7 @@ export function HomePage() {
                         <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                         <span className="truncate">{pick('শ্রেণিভিত্তিক পাঠ্যসূচি ও সিলেবাস', 'Class Syllabus & Outline')}</span>
                       </div>
-                      <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
+                      <ArrowRight className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
                     </Link>
                   </li>
                   <li>
@@ -1552,7 +1594,7 @@ export function HomePage() {
                         <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                         <span className="truncate">{pick('ডিজিটাল পাঠাগার ও পাঠ্যবই কর্নার', 'Digital Library & Reading Corner')}</span>
                       </div>
-                      <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary shrink-0" />
+                      <ArrowRight className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
                     </Link>
                   </li>
                 </ul>
@@ -1565,7 +1607,7 @@ export function HomePage() {
             {/* Widget 1: সভাপতি, ম্যানেজিং কমিটি */}
             {presidentMsg && (
               <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-xs">
-                <div className="bg-[#0c5936] text-white px-4 py-2 font-bold text-sm tracking-wide flex items-center justify-between">
+                <div className="bg-[#0c5936] text-white px-4 py-2.5 font-bold text-[18px] tracking-wide flex items-center justify-between">
                   <span>{pick('মাননীয় সভাপতি, ম্যানেজিং কমিটি', 'Chairman, Managing Committee')}</span>
                 </div>
                 <div className="p-4 text-center space-y-3">
@@ -1578,17 +1620,17 @@ export function HomePage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-base font-bold text-foreground">
+                    <h3 className="text-[16px] font-bold text-foreground">
                       {presidentMsg.personName}
                     </h3>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[14px] text-muted-foreground">
                       {presidentMsg.designation}
                     </p>
                   </div>
                   <div className="pt-2 border-t border-border/60">
                     <Link
                       href={`/about/leadership/${presidentMsg.id}`}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                      className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-primary hover:underline"
                     >
                       <span>{pick('বিস্তারিত পরিচিতি ও বাণী', 'View Details & Message')}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -1601,7 +1643,7 @@ export function HomePage() {
             {/* Widget 2: প্রধান শিক্ষক */}
             {principalMsg && (
               <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-xs">
-                <div className="bg-[#0c5936] text-white px-4 py-2 font-bold text-sm tracking-wide flex items-center justify-between">
+                <div className="bg-[#0c5936] text-white px-4 py-2.5 font-bold text-[18px] tracking-wide flex items-center justify-between">
                   <span>{pick('প্রধান শিক্ষক, ভোজেশ্বর উচ্চ বিদ্যালয়', 'Headmaster, Bhojeshwar High School')}</span>
                 </div>
                 <div className="p-4 text-center space-y-3">
@@ -1614,17 +1656,17 @@ export function HomePage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-base font-bold text-foreground">
+                    <h3 className="text-[16px] font-bold text-foreground">
                       {principalMsg.personName}
                     </h3>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-[14px] text-muted-foreground">
                       {principalMsg.designation}
                     </p>
                   </div>
                   <div className="pt-2 border-t border-border/60">
                     <Link
                       href={`/about/leadership/${principalMsg.id}`}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                      className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-primary hover:underline"
                     >
                       <span>{pick('বিস্তারিত পরিচিতি ও বাণী', 'View Details & Message')}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -1637,7 +1679,7 @@ export function HomePage() {
         </motion.section>
 
         {/* =====================================================================
-            C. WHY STUDY AT BHS? (INSTITUTIONAL VALUE PROPOSITION - GENERAL)
+            C. WHY STUDY AT BHS? (INSTITUTIONAL VALUE PROPOSITION & FACILITIES)
            ===================================================================== */}
         <motion.section
           initial={{ opacity: 0, y: 18 }}
@@ -1646,74 +1688,268 @@ export function HomePage() {
           transition={{ duration: 0.45, ease: EASE_OUT }}
           className="space-y-6"
         >
-          {/* Section Heading */}
+          {/* Section Heading & Action Links */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{pick('আমাদের অনন্য বৈশিষ্ট্য ও শক্তি', 'Why Choose Bhojeshwar High School')}</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight text-balance">
-                {pick('কেন ভোজেশ্বর উচ্চ বিদ্যালয়ে পড়বেন?', 'Why Study at BHS?')}
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight text-balance">
+                {pick('কেন ভোজেশ্বর উচ্চ বিদ্যালয়ে পড়বেন?', 'Why Study at Bhojeshwar High School?')}
               </h2>
-              <p className="text-base text-muted-foreground max-w-3xl leading-relaxed">
+              <p className="text-sm sm:text-base text-muted-foreground max-w-2xl leading-relaxed">
                 {pick(
-                  '১৯৭৮ সাল থেকে শরীয়তপুরের ঐতিহ্যবাহী বিদ্যাপীঠ হিসেবে ভোজেশ্বর উচ্চ বিদ্যালয় আধুনিক প্রযুক্তি, মানসম্মত সাধারণ শিক্ষা, সমৃদ্ধ বিজ্ঞানাগার এবং সুশৃঙ্খল নৈতিকতার এক অনন্য কেন্দ্র।',
+                  'ঐতিহ্যবাহী বিদ্যাপীঠ হিসেবে ভোজেশ্বর উচ্চ বিদ্যালয় আধুনিক প্রযুক্তি, মানসম্মত সাধারণ শিক্ষা, সমৃদ্ধ বিজ্ঞানাগার এবং সুশৃঙ্খল নৈতিকতার এক অনন্য কেন্দ্র।',
                   'Since 1978, Bhojeshwar High School has stood as a trusted center for rigorous secondary education, modern technology, science exploration, and disciplined character building.'
                 )}
               </p>
             </div>
-            <Link
-              href="/about"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline whitespace-nowrap shrink-0"
-            >
-              <span>{pick('বিদ্যালয়ের পূর্ণ পরিচিতি', 'About Our Institution')}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            <div className="flex items-center gap-4 shrink-0 text-sm font-semibold">
+              <Link
+                href="/about"
+                className="inline-flex items-center gap-1.5 text-primary hover:underline whitespace-nowrap"
+              >
+                <span>{pick('ইতিহাস ও ঐতিহ্য', 'History & Heritage')}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <Link
+                href="/about#mission"
+                className="inline-flex items-center gap-1.5 text-primary hover:underline whitespace-nowrap"
+              >
+                <span>{pick('লক্ষ্য ও উদ্দেশ্য', 'Mission & Vision')}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
 
-          {/* 6-Card Modern Bento-Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {whyStudyHighlights.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.id}
-                  href={item.to}
-                  className="group bg-surface border border-border rounded-xl p-5 sm:p-6 flex flex-col justify-between gap-5 hover:border-primary/45 hover:shadow-sm transition-all"
-                >
-                  <div className="space-y-3.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground flex items-center justify-center transition-colors shrink-0">
-                        <Icon className="w-5 h-5" />
-                      </div>
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-surface-muted text-muted-foreground border border-border/80">
-                        {locale === 'bn' ? item.badgeBn : item.badgeEn}
-                      </span>
-                    </div>
+          {/* 2-Column Balanced Showcase: Left Photo+Stats vs Right 4 Stacked Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            {/* Left Column (5 Cols): Photo Card + 3 Stat Badges underneath */}
+            <div className="lg:col-span-5 flex flex-col gap-3">
+              {/* Photo Showcase Card */}
+              <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-surface shadow-xs group flex-1 min-h-[290px] sm:min-h-[330px] flex flex-col justify-between p-5">
+                <img
+                  src={getCampusPhoto('digital-classroom').src}
+                  alt={pick('ভোজেশ্বর উচ্চ বিদ্যালয় ক্যাম্পাস ও স্মার্ট শ্রেণিকক্ষ', 'BHS Campus & Smart Classroom')}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
 
-                    <div className="space-y-1.5">
-                      <h3 className="text-base sm:text-lg font-bold text-foreground group-hover:text-primary transition-colors">
-                        {locale === 'bn' ? item.titleBn : item.titleEn}
-                      </h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {locale === 'bn' ? item.descBn : item.descEn}
+                {/* Top Badge */}
+                <div className="relative z-10 flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 backdrop-blur-md text-emerald-300 text-xs font-semibold border border-emerald-500/30">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    {pick('মূল ক্যাম্পাস ও স্মার্ট শ্রেণিকক্ষ', 'Main Campus & Smart Classroom')}
+                  </span>
+                </div>
+
+                {/* Bottom Overlay Info */}
+                <div className="relative z-10 space-y-1">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                    {db.schoolProfile.name}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-white/85 line-clamp-2 leading-relaxed">
+                    {pick(
+                      'ভোজেশ্বর, নড়িয়া, শরীয়তপুরের সুপরিসর ক্যাম্পাস, সবুজ খেলার মাঠ ও আধুনিক শিক্ষার অনন্য সমন্বয়।',
+                      'Spacious campus, lush green playground, dedicated faculty, and modern ICT learning in Naria, Shariatpur.'
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* 3 Metric Badges Below Image */}
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="bg-surface border border-border/80 rounded-xl py-3 px-2 text-center hover:border-primary/40 transition-colors shadow-2xs">
+                  <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">
+                    {formatNumber(db.schoolProfile.establishedYear ?? 1978, locale)}
+                  </p>
+                  <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 font-medium">
+                    {pick('প্রতিষ্ঠা সন', 'Established')}
+                  </p>
+                </div>
+                <div className="bg-surface border border-border/80 rounded-xl py-3 px-2 text-center hover:border-primary/40 transition-colors shadow-2xs">
+                  <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">
+                    {db.schoolProfile.eiin ?? '১১৩৫৮৭'}
+                  </p>
+                  <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 font-medium">
+                    {pick('EIIN নম্বর', 'EIIN Code')}
+                  </p>
+                </div>
+                <div className="bg-surface border border-border/80 rounded-xl py-3 px-2 text-center hover:border-primary/40 transition-colors shadow-2xs">
+                  <p className="text-lg sm:text-xl font-bold text-foreground tabular-nums">
+                    {formatNumber(yearsSinceEst, locale)}+ {pick('বছর', 'Years')}
+                  </p>
+                  <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 font-medium">
+                    {pick('শিক্ষা ঐতিহ্য', 'Heritage')}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column (7 Cols): 4 Core Feature Cards Stacked Vertically */}
+            <div className="lg:col-span-7 flex flex-col justify-between gap-2.5">
+              {/* Card 1: Heritage & Foundation */}
+              <Link
+                href="/about"
+                className="group bg-surface border border-border/80 rounded-xl p-3.5 sm:p-4 hover:border-primary/50 hover:shadow-xs transition-all flex items-start sm:items-center gap-3.5"
+              >
+                <div className="h-12 w-12 sm:h-13 sm:w-13 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 group-hover:bg-primary group-hover:text-primary-foreground transition-all flex flex-col items-center justify-center shrink-0 border border-emerald-500/20">
+                  <Landmark className="w-5 h-5" />
+                  <span className="text-[10px] font-bold mt-0.5 tabular-nums">
+                    {formatNumber(db.schoolProfile.establishedYear ?? 1978, locale)}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                      {pick(
+                        `${formatNumber(yearsSinceEst, locale)}+ বছরের গৌরবময় ঐতিহ্য ও নির্ভরযোগ্যতা`,
+                        `${yearsSinceEst}+ Years of Heritage & Reliability`
+                      )}
+                    </h3>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-surface-muted text-muted-foreground border border-border/70 shrink-0">
+                      {pick('ঐতিহ্য ও ভিত্তি', 'Heritage & Trust')}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed mt-1 line-clamp-2">
+                    {pick(
+                      `${formatNumber(db.schoolProfile.establishedYear ?? 1978, locale)} সাল থেকে নড়িয়া ও শরীয়তপুর অঞ্চলে মানসম্মত, সুশৃঙ্খল ও নৈতিক মাধ্যমিক শিক্ষার বিশ্বস্ত কেন্দ্র।`,
+                      'An enduring pillar of structured secondary education, disciplined learning, and ethical values in Shariatpur since 1978.'
+                    )}
+                  </p>
+                </div>
+              </Link>
+
+              {/* Card 2: Faculty & Mentorship */}
+              <Link
+                href="/about/teachers"
+                className="group bg-surface border border-border/80 rounded-xl p-3.5 sm:p-4 hover:border-primary/50 hover:shadow-xs transition-all flex items-start sm:items-center gap-3.5"
+              >
+                <div className="h-12 w-12 sm:h-13 sm:w-13 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 group-hover:bg-primary group-hover:text-primary-foreground transition-all flex flex-col items-center justify-center shrink-0 border border-emerald-500/20">
+                  <GraduationCap className="w-5 h-5" />
+                  <span className="text-[10px] font-bold mt-0.5">
+                    {pick('২৫+ জন', '25+')}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                      {pick('বিষয়ভিত্তিক অভিজ্ঞ শিক্ষক ও নিবিড় মূল্যায়ন', 'Expert Faculty & Continuous Mentoring')}
+                    </h3>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-surface-muted text-muted-foreground border border-border/70 shrink-0">
+                      {pick('দক্ষ শিক্ষকমণ্ডলী', 'Certified Faculty')}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed mt-1 line-clamp-2">
+                    {pick(
+                      'স্নাতকোত্তর ও বিএড প্রশিক্ষণপ্রাপ্ত শিক্ষকদের প্রত্যক্ষ তত্ত্বাবধান, সাপ্তাহিক মূল্যায়ন এবং দুর্বল শিক্ষার্থীদের বিশেষ যত্ন।',
+                      'Subject-specialist educators providing guided mentorship, continuous evaluation, and remedial care for student success.'
+                    )}
+                  </p>
+                </div>
+              </Link>
+
+              {/* Card 3: Science & Computer Labs, Library */}
+              <Link
+                href="/about/facilities"
+                className="group bg-surface border border-border/80 rounded-xl p-3.5 sm:p-4 hover:border-primary/50 hover:shadow-xs transition-all flex items-start sm:items-center gap-3.5"
+              >
+                <div className="h-12 w-12 sm:h-13 sm:w-13 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 group-hover:bg-primary group-hover:text-primary-foreground transition-all flex flex-col items-center justify-center shrink-0 border border-emerald-500/20">
+                  <FlaskConical className="w-5 h-5" />
+                  <span className="text-[10px] font-bold mt-0.5">
+                    {pick('ল্যাব ও স্মার্ট', 'Labs')}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                      {pick('সমৃদ্ধ বিজ্ঞান গবেষণাগার, আইসিটি ল্যাব ও গ্রন্থাগার', 'Equipped Science Labs, ICT Lab & Library')}
+                    </h3>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-surface-muted text-muted-foreground border border-border/70 shrink-0">
+                      {pick('আধুনিক অবকাঠামো', 'Infrastructure')}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed mt-1 line-clamp-2">
+                    {pick(
+                      'পদার্থ, রসায়ন ও জীববিজ্ঞানের নিয়মিত ব্যবহারিক ক্লাস, ব্রডব্যান্ড কম্পিউটার ল্যাব এবং ৩,৫০০+ বইয়ের লাইব্রেরি।',
+                      'Modern Physics, Chemistry, Biology laboratories, broadband computer lab, interactive multimedia rooms, and 3,500+ library books.'
+                    )}
+                  </p>
+                </div>
+              </Link>
+
+              {/* Card 4: RFID Smart Attendance & Parent SMS Portal */}
+              <Link
+                href="/about/facilities"
+                className="group bg-surface border border-border/80 rounded-xl p-3.5 sm:p-4 hover:border-primary/50 hover:shadow-xs transition-all flex items-start sm:items-center gap-3.5"
+              >
+                <div className="h-12 w-12 sm:h-13 sm:w-13 rounded-xl bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 group-hover:bg-primary group-hover:text-primary-foreground transition-all flex flex-col items-center justify-center shrink-0 border border-emerald-500/20">
+                  <ShieldCheck className="w-5 h-5" />
+                  <span className="text-[10px] font-bold mt-0.5">
+                    {pick('RFID স্মার্ট', 'RFID Smart')}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                      {pick('RFID গেট হাজিরা, তাৎক্ষণিক SMS ও অভিভাবক পোর্টাল', 'RFID Smart Attendance & Parent Portal')}
+                    </h3>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                      {pick('ডিজিটাল নিরাপত্তা', 'Digital Security')}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-[13px] text-muted-foreground leading-relaxed mt-1 line-clamp-2">
+                    {pick(
+                      'প্রবেশ ও প্রস্থানে স্বয়ংক্রিয় এসএমএস, অনলাইন পরীক্ষার ফলাফল ও সার্বক্ষণিক সিসিটিভি নিয়ন্ত্রিত নিরাপদ ক্যাম্পাস।',
+                      'Automated arrival SMS, real-time online report cards, 24/7 CCTV surveillance, and secure digital parent updates.'
+                    )}
+                  </p>
+                </div>
+              </Link>
+            </div>
+          </div>
+
+          {/* Campus Infrastructure & Facilities Section */}
+          <div className="space-y-3 pt-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-foreground">
+                  {pick('ভবন, জমি, শ্রেণিকক্ষ, ল্যাব, মাল্টিমিডিয়া কক্ষ ও গ্রন্থাগার', 'Campus Land, Buildings, Classrooms, Labs & Library')}
+                </h3>
+              </div>
+              <div className="flex items-center gap-4 shrink-0 text-xs sm:text-sm font-semibold">
+                <Link href="/gallery" className="text-primary hover:underline inline-flex items-center gap-1">
+                  <span>{pick('ক্যাম্পাস গ্যালারি', 'Campus Gallery')}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+                <Link href="/about/facilities" className="text-primary hover:underline inline-flex items-center gap-1">
+                  <span>{pick('সুবিধাসমূহ দেখুন', 'All Facilities')}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+
+            {/* 6 Clean Metric Cards (Horizontal Icon + Text Pills) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
+              {campusFacilityStats.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.labelEn}
+                    className="group bg-surface border border-border/80 rounded-xl p-3 flex items-center gap-3 hover:border-primary/50 hover:shadow-2xs transition-all"
+                  >
+                    <div className="h-9 w-9 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 group-hover:scale-105 transition-transform flex items-center justify-center shrink-0 border border-emerald-500/15">
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm sm:text-base font-extrabold text-foreground tabular-nums leading-tight">
+                        {locale === 'bn' ? item.valBn : item.valEn}
+                      </p>
+                      <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 font-medium truncate">
+                        {locale === 'bn' ? item.labelBn : item.labelEn}
                       </p>
                     </div>
                   </div>
-
-                  <div className="pt-3.5 border-t border-border/80 flex items-center justify-between gap-2 text-xs">
-                    <span className="font-medium text-foreground/80">
-                      {locale === 'bn' ? item.statsBn : item.statsEn}
-                    </span>
-                    <span className="inline-flex items-center gap-1 font-semibold text-primary group-hover:translate-x-0.5 transition-transform">
-                      <span>{pick('বিস্তারিত', 'Explore')}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </motion.section>
 

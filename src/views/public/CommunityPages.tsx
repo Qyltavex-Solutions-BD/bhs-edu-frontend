@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Calendar,
+  ChevronLeft,
   ChevronRight,
   Clock,
   MapPin,
@@ -53,145 +54,357 @@ import { Button, Card, FormField, Input, Select, Textarea } from '@/src/componen
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { AchievementType, MediaType, NoticeStatus, PublicationType } from '@/src/types/enums';
 import type { Achievement, Notice } from '@/src/types/entities';
+import { cn } from '@/src/lib/utils/cn';
+
+type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
 
 export function PublicNoticesListPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const { locale, pick } = useI18n();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [previewNotice, setPreviewNotice] = useState<Notice | null>(null);
-  const search = searchParams.get('q') ?? '';
-  const urgentOnly = searchParams.get('urgent') === '1';
+  const [searchParams] = useSearchParams();
 
-  const setParam = (key: string, value: string | null) => {
-    const next = new URLSearchParams(searchParams);
-    if (!value) next.delete(key);
-    else next.set(key, value);
-    setSearchParams(next, { replace: true });
+  const [noticeTab, setNoticeTab] = useState<NoticeTab>(
+    searchParams.get('urgent') === '1' ? 'urgent' : 'all'
+  );
+  const [noticeQuery, setNoticeQuery] = useState(searchParams.get('q') ?? '');
+  const [pageIndex, setPageIndex] = useState(0);
+  const pageSize = 10;
+
+  const noticeTabs: { key: NoticeTab; labelBn: string; labelEn: string }[] = [
+    { key: 'all', labelBn: 'সব বিজ্ঞপ্তি', labelEn: 'All Notices' },
+    { key: 'urgent', labelBn: 'জরুরি', labelEn: 'Urgent' },
+    { key: 'exam', labelBn: 'পরীক্ষা ও ফলাফল', labelEn: 'Exams & Results' },
+    { key: 'admission', labelBn: 'ভর্তি ও একাডেমিক', labelEn: 'Admission' },
+  ];
+
+  if (isLoading || !db) {
+    return (
+      <div className="max-w-[1440px] mx-auto p-6">
+        <LoadingSkeleton />
+      </div>
+    );
+  }
+
+  const allPublished = (db.notices ?? []).filter((n) => n.status === NoticeStatus.PUBLISHED);
+
+  const filteredNotices = allPublished.filter((n) => {
+    const text = `${n.memoNo ?? ''} ${n.title} ${n.description}`.toLowerCase();
+    if (noticeQuery.trim() && !text.includes(noticeQuery.trim().toLowerCase())) {
+      return false;
+    }
+    if (noticeTab === 'urgent') return n.isUrgent;
+    if (noticeTab === 'exam') {
+      return (
+        text.includes('পরীক্ষা') ||
+        text.includes('routine') ||
+        text.includes('exam') ||
+        text.includes('ফলাফল') ||
+        text.includes('প্রবেশপত্র') ||
+        text.includes('নম্বরপত্র')
+      );
+    }
+    if (noticeTab === 'admission') {
+      return (
+        text.includes('ভর্তি') ||
+        text.includes('admission') ||
+        text.includes('একাডেমিক') ||
+        text.includes('ক্যালেন্ডার') ||
+        text.includes('ক্লাস')
+      );
+    }
+    return true;
+  });
+
+  const totalFiltered = filteredNotices.length;
+  const pageCount = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const safePageIndex = Math.min(pageIndex, pageCount - 1);
+  const startIndex = safePageIndex * pageSize;
+  const pagedRows = filteredNotices.slice(startIndex, startIndex + pageSize);
+
+  // Pagination page numbers (same format with ellipsis support)
+  const getPageNumbers = () => {
+    if (pageCount <= 7) {
+      return Array.from({ length: pageCount }, (_, i) => i + 1);
+    }
+    const pages: (number | string)[] = [];
+    if (safePageIndex + 1 <= 4) {
+      for (let i = 1; i <= Math.min(5, pageCount); i++) pages.push(i);
+      if (pageCount > 5) {
+        pages.push('...');
+        pages.push(pageCount);
+      }
+    } else if (safePageIndex + 1 >= pageCount - 3) {
+      pages.push(1);
+      pages.push('...');
+      for (let i = pageCount - 4; i <= pageCount; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      pages.push('...');
+      pages.push(safePageIndex);
+      pages.push(safePageIndex + 1);
+      pages.push(safePageIndex + 2);
+      pages.push('...');
+      pages.push(pageCount);
+    }
+    return pages;
   };
 
-  if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
-
-  const list = db.notices
-    .filter((n) => n.status === NoticeStatus.PUBLISHED)
-    .filter((n) => (urgentOnly ? n.isUrgent : true))
-    .filter(
-      (n) =>
-        n.title.toLowerCase().includes(search.toLowerCase()) ||
-        n.description.toLowerCase().includes(search.toLowerCase())
-    );
+  const paginationSummary = pick(
+    `মোট ${formatNumber(totalFiltered, 'bn')} টি তথ্য · পৃষ্ঠা ${formatNumber(safePageIndex + 1, 'bn')} / ${formatNumber(pageCount, 'bn')}`,
+    `Showing ${totalFiltered} records · Page ${safePageIndex + 1} of ${pageCount}`
+  );
 
   return (
-    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
-      <PageHeader
-        title={pick('প্রাতিষ্ঠানিক নোটিশ বোর্ড', 'Official Notice Board')}
-        description={pick('বিদ্যালয়ের প্রকাশিত সকল সরকারি, পরীক্ষা, ভর্তি ও একাডেমিক বিজ্ঞপ্তি।', 'All published institutional, exam, admission, and academic circulars.')}
-      />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="relative flex-1 min-w-[220px] max-w-sm">
-          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-          <Input
-            value={search}
-            onChange={(e) => setParam('q', e.target.value || null)}
-            placeholder={pick('নোটিশ খুঁজুন...', 'Search notices...')}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex items-center gap-1 p-1 bg-surface-muted rounded-lg border border-border">
-          <button
-            type="button"
-            onClick={() => setParam('urgent', null)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md cursor-pointer transition-colors ${!urgentOnly ? 'bg-surface text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            {pick('সকল বিজ্ঞপ্তি', 'All Notices')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setParam('urgent', '1')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md cursor-pointer transition-colors ${urgentOnly ? 'bg-destructive text-white shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            {pick('শুধু জরুরি', 'Urgent Only')}
-          </button>
+    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-8 space-y-6">
+      {/* 1. Header with Valid Institutional Data & Stats */}
+      <div className="bg-surface border border-border rounded-xl p-5 sm:p-6 space-y-4 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-600" />
+              <span>{pick('অফিসিয়াল সার্কুলার পোর্টাল', 'Official Circular Portal')}</span>
+              <span className="text-muted-foreground/50">·</span>
+              <span>{pick(`EIIN: ${db.schoolProfile?.eiin || '১১১৮৬৯'}`, `EIIN: ${db.schoolProfile?.eiin || '111869'}`)}</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+              <FileText className="w-7 h-7 text-[#0c5936] dark:text-emerald-500 shrink-0" />
+              <span>{pick('প্রাতিষ্ঠানিক নোটিশ বোর্ড', 'Institutional Notice Board')}</span>
+            </h1>
+            <p className="text-base text-muted-foreground max-w-3xl leading-relaxed">
+              {pick(
+                'ভোজেশ্বর উচ্চ বিদ্যালয়ের সকল প্রাতিষ্ঠানিক আদেশ, পরীক্ষা, ফলাফল, ভর্তি ও শিক্ষা বোর্ডের জরুরি বিজ্ঞপ্তি সমূহ।',
+                'Official circulars, exam schedules, results, admissions, and educational board notices for Bhojeshwar High School.'
+              )}
+            </p>
+          </div>
+
+          {/* Valid Institutional Stats */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="px-4 py-2.5 rounded-lg bg-surface-muted/60 border border-border text-center min-w-[100px]">
+              <span className="block text-xs text-muted-foreground font-medium">
+                {pick('মোট বিজ্ঞপ্তি', 'Total Notices')}
+              </span>
+              <span className="text-lg font-bold text-[#0c5936] dark:text-emerald-400 tabular-nums">
+                {formatNumber(allPublished.length, locale)}
+              </span>
+            </div>
+            <div className="px-4 py-2.5 rounded-lg bg-surface-muted/60 border border-border text-center min-w-[100px]">
+              <span className="block text-xs text-muted-foreground font-medium">
+                {pick('জরুরি বিজ্ঞপ্তি', 'Urgent Notices')}
+              </span>
+              <span className="text-lg font-bold text-destructive tabular-nums">
+                {formatNumber(allPublished.filter((n) => n.isUrgent).length, locale)}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
-      {list.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <Card className="divide-y divide-border overflow-hidden">
-          {list.map((n) => {
-            const pubDate = new Date(n.publishedAt ?? n.createdAt);
-            const isRecent = Date.now() - pubDate.getTime() < 14 * 24 * 60 * 60 * 1000;
-            const showNewBadge = n.isUrgent || isRecent;
-            const day = String(pubDate.getDate()).padStart(2, '0');
-            const month = String(pubDate.getMonth() + 1).padStart(2, '0');
-            const year = pubDate.getFullYear();
-            const rawDate = `${day}-${month}-${year}`;
-            const formattedDate = locale === 'bn' ? formatNumber(rawDate, 'bn') : rawDate;
 
-            return (
-              <Link
-                key={n.id}
-                href={`/notices/${n.id}`}
-                className="group flex items-start gap-3.5 p-4 sm:px-6 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/20 transition-colors cursor-pointer"
-              >
-                {/* Green Bullet Icon (bteb.gov.bd style) */}
-                <span className="w-2.5 h-2.5 rounded-full bg-[#0c5936] dark:bg-emerald-500 shrink-0 mt-2" />
+      {/* 2. Main Card containing Search/Filter Strip, Table & Pagination */}
+      <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-xs">
+        {/* Search & Filtering Strip (Same format as HomePage) */}
+        <div className="px-5 sm:px-6 py-3 bg-surface-muted/30 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {noticeTabs.map((tab) => {
+              const active = noticeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => {
+                    setNoticeTab(tab.key);
+                    setPageIndex(0);
+                  }}
+                  className={cn(
+                    'px-3 py-1.5 text-base font-medium rounded-md transition-colors cursor-pointer whitespace-nowrap',
+                    active
+                      ? 'bg-[#0c5936] text-white shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-surface'
+                  )}
+                >
+                  {locale === 'bn' ? tab.labelBn : tab.labelEn}
+                </button>
+              );
+            })}
+          </div>
 
-                <div className="min-w-0 flex-1 space-y-2">
-                  <h2 className="text-base font-normal text-foreground group-hover:text-[#0c5936] transition-colors leading-snug">
-                    {n.title}
-                  </h2>
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={noticeQuery}
+              onChange={(e) => {
+                setNoticeQuery(e.target.value);
+                setPageIndex(0);
+              }}
+              placeholder={pick('স্মারক বা বিষয় খুঁজুন...', 'Search memo or title...')}
+              className="w-full h-9 pl-9 pr-3 text-base bg-surface border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+            />
+          </div>
+        </div>
 
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5 tabular-nums font-medium">
-                      <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span>{formattedDate}</span>
-                    </span>
+        {/* 3. Notice Table (4 columns: নং, শিরোনাম, প্রকাশের তারিখ, কার্যকলাপ) with base 16px font */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-base border-collapse">
+            <thead>
+              <tr className="border-b border-border bg-surface-muted/50 text-foreground font-bold text-base">
+                <th className="py-3 px-4 text-center border-r border-border w-16 shrink-0">
+                  {pick('নং', 'SL')}
+                </th>
+                <th className="py-3 px-5 text-left border-r border-border">
+                  {pick('শিরোনাম', 'Title')}
+                </th>
+                <th className="py-3 px-4 text-center border-r border-border w-36 sm:w-44 shrink-0">
+                  {pick('প্রকাশের তারিখ', 'Publish Date')}
+                </th>
+                <th className="py-3 px-4 text-center w-36 shrink-0">
+                  {pick('কার্যকলাপ', 'Action')}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {pagedRows.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-12 text-center text-base text-muted-foreground">
+                    {pick('এই বিভাগে কোনো বিজ্ঞপ্তি পাওয়া যায়নি।', 'No notices found in this category.')}
+                  </td>
+                </tr>
+              ) : (
+                pagedRows.map((n, idx) => {
+                  const serial = startIndex + idx + 1;
+                  const pubDate = new Date(n.publishedAt ?? n.createdAt);
+                  const isRecent = Date.now() - pubDate.getTime() < 14 * 24 * 60 * 60 * 1000;
+                  const showNewBadge = n.isUrgent || isRecent;
+                  const day = String(pubDate.getDate()).padStart(2, '0');
+                  const month = String(pubDate.getMonth() + 1).padStart(2, '0');
+                  const year = pubDate.getFullYear();
+                  const rawDate = `${day}-${month}-${year}`;
+                  const formattedDate = locale === 'bn' ? formatNumber(rawDate, 'bn') : rawDate;
 
-                    {showNewBadge && (
-                      <span className="px-2 py-0.5 rounded-sm bg-[#D32F2F] text-white text-[11px] font-bold leading-none">
-                        {pick('নতুন', 'New')}
-                      </span>
-                    )}
+                  return (
+                    <tr
+                      key={n.id}
+                      className="hover:bg-emerald-50/30 dark:hover:bg-emerald-950/15 transition-colors"
+                    >
+                      {/* নং */}
+                      <td className="py-4 px-3 text-center border-r border-border tabular-nums font-medium text-base text-foreground">
+                        {formatNumber(serial, locale)}
+                      </td>
 
-                    <span className="px-2 py-0.5 rounded-sm bg-surface-muted border border-border text-[11px] font-medium text-foreground">
-                      {n.isUrgent ? pick('জরুরি', 'Urgent') : pick('সাধারণ', 'General')}
-                    </span>
+                      {/* শিরোনাম */}
+                      <td className="py-4 px-5 border-r border-border">
+                        <div className="space-y-1.5">
+                          <Link
+                            href={`/notices/${n.id}`}
+                            className="text-base font-medium text-foreground hover:text-[#0c5936] dark:hover:text-emerald-400 hover:underline leading-relaxed block transition-colors"
+                          >
+                            {n.title}
+                          </Link>
 
-                    {n.memoNo && (
-                      <span className="text-[11px] text-muted-foreground font-mono">
-                        {n.memoNo}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            {showNewBadge && (
+                              <span className="px-2 py-0.5 rounded-sm bg-[#D32F2F] text-white text-[12px] font-bold leading-none">
+                                {pick('নতুন', 'New')}
+                              </span>
+                            )}
+                            <span className="px-2 py-0.5 rounded-sm bg-surface-muted border border-border text-[12px] font-medium text-foreground">
+                              {n.isUrgent ? pick('জরুরি', 'Urgent') : pick('সাধারণ', 'General')}
+                            </span>
+                            {n.memoNo && (
+                              <span className="text-[12px] text-muted-foreground font-mono">
+                                {n.memoNo}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
 
-                <div className="flex items-center gap-2 shrink-0 self-center pl-2">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      downloadNoticeDocument(n, db.schoolProfile, locale);
-                    }}
-                    aria-label={pick('ডাউনলোড', 'Download')}
-                    title={pick('ডাউনলোড করুন', 'Download')}
-                    className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-border bg-surface text-muted-foreground hover:text-[#0c5936] hover:border-emerald-600 transition-colors cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </button>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-[#0c5936] group-hover:translate-x-1 transition-all" />
-                </div>
-              </Link>
-            );
-          })}
-        </Card>
-      )}
+                      {/* প্রকাশের তারিখ */}
+                      <td className="py-4 px-4 text-center border-r border-border tabular-nums whitespace-nowrap text-base text-foreground">
+                        {formattedDate}
+                      </td>
 
-      <NoticeDocumentModal
-        notice={previewNotice}
-        school={db.schoolProfile}
-        onClose={() => setPreviewNotice(null)}
-      />
+                      {/* কার্যকলাপ */}
+                      <td className="py-4 px-4 text-center whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-2">
+                          <Link
+                            href={`/notices/${n.id}`}
+                            className="text-base font-semibold text-[#1a56db] dark:text-blue-400 hover:text-[#0c5936] dark:hover:text-emerald-400 hover:underline transition-colors"
+                          >
+                            {pick('দেখুন', 'View')}
+                          </Link>
+                          <span className="text-muted-foreground/40">|</span>
+                          <button
+                            type="button"
+                            onClick={() => downloadNoticeDocument(n, db.schoolProfile, locale, false)}
+                            title={pick('ডাউনলোড করুন', 'Download')}
+                            className="text-base font-semibold text-[#0c5936] dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer transition-colors"
+                          >
+                            <Download className="w-4 h-4" />
+                            <span className="hidden sm:inline">{pick('ডাউনলোড', 'Download')}</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 4. Admin-Format Pagination */}
+        <div className="p-4 bg-surface-muted/20 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-base text-muted-foreground">
+          <span className="tabular-nums font-medium">{paginationSummary}</span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
+              disabled={safePageIndex <= 0}
+              className="cursor-pointer text-base"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>{locale === 'bn' ? 'পূর্ববর্তী' : 'Prev'}</span>
+            </Button>
+
+            {/* Page number buttons */}
+            {getPageNumbers().map((p, idx) => {
+              if (p === '...') {
+                return (
+                  <span key={`ell-${idx}`} className="px-2 text-muted-foreground select-none">
+                    ...
+                  </span>
+                );
+              }
+              const pageNum = p as number;
+              const isActive = pageNum === safePageIndex + 1;
+              return (
+                <Button
+                  key={pageNum}
+                  variant={isActive ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => setPageIndex(pageNum - 1)}
+                  className="min-w-[36px] px-2 tabular-nums cursor-pointer text-base"
+                >
+                  {formatNumber(pageNum, locale)}
+                </Button>
+              );
+            })}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPageIndex((p) => Math.min(pageCount - 1, p + 1))}
+              disabled={safePageIndex >= pageCount - 1}
+              className="cursor-pointer text-base"
+            >
+              <span>{locale === 'bn' ? 'পরবর্তী' : 'Next'}</span>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -222,30 +435,21 @@ export function PublicNoticeDetailPage() {
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-6">
-      {/* Top Meta Line: Last Updated + Print Icon (matches Image 2 from bteb.gov.bd) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-border text-xs text-muted-foreground no-print">
+      {/* Top Meta Line: Last Updated (14px font, print icon removed) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-border text-[14px] text-muted-foreground no-print">
         <Link
           href="/notices"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+          className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-primary hover:underline"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>{pick('সকল নোটিশ আর্কাইভ', 'All Notices Archive')}</span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div>
           <span>
             {pick('কনটেন্টটি শেষ হাল-নাগাদ করা হয়েছে:', 'Content Last Updated:')}{' '}
             <strong className="font-semibold text-foreground">{dayName}, {dateFormatted}</strong>
           </span>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            title={pick('প্রিন্ট করুন', 'Print Notice')}
-            aria-label="Print notice"
-            className="h-7 w-7 inline-flex items-center justify-center rounded border border-border bg-surface hover:bg-surface-muted text-foreground transition-colors cursor-pointer"
-          >
-            <Printer className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
 
@@ -255,7 +459,7 @@ export function PublicNoticeDetailPage() {
           {notice.title}
         </h1>
 
-        {/* Metadata Chips Strip (matches Image 2) */}
+        {/* Metadata Chips Strip */}
         <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
           <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium">
             {pick('কনটেন্ট: নোটিশ', 'Content: Notice')}
@@ -271,23 +475,6 @@ export function PublicNoticeDetailPage() {
           <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium">
             {pick('বিভাগ:', 'Category:')} {notice.isUrgent ? pick('জরুরি বিজ্ঞপ্তি', 'Urgent') : pick('সাধারণ নোটিশ', 'General')}
           </span>
-        </div>
-
-        {/* Green File Download Button (matches Image 2 from bteb.gov.bd) */}
-        <div className="pt-2">
-          <a
-            href={
-              notice.attachmentUrl ||
-              (notice.attachment?.toLowerCase().includes('admission')
-                ? '/documents/admission-circular-2027.pdf'
-                : '/documents/official-notice-circular.pdf')
-            }
-            download={notice.attachment || 'Notice-Circular.pdf'}
-            className="px-4 py-2 rounded-lg bg-[#0c5936] hover:bg-[#084529] text-white text-xs sm:text-sm font-medium inline-flex items-center gap-2 shadow-sm transition-all"
-          >
-            <Download className="w-4 h-4" />
-            <span>{pick('ফাইল ১ (অফিসিয়াল সার্কুলার ডাউনলোড)', 'File 1 (Download Circular)')}</span>
-          </a>
         </div>
       </div>
 
