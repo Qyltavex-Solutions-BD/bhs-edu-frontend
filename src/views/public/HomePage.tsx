@@ -20,6 +20,7 @@ import {
   FlaskConical,
   Globe,
   GraduationCap,
+  Laptop,
   Library,
   LogIn,
   Mail,
@@ -29,6 +30,9 @@ import {
   Phone,
   Printer,
   Search,
+  ShieldCheck,
+  Sparkles,
+  Trophy,
   Users,
   X,
 } from 'lucide-react';
@@ -46,7 +50,13 @@ import {
 } from '@/src/components/shared/Feedback';
 import { SchoolCampusMap } from '@/src/components/shared/SchoolCampusMap';
 import { Button, Card } from '@/src/components/ui/primitives';
-import { NoticeStatus, ResultPublicationStatus, StaffStatus, StaffType } from '@/src/types/enums';
+import {
+  AchievementType,
+  NoticeStatus,
+  ResultPublicationStatus,
+  StaffStatus,
+  StaffType,
+} from '@/src/types/enums';
 import type { Notice } from '@/src/types/entities';
 import { NoticeTickerBar } from '@/src/components/layout/PublicLayout';
 import {
@@ -503,6 +513,103 @@ export function HomePage() {
     .slice(0, 4);
   const yearsSinceEst = 2026 - (db.schoolProfile.establishedYear ?? 1978);
 
+  const institutionStars = useMemo(() => {
+    const publishedStars = db.achievements.filter(
+      (a) =>
+        a.isPublished &&
+        (a.type === AchievementType.STUDENT_STAR || a.type === AchievementType.NOTABLE_ALUMNI)
+    );
+    if (publishedStars.length >= 4) {
+      return publishedStars.slice(0, 4);
+    }
+    const fallbacks = [
+      {
+        id: 'fallback-star-1',
+        title:
+          locale === 'bn'
+            ? 'এসএসসি পরীক্ষায় গোল্ডেন জিপিএ ৫.০০ ও বোর্ড মেধা বৃত্তি'
+            : 'Golden GPA-5 in SSC & Board Merit Scholarship',
+        type: AchievementType.STUDENT_STAR,
+        personName: locale === 'bn' ? 'তানভীর হাসান' : 'Tanvir Hasan',
+        batch: locale === 'bn' ? 'ব্যাচ ২০২৪' : 'Batch 2024',
+        description:
+          locale === 'bn'
+            ? 'ঢাকা শিক্ষা বোর্ডে মেধা তালিকায় স্থান অর্জন এবং নড়িয়া উপজেলায় বিজ্ঞান বিভাগে সর্বোচ্চ নম্বর প্রাপ্তি। বর্তমানে নটর ডেম কলেজে একাদশ শ্রেণিতে অধ্যয়নরত।'
+            : 'Dhaka Education Board merit recipient and top scorer in science group across Naria Upazila.',
+        image: '/images/teacher_kamrul_portrait_1795155721415.jpg',
+        achievedAt: '2024-05-12',
+        isPublished: true,
+        createdAt: '',
+        updatedAt: '',
+      },
+      {
+        id: 'fallback-star-2',
+        title:
+          locale === 'bn'
+            ? 'জাতীয় বিজ্ঞান অলিম্পিয়াড ও ইনোভেশন ফেয়ারে প্রথম স্থান'
+            : 'Champion in National Science Olympiad & Innovation Fair',
+        type: AchievementType.STUDENT_STAR,
+        personName: locale === 'bn' ? 'সাদিয়া তাসনিম' : 'Sadia Tasnim',
+        batch: locale === 'bn' ? 'ব্যাচ ২০২৫' : 'Batch 2025',
+        description:
+          locale === 'bn'
+            ? 'স্মার্ট স্কুল এনার্জি ম্যানেজমেন্ট প্রকল্প উপস্থাপন করে জেলা পর্যায়ে প্রথম ও জাতীয় পর্যায়ে পদক অর্জন।'
+            : 'Regional champion and national medalist for smart automated school energy management innovation.',
+        image: '/images/teacher_sabina_portrait_1795155721585.jpg',
+        achievedAt: '2025-09-18',
+        isPublished: true,
+        createdAt: '',
+        updatedAt: '',
+      },
+      {
+        id: 'fallback-alumni-1',
+        title:
+          locale === 'bn'
+            ? 'অধ্যাপক ও গবেষক, বাংলাদেশ প্রকৌশল বিশ্ববিদ্যালয় (বুয়েট)'
+            : 'Professor & Researcher, BUET',
+        type: AchievementType.NOTABLE_ALUMNI,
+        personName: locale === 'bn' ? 'ড. রফিকুল ইসলাম' : 'Dr. Rafiqul Islam',
+        batch: locale === 'bn' ? 'ব্যাচ ১৯৯৬' : 'Batch 1996',
+        description:
+          locale === 'bn'
+            ? 'নবায়নযোগ্য শক্তি প্রযুক্তিতে আন্তর্জাতিক গবেষক ও বিদ্যালয়ের আধুনিক বিজ্ঞান ল্যাব প্রতিষ্ঠার সম্মানিত পৃষ্ঠপোষক।'
+            : 'International researcher in renewable energy and valued alumni patron for modernising school science facilities.',
+        image: '/images/teacher_debashish_portrait_1795155721385.jpg',
+        achievedAt: '2023-11-05',
+        isPublished: true,
+        createdAt: '',
+        updatedAt: '',
+      },
+      {
+        id: 'fallback-alumni-2',
+        title:
+          locale === 'bn'
+            ? 'সিনিয়র সহকারী সচিব, জনপ্রশাসন মন্ত্রণালয় (৩৬তম বিসিএস)'
+            : 'Senior Assistant Secretary, Ministry of Public Administration',
+        type: AchievementType.NOTABLE_ALUMNI,
+        personName: locale === 'bn' ? 'ফারহানা ইয়াসমিন' : 'Farhana Yasmin',
+        batch: locale === 'bn' ? 'ব্যাচ ২০০৬' : 'Batch 2006',
+        description:
+          locale === 'bn'
+            ? '৩৬তম বিসিএস (প্রশাসন) ক্যাডারে কৃতিত্বের সাথে উত্তীর্ণ হয়ে নিষ্ঠার সাথে দেশসেবায় নিয়োজিত ও নারী শিক্ষার অনুপ্রেরণা।'
+            : 'Ranked in 36th BCS Administration cadre, actively serving public administration and mentoring female scholars.',
+        image: '/images/teacher_anupama_portrait_1795155720897.jpg',
+        achievedAt: '2022-07-15',
+        isPublished: true,
+        createdAt: '',
+        updatedAt: '',
+      },
+    ];
+    const combined = [...publishedStars];
+    for (const fb of fallbacks) {
+      if (combined.length >= 4) break;
+      if (!combined.some((item) => item.id === fb.id || item.personName === fb.personName)) {
+        combined.push(fb);
+      }
+    }
+    return combined.slice(0, 4);
+  }, [db.achievements, locale]);
+
   const academicStreams = [
     {
       index: '০১',
@@ -575,6 +682,99 @@ export function HomePage() {
       ctaEn: 'Board Results',
       to: '/results',
       icon: Briefcase,
+    },
+  ];
+
+  const whyStudyHighlights = [
+    {
+      id: 'faculty',
+      icon: GraduationCap,
+      badgeBn: 'দক্ষ শিক্ষকমণ্ডলী',
+      badgeEn: 'Expert Faculty',
+      titleBn: 'অভিজ্ঞ ও সরকারি প্রশিক্ষণপ্রাপ্ত শিক্ষক',
+      titleEn: 'Experienced & Certified Faculty',
+      descBn:
+        'বোর্ড ও সরকারি প্রশিক্ষণপ্রাপ্ত অভিজ্ঞ শিক্ষকমণ্ডলী দ্বারা আন্তরিক পাঠদান, নিয়মিত বিষয়ভিত্তিক মূল্যায়ন এবং দুর্বল শিক্ষার্থীদের জন্য বিশেষ যত্ন।',
+      descEn:
+        'Dedicated government-trained subject specialists providing guided mentorship, continuous evaluation, and individual remedial care.',
+      statsBn: '১০০% নিবেদিতপ্রাণ শিক্ষক',
+      statsEn: '100% Certified Faculty',
+      to: '/about/teachers',
+    },
+    {
+      id: 'science-lab',
+      icon: FlaskConical,
+      badgeBn: 'ব্যবহারিক বিজ্ঞান',
+      badgeEn: 'Hands-on Science',
+      titleBn: 'সুসজ্জিত বিজ্ঞানাগার ও ব্যবহারিক ল্যাব',
+      titleEn: 'Equipped Science & Practical Labs',
+      descBn:
+        'পদার্থবিজ্ঞান, রসায়ন ও জীববিজ্ঞানের আধুনিক যন্ত্রপাতি সমৃদ্ধ পৃথক গবেষণাগারে নিয়মিত হাতে-কলমে বৈজ্ঞানিক পরীক্ষণ ও ব্যবহারিক পাঠচর্চা।',
+      descEn:
+        'Dedicated Physics, Chemistry, and Biology laboratories enabling practical scientific exploration and syllabus-aligned experiments.',
+      statsBn: 'আধুনিক যন্ত্রপাতি ও রাসায়নিক ল্যাব',
+      statsEn: 'Modern Laboratory Facilities',
+      to: '/about/facilities',
+    },
+    {
+      id: 'smart-ict',
+      icon: Laptop,
+      badgeBn: 'স্মার্ট প্রযুক্তি',
+      badgeEn: 'Digital Classrooms',
+      titleBn: 'মাল্টিমিডিয়া ক্লাসরুম ও আইসিটি ল্যাব',
+      titleEn: 'Multimedia Classrooms & ICT Labs',
+      descBn:
+        'প্রজেক্টরযুক্ত ডিজিটাল শ্রেণিকক্ষ, কম্পিউটার ল্যাবে বাস্তবমুখী আইসিটি শিক্ষা এবং শিক্ষার্থীদের ডিজিটাল লিটারেসি নিশ্চিতকরণ।',
+      descEn:
+        'Projector-enabled interactive classrooms, hands-on computer labs, and essential digital learning for secondary learners.',
+      statsBn: 'ডিজিটাল ক্লাসরুম ও কম্পিউটার সুবিধা',
+      statsEn: 'High-speed ICT Lab',
+      to: '/about/facilities',
+    },
+    {
+      id: 'smart-system',
+      icon: ShieldCheck,
+      badgeBn: 'শৃঙ্খলা ও নিরাপত্তা',
+      badgeEn: 'Safety & Discipline',
+      titleBn: 'স্মার্ট উপস্থিতি ও অভিভাবক এসএমএস ট্র্যাকিং',
+      titleEn: 'Smart Attendance & Parent SMS Alerts',
+      descBn:
+        'ডিজিটাল স্মার্ট হাজিরা ব্যবস্থা, পরীক্ষার ফলাফল ও জরুরি নোটিস সরাসরি অভিভাবকের মোবাইলে পাঠানো এবং সার্বক্ষণিক সিসিটিভি নিয়ন্ত্রিত নিরাপদ ক্যাম্পাস।',
+      descEn:
+        'Automated digital attendance tracking, instant SMS updates to parents, and a secure CCTV-monitored learning campus.',
+      statsBn: 'স্বয়ংক্রিয় এসএমএস ও নোটিফিকেশন',
+      statsEn: 'Real-time Parent Updates',
+      to: '/about',
+    },
+    {
+      id: 'co-curricular',
+      icon: Trophy,
+      badgeBn: 'সহশিক্ষা ও নেতৃত্ব',
+      badgeEn: 'Co-Curricular',
+      titleBn: 'স্কাউটিং, খেলাধুলা ও সাংস্কৃতিক বিকাশ',
+      titleEn: 'Scouting, Sports & Cultural Growth',
+      descBn:
+        'বাংলাদেশ স্কাউটস ও গার্লস গাইড দল, সুবিশাল খেলার মাঠ, বিতর্ক ক্লাব এবং জাতীয় দিবস ও সাহিত্য-সাংস্কৃতিক প্রতিযোগিতায় সক্রিয় অংশগ্রহণ।',
+      descEn:
+        'Active Bangladesh Scouts & Girls Guide units, spacious playground, debate club, and vibrant annual cultural tournaments.',
+      statsBn: 'স্কাউট, বিতর্ক ও ক্রীড়া দল',
+      statsEn: 'Active Clubs & Sports',
+      to: '/events',
+    },
+    {
+      id: 'board-record',
+      icon: Award,
+      badgeBn: 'বোর্ড সাফল্য',
+      badgeEn: 'Academic Track Record',
+      titleBn: 'এসএসসি পরীক্ষায় ধারাবাহিক শতভাগ পাসের গৌরব',
+      titleEn: 'Consistent SSC Board Exam Excellence',
+      descBn:
+        'নিয়মিত মডেল টেস্ট, শ্রেণি টেস্ট ও প্রি-টেস্ট পরীক্ষার সুপরিকল্পিত প্রস্তুতির মাধ্যমে বোর্ড পরীক্ষায় প্রতি বছর জিপিএ-৫ ও মেধা বৃত্তি অর্জন।',
+      descEn:
+        'Structured mock tests, continuous evaluation, and disciplined coaching leading to stellar board results and scholarships.',
+      statsBn: 'ধারাবাহিক ৯৬%+ পাসের হার',
+      statsEn: 'Consistently 96%+ Pass Rate',
+      to: '/results',
     },
   ];
 
@@ -1312,7 +1512,88 @@ export function HomePage() {
         </motion.section>
 
         {/* =====================================================================
-            C. ACADEMIC STREAMS & INSTITUTIONAL EXCELLENCE HIGHLIGHTS
+            C. WHY STUDY AT BHS? (INSTITUTIONAL VALUE PROPOSITION - GENERAL)
+           ===================================================================== */}
+        <motion.section
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: 0.45, ease: EASE_OUT }}
+          className="space-y-6"
+        >
+          {/* Section Heading */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{pick('আমাদের অনন্য বৈশিষ্ট্য ও শক্তি', 'Why Choose Bhojeshwar High School')}</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight text-balance">
+                {pick('কেন ভোজেশ্বর উচ্চ বিদ্যালয়ে পড়বেন?', 'Why Study at BHS?')}
+              </h2>
+              <p className="text-base text-muted-foreground max-w-3xl leading-relaxed">
+                {pick(
+                  '১৯৭৮ সাল থেকে শরীয়তপুরের ঐতিহ্যবাহী বিদ্যাপীঠ হিসেবে ভোজেশ্বর উচ্চ বিদ্যালয় আধুনিক প্রযুক্তি, মানসম্মত সাধারণ শিক্ষা, সমৃদ্ধ বিজ্ঞানাগার এবং সুশৃঙ্খল নৈতিকতার এক অনন্য কেন্দ্র।',
+                  'Since 1978, Bhojeshwar High School has stood as a trusted center for rigorous secondary education, modern technology, science exploration, and disciplined character building.'
+                )}
+              </p>
+            </div>
+            <Link
+              href="/about"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline whitespace-nowrap shrink-0"
+            >
+              <span>{pick('বিদ্যালয়ের পূর্ণ পরিচিতি', 'About Our Institution')}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          {/* 6-Card Modern Bento-Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {whyStudyHighlights.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.id}
+                  href={item.to}
+                  className="group bg-surface border border-border rounded-xl p-5 sm:p-6 flex flex-col justify-between gap-5 hover:border-primary/45 hover:shadow-sm transition-all"
+                >
+                  <div className="space-y-3.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground flex items-center justify-center transition-colors shrink-0">
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-surface-muted text-muted-foreground border border-border/80">
+                        {locale === 'bn' ? item.badgeBn : item.badgeEn}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <h3 className="text-base sm:text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                        {locale === 'bn' ? item.titleBn : item.titleEn}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {locale === 'bn' ? item.descBn : item.descEn}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-3.5 border-t border-border/80 flex items-center justify-between gap-2 text-xs">
+                    <span className="font-medium text-foreground/80">
+                      {locale === 'bn' ? item.statsBn : item.statsEn}
+                    </span>
+                    <span className="inline-flex items-center gap-1 font-semibold text-primary group-hover:translate-x-0.5 transition-transform">
+                      <span>{pick('বিস্তারিত', 'Explore')}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </motion.section>
+
+        {/* =====================================================================
+            D. ACADEMIC STREAMS & INSTITUTIONAL EXCELLENCE HIGHLIGHTS
            ===================================================================== */}
         <motion.section
           initial={{ opacity: 0, y: 18 }}
@@ -2024,6 +2305,168 @@ export function HomePage() {
                 ))}
             </div>
           </Card>
+        </motion.section>
+
+        {/* =========================================================================
+            SECTION 8: STARS OF OUR INSTITUTION (WALL OF FAME / কৃতি শিক্ষার্থী ও অ্যালামনাই)
+            Spotlight 4-card grid showcasing distinguished student stars & notable alumni
+           ========================================================================= */}
+        <motion.section
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.1 }}
+          transition={{ duration: 0.45, ease: EASE_OUT }}
+          className="space-y-6 sm:space-y-8"
+        >
+          {/* Section Header */}
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 border-b border-border pb-4">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold tracking-wide uppercase">
+                <Trophy className="w-3.5 h-3.5 text-primary" />
+                <span>{pick('আমাদের গৌরব ও অনুপ্রেরণা', 'Pride & Inspiration')}</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground">
+                {pick('বিদ্যালয়ের কৃতি শিক্ষার্থী ও অ্যালামনাই', 'Stars of Our Institution')}
+              </h2>
+              <p className="text-base text-muted-foreground max-w-2xl">
+                {pick(
+                  'ভোজেশ্বর উচ্চ বিদ্যালয়ের মেধা তালিকায় স্থানপ্রাপ্ত কৃতি শিক্ষার্থী এবং জাতীয় ও আন্তর্জাতিক পরিমণ্ডলে প্রতিষ্ঠিত প্রাক্তন শিক্ষার্থীদের সাফল্যগাথা ও অনুপ্রেরণা।',
+                  'Honoring our academic board achievers, science innovators, and distinguished alumni who illuminate the heritage of Bhojeshwar High School.'
+                )}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <Link
+                href="/achievements"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface hover:bg-surface-muted text-sm font-semibold text-primary border border-border hover:border-primary/40 transition-all group"
+              >
+                <span>{pick('সব কৃতি শিক্ষার্থী ও অর্জন দেখুন', 'View All Stars & Achievements')}</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Wall of Fame 4-Column Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {institutionStars.map((star) => {
+              const isAlumni = star.type === AchievementType.NOTABLE_ALUMNI;
+              const photoSrc = star.image || '/images/teacher_kamrul_portrait_1795155721415.jpg';
+
+              return (
+                <div
+                  key={star.id}
+                  className="group bg-surface border border-border rounded-2xl overflow-hidden flex flex-col justify-between hover:border-primary/50 hover:shadow-lg transition-all duration-300"
+                >
+                  <div>
+                    {/* Portrait Frame with Vignette & Status Badges */}
+                    <div className="relative aspect-[4/3.8] w-full overflow-hidden bg-surface-muted">
+                      <img
+                        src={photoSrc}
+                        alt={star.personName ?? star.title}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover object-top transition-transform duration-500 ease-out group-hover:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
+
+                      {/* Top Left: Category Badge */}
+                      <div className="absolute top-3 left-3">
+                        {isAlumni ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500 text-white shadow-md backdrop-blur-sm">
+                            <GraduationCap className="w-3.5 h-3.5" />
+                            <span>{pick('কৃতি প্রাক্তন শিক্ষার্থী', 'Notable Alumni')}</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-primary-foreground shadow-md backdrop-blur-sm">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>{pick('কৃতি শিক্ষার্থী', 'Student Star')}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Top Right: Batch / Year Pill */}
+                      {star.batch && (
+                        <div className="absolute top-3 right-3">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-black/60 text-white border border-white/20 backdrop-blur-md tabular-nums">
+                            {star.batch}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Bottom Name inside Image Overlay */}
+                      <div className="absolute inset-x-0 bottom-0 p-3.5 text-white">
+                        <p className="text-lg font-bold leading-tight drop-shadow-sm">
+                          {star.personName}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Card Content */}
+                    <div className="p-4 space-y-2">
+                      <h3 className="text-sm font-bold text-primary leading-snug line-clamp-2">
+                        {star.title}
+                      </h3>
+                      {star.description && (
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                          {star.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card Footer Link */}
+                  <div className="px-4 py-3 bg-surface-muted/30 border-t border-border flex items-center justify-between text-xs font-semibold text-primary group-hover:bg-primary/5 transition-colors">
+                    <Link
+                      href="/achievements"
+                      className="inline-flex items-center gap-1 hover:underline"
+                    >
+                      <span>{pick('সাফল্য বিবরণী', 'View Achievement')}</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                    </Link>
+                    {star.achievedAt && (
+                      <span className="text-[11px] text-muted-foreground tabular-nums">
+                        {star.achievedAt.split('-')[0]}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Interactive Community Prompt Bar for Alumni & Students */}
+          <div className="p-4 sm:p-5 rounded-xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">
+                  {pick(
+                    'আপনিও কি ভোজেশ্বর উচ্চ বিদ্যালয়ের প্রাক্তন বা বর্তমান কৃতি শিক্ষার্থী?',
+                    'Are you an alumnus or distinguished achiever of Bhojeshwar High School?'
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {pick(
+                    'আমাদের অ্যালামনাই ডিরেক্টরিতে নাম অন্তর্ভুক্ত করুন বা আপনার মেধা ও স্বীকৃতির তথ্য বিদ্যালয় কর্তৃপক্ষের সাথে শেয়ার করুন।',
+                    'Join our alumni community directory or share your academic/professional achievements with us.'
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+              <Link href="/alumni" className="w-full sm:w-auto">
+                <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                  {pick('অ্যালামনাই নিবন্ধন', 'Join Alumni')}
+                </Button>
+              </Link>
+              <Link href="/achievements" className="w-full sm:w-auto">
+                <Button variant="primary" size="sm" className="w-full sm:w-auto">
+                  {pick('সব কৃতি অর্জন', 'All Achievements')}
+                </Button>
+              </Link>
+            </div>
+          </div>
         </motion.section>
 
         {/* News & Upcoming Events (Photo-Led Editorial News + Chronological Event Calendar) */}
