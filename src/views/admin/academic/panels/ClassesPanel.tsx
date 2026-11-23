@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
+  useCreateSchoolClassMutation,
   useGetSchoolClassesQuery,
-  useRemoveSchoolClassMutation,
-  useSaveSchoolClassMutation,
+  useUpdateSchoolClassMutation,
 } from '@/src/services/academic/class.api';
 import { useAppSelector } from '@/src/store/hooks';
 import { useI18n } from '@/src/lib/i18n';
@@ -20,10 +20,12 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
   const { locale, pick } = useI18n();
   const selectedYearId = useAppSelector((state) => state.ui.selectedAcademicYearId);
   const { data: realClasses, isLoading: loadingClasses } = useGetSchoolClassesQuery();
-  const [saveClass, { isLoading: saving }] = useSaveSchoolClassMutation();
-  const [removeSchoolClass, { isLoading: deleting }] = useRemoveSchoolClassMutation();
+  const [createSchoolClass, { isLoading: creating }] = useCreateSchoolClassMutation();
+  const [updateSchoolClass, { isLoading: updating }] = useUpdateSchoolClassMutation();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyClass);
+
+  const saving = creating || updating;
 
   const startCreate = () => {
     setEditingId(null);
@@ -48,51 +50,45 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
       return;
     }
 
-    const sections = form.sectionNames
-      .split(/[,،\n]/)
-      .map((name) => name.trim())
-      .filter(Boolean);
-
     try {
-      await saveClass(
-        editingId
-          ? {
-              id: editingId,
-              name: trimmedName,
-              nameBn: trimmedNameBn,
-              numericValue: numVal,
-              isActive: form.isActive,
-            }
-          : {
-              name: trimmedName,
-              nameBn: trimmedNameBn,
-              numericValue: numVal,
-              isActive: form.isActive,
-              sections,
-            }
-      ).unwrap();
+      if (editingId) {
+        // Class Update API Call (PATCH /academic/classes/:id)
+        await updateSchoolClass({
+          id: editingId,
+          name: trimmedName,
+          nameBn: trimmedNameBn,
+          numericValue: numVal,
+          isActive: form.isActive,
+        }).unwrap();
 
-      toast.success(
-        editingId
-          ? pick('শ্রেণি সফলভাবে হালনাগাদ হয়েছে।', 'Class updated successfully.')
-          : pick('নতুন শ্রেণি সফলভাবে যুক্ত হয়েছে।', 'Class created successfully.')
-      );
+        toast.success(pick('শ্রেণি সফলভাবে হালনাগাদ হয়েছে।', 'Class updated successfully.'));
+      } else {
+        // Class Create API Call (POST /academic/classes)
+        const sections = form.sectionNames
+          .split(/[,،\n]/)
+          .map((name) => name.trim())
+          .filter(Boolean);
+
+        await createSchoolClass({
+          name: trimmedName,
+          nameBn: trimmedNameBn,
+          numericValue: numVal,
+          isActive: form.isActive,
+          sections,
+        }).unwrap();
+
+        toast.success(pick('নতুন শ্রেণি সফলভাবে যুক্ত হয়েছে।', 'Class created successfully.'));
+      }
       startCreate();
     } catch (err) {
-      toast.error(errorMessage(err, pick('শ্রেণি সংরক্ষণ করা যায়নি।', 'Could not save the class.')));
-    }
-  };
-
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(pick(`আপনি কি "${name}" শ্রেণিটি মুছে ফেলতে চান?`, `Are you sure you want to delete class "${name}"?`))) {
-      return;
-    }
-    try {
-      await removeSchoolClass({ id }).unwrap();
-      toast.success(pick('শ্রেণি মুছে ফেলা হয়েছে।', 'Class deleted successfully.'));
-      if (editingId === id) startCreate();
-    } catch (err) {
-      toast.error(errorMessage(err, pick('শ্রেণি মুছে ফেলা যায়নি।', 'Could not delete the class.')));
+      toast.error(
+        errorMessage(
+          err,
+          editingId
+            ? pick('শ্রেণি হালনাগাদ করা যায়নি।', 'Could not update the class.')
+            : pick('শ্রেণি সংরক্ষণ করা যায়নি।', 'Could not save the class.')
+        )
+      );
     }
   };
 
@@ -105,7 +101,7 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
           </h3>
           {editingId && (
             <Button type="button" variant="outline" size="sm" onClick={startCreate}>
-              <Plus className="w-4 h-4" /> {pick('নতুন শ্রেণি', 'New class')}
+              <Plus className="w-4 h-4" /> {pick('নতুন শ্রেণি তৈরি করুন', 'Create new class')}
             </Button>
           )}
         </div>
@@ -147,15 +143,24 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
               />
             </FormField>
           )}
-          <div className="flex items-center gap-3 pb-1">
+          <div className="flex items-center gap-2 pb-1">
             <Switch
               checked={form.isActive}
               onChange={(isActive) => setForm({ ...form, isActive })}
               label={pick('সক্রিয়', 'Active')}
             />
             <Button type="submit" variant="primary" disabled={saving}>
-              {saving ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save')}
+              {saving
+                ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
+                : editingId
+                  ? pick('হালনাগাদ করুন', 'Update')
+                  : pick('সংরক্ষণ করুন', 'Save')}
             </Button>
+            {editingId && (
+              <Button type="button" variant="outline" onClick={startCreate} title={pick('বাতিল', 'Cancel')}>
+                <X className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </form>
       </Card>
@@ -202,7 +207,7 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
                         : pick('নিষ্ক্রিয়', 'Inactive')}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center">
                     <Button
                       type="button"
                       variant="outline"
@@ -220,17 +225,6 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
                       title={pick('সম্পাদনা করুন', 'Edit')}
                     >
                       <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                      onClick={() => handleDelete(schoolClass.id, schoolClass.name)}
-                      disabled={deleting}
-                      title={pick('মুছে ফেলুন', 'Delete')}
-                    >
-                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>

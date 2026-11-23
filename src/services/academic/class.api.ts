@@ -43,6 +43,39 @@ export const classApi = schoolApi.injectEndpoints({
       providesTags: (_result, _error, id) => [{ type: 'Academic', id }],
     }),
 
+    createSchoolClass: builder.mutation<SchoolClass, CreateClassPayload>({
+      query: (body) => {
+        const { sectionNames, sections, ...createBody } = body;
+        const resolvedSections = sections ?? sectionNames;
+        return {
+          url: '/academic/classes',
+          method: 'POST',
+          body: {
+            ...createBody,
+            ...(resolvedSections && resolvedSections.length > 0
+              ? { sections: resolvedSections }
+              : {}),
+          },
+        };
+      },
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ['Academic', 'Bootstrap'],
+    }),
+
+    updateSchoolClass: builder.mutation<SchoolClass, UpdateClassPayload>({
+      query: ({ id, ...updateBody }) => ({
+        url: `/academic/classes/${id}`,
+        method: 'PATCH',
+        body: updateBody,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: (_result, _error, { id }) => [
+        'Academic',
+        'Bootstrap',
+        { type: 'Academic', id },
+      ],
+    }),
+
     saveSchoolClass: builder.mutation<
       SchoolClass,
       {
@@ -80,15 +113,6 @@ export const classApi = schoolApi.injectEndpoints({
       transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ['Academic', 'Bootstrap'],
     }),
-
-    removeSchoolClass: builder.mutation<{ message: string }, { id: string }>({
-      query: ({ id }) => ({
-        url: `/academic/classes/${id}`,
-        method: 'DELETE',
-      }),
-      transformResponse: (response: any) => response?.data ?? response,
-      invalidatesTags: ['Academic', 'Bootstrap'],
-    }),
   }),
   overrideExisting: true,
 });
@@ -96,6 +120,7 @@ export const classApi = schoolApi.injectEndpoints({
 export const {
   useGetSchoolClassesQuery,
   useGetSchoolClassByIdQuery,
+  useCreateSchoolClassMutation,
+  useUpdateSchoolClassMutation,
   useSaveSchoolClassMutation,
-  useRemoveSchoolClassMutation,
 } = classApi;
