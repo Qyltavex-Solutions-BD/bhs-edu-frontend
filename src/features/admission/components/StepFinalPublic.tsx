@@ -114,13 +114,13 @@ export function StepFinalPublic({
             return (
               <div
                 key={slot.key}
-                className="p-3 rounded-[4px] border border-border bg-surface space-y-2"
+                className="p-3.5 rounded-2xl border border-border/80 bg-surface space-y-2.5 shadow-xs"
               >
-                <p className="text-xs font-medium text-foreground">
+                <p className="text-sm font-semibold text-foreground">
                   {locale === 'bn' ? slot.labelBn : slot.labelEn}
                 </p>
                 {current ? (
-                  <div className="flex items-center justify-between gap-2 text-xs text-success bg-success/5 border border-success/30 rounded-[3px] px-2.5 py-2">
+                  <div className="flex items-center justify-between gap-2 text-sm text-success bg-success/5 border border-success/30 rounded-xl px-3 py-2">
                     <span className="truncate font-medium">{current.name}</span>
                     <button
                       type="button"
@@ -128,12 +128,12 @@ export function StepFinalPublic({
                       className="text-destructive hover:opacity-80 shrink-0 cursor-pointer"
                       aria-label={pick('অপসারণ', 'Remove')}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 ) : (
-                  <label className="flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-dashed border-border rounded-[3px] py-2 px-2 cursor-pointer transition-colors hover:bg-surface-muted/40">
-                    <FileUp className="w-3.5 h-3.5" />
+                  <label className="flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground border border-dashed border-border rounded-xl py-2.5 px-3 cursor-pointer transition-colors hover:bg-surface-muted/40">
+                    <FileUp className="w-4 h-4" />
                     <span>{pick('ফাইল নির্বাচন করুন (JPG/PDF)', 'Select File (JPG/PDF)')}</span>
                     <input
                       type="file"
@@ -168,15 +168,15 @@ export function StepFinalPublic({
       </div>
 
       {/* 3. Required Hardcopies Note & Official Declaration */}
-      <div className="border border-border rounded-[4px] bg-surface-muted/35 divide-y divide-border">
-        <div className="p-4 space-y-2">
-          <p className="text-xs font-semibold text-foreground">
+      <div className="border border-border/80 rounded-2xl bg-surface-muted/30 divide-y divide-border/80">
+        <div className="p-5 space-y-2.5">
+          <p className="text-sm font-semibold text-foreground">
             {pick(
               'ভর্তির সময় বিদ্যালয় অফিসে জমাদানের আবশ্যক কাগজপত্র:',
               'Mandatory Hardcopy Documents Required at Admission Desk:'
             )}
           </p>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-foreground/90">
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-foreground/90">
             {checklist.map((item) => (
               <li key={item.key} className="flex items-start gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />

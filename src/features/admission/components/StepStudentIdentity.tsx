@@ -118,8 +118,8 @@ export function StepStudentIdentity({
       />
 
       {/* Passport Photograph Frame (Formal Institutional Style) */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 pb-5 border-b border-border">
-        <div className="w-26 h-32 rounded-[4px] border border-border bg-surface-muted/40 overflow-hidden flex items-center justify-center shrink-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 border-b border-border/80">
+        <div className="w-28 h-36 rounded-2xl border-2 border-dashed border-border/80 bg-surface-muted/40 overflow-hidden flex items-center justify-center shrink-0 shadow-xs">
           {photoPreview ? (
             <img
               src={photoPreview}
@@ -128,27 +128,27 @@ export function StepStudentIdentity({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="text-center px-2 space-y-1 text-muted-foreground">
-              <Camera className="w-5 h-5 mx-auto opacity-70" />
-              <span className="block text-xs leading-tight">
+            <div className="text-center px-2 space-y-1.5 text-muted-foreground">
+              <Camera className="w-6 h-6 mx-auto opacity-70" />
+              <span className="block text-xs font-medium leading-tight">
                 {pick('পাসপোর্ট ছবি', 'Passport Photo')}
               </span>
             </div>
           )}
         </div>
 
-        <div className="space-y-2 flex-1">
-          <p className="text-sm font-medium text-foreground">
+        <div className="space-y-2.5 flex-1">
+          <p className="text-base font-semibold text-foreground">
             {pick('শিক্ষার্থীর পাসপোর্ট সাইজ রঙিন ছবি', 'Student Passport-Size Color Photograph')}
             {mode === 'public' && <span className="text-destructive ml-1">*</span>}
           </p>
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             {pick(
               'সদ্য তোলা পরিষ্কার মুখমণ্ডলসহ রঙিন ছবি (JPG/PNG, সর্বোচ্চ ২MB)। ছবিটি প্রবেশপত্র ও শিক্ষার্থী প্রোফাইলে সংরক্ষিত থাকবে।',
               'Recent clear color portrait (JPG/PNG, max 2MB). Used on the Admit Card and student profile.'
             )}
           </p>
-          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
             <input
               ref={fileInputRef}
               type="file"
@@ -160,10 +160,10 @@ export function StepStudentIdentity({
               type="button"
               variant="outline"
               size="sm"
-              className="rounded-[4px]"
+              className="rounded-xl h-10 px-4 text-sm font-semibold"
               onClick={() => fileInputRef.current?.click()}
             >
-              <Upload className="w-3.5 h-3.5" />
+              <Upload className="w-4 h-4" />
               {photoPreview
                 ? pick('ছবি পরিবর্তন', 'Change Photo')
                 : pick('ছবি নির্বাচন করুন', 'Choose Photo')}
@@ -173,18 +173,18 @@ export function StepStudentIdentity({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="rounded-[4px]"
+                className="rounded-xl h-10 px-4 text-sm font-semibold"
                 onClick={() =>
                   setValue('photoPreview', null, { shouldValidate: true })
                 }
               >
-                <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                <Trash2 className="w-4 h-4 text-destructive" />
                 {pick('অপসারণ', 'Remove')}
               </Button>
             )}
           </div>
           {errors.photoPreview && (
-            <p className="text-xs text-destructive font-medium">
+            <p className="text-sm text-destructive font-medium">
               {errors.photoPreview.message}
             </p>
           )}

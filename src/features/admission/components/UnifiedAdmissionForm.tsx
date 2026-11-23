@@ -257,18 +257,18 @@ export function UnifiedAdmissionForm({
   const submitting = submittingPublic || submittingAdmin;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Prefill Notice when Converting Online Application in Admin */}
       {prefillApplication && mode === 'admin' && (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-[4px] border border-primary/35 bg-primary/5 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 rounded-2xl border border-primary/30 bg-primary/5 text-base">
           <div>
-            <p className="font-semibold text-foreground">
+            <p className="font-semibold text-foreground text-base">
               {pick(
                 `অনলাইন আবেদন (${prefillApplication.applicationNumber}) থেকে ভর্তি প্রক্রিয়াকরণ`,
                 `Processing Admission from Online Application (${prefillApplication.applicationNumber})`
               )}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               {pick(
                 'আবেদনকারীর তথ্য প্রি-ফিল করা আছে। প্রয়োজনে সংশোধন করে ধাপ ৪-এ শাখা ও রোল নিশ্চিত করুন।',
                 'Applicant data is pre-filled. Review any step, then confirm section & roll in Step 4.'
@@ -280,7 +280,7 @@ export function UnifiedAdmissionForm({
               type="button"
               variant="outline"
               size="sm"
-              className="rounded-[4px]"
+              className="rounded-xl h-10 px-4 text-sm font-semibold"
               onClick={onCancel}
             >
               {pick('ইনবক্সে ফিরুন', 'Back to Inbox')}
@@ -290,11 +290,11 @@ export function UnifiedAdmissionForm({
       )}
 
       {/* Official Single-Container Institutional Form Frame */}
-      <div className="border border-border rounded-[4px] bg-surface overflow-hidden">
+      <div className="border border-border/80 rounded-3xl bg-surface overflow-hidden shadow-[0_2px_16px_-4px_rgba(28,100,64,0.08)]">
         {/* Crisp Official Top Step Navigation Bar */}
         <nav
           aria-label={pick('ভর্তি ফরমের ধাপসমূহ', 'Admission Form Steps')}
-          className="grid grid-cols-2 lg:grid-cols-4 border-b border-border bg-surface-muted/45 divide-y lg:divide-y-0 divide-x divide-border"
+          className="grid grid-cols-2 lg:grid-cols-4 border-b border-border/80 bg-surface-muted/30 divide-y lg:divide-y-0 divide-x divide-border/80"
         >
           {steps.map((s) => {
             const isCurrent = step === s.num;
@@ -306,34 +306,34 @@ export function UnifiedAdmissionForm({
                 type="button"
                 disabled={!clickable && !isCurrent}
                 onClick={() => handleStepClick(s.num)}
-                className={`relative flex items-center gap-2.5 px-4 py-3 text-left transition-colors duration-150 ${
+                className={`relative flex items-center gap-3 px-5 py-4 text-left transition-colors duration-150 ${
                   isCurrent
-                    ? 'bg-surface text-foreground font-semibold'
+                    ? 'bg-surface text-foreground font-semibold shadow-xs'
                     : isCompleted
-                      ? 'bg-surface-muted/30 text-foreground hover:bg-surface cursor-pointer'
+                      ? 'bg-surface-muted/20 text-foreground hover:bg-surface cursor-pointer'
                       : clickable
                         ? 'text-foreground/80 hover:bg-surface cursor-pointer'
-                        : 'text-muted-foreground/70 cursor-not-allowed'
+                        : 'text-muted-foreground/60 cursor-not-allowed'
                 }`}
               >
                 {isCurrent && (
                   <span
                     aria-hidden="true"
-                    className="absolute inset-x-0 bottom-0 h-0.5 bg-primary"
+                    className="absolute inset-x-0 bottom-0 h-1 bg-primary rounded-t-full"
                   />
                 )}
                 <span
-                  className={`w-6 h-6 rounded-[3px] text-xs font-semibold flex items-center justify-center shrink-0 tabular-nums ${
+                  className={`w-8 h-8 rounded-xl text-sm font-bold flex items-center justify-center shrink-0 tabular-nums transition-colors ${
                     isCurrent
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/30'
                       : isCompleted
                         ? 'bg-primary/15 text-primary'
                         : 'bg-surface border border-border text-muted-foreground'
                   }`}
                 >
-                  {isCompleted ? <Check className="w-3.5 h-3.5" /> : formatNumber(s.num, locale)}
+                  {isCompleted ? <Check className="w-4 h-4 stroke-[2.5]" /> : formatNumber(s.num, locale)}
                 </span>
-                <span className="text-sm truncate">{s.title}</span>
+                <span className="text-base font-semibold truncate">{s.title}</span>
               </button>
             );
           })}
@@ -341,10 +341,10 @@ export function UnifiedAdmissionForm({
 
         {/* Form Body */}
         <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} noValidate>
-          <div className="p-5 sm:p-7 space-y-6">
+          <div className="p-6 sm:p-8 space-y-7">
             {(duplicates.birthCertConflict || duplicates.boardRegConflict) && (
-              <div className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-[4px] border border-destructive/40 bg-destructive/5 text-xs text-destructive">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-destructive/40 bg-destructive/5 text-sm text-destructive">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
                   {duplicates.birthCertConflict && <p>{duplicates.birthCertConflict}</p>}
                   {duplicates.boardRegConflict && <p>{duplicates.boardRegConflict}</p>}
@@ -391,12 +391,12 @@ export function UnifiedAdmissionForm({
             )}
 
             {/* Formal Footer Action Strip */}
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-5 border-t border-border">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-6 border-t border-border">
+              <div className="flex items-center gap-2.5">
                 <Button
                   type="button"
                   variant="outline"
-                  className="rounded-[4px]"
+                  className="rounded-xl h-11 px-4 text-sm font-semibold"
                   disabled={step === 1}
                   onClick={() => setStep((s) => Math.max(1, s - 1) as 1 | 2 | 3 | 4)}
                 >
@@ -407,7 +407,7 @@ export function UnifiedAdmissionForm({
                   <Button
                     type="button"
                     variant="ghost"
-                    className="rounded-[4px]"
+                    className="rounded-xl h-11 px-4 text-sm font-semibold"
                     onClick={onCancel}
                   >
                     {pick('বাতিল', 'Cancel')}
@@ -415,8 +415,8 @@ export function UnifiedAdmissionForm({
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-muted-foreground tabular-nums hidden sm:inline">
+              <div className="flex items-center gap-3.5">
+                <span className="text-sm text-muted-foreground font-medium tabular-nums hidden sm:inline">
                   {pick(
                     `ধাপ ${formatNumber(step, locale)} / ৪`,
                     `Step ${step} of 4`
@@ -427,7 +427,7 @@ export function UnifiedAdmissionForm({
                   <Button
                     type="button"
                     variant="primary"
-                    className="rounded-[4px]"
+                    className="rounded-xl h-11 px-5 text-base font-semibold shadow-sm"
                     onClick={handleNext}
                   >
                     {pick('পরবর্তী ধাপ', 'Next Step')}
@@ -437,7 +437,7 @@ export function UnifiedAdmissionForm({
                   <Button
                     type="submit"
                     variant="primary"
-                    className="rounded-[4px]"
+                    className="rounded-xl h-11 px-6 text-base font-semibold shadow-sm"
                     disabled={submitting}
                   >
                     <CheckCircle2 className="w-4 h-4" />

@@ -607,14 +607,14 @@ export function ConsolidatedResultsView() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-base">
               <thead>
-                <tr className="border-b border-border bg-surface-muted/70 text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                <tr className="border-b border-border bg-surface-muted/70 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                   <th className="px-4 py-3 text-center w-16">{pick('মেধা', 'Merit')}</th>
                   <th className="px-3 py-3 text-center w-16">{pick('রোল', 'Roll')}</th>
                   <th className="px-4 py-3 text-left">{pick('শিক্ষার্থী ও শাখা', 'Student & Section')}</th>
                   {activeConfigs.map((cfg) => (
                     <th key={cfg.id} className="px-3 py-3 text-center">
                       <div>{cfg.sourceExamName}</div>
-                      <div className="text-xs font-bold text-primary normal-case">
+                      <div className="text-xs font-semibold text-primary normal-case">
                         ({formatNumber(cfg.weightagePercentage, locale)}%)
                       </div>
                     </th>
@@ -631,7 +631,7 @@ export function ConsolidatedResultsView() {
                     <td className="px-4 py-3 text-center">
                       {row.merit ? (
                         <span
-                          className={`inline-flex items-center justify-center min-w-[2.1rem] px-2.5 py-0.5 rounded-lg text-sm font-bold ${
+                          className={`inline-flex items-center justify-center min-w-[2.1rem] px-2.5 py-0.5 rounded-lg text-sm font-semibold ${
                             row.merit <= 3
                               ? 'bg-warning/15 text-warning border border-warning/30'
                               : 'bg-surface-muted text-foreground'
@@ -640,14 +640,14 @@ export function ConsolidatedResultsView() {
                           #{formatNumber(row.merit, locale)}
                         </span>
                       ) : (
-                        <span className="text-muted-foreground font-semibold">—</span>
+                        <span className="text-muted-foreground font-medium">—</span>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-center font-bold text-foreground">
+                    <td className="px-3 py-3 text-center font-medium text-foreground">
                       {formatNumber(row.roll, locale)}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="font-bold text-foreground">{row.studentName}</div>
+                      <div className="font-semibold text-foreground">{row.studentName}</div>
                       <div className="text-sm text-muted-foreground font-medium">
                         <span className="font-mono">{row.studentId}</span> · {pick('শাখা', 'Sec')}: {row.sectionName}
                         {row.groupName ? ` · ${row.groupName}` : ''}
@@ -663,12 +663,12 @@ export function ConsolidatedResultsView() {
                             </span>
                           ) : (
                             <div>
-                              <span className="font-bold text-foreground">
+                              <span className="font-medium text-foreground">
                                 {formatNumber(sc.marks, locale)}
                               </span>
                               <div
                                 className={`text-sm ${
-                                  sc.status === ResultStatus.PASS ? 'text-muted-foreground font-medium' : 'text-destructive font-bold'
+                                  sc.status === ResultStatus.PASS ? 'text-muted-foreground font-medium' : 'text-destructive font-semibold'
                                 }`}
                               >
                                 GPA {formatNumber(sc.gpa ?? 0, locale, 2)}
@@ -678,15 +678,15 @@ export function ConsolidatedResultsView() {
                         </td>
                       );
                     })}
-                    <td className="px-3 py-3 text-right font-bold text-foreground">
+                    <td className="px-3 py-3 text-right font-medium text-foreground">
                       {formatNumber(row.weightedMarks, locale, 1)}
                     </td>
-                    <td className="px-3 py-3 text-right font-bold text-foreground">
+                    <td className="px-3 py-3 text-right font-semibold text-foreground">
                       {formatNumber(row.weightedGpa, locale, 2)}
                     </td>
                     <td className="px-3 py-3 text-center">
                       <span
-                        className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-bold border ${
+                        className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-semibold border ${
                           row.isPassed
                             ? row.letterGrade === 'A+'
                               ? 'bg-success/10 text-success border-success/25'

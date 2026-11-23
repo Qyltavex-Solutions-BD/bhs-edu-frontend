@@ -504,8 +504,8 @@ export function ResultPublicationView() {
               </h3>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border">
+              <table className="w-full text-sm">
+                <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-xs font-semibold uppercase tracking-wider">
                   <tr>
                     <th className="px-3 py-2.5 text-left">{pick('বিষয়', 'Subject')}</th>
                     <th className="px-2.5 py-2.5 text-center">{pick('উত্তীর্ণ / ফেল', 'Pass / Fail')}</th>
@@ -595,8 +595,8 @@ export function ResultPublicationView() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-xs">
+            <table className="w-full text-base">
+              <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-sm font-semibold uppercase tracking-wider">
                 <tr>
                   <th className="px-4 py-2.5 text-left">{pick('শিক্ষার্থী ও রোল', 'Student & Roll')}</th>
                   <th className="px-3 py-2.5 text-left">{pick('বিষয় ও কারণ', 'Subject & Reason')}</th>
@@ -605,7 +605,7 @@ export function ResultPublicationView() {
                   <th className="px-4 py-2.5 text-right">{pick('অ্যাকশন', 'Action')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border tabular-nums text-xs">
+              <tbody className="divide-y divide-border tabular-nums text-sm">
                 {scrutinyList.map((req) => {
                   const enr = db.enrollments.find((e) => e.id === req.studentEnrollmentId);
                   const stu = enr ? db.students.find((s) => s.id === enr.studentId) : null;

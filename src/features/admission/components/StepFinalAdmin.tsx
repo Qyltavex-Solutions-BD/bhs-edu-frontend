@@ -97,15 +97,15 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
             <button
               type="button"
               onClick={() => setShowFullPreview((prev) => !prev)}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline cursor-pointer"
             >
               {showFullPreview
                 ? pick('পূর্ণাঙ্গ ফর্ম প্রিভিউ লুকান', 'Hide Full Form Preview')
                 : pick('পূর্ণাঙ্গ ফর্ম প্রিভিউ দেখুন', 'Review Full Application Form')}
               {showFullPreview ? (
-                <ChevronUp className="w-3.5 h-3.5" />
+                <ChevronUp className="w-4 h-4" />
               ) : (
-                <ChevronDown className="w-3.5 h-3.5" />
+                <ChevronDown className="w-4 h-4" />
               )}
             </button>
           }
@@ -187,7 +187,7 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
                 type="button"
                 variant="outline"
                 size="sm"
-                className="rounded-[4px] h-10 px-3 text-xs tabular-nums"
+                className="rounded-xl h-11 px-3.5 text-sm font-semibold tabular-nums shrink-0"
                 onClick={() =>
                   setValue('roll', String(suggestedRoll), { shouldValidate: true })
                 }
@@ -196,8 +196,8 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
               </Button>
             </div>
             {!rollConflict && rollNumber > 0 && (
-              <p className="text-xs text-success flex items-center gap-1 mt-1">
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              <p className="text-sm text-success flex items-center gap-1.5 mt-1 font-medium">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
                 {pick('রোল নম্বরটি খালি রয়েছে', 'Roll number available')}
               </p>
             )}
@@ -263,25 +263,25 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
           }
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {checklist.map((item) => {
             const checked = Boolean(verifiedDocuments[item.key]);
             return (
               <label
                 key={item.key}
-                className={`flex items-start gap-2.5 px-3 py-2.5 rounded-[4px] border text-sm cursor-pointer transition-colors ${
+                className={`flex items-start gap-3 p-3.5 rounded-2xl border text-base cursor-pointer transition-colors ${
                   checked
-                    ? 'border-primary/45 bg-primary/5 text-foreground'
-                    : 'border-border bg-surface text-foreground/90 hover:bg-surface-muted/40'
+                    ? 'border-primary/50 bg-primary/5 text-foreground ring-1 ring-primary/30'
+                    : 'border-border/80 bg-surface text-foreground/90 hover:bg-surface-muted/50'
                 }`}
               >
                 <input
                   type="checkbox"
                   checked={checked}
                   onChange={() => toggleDoc(item.key)}
-                  className="w-4 h-4 mt-0.5 rounded-[3px] accent-primary shrink-0"
+                  className="w-5 h-5 mt-0.5 rounded-md accent-primary shrink-0 cursor-pointer"
                 />
-                <span className="text-xs sm:text-sm leading-snug">
+                <span className="text-sm sm:text-base leading-snug">
                   {locale === 'bn' ? item.labelBn : item.labelEn}
                 </span>
               </label>

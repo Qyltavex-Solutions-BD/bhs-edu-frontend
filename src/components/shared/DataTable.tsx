@@ -171,7 +171,7 @@ export function DataTable<T extends object>({
             }
           >
             <table className="w-full text-base text-left border-collapse">
-              <thead className="bg-surface-muted/70 border-b border-border text-sm font-bold text-muted-foreground uppercase tracking-wider">
+              <thead className="bg-surface-muted/70 border-b border-border text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 <tr>
                   {columns.map((col, idx) => {
                     const colId = col.id ?? col.accessorKey ?? `col-${idx}`;

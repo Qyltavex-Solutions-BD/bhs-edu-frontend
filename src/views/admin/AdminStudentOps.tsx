@@ -616,7 +616,7 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
           ) : undefined
         }
         columns={[
-          { accessorKey: 'applicationNumber', header: pick('আবেদন নং', 'Application'), cell: ({ row }) => <span className="font-mono text-base font-bold tabular-nums text-foreground">{row.original.applicationNumber}</span> },
+          { accessorKey: 'applicationNumber', header: pick('আবেদন নং', 'Application'), cell: ({ row }) => <span className="font-mono text-base font-medium tabular-nums text-foreground">{row.original.applicationNumber}</span> },
           {
             accessorKey: 'studentNameBn',
             header: pick('শিক্ষার্থী', 'Student'),
@@ -631,15 +631,15 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
                   />
                 )}
                 <span>
-                  <span className="font-bold text-base text-foreground block">{row.original.studentNameBn}</span>
-                  <span className="block text-sm text-muted-foreground font-mono uppercase font-medium">{row.original.studentNameEn}</span>
+                  <span className="font-semibold text-base text-foreground block">{row.original.studentNameBn}</span>
+                  <span className="block text-sm text-muted-foreground font-mono uppercase font-normal">{row.original.studentNameEn}</span>
                 </span>
               </div>
             ),
           },
-          { accessorKey: 'classLabel', header: pick('শ্রেণি ও বিভাগ', 'Class & Group'), cell: ({ row }) => <span className="font-semibold text-base text-foreground">{row.original.classLabel}</span> },
-          { accessorKey: 'typeLabel', header: pick('ধরন', 'Type'), cell: ({ row }) => <span className="font-medium text-base">{row.original.typeLabel}</span> },
-          { accessorKey: 'guardianPhone', header: pick('মোবাইল', 'Phone'), cell: ({ row }) => <span className="font-mono text-base tabular-nums font-semibold">{row.original.guardianPhone}</span> },
+          { accessorKey: 'classLabel', header: pick('শ্রেণি ও বিভাগ', 'Class & Group'), cell: ({ row }) => <span className="font-medium text-base text-foreground">{row.original.classLabel}</span> },
+          { accessorKey: 'typeLabel', header: pick('ধরন', 'Type'), cell: ({ row }) => <span className="font-normal text-base text-muted-foreground">{row.original.typeLabel}</span> },
+          { accessorKey: 'guardianPhone', header: pick('মোবাইল', 'Phone'), cell: ({ row }) => <span className="font-mono text-base tabular-nums font-medium">{row.original.guardianPhone}</span> },
           { accessorKey: 'when', header: pick('তারিখ', 'Date'), cell: ({ row }) => <span className="text-base text-muted-foreground tabular-nums">{row.original.when}</span> },
           { accessorKey: 'status', header: pick('অবস্থা', 'Status'), cell: ({ row }) => <StatusBadge enumName="AdmissionApplicationStatus" value={row.original.status} /> },
           {

@@ -532,7 +532,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
             accessorKey: 'roll',
             header: pick('রোল', 'Roll'),
             cell: ({ row }) => (
-              <span className="font-mono text-base font-bold text-foreground tabular-nums">
+              <span className="font-mono text-base font-medium text-foreground tabular-nums">
                 {String(row.original.roll).padStart(2, '0')}
               </span>
             ),
@@ -544,7 +544,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
               <div className="flex items-center gap-3 min-w-[220px]">
                 <div
                   className={cn(
-                    'w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 border border-border',
+                    'w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-sm shrink-0 border border-border',
                     row.original.gender === Gender.FEMALE
                       ? 'bg-secondary/10 text-secondary'
                       : 'bg-primary/10 text-primary'
@@ -555,7 +555,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
                 <div className="min-w-0">
                   <Link
                     href={`/admin/students/${row.original.id}`}
-                    className="font-bold text-base text-foreground hover:text-primary hover:underline block truncate leading-snug"
+                    className="font-semibold text-base text-foreground hover:text-primary hover:underline block truncate leading-snug"
                   >
                     {row.original.nameBn}
                   </Link>
@@ -587,7 +587,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
             header: pick('শ্রেণি ও শাখা', 'Class & Section'),
             cell: ({ row }) => (
               <div className="whitespace-nowrap">
-                <span className="font-bold text-base text-foreground">{row.original.classLabel}</span>
+                <span className="font-medium text-base text-foreground">{row.original.classLabel}</span>
                 <span className="text-base text-muted-foreground"> · {row.original.sectionLabel}</span>
                 {row.original.groupLabel && (
                   <span className="block text-sm text-muted-foreground mt-0.5">
@@ -620,10 +620,10 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
               return (
                 <div className="min-w-[84px] space-y-1">
                   <div className="flex items-baseline justify-between gap-2 tabular-nums">
-                    <span className={cn('text-base font-bold', tone)}>
+                    <span className={cn('text-base font-semibold', tone)}>
                       {formatNumber(rate, locale)}%
                     </span>
-                    <span className="text-sm font-semibold text-muted-foreground tabular-nums">
+                    <span className="text-sm font-medium text-muted-foreground tabular-nums">
                       {formatNumber(row.original.attendanceDays, locale)}d
                     </span>
                   </div>
