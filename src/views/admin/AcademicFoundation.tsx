@@ -6,9 +6,11 @@ import { toast } from 'sonner';
 import {
   useGetSchoolClassesQuery,
   useRemoveSchoolClassMutation,
+  useSaveSchoolClassMutation,
+} from '@/src/services/academic/class.api';
+import {
   useSaveAcademicGroupMutation,
   useSaveAcademicYearMutation,
-  useSaveSchoolClassMutation,
   useSaveSectionMutation,
   useSetActiveAcademicYearMutation,
 } from '@/src/store/api';
