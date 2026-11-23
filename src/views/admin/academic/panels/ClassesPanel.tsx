@@ -99,11 +99,6 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
           <h3 className="text-base font-bold">
             {editingId ? pick('শ্রেণি সম্পাদনা', 'Edit class') : pick('নতুন শ্রেণি তৈরি', 'New class')}
           </h3>
-          {editingId && (
-            <Button type="button" variant="outline" size="sm" onClick={startCreate}>
-              <Plus className="w-4 h-4" /> {pick('নতুন শ্রেণি তৈরি করুন', 'Create new class')}
-            </Button>
-          )}
         </div>
         <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
           <FormField label={pick('ইংরেজি নাম', 'English name')}>
@@ -151,14 +146,17 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
             />
             <Button type="submit" variant="primary" disabled={saving}>
               {saving
-                ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
+                ? editingId
+                  ? pick('আপডেট হচ্ছে...', 'Updating...')
+                  : pick('সংরক্ষণ হচ্ছে...', 'Saving...')
                 : editingId
-                  ? pick('হালনাগাদ করুন', 'Update')
+                  ? pick('আপডেট করুন', 'Update')
                   : pick('সংরক্ষণ করুন', 'Save')}
             </Button>
             {editingId && (
-              <Button type="button" variant="outline" onClick={startCreate} title={pick('বাতিল', 'Cancel')}>
-                <X className="w-4 h-4" />
+              <Button type="button" variant="outline" onClick={startCreate}>
+                <X className="w-4 h-4 mr-1" />
+                {pick('বাতিল', 'Cancel')}
               </Button>
             )}
           </div>
