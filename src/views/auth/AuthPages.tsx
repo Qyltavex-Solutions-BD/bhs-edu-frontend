@@ -23,7 +23,8 @@ import {
 } from 'lucide-react';
 import { loginSchema, type LoginFormValues } from '@/src/lib/validations/schemas';
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
-import { DEMO_ACCOUNTS, loginWithDemoRole, type AppRole } from '@/src/store/slices/authSlice';
+import { DEMO_ACCOUNTS, loginWithDemoRole, setCredentials, type AppRole } from '@/src/store/slices/authSlice';
+import { useLoginMutation } from '@/src/store/api';
 import { useI18n } from '@/src/lib/i18n';
 import { SchoolEmblem } from '@/src/components/shared/Feedback';
 import { Button, Card, FormField, Input } from '@/src/components/ui/primitives';
@@ -40,7 +41,46 @@ export function LoginPage() {
     defaultValues: { identifier: '', password: '', rememberMe: true },
   });
 
-  const handleDemoLogin = (role: AppRole) => {
+  const [loginApi, { isLoading: isLoggingIn }] = useLoginMutation();
+
+  const handleDemoLogin = async (role: AppRole) => {
+    const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API !== 'false';
+    if (!useMock && (role === 'SUPER_ADMIN' || role === 'SCHOOL_ADMIN' || role === 'PRINCIPAL')) {
+      try {
+        const res = await loginApi({
+          email: 'admin@example.com',
+          password: 'adminpassword',
+        }).unwrap();
+
+        dispatch(
+          setCredentials({
+            accessToken: res.accessToken,
+            user: {
+              id: res.user.id,
+              name: res.user.name,
+              email: res.user.email,
+              phone: res.user.phone,
+              role,
+              isDemoSession: false,
+            },
+            role,
+            permissions: res.user.permissions ?? [],
+          })
+        );
+        toast.success(
+          pick(
+            `${DEMO_ACCOUNTS[role].user.name} হিসেবে অ্যাডমিন পোর্টালে প্রবেশ সম্পন্ন হয়েছে।`,
+            `Signed in as ${DEMO_ACCOUNTS[role].user.name}.`
+          )
+        );
+        router.push(DEMO_ACCOUNTS[role].redirect);
+        return;
+      } catch (err: any) {
+        toast.error(err?.message || 'Login failed');
+        return;
+      }
+    }
+
     dispatch(loginWithDemoRole(role));
     toast.success(
       pick(
@@ -51,7 +91,44 @@ export function LoginPage() {
     router.push(DEMO_ACCOUNTS[role].redirect);
   };
 
-  const onSubmit = (values: LoginFormValues) => {
+  const onSubmit = async (values: LoginFormValues) => {
+    const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API !== 'false';
+    if (!useMock) {
+      try {
+        const res = await loginApi({
+          email: values.identifier,
+          password: values.password,
+        }).unwrap();
+
+        const roleStr = res.user.roles?.[0] || 'SUPER_ADMIN';
+        const role: AppRole =
+          roleStr === 'ADMIN' ? 'SUPER_ADMIN' : (roleStr as AppRole);
+
+        dispatch(
+          setCredentials({
+            accessToken: res.accessToken,
+            user: {
+              id: res.user.id,
+              name: res.user.name,
+              email: res.user.email,
+              phone: res.user.phone,
+              role,
+              isDemoSession: false,
+            },
+            role,
+            permissions: res.user.permissions ?? [],
+          })
+        );
+
+        toast.success(pick('লগইন সফল হয়েছে।', 'Login successful.'));
+        router.push('/admin');
+        return;
+      } catch (err: any) {
+        toast.error(err?.message || pick('লগইন ব্যর্থ হয়েছে।', 'Login failed.'));
+        return;
+      }
+    }
+
     const id = values.identifier.toLowerCase();
     let matchedRole: AppRole = 'SUPER_ADMIN';
     if (id.includes('teacher') || id.includes('kamrul') || id.endsWith('003')) matchedRole = 'TEACHER';

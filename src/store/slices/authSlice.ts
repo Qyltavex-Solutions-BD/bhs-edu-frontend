@@ -144,6 +144,22 @@ const authSlice = createSlice({
       state.permissions = preset.permissions;
       state.sessionExpired = false;
     },
+    setCredentials(
+      state,
+      action: PayloadAction<{
+        accessToken: string;
+        user?: AuthUser | any;
+        role?: AppRole;
+        permissions?: string[];
+      }>
+    ) {
+      state.isAuthenticated = true;
+      state.accessToken = action.payload.accessToken;
+      if (action.payload.user) state.user = action.payload.user;
+      if (action.payload.role) state.role = action.payload.role;
+      if (action.payload.permissions) state.permissions = action.payload.permissions;
+      state.sessionExpired = false;
+    },
     logout(state) {
       state.isAuthenticated = false;
       state.accessToken = null;
@@ -163,6 +179,7 @@ const authSlice = createSlice({
 
 export const {
   loginWithDemoRole,
+  setCredentials,
   logout,
   triggerSessionExpired,
   dismissSessionExpired,

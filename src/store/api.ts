@@ -88,12 +88,17 @@ const hybridBaseQuery: BaseQueryFn<CustomQueryArgs, unknown, { status: number; m
     const result = await realFetchBaseQuery(args, api, extraOptions);
     if (result.error) {
       const status = typeof result.error.status === 'number' ? result.error.status : 500;
+      const errData = result.error.data as
+        | {
+            message?: string;
+            errors?: Array<{ field: string; message: string; value?: unknown }>;
+          }
+        | undefined;
+      const validationMessage = errData?.errors?.[0]?.message;
       return {
         error: {
           status,
-          message:
-            (result.error.data as { message?: string } | undefined)?.message ??
-            'API request failed',
+          message: validationMessage ?? errData?.message ?? 'API request failed',
         },
       };
     }
@@ -134,6 +139,25 @@ export const schoolApi = createApi({
         'Notifications',
         'Audit',
       ],
+    }),
+
+    login: builder.mutation<
+      {
+        accessToken: string;
+        refreshToken?: string;
+        user: {
+          id: string;
+          name: string;
+          email: string;
+          phone: string;
+          roles: string[];
+          permissions: string[];
+        };
+      },
+      { email: string; password: string }
+    >({
+      query: (body) => ({ url: '/auth/login', method: 'POST', body }),
+      transformResponse: (response: any) => response?.data ?? response,
     }),
 
     searchPublicResult: builder.mutation<
@@ -502,8 +526,59 @@ export const schoolApi = createApi({
       invalidatesTags: ['Academic', 'Bootstrap'],
     }),
 
-    saveSchoolClass: builder.mutation<SchoolClass, Partial<SchoolClass> & { sectionNames?: string[] }>({
-      query: (body) => ({ url: '/academic/classes', method: 'POST', body }),
+    getSchoolClasses: builder.query<SchoolClass[], { isActive?: boolean } | void>({
+      query: (params) => ({
+        url: '/academic/classes' + (params && params.isActive !== undefined ? `?isActive=${params.isActive}` : ''),
+        method: 'GET',
+      }),
+      transformResponse: (response: any) => {
+        const raw = response?.data ?? response;
+        return Array.isArray(raw) ? raw : [];
+      },
+      providesTags: ['Academic'],
+    }),
+
+    saveSchoolClass: builder.mutation<
+      SchoolClass,
+      {
+        id?: string;
+        name: string;
+        numericValue: number;
+        isActive?: boolean;
+        sections?: string[];
+        sectionNames?: string[];
+      }
+    >({
+      query: (body) => {
+        if (body.id) {
+          const { id, sectionNames, sections, ...updateBody } = body;
+          return {
+            url: `/academic/classes/${id}`,
+            method: 'PATCH',
+            body: updateBody,
+          };
+        }
+        const { sectionNames, sections, ...createBody } = body;
+        const resolvedSections = sections ?? sectionNames;
+        return {
+          url: '/academic/classes',
+          method: 'POST',
+          body: {
+            ...createBody,
+            ...(resolvedSections && resolvedSections.length > 0 ? { sections: resolvedSections } : {}),
+          },
+        };
+      },
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ['Academic', 'Bootstrap'],
+    }),
+
+    removeSchoolClass: builder.mutation<{ message: string }, { id: string }>({
+      query: ({ id }) => ({
+        url: `/academic/classes/${id}`,
+        method: 'DELETE',
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ['Academic', 'Bootstrap'],
     }),
 
@@ -906,6 +981,8 @@ export const schoolApi = createApi({
 
 export const {
   useGetBootstrapQuery,
+  useLoginMutation,
+  useGetSchoolClassesQuery,
   useSearchPublicResultMutation,
   useSubmitAdmissionApplicationMutation,
   useUpdateAdmissionStatusMutation,
@@ -930,6 +1007,7 @@ export const {
   useSetActiveAcademicYearMutation,
   useSaveAcademicGroupMutation,
   useSaveSchoolClassMutation,
+  useRemoveSchoolClassMutation,
   useSaveSectionMutation,
   useSaveMasterSubjectMutation,
   useRemoveMasterSubjectMutation,

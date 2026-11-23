@@ -4113,8 +4113,21 @@ export async function handleMockRequest(
     if (endpoint === '/academic/groups' && method === 'POST') {
       return saveAcademicGroup(body);
     }
+    if (endpoint.startsWith('/academic/classes') && method === 'GET') {
+      return { data: db.classes };
+    }
     if (endpoint === '/academic/classes' && method === 'POST') {
       return saveSchoolClass(body);
+    }
+    if (endpoint.startsWith('/academic/classes/') && method === 'PATCH') {
+      const id = endpoint.replace('/academic/classes/', '');
+      return saveSchoolClass({ ...(body as object), id });
+    }
+    if (endpoint.startsWith('/academic/classes/') && method === 'DELETE') {
+      const id = endpoint.replace('/academic/classes/', '');
+      const idx = db.classes.findIndex((c) => c.id === id);
+      if (idx !== -1) db.classes.splice(idx, 1);
+      return { data: { message: 'Class deleted successfully' } };
     }
     if (endpoint === '/academic/sections' && method === 'POST') {
       return saveSection(body);
