@@ -718,7 +718,7 @@ export function MarksEntryView() {
 
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-base">
-              <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-sm font-bold uppercase tracking-wider tabular-nums">
+              <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-sm font-semibold uppercase tracking-wider tabular-nums">
                 <tr>
                   <th className="px-3 py-3 text-center w-16">{pick('রোল', 'Roll')}</th>
                   <th className="px-3 py-3 text-left min-w-[180px]">{pick('শিক্ষার্থী ও শাখা', 'Student')}</th>
@@ -726,7 +726,7 @@ export function MarksEntryView() {
                   {activeExamSubject.hasWritten && (
                     <th className="px-2.5 py-3 text-right w-28">
                       <div>{pick('লিখিত', 'Written')}</div>
-                      <div className="text-xs font-bold text-primary normal-case">
+                      <div className="text-xs font-semibold text-primary normal-case">
                         {formatNumber(activeExamSubject.writtenFullMarks ?? 0, locale)} ({pick('পাশ', 'Pass')}{' '}
                         {formatNumber(activeExamSubject.writtenPassMarks ?? 0, locale)})
                       </div>
@@ -735,7 +735,7 @@ export function MarksEntryView() {
                   {activeExamSubject.hasMcq && (
                     <th className="px-2.5 py-3 text-right w-28">
                       <div>MCQ</div>
-                      <div className="text-xs font-bold text-primary normal-case">
+                      <div className="text-xs font-semibold text-primary normal-case">
                         {formatNumber(activeExamSubject.mcqFullMarks ?? 0, locale)} ({pick('পাশ', 'Pass')}{' '}
                         {formatNumber(activeExamSubject.mcqPassMarks ?? 0, locale)})
                       </div>
@@ -744,7 +744,7 @@ export function MarksEntryView() {
                   {activeExamSubject.hasPractical && (
                     <th className="px-2.5 py-3 text-right w-28">
                       <div>{pick('ব্যবহারিক', 'Practical')}</div>
-                      <div className="text-xs font-bold text-primary normal-case">
+                      <div className="text-xs font-semibold text-primary normal-case">
                         {formatNumber(activeExamSubject.practicalFullMarks ?? 0, locale)} ({pick('পাশ', 'Pass')}{' '}
                         {formatNumber(activeExamSubject.practicalPassMarks ?? 0, locale)})
                       </div>
@@ -753,7 +753,7 @@ export function MarksEntryView() {
                   {activeExamSubject.hasContinuousAssessment && (
                     <th className="px-2.5 py-3 text-right w-28">
                       <div>{pick('ধারাবাহিক (CA)', 'CA')}</div>
-                      <div className="text-xs font-bold text-primary normal-case">
+                      <div className="text-xs font-semibold text-primary normal-case">
                         {formatNumber(activeExamSubject.continuousAssessmentFullMarks ?? 0, locale)} ({pick('পাশ', 'Pass')}{' '}
                         {formatNumber(activeExamSubject.continuousAssessmentPassMarks ?? 0, locale)})
                       </div>
@@ -795,9 +795,9 @@ export function MarksEntryView() {
                       key={enr.id}
                       className={`${isDirty ? 'bg-primary/5' : 'hover:bg-surface-muted/40'} transition-colors`}
                     >
-                      <td className="px-3 py-2.5 text-center font-bold text-base">{formatNumber(enr.roll, locale)}</td>
+                      <td className="px-3 py-2.5 text-center font-medium text-base">{formatNumber(enr.roll, locale)}</td>
                       <td className="px-3 py-2.5">
-                        <div className="font-bold text-base text-foreground">
+                        <div className="font-semibold text-base text-foreground">
                           {locale === 'bn' ? stu?.nameBn || stu?.nameEn : stu?.nameEn}
                         </div>
                         <p className="text-sm text-muted-foreground font-medium">
@@ -880,12 +880,12 @@ export function MarksEntryView() {
                           />
                         </td>
                       )}
-                      <td className="px-3 py-2 text-right font-bold">
+                      <td className="px-3 py-2 text-right font-medium">
                         {row.isAbsent ? 'AB' : formatNumber(evalRes.totalMarks, locale)}
                       </td>
                       <td className="px-3 py-2 text-center">
                         <span
-                          className={`font-bold ${
+                          className={`font-semibold ${
                             evalRes.isPassed ? 'text-success' : 'text-destructive'
                           }`}
                         >

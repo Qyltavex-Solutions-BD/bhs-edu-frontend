@@ -745,7 +745,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
         <div className="overflow-x-auto">
           <table className="w-full text-base">
             <thead>
-              <tr className="border-b border-border bg-surface-muted/60 text-left text-sm font-bold text-muted-foreground uppercase tracking-wider">
+              <tr className="border-b border-border bg-surface-muted/60 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                 <th className="py-3.5 px-4 w-16">{pick('রোল', 'Roll')}</th>
                 <th className="py-3.5 px-4">{pick('শিক্ষার্থী', 'Student')}</th>
                 <th className="py-3.5 px-4 w-44">{pick('প্রবেশ / প্রস্থান', 'In / Out')}</th>
@@ -778,14 +778,14 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                         dirty && 'bg-primary/[0.04]'
                       )}
                     >
-                      <td className="py-3 px-4 font-mono font-bold text-base tabular-nums text-foreground">
+                      <td className="py-3 px-4 font-mono font-medium text-base tabular-nums text-foreground">
                         {formatNumber(enrollment.roll, locale)}
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex flex-col">
                           <Link
                             href={`/admin/students/${enrollment.studentId}#attendance`}
-                            className="font-bold text-base text-foreground hover:text-primary transition-colors"
+                            className="font-semibold text-base text-foreground hover:text-primary transition-colors"
                           >
                             {locale === 'bn'
                               ? student?.nameBn || student?.nameEn

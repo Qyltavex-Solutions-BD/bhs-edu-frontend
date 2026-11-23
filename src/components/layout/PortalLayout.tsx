@@ -389,6 +389,71 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
     }));
   }, [pathname]);
 
+  const isDashboardRoot = useMemo(() => {
+    return (
+      pathname === '/admin' ||
+      pathname === '/teacher' ||
+      pathname === '/teacher/dashboard' ||
+      pathname === '/parent' ||
+      pathname === '/parent/dashboard' ||
+      pathname === '/student' ||
+      pathname === '/student/dashboard'
+    );
+  }, [pathname]);
+
+  const currentNavContext = useMemo(() => {
+    if (portal === 'admin') {
+      for (const group of ADMIN_NAV_GROUPS) {
+        for (const item of group.items) {
+          if (item.children) {
+            // Check exact child match first
+            for (const child of item.children) {
+              if (pathname === child.to) {
+                return {
+                  groupLabel: locale === 'bn' ? group.labelBn : group.labelEn,
+                  parentLabel: locale === 'bn' ? item.labelBn : item.labelEn,
+                  parentTo: item.to,
+                  pageTitle: locale === 'bn' ? child.labelBn : child.labelEn,
+                };
+              }
+            }
+            // Check child prefix match
+            for (const child of item.children) {
+              if (child.to !== item.to && pathname.startsWith(`${child.to}/`)) {
+                return {
+                  groupLabel: locale === 'bn' ? group.labelBn : group.labelEn,
+                  parentLabel: locale === 'bn' ? item.labelBn : item.labelEn,
+                  parentTo: item.to,
+                  pageTitle: locale === 'bn' ? child.labelBn : child.labelEn,
+                };
+              }
+            }
+          }
+          if (item.end ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`)) {
+            return {
+              groupLabel: locale === 'bn' ? group.labelBn : group.labelEn,
+              parentLabel: locale === 'bn' ? item.labelBn : item.labelEn,
+              parentTo: item.to,
+              pageTitle: locale === 'bn' ? item.labelBn : item.labelEn,
+            };
+          }
+        }
+      }
+    } else {
+      const list = portal === 'teacher' ? TEACHER_NAV : portal === 'parent' ? PARENT_NAV : STUDENT_NAV;
+      const match = list.find((it) => it.end ? pathname === it.to : pathname === it.to || pathname.startsWith(`${it.to}/`));
+      if (match) {
+        return {
+          groupLabel: pick('পোর্টাল', 'Portal'),
+          parentLabel: locale === 'bn' ? match.labelBn : match.labelEn,
+          parentTo: match.to,
+          pageTitle: locale === 'bn' ? match.labelBn : match.labelEn,
+        };
+      }
+    }
+    return null;
+  }, [portal, pathname, locale, pick]);
+
   // Student Portal Feature Flag Gate (Section 9)
   if (portal === 'student' && !enableStudentPortal) {
     return (
@@ -750,25 +815,79 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
 
       {/* Main Content Area (Independent scroll container) */}
       <div className="flex-1 flex flex-col min-w-0 lg:h-screen lg:overflow-y-auto">
-        {/* Top Bar matching reference */}
-        <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md px-4 sm:px-6 py-4 flex items-center justify-between gap-4 no-print">
+        {/* Top Bar with Dynamic Breadcrumb & Context Header */}
+        <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-border/70 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 no-print">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
               aria-label="Open navigation"
-              className="lg:hidden p-2 rounded-xl border border-border bg-surface hover:bg-surface-muted shadow-xs"
+              className="lg:hidden p-2 rounded-xl border border-border bg-surface hover:bg-surface-muted shadow-xs shrink-0"
             >
               <Menu className="w-5 h-5" />
             </button>
-            <div className="min-w-0">
-              <h1 className="text-lg sm:text-2xl font-bold text-foreground flex items-center gap-1.5 truncate">
-                {pick(`শুভ সকাল, ${auth.user?.name ?? 'অ্যাডমিন'} 👋`, `Good morning, ${auth.user?.name ?? 'Admin'} 👋`)}
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                {pick('ভোজেশ্বর উচ্চ বিদ্যালয়ের আজকের সার্বিক অবস্থা ও আপডেট।', 'Here is what is happening across Bhojeshwar High School today.')}
-              </p>
-            </div>
+
+            {isDashboardRoot ? (
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                  <span className="text-xs font-semibold text-primary uppercase tracking-wider">
+                    {pick('সার্বিক ড্যাশবোর্ড ওভারভিউ', 'Main Dashboard Overview')}
+                  </span>
+                </div>
+                <h1 className="text-lg sm:text-2xl font-bold text-foreground flex items-center gap-1.5 truncate mt-0.5">
+                  {pick(`শুভ সকাল, ${auth.user?.name ?? 'অ্যাডমিন'} 👋`, `Good morning, ${auth.user?.name ?? 'Admin'} 👋`)}
+                </h1>
+              </div>
+            ) : (
+              <div className="min-w-0 space-y-0.5">
+                {/* Clean modern breadcrumb navigation */}
+                <nav
+                  aria-label="Breadcrumb"
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium"
+                >
+                  <Link
+                    href={portal === 'admin' ? '/admin' : `/${portal}/dashboard`}
+                    className="hover:text-primary transition-colors flex items-center gap-1 shrink-0"
+                    title={pick('ড্যাশবোর্ড', 'Dashboard')}
+                  >
+                    <Home className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{pick('হোম', 'Home')}</span>
+                  </Link>
+
+                  {currentNavContext?.groupLabel && (
+                    <>
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+                      <span className="truncate max-w-[110px] sm:max-w-none text-muted-foreground/85">
+                        {currentNavContext.groupLabel}
+                      </span>
+                    </>
+                  )}
+
+                  {currentNavContext?.parentLabel && currentNavContext.parentLabel !== currentNavContext.pageTitle && (
+                    <>
+                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+                      <Link
+                        href={currentNavContext.parentTo ?? '#'}
+                        className="hover:text-primary transition-colors truncate max-w-[120px] sm:max-w-none text-muted-foreground/85"
+                      >
+                        {currentNavContext.parentLabel}
+                      </Link>
+                    </>
+                  )}
+
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+                  <span className="text-foreground font-semibold truncate max-w-[150px] sm:max-w-none">
+                    {currentNavContext?.pageTitle ?? pick('বিবরণ', 'Details')}
+                  </span>
+                </nav>
+
+                {/* Prominent Page Title */}
+                <h1 className="text-lg sm:text-xl font-bold text-foreground tracking-tight truncate">
+                  {currentNavContext?.pageTitle ?? pick('বিবরণ', 'Details')}
+                </h1>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0">
@@ -776,13 +895,13 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
             <button
               type="button"
               onClick={() => dispatch(setCommandPaletteOpen(true))}
-              className="hidden md:inline-flex items-center gap-3 h-10 px-4 text-xs text-muted-foreground bg-surface border border-border rounded-full hover:bg-surface-muted shadow-xs cursor-pointer min-w-[220px] lg:min-w-[260px] justify-between transition"
+              className="hidden md:inline-flex items-center gap-3 h-10 px-4 text-xs text-muted-foreground bg-surface border border-border/80 rounded-full hover:bg-surface-muted shadow-xs cursor-pointer min-w-[200px] lg:min-w-[240px] justify-between transition"
             >
               <div className="flex items-center gap-2">
                 <Search className="w-3.5 h-3.5 text-muted-foreground" />
                 <span>{pick('কিছু খুঁজুন...', 'Search anything...')}</span>
               </div>
-              <kbd className="font-mono text-xs text-muted-foreground bg-surface-muted border border-border px-1.5 py-0.5 rounded-md">⌘K</kbd>
+              <kbd className="font-mono text-[11px] text-muted-foreground bg-surface-muted border border-border px-1.5 py-0.5 rounded-md">⌘K</kbd>
             </button>
 
             {/* Calendar Button */}
@@ -790,7 +909,7 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
               <button
                 type="button"
                 title={pick('ক্যালেন্ডার', 'Calendar')}
-                className="h-10 w-10 inline-flex items-center justify-center bg-surface border border-border rounded-full hover:bg-surface-muted shadow-xs text-foreground cursor-pointer transition"
+                className="h-10 w-10 inline-flex items-center justify-center bg-surface border border-border/80 rounded-full hover:bg-surface-muted shadow-xs text-foreground cursor-pointer transition"
               >
                 <Calendar className="w-4 h-4 text-muted-foreground" />
               </button>
@@ -802,11 +921,11 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
                 type="button"
                 onClick={() => setNotifOpen((v) => !v)}
                 aria-label="Notifications"
-                className="relative h-10 w-10 inline-flex items-center justify-center bg-surface border border-border rounded-full hover:bg-surface-muted shadow-xs text-foreground cursor-pointer transition"
+                className="relative h-10 w-10 inline-flex items-center justify-center bg-surface border border-border/80 rounded-full hover:bg-surface-muted shadow-xs text-foreground cursor-pointer transition"
               >
                 <Bell className="w-4 h-4 text-muted-foreground" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-[#DF6153] text-white text-xs font-bold flex items-center justify-center tabular-nums leading-none">
+                  <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-[#DF6153] text-white text-[10px] font-bold flex items-center justify-center tabular-nums leading-none">
                     {unreadCount}
                   </span>
                 )}
@@ -867,20 +986,30 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
               type="button"
               onClick={() => dispatch(toggleTheme())}
               aria-label={pick('থিম পরিবর্তন করুন', 'Toggle theme')}
-              className="h-10 w-10 inline-flex items-center justify-center bg-surface border border-border rounded-full hover:bg-surface-muted shadow-xs text-foreground cursor-pointer transition"
+              className="h-10 w-10 inline-flex items-center justify-center bg-surface border border-border/80 rounded-full hover:bg-surface-muted shadow-xs text-foreground cursor-pointer transition"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
 
-            {/* User Avatar Circle */}
-            <div className="w-10 h-10 rounded-full bg-[#DCEFE0] text-[#1C6440] font-bold text-xs flex items-center justify-center border-2 border-white shadow-xs shrink-0 cursor-pointer">
-              {auth.user?.name ? auth.user.name.slice(0, 2).toUpperCase() : 'AD'}
+            {/* User Profile Capsule */}
+            <div className="flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-full bg-surface border border-border/80 hover:bg-surface-muted transition shadow-xs cursor-pointer">
+              <div className="w-8 h-8 rounded-full bg-[#1C6440] text-white font-bold text-xs flex items-center justify-center shadow-xs shrink-0">
+                {auth.user?.name ? auth.user.name.slice(0, 2).toUpperCase() : 'AD'}
+              </div>
+              <div className="hidden xl:block text-left">
+                <p className="text-xs font-semibold text-foreground leading-tight truncate max-w-[110px]">
+                  {auth.user?.name ?? 'Admin'}
+                </p>
+                <p className="text-[10px] text-muted-foreground leading-tight uppercase font-medium">
+                  {auth.role ?? 'Super Admin'}
+                </p>
+              </div>
             </div>
           </div>
         </header>
 
         {/* Page Viewport */}
-        <main className="flex-1 px-4 sm:px-6 pb-6 w-full">
+        <main className="flex-1 px-4 sm:px-6 pt-4 sm:pt-5 pb-6 w-full space-y-6">
           {children}
         </main>
       </div>

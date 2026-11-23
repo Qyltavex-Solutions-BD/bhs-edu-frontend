@@ -111,11 +111,11 @@ export function StepParentsAndAddress({
         <AdmissionSectionHeader
           title={pick('১. পিতার তথ্য', '1. Father’s Information')}
           rightSlot={
-            <div className="inline-flex border border-border rounded-[4px] overflow-hidden divide-x divide-border text-xs">
+            <div className="inline-flex border border-border/80 rounded-xl overflow-hidden divide-x divide-border/80 text-sm font-semibold">
               <button
                 type="button"
                 onClick={() => handleFatherAliveChange(true)}
-                className={`px-3 py-1.5 font-medium transition-colors cursor-pointer ${
+                className={`px-3.5 py-1.5 transition-colors cursor-pointer ${
                   fatherAlive
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-surface text-muted-foreground hover:text-foreground'
@@ -126,7 +126,7 @@ export function StepParentsAndAddress({
               <button
                 type="button"
                 onClick={() => handleFatherAliveChange(false)}
-                className={`px-3 py-1.5 font-medium transition-colors cursor-pointer ${
+                className={`px-3.5 py-1.5 transition-colors cursor-pointer ${
                   !fatherAlive
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-surface text-muted-foreground hover:text-foreground'
@@ -238,11 +238,11 @@ export function StepParentsAndAddress({
         <AdmissionSectionHeader
           title={pick('২. মাতার তথ্য', '2. Mother’s Information')}
           rightSlot={
-            <div className="inline-flex border border-border rounded-[4px] overflow-hidden divide-x divide-border text-xs">
+            <div className="inline-flex border border-border/80 rounded-xl overflow-hidden divide-x divide-border/80 text-sm font-semibold">
               <button
                 type="button"
                 onClick={() => handleMotherAliveChange(true)}
-                className={`px-3 py-1.5 font-medium transition-colors cursor-pointer ${
+                className={`px-3.5 py-1.5 transition-colors cursor-pointer ${
                   motherAlive
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-surface text-muted-foreground hover:text-foreground'
@@ -253,7 +253,7 @@ export function StepParentsAndAddress({
               <button
                 type="button"
                 onClick={() => handleMotherAliveChange(false)}
-                className={`px-3 py-1.5 font-medium transition-colors cursor-pointer ${
+                className={`px-3.5 py-1.5 transition-colors cursor-pointer ${
                   !motherAlive
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-surface text-muted-foreground hover:text-foreground'
@@ -376,14 +376,14 @@ export function StepParentsAndAddress({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
           {/* Primary Contact Radio Selector */}
           <div className="lg:col-span-2 space-y-1.5">
-            <label className="block text-sm font-medium text-foreground">
+            <label className="block text-base font-semibold text-foreground">
               <span className="inline-flex items-center gap-1.5">
-                <PhoneCall className="w-3.5 h-3.5 text-primary" />
+                <PhoneCall className="w-4 h-4 text-primary" />
                 {pick('প্রাথমিক যোগাযোগকারী অভিভাবক', 'Primary Contact Guardian')}
               </span>
               <span className="text-destructive ml-1">*</span>
             </label>
-            <div className="grid grid-cols-3 border border-border rounded-[4px] overflow-hidden divide-x divide-border">
+            <div className="grid grid-cols-3 border border-border/80 rounded-xl overflow-hidden divide-x divide-border/80 shadow-xs">
               {primaryOptions.map((opt) => {
                 const active = primaryGuardianType === opt.value;
                 return (
@@ -392,11 +392,11 @@ export function StepParentsAndAddress({
                     type="button"
                     disabled={opt.disabled}
                     onClick={() => handlePrimaryGuardianChange(opt.value)}
-                    className={`h-10 px-3 text-sm font-medium transition-colors ${
+                    className={`h-11 px-3 text-base font-semibold transition-colors ${
                       opt.disabled
                         ? 'bg-surface-muted/40 text-muted-foreground/45 cursor-not-allowed'
                         : active
-                          ? 'bg-primary text-primary-foreground cursor-pointer'
+                          ? 'bg-primary text-primary-foreground cursor-pointer shadow-xs'
                           : 'bg-surface text-foreground hover:bg-surface-muted/60 cursor-pointer'
                     }`}
                   >
@@ -464,7 +464,7 @@ export function StepParentsAndAddress({
         </div>
 
         {showLegalGuardian && (
-          <div className="p-4 rounded-[4px] border border-border bg-surface-muted/25 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-5 rounded-2xl border border-border/80 bg-surface-muted/20 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <AdmissionField
               label={pick('বৈধ অভিভাবকের নাম (বাংলায়)', 'Legal Guardian Name (Bangla)')}
               required
@@ -641,7 +641,7 @@ export function StepParentsAndAddress({
           />
 
           {sameAsPermanent ? (
-            <div className="px-3.5 py-2.5 rounded-[4px] border border-border bg-surface-muted/40 text-sm text-muted-foreground">
+            <div className="px-4 py-3 rounded-2xl border border-border/80 bg-surface-muted/30 text-base text-muted-foreground">
               {formatStructuredAddress(permanentAddressParts) ||
                 pick('স্থায়ী ঠিকানা পূরণ করলে এখানে স্বয়ংক্রিয়ভাবে যুক্ত হবে।', 'Mirrors permanent address.')}
             </div>
