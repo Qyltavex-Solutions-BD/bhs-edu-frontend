@@ -1006,5 +1006,3 @@ export const {
   useSaveAcademicDocumentMutation,
   useRemoveAcademicDocumentMutation,
 } = schoolApi;
-
-export * from '@/src/services/academic/class.api';
