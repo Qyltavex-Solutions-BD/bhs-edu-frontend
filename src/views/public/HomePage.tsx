@@ -63,6 +63,7 @@ import {
   NoticeDocumentModal,
   downloadNoticeDocument,
 } from '@/src/components/shared/NoticeDocumentViewer';
+import { StarsScrapbookGallery } from '@/src/components/shared/StarsScrapbookGallery';
 import { cn } from '@/src/lib/utils/cn';
 
 const SLIDE_DURATION_MS = 6500;
@@ -519,8 +520,8 @@ export function HomePage() {
         a.isPublished &&
         (a.type === AchievementType.STUDENT_STAR || a.type === AchievementType.NOTABLE_ALUMNI)
     );
-    if (publishedStars.length >= 4) {
-      return publishedStars.slice(0, 4);
+    if (publishedStars.length >= 6) {
+      return publishedStars.slice(0, 6);
     }
     const fallbacks = [
       {
@@ -599,15 +600,53 @@ export function HomePage() {
         createdAt: '',
         updatedAt: '',
       },
+      {
+        id: 'fallback-alumni-3',
+        title:
+          locale === 'bn'
+            ? 'চিফ সফটওয়্যার আর্কিটেক্ট ও টেক এন্টারপ্রেনার'
+            : 'Chief Software Architect & Tech Entrepreneur',
+        type: AchievementType.NOTABLE_ALUMNI,
+        personName: locale === 'bn' ? 'মাহমুদুল হাসান' : 'Mahmudul Hasan',
+        batch: locale === 'bn' ? 'ব্যাচ ২০০১' : 'Batch 2001',
+        description:
+          locale === 'bn'
+            ? 'আন্তর্জাতিক ফিনটেক প্ল্যাটফর্মের শীর্ষ প্রকৌশলী এবং বিদ্যালয়ের আইসিটি ল্যাব ও শিক্ষার্থীদের কোডিং ক্লাবের নিয়মিত পৃষ্ঠপোষক।'
+            : 'International fintech principal engineer and patron for BHS ICT lab & student coding workshops.',
+        image: '/images/teacher_mahmudul_portrait_1795155721712.jpg',
+        achievedAt: '2024-02-10',
+        isPublished: true,
+        createdAt: '',
+        updatedAt: '',
+      },
+      {
+        id: 'fallback-star-3',
+        title:
+          locale === 'bn'
+            ? 'জাতীয় আন্তঃস্কুল বিতর্ক প্রতিযোগিতায় সেরা বক্তা ও চ্যাম্পিয়ন'
+            : 'Best Speaker & Champion in National Inter-School Debate',
+        type: AchievementType.STUDENT_STAR,
+        personName: locale === 'bn' ? 'নুসরাত জাহান' : 'Nusrat Jahan',
+        batch: locale === 'bn' ? 'ব্যাচ ২০২৩' : 'Batch 2023',
+        description:
+          locale === 'bn'
+            ? 'জাতীয় টেলিভিশন বিতর্ক প্রতিযোগিতায় ঢাকা বিভাগের চ্যাম্পিয়ন এবং এসএসসিতে গোল্ডেন জিপিএ ৫.০০ প্রাপ্ত কৃতি শিক্ষার্থী।'
+            : 'Dhaka division television debate champion and Golden GPA-5 recipient in SSC examination.',
+        image: '/images/committee_rehana_portrait_1795170999363.jpg',
+        achievedAt: '2023-08-20',
+        isPublished: true,
+        createdAt: '',
+        updatedAt: '',
+      },
     ];
     const combined = [...publishedStars];
     for (const fb of fallbacks) {
-      if (combined.length >= 4) break;
+      if (combined.length >= 6) break;
       if (!combined.some((item) => item.id === fb.id || item.personName === fb.personName)) {
         combined.push(fb);
       }
     }
-    return combined.slice(0, 4);
+    return combined.slice(0, 6);
   }, [db.achievements, locale]);
 
   const academicStreams = [
@@ -2308,165 +2347,20 @@ export function HomePage() {
         </motion.section>
 
         {/* =========================================================================
-            SECTION 8: STARS OF OUR INSTITUTION (WALL OF FAME / কৃতি শিক্ষার্থী ও অ্যালামনাই)
-            Spotlight 4-card grid showcasing distinguished student stars & notable alumni
+            SECTION 8: STARS OF OUR INSTITUTION (MODERN PHOTO GALLERY SCRAPBOOK / কৃতি শিক্ষার্থী ও অ্যালামনাই)
+            Editorial Polaroid Collage showcase inspired by curated gallery exhibition
            ========================================================================= */}
         <motion.section
           initial={{ opacity: 0, y: 18 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.1 }}
           transition={{ duration: 0.45, ease: EASE_OUT }}
-          className="space-y-6 sm:space-y-8"
         >
-          {/* Section Header */}
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 border-b border-border pb-4">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold tracking-wide uppercase">
-                <Trophy className="w-3.5 h-3.5 text-primary" />
-                <span>{pick('আমাদের গৌরব ও অনুপ্রেরণা', 'Pride & Inspiration')}</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground">
-                {pick('বিদ্যালয়ের কৃতি শিক্ষার্থী ও অ্যালামনাই', 'Stars of Our Institution')}
-              </h2>
-              <p className="text-base text-muted-foreground max-w-2xl">
-                {pick(
-                  'ভোজেশ্বর উচ্চ বিদ্যালয়ের মেধা তালিকায় স্থানপ্রাপ্ত কৃতি শিক্ষার্থী এবং জাতীয় ও আন্তর্জাতিক পরিমণ্ডলে প্রতিষ্ঠিত প্রাক্তন শিক্ষার্থীদের সাফল্যগাথা ও অনুপ্রেরণা।',
-                  'Honoring our academic board achievers, science innovators, and distinguished alumni who illuminate the heritage of Bhojeshwar High School.'
-                )}
-              </p>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <Link
-                href="/achievements"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface hover:bg-surface-muted text-sm font-semibold text-primary border border-border hover:border-primary/40 transition-all group"
-              >
-                <span>{pick('সব কৃতি শিক্ষার্থী ও অর্জন দেখুন', 'View All Stars & Achievements')}</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Wall of Fame 4-Column Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {institutionStars.map((star) => {
-              const isAlumni = star.type === AchievementType.NOTABLE_ALUMNI;
-              const photoSrc = star.image || '/images/teacher_kamrul_portrait_1795155721415.jpg';
-
-              return (
-                <div
-                  key={star.id}
-                  className="group bg-surface border border-border rounded-2xl overflow-hidden flex flex-col justify-between hover:border-primary/50 hover:shadow-lg transition-all duration-300"
-                >
-                  <div>
-                    {/* Portrait Frame with Vignette & Status Badges */}
-                    <div className="relative aspect-[4/3.8] w-full overflow-hidden bg-surface-muted">
-                      <img
-                        src={photoSrc}
-                        alt={star.personName ?? star.title}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover object-top transition-transform duration-500 ease-out group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
-
-                      {/* Top Left: Category Badge */}
-                      <div className="absolute top-3 left-3">
-                        {isAlumni ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500 text-white shadow-md backdrop-blur-sm">
-                            <GraduationCap className="w-3.5 h-3.5" />
-                            <span>{pick('কৃতি প্রাক্তন শিক্ষার্থী', 'Notable Alumni')}</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-primary-foreground shadow-md backdrop-blur-sm">
-                            <Sparkles className="w-3.5 h-3.5" />
-                            <span>{pick('কৃতি শিক্ষার্থী', 'Student Star')}</span>
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Top Right: Batch / Year Pill */}
-                      {star.batch && (
-                        <div className="absolute top-3 right-3">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-black/60 text-white border border-white/20 backdrop-blur-md tabular-nums">
-                            {star.batch}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Bottom Name inside Image Overlay */}
-                      <div className="absolute inset-x-0 bottom-0 p-3.5 text-white">
-                        <p className="text-lg font-bold leading-tight drop-shadow-sm">
-                          {star.personName}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Card Content */}
-                    <div className="p-4 space-y-2">
-                      <h3 className="text-sm font-bold text-primary leading-snug line-clamp-2">
-                        {star.title}
-                      </h3>
-                      {star.description && (
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3">
-                          {star.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Card Footer Link */}
-                  <div className="px-4 py-3 bg-surface-muted/30 border-t border-border flex items-center justify-between text-xs font-semibold text-primary group-hover:bg-primary/5 transition-colors">
-                    <Link
-                      href="/achievements"
-                      className="inline-flex items-center gap-1 hover:underline"
-                    >
-                      <span>{pick('সাফল্য বিবরণী', 'View Achievement')}</span>
-                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                    </Link>
-                    {star.achievedAt && (
-                      <span className="text-[11px] text-muted-foreground tabular-nums">
-                        {star.achievedAt.split('-')[0]}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Interactive Community Prompt Bar for Alumni & Students */}
-          <div className="p-4 sm:p-5 rounded-xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <Users className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-foreground">
-                  {pick(
-                    'আপনিও কি ভোজেশ্বর উচ্চ বিদ্যালয়ের প্রাক্তন বা বর্তমান কৃতি শিক্ষার্থী?',
-                    'Are you an alumnus or distinguished achiever of Bhojeshwar High School?'
-                  )}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {pick(
-                    'আমাদের অ্যালামনাই ডিরেক্টরিতে নাম অন্তর্ভুক্ত করুন বা আপনার মেধা ও স্বীকৃতির তথ্য বিদ্যালয় কর্তৃপক্ষের সাথে শেয়ার করুন।',
-                    'Join our alumni community directory or share your academic/professional achievements with us.'
-                  )}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
-              <Link href="/alumni" className="w-full sm:w-auto">
-                <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                  {pick('অ্যালামনাই নিবন্ধন', 'Join Alumni')}
-                </Button>
-              </Link>
-              <Link href="/achievements" className="w-full sm:w-auto">
-                <Button variant="primary" size="sm" className="w-full sm:w-auto">
-                  {pick('সব কৃতি অর্জন', 'All Achievements')}
-                </Button>
-              </Link>
-            </div>
-          </div>
+          <StarsScrapbookGallery
+            stars={institutionStars}
+            locale={locale}
+            pick={pick}
+          />
         </motion.section>
 
         {/* News & Upcoming Events (Photo-Led Editorial News + Chronological Event Calendar) */}
