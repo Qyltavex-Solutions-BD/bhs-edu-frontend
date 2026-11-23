@@ -8,11 +8,13 @@ import {
   ArrowLeft,
   ArrowRight,
   Calendar,
+  ChevronRight,
   Clock,
   MapPin,
   Phone,
   Mail,
   Paperclip,
+  Printer,
   Search,
   ExternalLink,
   Download,
@@ -115,51 +117,56 @@ export function PublicNoticesListPage() {
       ) : (
         <Card className="divide-y divide-border overflow-hidden">
           {list.map((n) => {
-            const d = new Date(n.publishedAt ?? n.createdAt);
-            const day = new Intl.NumberFormat(locale === 'bn' ? 'bn-BD' : 'en-US').format(d.getDate());
-            const month = new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', { month: 'short' }).format(d);
-            const year = new Intl.NumberFormat(locale === 'bn' ? 'bn-BD' : 'en-US', { useGrouping: false }).format(d.getFullYear());
+            const pubDate = new Date(n.publishedAt ?? n.createdAt);
+            const isRecent = Date.now() - pubDate.getTime() < 14 * 24 * 60 * 60 * 1000;
+            const showNewBadge = n.isUrgent || isRecent;
+            const day = String(pubDate.getDate()).padStart(2, '0');
+            const month = String(pubDate.getMonth() + 1).padStart(2, '0');
+            const year = pubDate.getFullYear();
+            const rawDate = `${day}-${month}-${year}`;
+            const formattedDate = locale === 'bn' ? formatNumber(rawDate, 'bn') : rawDate;
+
             return (
               <div
                 key={n.id}
-                className="group flex items-center gap-4 p-4 sm:px-5 hover:bg-surface-muted/40 transition-colors"
+                className="group flex items-start gap-3.5 p-4 sm:px-6 hover:bg-surface-muted/40 transition-colors"
               >
-                <div className="w-14 shrink-0 rounded-lg border border-border bg-surface text-center overflow-hidden tabular-nums">
-                  <div
-                    className={`text-xs font-semibold py-0.5 border-b leading-tight ${
-                      n.isUrgent
-                        ? 'bg-destructive/10 text-destructive border-destructive/20'
-                        : 'bg-secondary/10 text-secondary border-secondary/15'
-                    }`}
-                  >
-                    {month}
-                  </div>
-                  <div className="py-1">
-                    <p className="text-base font-bold text-foreground leading-none">{day}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-none">{year}</p>
-                  </div>
-                </div>
+                {/* Green Bullet Icon (bteb.gov.bd style) */}
+                <span className="w-2.5 h-2.5 rounded-full bg-[#0c5936] dark:bg-emerald-500 shrink-0 mt-1.5" />
 
-                <div className="min-w-0 flex-1 space-y-1">
-                  {(n.isUrgent || n.memoNo) && (
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground tabular-nums">
-                      {n.isUrgent && (
-                        <span className="px-2 py-0.5 rounded bg-destructive text-white text-xs font-semibold leading-none">
-                          {pick('জরুরি', 'Urgent')}
-                        </span>
-                      )}
-                      {n.memoNo && <span className="font-mono">{n.memoNo}</span>}
-                    </div>
-                  )}
+                <div className="min-w-0 flex-1 space-y-1.5">
                   <Link
                     href={`/notices/${n.id}`}
-                    className="block text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug"
+                    className="block text-sm sm:text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug"
                   >
                     {n.title}
                   </Link>
+
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 tabular-nums">
+                      <Calendar className="w-3.5 h-3.5 text-muted-foreground/80" />
+                      <span>{formattedDate}</span>
+                    </span>
+
+                    {showNewBadge && (
+                      <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[11px] font-bold leading-none animate-pulse">
+                        {pick('নতুন', 'New')}
+                      </span>
+                    )}
+
+                    <span className="px-2 py-0.5 rounded-md bg-surface-muted border border-border/80 text-[11px] font-medium text-muted-foreground">
+                      {n.isUrgent ? pick('জরুরি', 'Urgent') : pick('সাধারণ', 'General')}
+                    </span>
+
+                    {n.memoNo && (
+                      <span className="text-[11px] text-muted-foreground/75 font-mono">
+                        {n.memoNo}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1.5 shrink-0 self-center">
                   <Button
                     variant="outline"
                     size="sm"
@@ -177,6 +184,12 @@ export function PublicNoticesListPage() {
                   >
                     <Download className="w-3.5 h-3.5" />
                   </button>
+                  <Link
+                    href={`/notices/${n.id}`}
+                    className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
                 </div>
               </div>
             );
@@ -206,61 +219,139 @@ export function PublicNoticeDetailPage() {
     .filter((n) => n.status === NoticeStatus.PUBLISHED && n.id !== notice.id)
     .slice(0, 4);
 
+  const updatedDate = new Date(notice.updatedAt ?? notice.publishedAt ?? notice.createdAt);
+  const dayName = new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', { weekday: 'long' }).format(updatedDate);
+  const dateFormatted = formatDateLong(notice.publishedAt ?? notice.createdAt, locale);
+
+  const pubDate = new Date(notice.publishedAt ?? notice.createdAt);
+  const day = String(pubDate.getDate()).padStart(2, '0');
+  const month = String(pubDate.getMonth() + 1).padStart(2, '0');
+  const year = pubDate.getFullYear();
+  const rawDate = `${day}-${month}-${year}`;
+  const formattedDateCode = locale === 'bn' ? formatNumber(rawDate, 'bn') : rawDate;
+
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 no-print">
-        <Link href="/notices" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
-          <ArrowLeft className="w-4 h-4" /> {pick('সকল নোটিশ আর্কাইভ', 'All Notices Archive')}
+      {/* Top Meta Line: Last Updated + Print Icon (matches Image 2 from bteb.gov.bd) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-border text-xs text-muted-foreground no-print">
+        <Link
+          href="/notices"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>{pick('সকল নোটিশ আর্কাইভ', 'All Notices Archive')}</span>
         </Link>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground tabular-nums">
-          {notice.memoNo && <span className="font-mono font-medium text-foreground">{notice.memoNo}</span>}
-          <span>·</span>
-          <span>{formatDateLong(notice.publishedAt ?? notice.createdAt, locale)}</span>
+
+        <div className="flex items-center gap-3">
+          <span>
+            {pick('কনটেন্টটি শেষ হাল-নাগাদ করা হয়েছে:', 'Content Last Updated:')}{' '}
+            <strong className="font-semibold text-foreground">{dayName}, {dateFormatted}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            title={pick('প্রিন্ট করুন', 'Print Notice')}
+            aria-label="Print notice"
+            className="h-7 w-7 inline-flex items-center justify-center rounded border border-border bg-surface hover:bg-surface-muted text-foreground transition-colors cursor-pointer"
+          >
+            <Printer className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
-      <div className="space-y-2 no-print">
-        {notice.isUrgent && (
-          <span className="inline-block px-2.5 py-0.5 rounded bg-destructive text-white text-xs font-semibold">
-            {pick('জরুরি বিজ্ঞপ্তি', 'Urgent Notice')}
+      {/* Official Notice Title (Large bold heading) */}
+      <div className="space-y-3 no-print">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground leading-snug">
+          {notice.title}
+        </h1>
+
+        {/* Metadata Chips Strip (matches Image 2) */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+          <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium">
+            {pick('কনটেন্ট: নোটিশ', 'Content: Notice')}
           </span>
-        )}
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-snug">{notice.title}</h1>
+          <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium tabular-nums">
+            {pick('প্রকাশের তারিখ:', 'Published:')} {formattedDateCode}
+          </span>
+          {notice.memoNo && (
+            <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium font-mono">
+              {pick('স্মারক নং:', 'Memo No:')} {notice.memoNo}
+            </span>
+          )}
+          <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium">
+            {pick('বিভাগ:', 'Category:')} {notice.isUrgent ? pick('জরুরি বিজ্ঞপ্তি', 'Urgent') : pick('সাধারণ নোটিশ', 'General')}
+          </span>
+        </div>
+
+        {/* Green File Download Button (matches Image 2) */}
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => downloadNoticeDocument(notice, db.schoolProfile, locale)}
+            className="px-4 py-2 rounded-lg bg-[#0c5936] hover:bg-[#084529] text-white text-xs sm:text-sm font-semibold inline-flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>{pick('ফাইল ১ (অফিসিয়াল সার্কুলার ডাউনলোড)', 'File 1 (Download Circular)')}</span>
+          </button>
+        </div>
       </div>
 
-      {/* Full Interactive Document Viewer (PDF / Scanned Image / Official A4 Circular) */}
+      {/* Full Official Pad / Document Viewer (Embedded) */}
       <NoticeDocumentViewer notice={notice} school={db.schoolProfile} />
 
-      {/* Other Recent Notices */}
+      {/* Other Recent Notices (matches bteb.gov.bd bottom list) */}
       {recentOthers.length > 0 && (
-        <div className="pt-4 space-y-3 no-print">
-          <h2 className="text-base font-bold text-foreground">
-            {pick('অন্যান্য সাম্প্রতিক বিজ্ঞপ্তি', 'Other Recent Notices')}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {recentOthers.map((item) => (
-              <Link
-                key={item.id}
-                href={`/notices/${item.id}`}
-                className="group p-4 rounded-xl bg-surface border border-border hover:border-primary/45 transition-colors flex items-start justify-between gap-3"
-              >
-                <div className="min-w-0 space-y-1">
-                  <div className="flex items-center gap-2">
-                    {item.isUrgent && (
-                      <span className="px-2 py-0.5 rounded bg-destructive text-white text-xs font-semibold leading-none">
-                        {pick('জরুরি', 'Urgent')}
-                      </span>
-                    )}
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {formatDateLong(item.publishedAt ?? item.createdAt, locale)}
-                    </span>
+        <div className="pt-6 space-y-4 no-print border-t border-border">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <FileText className="w-4 h-4 text-emerald-700 dark:text-emerald-500" />
+              <span>{pick('অন্যান্য সাম্প্রতিক নোটিশ', 'Other Recent Notices')}</span>
+            </h2>
+            <Link href="/notices" className="text-xs font-semibold text-primary hover:underline">
+              {pick('সব নোটিশ', 'View All')}
+            </Link>
+          </div>
+
+          <div className="divide-y divide-border border border-border rounded-xl bg-surface overflow-hidden">
+            {recentOthers.map((item) => {
+              const itemDate = new Date(item.publishedAt ?? item.createdAt);
+              const iDay = String(itemDate.getDate()).padStart(2, '0');
+              const iMonth = String(itemDate.getMonth() + 1).padStart(2, '0');
+              const iYear = itemDate.getFullYear();
+              const iRaw = `${iDay}-${iMonth}-${iYear}`;
+              const iFormatted = locale === 'bn' ? formatNumber(iRaw, 'bn') : iRaw;
+
+              return (
+                <div
+                  key={item.id}
+                  className="group px-4 py-3 hover:bg-surface-muted/40 transition-colors flex items-start gap-3"
+                >
+                  <span className="w-2 h-2 rounded-full bg-[#0c5936] shrink-0 mt-1.5" />
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <Link
+                      href={`/notices/${item.id}`}
+                      className="block text-sm font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-1"
+                    >
+                      {item.title}
+                    </Link>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+                      <span>{iFormatted}</span>
+                      {item.isUrgent && (
+                        <span className="px-1.5 py-0.2 rounded bg-red-600 text-white text-[10px] font-bold">
+                          {pick('জরুরি', 'Urgent')}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-sm font-semibold text-foreground group-hover:text-primary line-clamp-2">
-                    {item.title}
-                  </p>
+                  <Link
+                    href={`/notices/${item.id}`}
+                    className="text-muted-foreground group-hover:text-primary transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
                 </div>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

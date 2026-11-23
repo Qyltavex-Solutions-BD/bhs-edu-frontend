@@ -514,6 +514,13 @@ export function HomePage() {
     .slice(0, 4);
   const yearsSinceEst = 2026 - (db.schoolProfile.establishedYear ?? 1978);
 
+  const presidentMsg =
+    db.leadershipMessages.find((m) => m.type === 'CHAIRMAN' && m.isPublished) ||
+    db.leadershipMessages[1];
+  const principalMsg =
+    db.leadershipMessages.find((m) => m.type === 'PRINCIPAL' && m.isPublished) ||
+    db.leadershipMessages[0];
+
   const institutionStars = useMemo(() => {
     const publishedStars = db.achievements.filter(
       (a) =>
@@ -1289,7 +1296,7 @@ export function HomePage() {
 
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 space-y-20">
         {/* =====================================================================
-            B. OFFICIAL NOTICE BOARD (DOCUMENT VIEWER) & SMART DIGITAL HUB
+            B. OFFICIAL NOTICE BOARD & INSTITUTIONAL LEADERSHIP (BTEB / BANGLADESH.GOV.BD STANDARD)
            ===================================================================== */}
         <motion.section
           initial={{ opacity: 0, y: 18 }}
@@ -1298,255 +1305,310 @@ export function HomePage() {
           transition={{ duration: 0.45, ease: EASE_OUT }}
           className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start"
         >
-          {/* Left 8 Columns — Clean Modern Editorial Official Notice Board */}
-          <div className="lg:col-span-8 bg-surface border border-border rounded-xl overflow-hidden shadow-xs">
-            {/* Clean Editorial Notice Board Header */}
-            <div className="px-5 sm:px-6 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <Bell className="w-4 h-4" />
+          {/* Left 8 Columns — Official Notice Board + Quick Information Cards */}
+          <div className="lg:col-span-8 space-y-6">
+            <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-xs">
+              {/* Notice Board Header with Institutional Green Branding */}
+              <div className="px-5 sm:px-6 py-4 border-b border-border bg-surface flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <FileText className="w-5 h-5 text-emerald-700 dark:text-emerald-500 shrink-0" />
+                  <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                    <span>{pick('নোটিশ বোর্ড', 'Notice Board')}</span>
+                  </h2>
+                  <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 px-2.5 py-0.5 rounded-full tabular-nums">
+                    {formatNumber(publishedNotices.length, locale)}
+                  </span>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
-                      {pick('প্রাতিষ্ঠানিক নোটিশ বোর্ড', 'Official Notice Board')}
-                    </h2>
-                    <span className="text-xs font-semibold text-primary bg-primary/8 px-2 py-0.5 rounded-md tabular-nums">
-                      {formatNumber(publishedNotices.length, locale)}
-                    </span>
+
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/notices"
+                    className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    <span>{pick('সব নোটিশ', 'All')}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Category Filter Tabs & Search Filter Strip */}
+              <div className="px-5 sm:px-6 py-2.5 bg-surface-muted/30 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex flex-wrap items-center gap-1">
+                  {noticeTabs.map((tab) => {
+                    const active = noticeTab === tab.key;
+                    return (
+                      <button
+                        key={tab.key}
+                        type="button"
+                        onClick={() => setNoticeTab(tab.key)}
+                        className={cn(
+                          'px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer whitespace-nowrap',
+                          active
+                            ? 'bg-[#0c5936] text-white shadow-xs'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-surface'
+                        )}
+                      >
+                        {locale === 'bn' ? tab.labelBn : tab.labelEn}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="relative w-full sm:w-48">
+                  <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={noticeQuery}
+                    onChange={(e) => setNoticeQuery(e.target.value)}
+                    placeholder={pick('স্মারক বা বিষয় খুঁজুন...', 'Search memo or title...')}
+                    className="w-full h-8 pl-8 pr-2.5 text-xs bg-surface border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Notice List Rows (matches bteb.gov.bd layout) */}
+              <div className="divide-y divide-border">
+                {publishedNotices.length === 0 ? (
+                  <div className="p-10 text-center text-sm text-muted-foreground">
+                    {pick('এই বিভাগে কোনো বিজ্ঞপ্তি পাওয়া যায়নি।', 'No notices found in this category.')}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {pick(
-                      'পরীক্ষা, ভর্তি, ছুটি ও প্রাতিষ্ঠানিক জরুরি বিজ্ঞপ্তিসমূহ সরাসরি দেখুন ও ডাউনলোড করুন',
-                      'View and download official exam, admission, holiday, and institutional circulars'
-                    )}
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/notices"
-                className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline whitespace-nowrap shrink-0"
-              >
-                <span>{pick('সকল নোটিশ আর্কাইভ', 'All Notice Archive')}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+                ) : (
+                  publishedNotices.slice(0, 5).map((notice) => {
+                    const pubDate = new Date(notice.publishedAt ?? notice.createdAt);
+                    const isRecent = (Date.now() - pubDate.getTime()) < 14 * 24 * 60 * 60 * 1000;
+                    const showNewBadge = notice.isUrgent || isRecent;
+                    const day = String(pubDate.getDate()).padStart(2, '0');
+                    const month = String(pubDate.getMonth() + 1).padStart(2, '0');
+                    const year = pubDate.getFullYear();
+                    const rawDate = `${day}-${month}-${year}`;
+                    const formattedDate = locale === 'bn' ? formatNumber(rawDate, 'bn') : rawDate;
 
-            {/* Interactive Category Tabs & Search Filter Strip */}
-            <div className="px-5 sm:px-6 py-2.5 bg-surface-muted/45 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-2.5">
-              <div className="flex flex-wrap items-center gap-1">
-                {noticeTabs.map((tab) => {
-                  const active = noticeTab === tab.key;
-                  return (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      onClick={() => setNoticeTab(tab.key)}
-                      className={cn(
-                        'px-3 py-1.5 text-sm font-medium rounded-lg transition-colors cursor-pointer whitespace-nowrap',
-                        active
-                          ? 'bg-primary text-primary-foreground shadow-xs'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-surface'
-                      )}
-                    >
-                      {locale === 'bn' ? tab.labelBn : tab.labelEn}
-                    </button>
-                  );
-                })}
-              </div>
+                    return (
+                      <div
+                        key={notice.id}
+                        className="group px-4 sm:px-6 py-3.5 hover:bg-surface-muted/40 transition-colors flex items-start gap-3"
+                      >
+                        {/* Green Bullet Icon (bteb.gov.bd style) */}
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#0c5936] dark:bg-emerald-500 shrink-0 mt-1.5" />
 
-              <div className="relative w-full md:w-56">
-                <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={noticeQuery}
-                  onChange={(e) => setNoticeQuery(e.target.value)}
-                  placeholder={pick('স্মারক বা বিষয় খুঁজুন...', 'Search memo or title...')}
-                  className="w-full h-9 pl-8 pr-3 text-sm bg-surface border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
-                />
-              </div>
-            </div>
+                        {/* Notice Title & Metadata */}
+                        <div className="flex-1 min-w-0 space-y-1.5">
+                          <Link
+                            href={`/notices/${notice.id}`}
+                            className="block text-sm sm:text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2"
+                          >
+                            {notice.title}
+                          </Link>
 
-            {/* Compact, Scannable Institutional Circular Rows */}
-            <div className="divide-y divide-border">
-              {publishedNotices.length === 0 ? (
-                <div className="p-10 text-center text-base text-muted-foreground">
-                  {pick('এই বিভাগে কোনো বিজ্ঞপ্তি পাওয়া যায়নি।', 'No notices match this filter.')}
-                </div>
-              ) : (
-                publishedNotices.slice(0, 5).map((notice) => {
-                  const d = getDateBadgeParts(notice.publishedAt ?? notice.createdAt, locale);
-                  return (
-                    <div
-                      key={notice.id}
-                      className="group px-4 sm:px-6 py-3.5 flex items-center gap-3.5 sm:gap-4 hover:bg-surface-muted/40 transition-colors"
-                    >
-                      {/* Clean Compact Calendar Date Block */}
-                      <div className="w-14 shrink-0 rounded-lg border border-border bg-surface text-center overflow-hidden tabular-nums">
-                        <div
-                          className={cn(
-                            'text-xs font-semibold py-0.5 border-b leading-tight',
-                            notice.isUrgent
-                              ? 'bg-destructive/10 text-destructive border-destructive/20'
-                              : 'bg-secondary/10 text-secondary border-secondary/15'
-                          )}
-                        >
-                          {d.month}
-                        </div>
-                        <div className="py-1">
-                          <p className="text-base font-bold text-foreground leading-none">{d.day}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5 leading-none">{d.year}</p>
-                        </div>
-                      </div>
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            <span className="inline-flex items-center gap-1 tabular-nums">
+                              <Calendar className="w-3.5 h-3.5 text-muted-foreground/80" />
+                              <span>{formattedDate}</span>
+                            </span>
 
-                      {/* Notice Title + Institutional Metadata */}
-                      <div className="flex-1 min-w-0 space-y-1">
-                        {(notice.isUrgent || notice.memoNo) && (
-                          <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                            {notice.isUrgent && (
-                              <span className="px-2 py-0.5 rounded bg-destructive text-white text-xs font-semibold leading-none">
-                                {pick('জরুরি', 'Urgent')}
+                            {showNewBadge && (
+                              <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[11px] font-bold leading-none animate-pulse">
+                                {pick('নতুন', 'New')}
                               </span>
                             )}
+
+                            <span className="px-2 py-0.5 rounded-md bg-surface-muted border border-border/80 text-[11px] font-medium text-muted-foreground">
+                              {notice.isUrgent ? pick('জরুরি', 'Urgent') : pick('সাধারণ', 'General')}
+                            </span>
+
                             {notice.memoNo && (
-                              <span className="font-mono text-xs text-muted-foreground/90">
+                              <span className="text-[11px] text-muted-foreground/75 font-mono">
                                 {notice.memoNo}
                               </span>
                             )}
                           </div>
-                        )}
+                        </div>
 
-                        <button
-                          type="button"
-                          onClick={() => setPreviewNotice(notice)}
-                          className="block text-left text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2 cursor-pointer"
-                        >
-                          {notice.title}
-                        </button>
+                        {/* Direct Preview & Details Navigation */}
+                        <div className="flex items-center gap-1.5 shrink-0 self-center">
+                          <button
+                            type="button"
+                            onClick={() => setPreviewNotice(notice)}
+                            title={pick('দ্রুত দেখুন', 'Quick Preview')}
+                            className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-border bg-surface text-muted-foreground hover:border-primary/45 hover:text-primary transition-colors cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </button>
+                          <Link
+                            href={`/notices/${notice.id}`}
+                            className="h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </Link>
+                        </div>
                       </div>
+                    );
+                  })
+                )}
+              </div>
 
-                      {/* Direct Document Viewer & 1-Click Download Actions */}
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setPreviewNotice(notice)}
-                          className="h-9 px-3 inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface text-sm font-semibold text-foreground hover:border-primary/45 hover:text-primary transition-colors cursor-pointer whitespace-nowrap"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">{pick('দেখুন', 'View')}</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => downloadNoticeDocument(notice, db.schoolProfile, locale)}
-                          aria-label={pick('বিজ্ঞপ্তি ডাউনলোড করুন', 'Download notice')}
-                          title={pick('ডাউনলোড করুন', 'Download')}
-                          className="h-9 w-9 inline-flex items-center justify-center rounded-lg border border-border bg-surface text-muted-foreground hover:border-primary/45 hover:text-primary hover:bg-primary/5 transition-colors cursor-pointer shrink-0"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+              {/* Bottom Action Footer (Solid Green Button as in bteb.gov.bd) */}
+              <div className="p-4 bg-surface-muted/20 border-t border-border flex items-center justify-between">
+                <Link href="/notices">
+                  <button
+                    type="button"
+                    className="px-5 py-2.5 rounded-lg bg-[#0c5936] hover:bg-[#084529] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>{pick('সকল নোটিশ দেখুন', 'View All Notices')}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </Link>
+
+                <Link
+                  href="/notices"
+                  className="px-3.5 py-2 rounded-lg bg-surface border border-border hover:border-primary/40 text-xs font-semibold text-primary transition-colors"
+                >
+                  <span>{pick('আর্কাইভ দেখুন', 'View Archive')}</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Quick Action Cards Under Notice Board (matches bteb.gov.bd bottom left) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Card 1: বিজ্ঞপ্তি ও সিলেবাস */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2.5 text-foreground">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <Bell className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-base font-bold">
+                    {pick('বিজ্ঞপ্তি ও নির্দেশিকা', 'Announcements & Guidelines')}
+                  </h3>
+                </div>
+                <ul className="space-y-1.5 text-xs text-muted-foreground">
+                  <li>
+                    <Link href="/academics/routines" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                      <span>{pick('পরীক্ষার রুটিন ও সময়সূচি', 'Exam Routines & Schedule')}</span>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/academics/academic-calendar" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                      <span>{pick('বার্ষিক ছুটির তালিকা ও বর্ষপঞ্জি', 'Annual Holiday Calendar')}</span>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/academics/syllabus" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+                      <span>{pick('শ্রেণিভিত্তিক পাঠ্যসূচি ও সিলেবাস', 'Syllabus & Lesson Plan')}</span>
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              {/* Card 2: অনলাইনে ভর্তি */}
+              <div className="bg-surface border border-border rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2.5 text-foreground">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-base font-bold">
+                    {pick('অনলাইনে ভর্তি (সেশন: ২০২৬-২০২৭)', 'Online Admission (2026-2027)')}
+                  </h3>
+                </div>
+                <ul className="space-y-1.5 text-xs text-muted-foreground">
+                  <li>
+                    <Link href="/admission/apply" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <span>{pick('সরাসরি অনলাইন ভর্তি আবেদন', 'Direct Online Admission Apply')}</span>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/admission/guidelines" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <span>{pick('ভর্তির যোগ্যতা ও নীতিমালা', 'Admission Policy & Criteria')}</span>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/admission/status" className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      <span>{pick('আবেদনের অগ্রগতি ট্র্যাকিং', 'Track Application Status')}</span>
+                    </Link>
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
 
-          {/* Right 4 Columns — Smart Digital Campus Hub + Institutional Office Card */}
+          {/* Right 4 Columns — Leadership Widgets (matches bteb.gov.bd right sidebar) */}
           <div className="lg:col-span-4 space-y-5">
-            {/* Block 1: Non-Duplicative 2x2 Digital Academic Services */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-lg font-bold text-foreground">
-                    {pick('ডিজিটাল শিক্ষা সেবা', 'Digital Academic Services')}
-                  </h2>
-                  <p className="text-sm text-muted-foreground">
-                    {pick('পাঠ্যসূচি, বর্ষপঞ্জি ও প্রয়োজনীয় ডাউনলোড', 'Syllabus, calendar & forms')}
-                  </p>
+            {/* Widget 1: সভাপতি, ম্যানেজিং কমিটি */}
+            {presidentMsg && (
+              <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-xs">
+                <div className="bg-[#0c5936] text-white px-4 py-2 font-bold text-sm tracking-wide flex items-center justify-between">
+                  <span>{pick('মাননীয় সভাপতি, ম্যানেজিং কমিটি', 'Chairman, Managing Committee')}</span>
                 </div>
-                <Link href="/academics" className="text-sm font-semibold text-primary hover:underline whitespace-nowrap">
-                  {pick('সব সেবা', 'All')}
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                {digitalServices.map((srv) => {
-                  const Icon = srv.icon;
-                  return (
+                <div className="p-4 text-center space-y-3">
+                  <div className="relative w-40 h-48 mx-auto rounded-lg overflow-hidden border border-border bg-surface-muted shadow-xs">
+                    <img
+                      src={getLeadershipPortrait(presidentMsg.photo, 'CHAIRMAN')}
+                      alt={presidentMsg.personName}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover object-top"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold text-foreground">
+                      {presidentMsg.personName}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {presidentMsg.designation}
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-border/60">
                     <Link
-                      key={srv.to}
-                      href={srv.to}
-                      className="group bg-surface border border-border rounded-xl p-3.5 flex flex-col justify-between gap-3 hover:border-primary/45 hover:bg-surface-muted/35 transition-all"
+                      href={`/about/leadership/${presidentMsg.id}`}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="h-9 w-9 rounded-lg bg-primary/8 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                          <Icon className="w-4 h-4" />
-                        </div>
-                        <ArrowRight className="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground group-hover:text-primary leading-snug">
-                          {locale === 'bn' ? srv.titleBn : srv.titleEn}
-                        </p>
-                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                          {locale === 'bn' ? srv.descBn : srv.descEn}
-                        </p>
-                      </div>
+                      <span>{pick('বিস্তারিত পরিচিতি ও বাণী', 'View Details & Message')}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Block 2: School Office Hours & Quick Helpdesk */}
-            <div className="bg-surface border border-border border-t-2 border-t-primary rounded-xl p-4 space-y-3.5">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-base font-bold text-foreground">
-                    {pick('বিদ্যালয় অফিস ও সহায়তা', 'School Office & Helpdesk')}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    {pick('রবি – বৃহস্পতি · সকাল ৯:৩০ – বিকাল ৪:০০', 'Sun – Thu · 9:30 AM – 4:00 PM')}
-                  </p>
+                  </div>
                 </div>
-                <span className="h-8 w-8 rounded-lg bg-secondary/10 text-secondary inline-flex items-center justify-center shrink-0">
-                  <Phone className="w-4 h-4" />
-                </span>
               </div>
+            )}
 
-              <div className="space-y-1.5 text-sm text-muted-foreground border-t border-border pt-3">
-                <a
-                  href={`tel:${db.contactInfo.phone}`}
-                  className="flex items-center justify-between gap-2 py-1 hover:text-primary transition-colors tabular-nums"
-                >
-                  <span>{pick('অফিস হেল্পলাইন', 'Office Helpline')}</span>
-                  <strong className="font-semibold text-foreground">{db.contactInfo.phone}</strong>
-                </a>
-                <a
-                  href={`mailto:${db.contactInfo.email}`}
-                  className="flex items-center justify-between gap-2 py-1 hover:text-primary transition-colors"
-                >
-                  <span>{pick('অফিসিয়াল ইমেইল', 'Official Email')}</span>
-                  <strong className="font-semibold text-foreground truncate">{db.contactInfo.email}</strong>
-                </a>
+            {/* Widget 2: প্রধান শিক্ষক */}
+            {principalMsg && (
+              <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-xs">
+                <div className="bg-[#0c5936] text-white px-4 py-2 font-bold text-sm tracking-wide flex items-center justify-between">
+                  <span>{pick('প্রধান শিক্ষক, ভোজেশ্বর উচ্চ বিদ্যালয়', 'Headmaster, Bhojeshwar High School')}</span>
+                </div>
+                <div className="p-4 text-center space-y-3">
+                  <div className="relative w-40 h-48 mx-auto rounded-lg overflow-hidden border border-border bg-surface-muted shadow-xs">
+                    <img
+                      src={getLeadershipPortrait(principalMsg.photo, 'PRINCIPAL')}
+                      alt={principalMsg.personName}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover object-top"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-base font-bold text-foreground">
+                      {principalMsg.personName}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {principalMsg.designation}
+                    </p>
+                  </div>
+                  <div className="pt-2 border-t border-border/60">
+                    <Link
+                      href={`/about/leadership/${principalMsg.id}`}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <span>{pick('বিস্তারিত পরিচিতি ও বাণী', 'View Details & Message')}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
               </div>
-
-              <div className="grid grid-cols-2 gap-2 pt-1">
-                <Link
-                  href="/admission/status"
-                  className="h-9 px-2.5 inline-flex items-center justify-center rounded-lg border border-border bg-surface-muted/50 text-sm font-medium text-foreground hover:border-primary/45 hover:text-primary transition-colors whitespace-nowrap"
-                >
-                  {pick('ভর্তি স্ট্যাটাস', 'Admission Status')}
-                </Link>
-                <Link
-                  href="/about/teachers"
-                  className="h-9 px-2.5 inline-flex items-center justify-center rounded-lg border border-border bg-surface-muted/50 text-sm font-medium text-foreground hover:border-primary/45 hover:text-primary transition-colors whitespace-nowrap"
-                >
-                  {pick('শিক্ষকমণ্ডলী', 'Faculty List')}
-                </Link>
-              </div>
-            </div>
+            )}
           </div>
         </motion.section>
 
