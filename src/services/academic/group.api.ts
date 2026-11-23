@@ -3,6 +3,7 @@ import type { AcademicGroup } from '@/src/types/entities';
 
 export interface CreateAcademicGroupPayload {
   name: string;
+  nameBn?: string;
   description?: string;
   isActive?: boolean;
 }
@@ -10,6 +11,7 @@ export interface CreateAcademicGroupPayload {
 export interface UpdateAcademicGroupPayload {
   id: string;
   name?: string;
+  nameBn?: string;
   description?: string;
   isActive?: boolean;
 }
