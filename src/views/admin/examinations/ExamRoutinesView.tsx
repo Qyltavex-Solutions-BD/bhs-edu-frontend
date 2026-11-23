@@ -423,8 +423,8 @@ export function ExamRoutinesView() {
       ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-xs">
+            <table className="w-full text-base">
+              <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-sm font-semibold uppercase tracking-wider">
                 <tr>
                   <th className="px-4 py-3 text-left">{pick('তারিখ ও সময়', 'Date & Time')}</th>
                   <th className="px-4 py-3 text-left">{pick('বিষয় ও কোড', 'Subject & Code')}</th>

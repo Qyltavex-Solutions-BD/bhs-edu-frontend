@@ -551,9 +551,9 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[760px] text-base">
               <thead>
-                <tr className="border-b border-border bg-surface-muted/70 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <tr className="border-b border-border bg-surface-muted/70 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                   <th className="px-4 py-3 text-center w-20">{pick('শ্রেণি মেধা', 'Class Merit')}</th>
                   <th className="px-3 py-3 text-center w-20">{pick('শাখা মেধা', 'Sec. Merit')}</th>
                   <th className="px-3 py-3 text-center w-16">{pick('রোল', 'Roll')}</th>
@@ -577,7 +577,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                       <td className="px-4 py-3 text-center">
                         {row.summary.meritPosition ? (
                           <span
-                            className={`inline-flex items-center justify-center min-w-[2.2rem] px-2 py-0.5 rounded text-xs font-bold ${
+                            className={`inline-flex items-center justify-center min-w-[2.2rem] px-2 py-0.5 rounded text-xs font-semibold ${
                               row.summary.meritPosition <= 3
                                 ? 'bg-warning/15 text-warning border border-warning/30'
                                 : 'bg-surface-muted text-foreground'
@@ -594,12 +594,12 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                           ? `#${formatNumber(row.summary.sectionMeritPosition, locale)}`
                           : '—'}
                       </td>
-                      <td className="px-3 py-3 text-center font-semibold text-foreground">
+                      <td className="px-3 py-3 text-center font-medium text-foreground">
                         {formatNumber(row.roll, locale)}
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-semibold text-foreground">{row.studentName}</div>
-                        <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-1.5 mt-0.5">
+                        <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-1.5 mt-0.5">
                           <span className="font-mono">{row.studentId}</span>
                           <span>·</span>
                           <span>
@@ -619,7 +619,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                         )}
                       </td>
                       <td className="px-3 py-3 text-right">
-                        <div className="font-bold text-foreground">
+                        <div className="font-medium text-foreground">
                           {formatNumber(row.summary.totalMarks, locale)}
                           <span className="text-xs font-normal text-muted-foreground">
                             /{formatNumber(row.summary.totalFullMarks, locale)}
@@ -630,7 +630,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                         </div>
                       </td>
                       <td className="px-3 py-3 text-right">
-                        <div className="font-bold text-foreground">
+                        <div className="font-semibold text-foreground">
                           {row.summary.gpa !== null && row.summary.gpa !== undefined
                             ? formatNumber(row.summary.gpa, locale, 2)
                             : '—'}

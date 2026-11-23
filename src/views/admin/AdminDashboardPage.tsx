@@ -246,7 +246,7 @@ export function AdminDashboardPage() {
   });
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto pb-10">
+    <div className="space-y-6 max-w-[1600px] mx-auto pb-6">
       {/* 1. HERO BANNER CARD (Deep Forest Green Gradient with Frosted Right Pills) */}
       <div className="relative rounded-3xl p-6 lg:p-8 bg-gradient-to-r from-[#175234] via-[#1C6440] to-[#123E27] text-white overflow-hidden shadow-lg border border-[#236b47]/40">
         {/* Background decorative concentric watermark rings & organic bubbles */}

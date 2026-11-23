@@ -497,7 +497,7 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
           <div className="overflow-x-auto">
             <table className="w-full text-base">
               <thead>
-                <tr className="border-b border-border bg-surface-muted/60 text-left text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                <tr className="border-b border-border bg-surface-muted/60 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                   <th className="py-3 px-4 w-16">{pick('রোল', 'Roll')}</th>
                   <th className="py-3 px-4">{pick('শিক্ষার্থী', 'Student')}</th>
                   <th className="py-3 px-4 text-right">{pick('কার্যদিবস', 'Days')}</th>
@@ -527,13 +527,13 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                         row.isAtRisk && 'bg-destructive/[0.03]'
                       )}
                     >
-                      <td className="py-2.5 px-4 font-mono font-bold tabular-nums">
+                      <td className="py-2.5 px-4 font-mono font-medium tabular-nums">
                         {formatNumber(row.enrollment.roll, locale)}
                       </td>
                       <td className="py-2.5 px-4">
                         <Link
                           href={`/admin/students/${row.enrollment.studentId}#attendance`}
-                          className="font-bold text-foreground hover:text-primary transition-colors"
+                          className="font-semibold text-foreground hover:text-primary transition-colors"
                         >
                           {locale === 'bn'
                             ? row.student?.nameBn || row.student?.nameEn
@@ -546,13 +546,13 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                       <td className="py-2.5 px-4 text-right tabular-nums text-muted-foreground">
                         {formatNumber(row.totalDays, locale)}
                       </td>
-                      <td className="py-2.5 px-4 text-right tabular-nums font-bold text-success">
+                      <td className="py-2.5 px-4 text-right tabular-nums font-medium text-success">
                         {formatNumber(row.present, locale)}
                       </td>
                       <td className="py-2.5 px-4 text-right tabular-nums font-medium text-warning">
                         {formatNumber(row.late, locale)}
                       </td>
-                      <td className="py-2.5 px-4 text-right tabular-nums font-bold text-destructive">
+                      <td className="py-2.5 px-4 text-right tabular-nums font-medium text-destructive">
                         {formatNumber(row.absent, locale)}
                       </td>
                       <td className="py-2.5 px-4 text-right tabular-nums text-info">
@@ -568,7 +568,7 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                           </div>
                           <span
                             className={cn(
-                              'w-12 text-right text-sm font-bold tabular-nums',
+                              'w-12 text-right text-sm font-semibold tabular-nums',
                               attendanceRateTone(row.rate)
                             )}
                           >
@@ -597,7 +597,7 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
           <div className="overflow-x-auto">
             <table className="w-full text-base">
               <thead>
-                <tr className="border-b border-border bg-surface-muted/60 text-left text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                <tr className="border-b border-border bg-surface-muted/60 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                   <th className="py-3 px-4">{pick('শ্রেণি ও শাখা', 'Class & Section')}</th>
                   <th className="py-3 px-4 text-right">{pick('শিক্ষার্থী', 'Students')}</th>
                   <th className="py-3 px-4 text-right">{pick('কার্যদিবস', 'Days')}</th>
@@ -611,26 +611,26 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
               <tbody className="divide-y divide-border">
                 {summaryRows.map((row) => (
                   <tr key={`${row.classId}-${row.sectionId}`} className="hover:bg-surface-muted/30">
-                    <td className="py-3 px-4 font-bold text-foreground">
+                    <td className="py-3 px-4 font-semibold text-foreground">
                       {row.classLabel}{' '}
-                      <span className="text-muted-foreground font-medium">({row.sectionLabel})</span>
+                      <span className="text-muted-foreground font-normal">({row.sectionLabel})</span>
                     </td>
-                    <td className="py-3 px-4 text-right tabular-nums font-semibold">
+                    <td className="py-3 px-4 text-right tabular-nums font-medium">
                       {formatNumber(row.studentCount, locale)}
                     </td>
                     <td className="py-3 px-4 text-right tabular-nums text-muted-foreground">
                       {formatNumber(row.workingDays, locale)}
                     </td>
-                    <td className="py-3 px-4 text-right tabular-nums text-success font-bold">
+                    <td className="py-3 px-4 text-right tabular-nums text-success font-medium">
                       {formatNumber(row.present + row.late, locale)}
                     </td>
-                    <td className="py-3 px-4 text-right tabular-nums font-bold text-destructive">
+                    <td className="py-3 px-4 text-right tabular-nums font-medium text-destructive">
                       {formatNumber(row.absent, locale)}
                     </td>
                     <td className="py-3 px-4 text-right tabular-nums">
                       <span
                         className={cn(
-                          'font-bold',
+                          'font-medium',
                           row.atRiskCount > 0 ? 'text-destructive' : 'text-muted-foreground'
                         )}
                       >
@@ -647,7 +647,7 @@ export function AttendanceReports({ db, yearId }: { db: MockDatabase; yearId: st
                         </div>
                         <span
                           className={cn(
-                            'w-12 text-right text-sm font-bold tabular-nums',
+                            'w-12 text-right text-sm font-semibold tabular-nums',
                             attendanceRateTone(row.avgRate)
                           )}
                         >
