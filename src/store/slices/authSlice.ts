@@ -122,27 +122,103 @@ export const DEMO_ACCOUNTS: Record<AppRole, { user: AuthUser; permissions: strin
   },
 };
 
+export const AUTH_STORAGE_KEY = 'bhs_auth_session';
+
+const defaultAdmin = DEMO_ACCOUNTS.SUPER_ADMIN;
+
 const initialState: AuthState = {
-  isAuthenticated: false,
-  accessToken: null,
-  user: null,
-  role: null,
-  permissions: [],
+  isAuthenticated: true,
+  accessToken: 'demo-in-memory-token-super_admin',
+  user: defaultAdmin.user,
+  role: 'SUPER_ADMIN',
+  permissions: defaultAdmin.permissions,
   sessionExpired: false,
+};
+
+const saveSessionToStorage = (data: {
+  accessToken: string;
+  user: any;
+  role: AppRole | null;
+  permissions: string[];
+}) => {
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data));
+    } catch {
+      // ignore storage access error
+    }
+  }
+};
+
+const clearSessionFromStorage = () => {
+  if (typeof window !== 'undefined') {
+    try {
+      window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    } catch {
+      // ignore storage access error
+    }
+  }
 };
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
+    hydrateAuth(
+      state,
+      action: PayloadAction<{
+        accessToken: string;
+        user: AuthUser;
+        role: AppRole;
+        permissions: string[];
+      }>
+    ) {
+      state.isAuthenticated = true;
+      state.accessToken = action.payload.accessToken;
+      state.user = action.payload.user;
+      state.role = action.payload.role;
+      state.permissions = action.payload.permissions;
+      state.sessionExpired = false;
+    },
     loginWithDemoRole(state, action: PayloadAction<AppRole>) {
       const preset = DEMO_ACCOUNTS[action.payload];
+      const token = `demo-in-memory-token-${action.payload.toLowerCase()}`;
       state.isAuthenticated = true;
-      state.accessToken = `demo-in-memory-token-${action.payload.toLowerCase()}`;
+      state.accessToken = token;
       state.user = preset.user;
       state.role = action.payload;
       state.permissions = preset.permissions;
       state.sessionExpired = false;
+
+      saveSessionToStorage({
+        accessToken: token,
+        user: preset.user,
+        role: action.payload,
+        permissions: preset.permissions,
+      });
+    },
+    setCredentials(
+      state,
+      action: PayloadAction<{
+        accessToken: string;
+        user?: AuthUser | any;
+        role?: AppRole;
+        permissions?: string[];
+      }>
+    ) {
+      state.isAuthenticated = true;
+      state.accessToken = action.payload.accessToken;
+      if (action.payload.user) state.user = action.payload.user;
+      if (action.payload.role) state.role = action.payload.role;
+      if (action.payload.permissions) state.permissions = action.payload.permissions;
+      state.sessionExpired = false;
+
+      saveSessionToStorage({
+        accessToken: action.payload.accessToken,
+        user: state.user,
+        role: state.role,
+        permissions: state.permissions,
+      });
     },
     logout(state) {
       state.isAuthenticated = false;
@@ -151,9 +227,13 @@ const authSlice = createSlice({
       state.role = null;
       state.permissions = [];
       state.sessionExpired = false;
+      clearSessionFromStorage();
     },
     triggerSessionExpired(state) {
       state.sessionExpired = true;
+      state.isAuthenticated = false;
+      state.accessToken = null;
+      clearSessionFromStorage();
     },
     dismissSessionExpired(state) {
       state.sessionExpired = false;
@@ -162,7 +242,9 @@ const authSlice = createSlice({
 });
 
 export const {
+  hydrateAuth,
   loginWithDemoRole,
+  setCredentials,
   logout,
   triggerSessionExpired,
   dismissSessionExpired,
