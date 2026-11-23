@@ -137,7 +137,7 @@ export function PublicNoticesListPage() {
                 <span className="w-2.5 h-2.5 rounded-full bg-[#0c5936] dark:bg-emerald-500 shrink-0 mt-2" />
 
                 <div className="min-w-0 flex-1 space-y-2">
-                  <h2 className="text-base sm:text-[17px] font-bold text-foreground group-hover:text-[#0c5936] transition-colors leading-snug">
+                  <h2 className="text-base font-normal text-foreground group-hover:text-[#0c5936] transition-colors leading-snug">
                     {n.title}
                   </h2>
 
@@ -273,16 +273,21 @@ export function PublicNoticeDetailPage() {
           </span>
         </div>
 
-        {/* Green File Download Button (matches Image 2) */}
+        {/* Green File Download Button (matches Image 2 from bteb.gov.bd) */}
         <div className="pt-2">
-          <button
-            type="button"
-            onClick={() => downloadNoticeDocument(notice, db.schoolProfile, locale)}
-            className="px-4 py-2 rounded-lg bg-[#0c5936] hover:bg-[#084529] text-white text-xs sm:text-sm font-semibold inline-flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+          <a
+            href={
+              notice.attachmentUrl ||
+              (notice.attachment?.toLowerCase().includes('admission')
+                ? '/documents/admission-circular-2027.pdf'
+                : '/documents/official-notice-circular.pdf')
+            }
+            download={notice.attachment || 'Notice-Circular.pdf'}
+            className="px-4 py-2 rounded-lg bg-[#0c5936] hover:bg-[#084529] text-white text-xs sm:text-sm font-medium inline-flex items-center gap-2 shadow-sm transition-all"
           >
             <Download className="w-4 h-4" />
             <span>{pick('ফাইল ১ (অফিসিয়াল সার্কুলার ডাউনলোড)', 'File 1 (Download Circular)')}</span>
-          </button>
+          </a>
         </div>
       </div>
 

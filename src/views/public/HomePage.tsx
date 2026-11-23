@@ -1385,7 +1385,7 @@ export function HomePage() {
 
                         {/* Notice Title & Metadata */}
                         <div className="flex-1 min-w-0 space-y-2">
-                          <h3 className="text-base sm:text-[17px] font-bold text-foreground group-hover:text-[#0c5936] transition-colors leading-snug line-clamp-2">
+                          <h3 className="text-base font-normal text-foreground group-hover:text-[#0c5936] transition-colors leading-snug line-clamp-2">
                             {notice.title}
                           </h3>
 
