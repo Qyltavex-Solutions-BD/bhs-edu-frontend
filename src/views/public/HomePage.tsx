@@ -63,7 +63,7 @@ import {
   NoticeDocumentModal,
   downloadNoticeDocument,
 } from '@/src/components/shared/NoticeDocumentViewer';
-import { StarsScrapbookGallery } from '@/src/components/shared/StarsScrapbookGallery';
+import { StarsMasonryAlbum } from '@/src/components/shared/StarsMasonryAlbum';
 import { cn } from '@/src/lib/utils/cn';
 
 const SLIDE_DURATION_MS = 6500;
@@ -2347,8 +2347,8 @@ export function HomePage() {
         </motion.section>
 
         {/* =========================================================================
-            SECTION 8: STARS OF OUR INSTITUTION (MODERN PHOTO GALLERY SCRAPBOOK / কৃতি শিক্ষার্থী ও অ্যালামনাই)
-            Editorial Polaroid Collage showcase inspired by curated gallery exhibition
+            SECTION 8: STARS OF OUR INSTITUTION (REACT-PHOTO-ALBUM MASONRY / কৃতি শিক্ষার্থী ও অ্যালামনাই)
+            Clean responsive Masonry photo showcase powered by react-photo-album
            ========================================================================= */}
         <motion.section
           initial={{ opacity: 0, y: 18 }}
@@ -2356,7 +2356,7 @@ export function HomePage() {
           viewport={{ once: true, amount: 0.1 }}
           transition={{ duration: 0.45, ease: EASE_OUT }}
         >
-          <StarsScrapbookGallery
+          <StarsMasonryAlbum
             stars={institutionStars}
             locale={locale}
             pick={pick}
