@@ -1,4 +1,30 @@
 import { z } from 'zod';
+import { SubjectCategory } from '@/src/types/enums';
+
+export const subjectSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, 'ইংরেজি নাম আবশ্যক')
+    .max(150, 'ইংরেজি নাম ১৫০ অক্ষরের বেশি হতে পারবে না'),
+  nameBn: z
+    .string()
+    .trim()
+    .min(1, 'বাংলা নাম আবশ্যক')
+    .max(150, 'বাংলা নাম ১৫০ অক্ষরের বেশি হতে পারবে না'),
+  officialCode: z
+    .string()
+    .trim()
+    .max(30, 'বোর্ড কোড ৩০ অক্ষরের বেশি হতে পারবে না'),
+  category: z.nativeEnum(SubjectCategory),
+  description: z
+    .string()
+    .trim()
+    .max(500, 'বিবরণ ৫০০ অক্ষরের বেশি হতে পারবে না'),
+  isActive: z.boolean(),
+});
+
+export type SubjectFormValues = z.infer<typeof subjectSchema>;
 
 export const groupSchema = z.object({
   name: z

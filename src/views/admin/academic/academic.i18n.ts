@@ -1,6 +1,18 @@
 'use client';
 
 import { useI18n } from '@/src/lib/i18n';
+import { SubjectCategory } from '@/src/types/enums';
+
+export const CATEGORY_LABELS: Record<SubjectCategory, { bn: string; en: string }> = {
+  [SubjectCategory.GENERAL]: { bn: 'সাধারণ', en: 'General' },
+  [SubjectCategory.LANGUAGE]: { bn: 'ভাষা', en: 'Language' },
+  [SubjectCategory.MATHEMATICS]: { bn: 'গণিত', en: 'Mathematics' },
+  [SubjectCategory.SCIENCE]: { bn: 'বিজ্ঞান', en: 'Science' },
+  [SubjectCategory.SOCIAL_SCIENCE]: { bn: 'সমাজবিজ্ঞান', en: 'Social Science' },
+  [SubjectCategory.RELIGION]: { bn: 'ধর্ম ও নৈতিক শিক্ষা', en: 'Religion' },
+  [SubjectCategory.COMMERCE]: { bn: 'ব্যবসায় শিক্ষা', en: 'Commerce' },
+  [SubjectCategory.TECHNICAL]: { bn: 'তথ্য ও কারিগরি', en: 'Technical' },
+};
 
 export const ACADEMIC_DICTIONARY = {
   common: {
@@ -130,6 +142,38 @@ export const ACADEMIC_DICTIONARY = {
     classColumn: { bn: 'শ্রেণি', en: 'Class' },
     sectionColumn: { bn: 'শাখা', en: 'Section' },
     actionColumn: { bn: 'কাজ', en: 'Action' },
+  },
+  catalog: {
+    title: { bn: 'বিষয় তালিকা', en: 'Subject Catalog' },
+    newSubjectButton: { bn: 'নতুন বিষয়', en: 'New subject' },
+    editTitle: { bn: 'বিষয় সম্পাদনা', en: 'Edit subject' },
+    newTitle: { bn: 'নতুন বিষয়', en: 'New subject' },
+    modalDescription: {
+      bn: 'বিষয় তৈরি করার পর তা শ্রেণির পাঠ্যক্রমে বসাতে হবে। ব্যবহৃত বিষয় মুছা যায় না।',
+      en: 'Place the subject on a class curriculum afterwards. A subject in use cannot be deleted.',
+    },
+    nameEnLabel: { bn: 'ইংরেজি নাম', en: 'English name' },
+    nameEnPlaceholder: { bn: 'যেমন: Physics, General Mathematics', en: 'e.g. Physics, General Mathematics' },
+    nameBnLabel: { bn: 'বাংলা নাম', en: 'Bangla name' },
+    nameBnPlaceholder: { bn: 'যেমন: পদার্থবিজ্ঞান, সাধারণ গণিত', en: 'e.g. পদার্থবিজ্ঞান, সাধারণ গণিত' },
+    codeLabel: { bn: 'বোর্ড কোড', en: 'Board code' },
+    codePlaceholder: { bn: 'যেমন: 101, 109, 136', en: 'e.g. 101, 109, 136' },
+    categoryLabel: { bn: 'ধরন / ক্যাটাগরি', en: 'Category' },
+    descLabel: { bn: 'বিবরণ', en: 'Description' },
+    descPlaceholder: { bn: 'বিষয়ের সংক্ষিপ্ত বিবরণ...', en: 'Brief description of the subject...' },
+    nameRequired: { bn: 'ইংরেজি নাম আবশ্যক।', en: 'English name is required.' },
+    nameBnRequired: { bn: 'বাংলা নাম আবশ্যক।', en: 'Bangla name is required.' },
+    createSuccess: { bn: 'নতুন বিষয় ক্যাটালগে যুক্ত হয়েছে।', en: 'Subject added to catalog.' },
+    updateSuccess: { bn: 'বিষয় সফলভাবে আপডেট হয়েছে।', en: 'Subject updated successfully.' },
+    deleteSuccess: { bn: 'বিষয় ক্যাটালগ থেকে মুছে ফেলা হয়েছে।', en: 'Subject removed from catalog.' },
+    saveFailed: { bn: 'বিষয় সংরক্ষণ করা যায়নি।', en: 'Could not save the subject.' },
+    deleteFailed: { bn: 'বিষয় মোছা যায়নি।', en: 'Could not delete the subject.' },
+    codeColumn: { bn: 'কোড', en: 'Code' },
+    subjectColumn: { bn: 'বিষয়', en: 'Subject' },
+    categoryColumn: { bn: 'ধরন', en: 'Category' },
+    statusColumn: { bn: 'অবস্থা', en: 'Status' },
+    actionsColumn: { bn: 'কাজ', en: 'Actions' },
+    emptyCatalog: { bn: 'কোনো বিষয় পাওয়া যায়নি।', en: 'No subjects found in catalog.' },
   },
 } as const;
 
