@@ -606,10 +606,10 @@ const PAGE_COPY: Record<
     year: true,
   },
   assignments: {
-    titleBn: 'বিষয় শিক্ষক',
-    titleEn: 'Subject teachers',
-    descBn: 'রুটিনের পিরিয়ড শুধু এখানকার বণ্টন থেকে আসে।',
-    descEn: 'Timetable periods can only use assignments made here.',
+    titleBn: 'বিষয় শিক্ষক বণ্টন',
+    titleEn: 'Subject teacher assignments',
+    descBn: 'শ্রেণি ও বিষয়ভিত্তিক শিক্ষক বণ্টন। ক্লাস রুটিন ও পরীক্ষার নম্বর এন্ট্রি এই বণ্টন অনুসারেই নির্ধারিত হয়।',
+    descEn: 'Assign teachers to subjects and sections. Timetable and marks entry use these assignments.',
     year: true,
   },
   routines: {

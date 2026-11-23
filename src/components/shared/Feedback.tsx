@@ -133,6 +133,7 @@ export function getStaffPortrait(
     'staff-12': STAFF_PORTRAITS.kamrul,
     'staff-13': STAFF_PORTRAITS.kamrul,
     'staff-14': STAFF_PORTRAITS.sabina,
+    'staff-15': STAFF_PORTRAITS.kamrul,
   };
   if (staffId && byId[staffId]) return byId[staffId];
   if (gender === 'FEMALE') return STAFF_PORTRAITS.sabina;

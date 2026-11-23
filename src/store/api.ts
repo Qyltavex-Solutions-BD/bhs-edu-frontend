@@ -571,7 +571,7 @@ export const schoolApi = createApi({
 
     saveTeacherAssignment: builder.mutation<
       TeacherAssignment,
-      { academicYearId: string; sectionId: string; classSubjectId: string; staffId: string }
+      { academicYearId: string; sectionId: string; classSubjectId: string; staffId: string; canEnterMarks?: boolean }
     >({
       query: (body) => ({ url: '/academic/teacher-assignments', method: 'POST', body }),
       invalidatesTags: ['Academic', 'Bootstrap'],

@@ -39,7 +39,7 @@ function errorMessage(err: unknown, fallback: string) {
   return (err as { message?: string })?.message || fallback;
 }
 
-const ADMIN_DEPARTMENT_IDS = new Set(['dept-adm', 'dept-acc', 'dept-lib', 'dept-sec']);
+const ADMIN_DEPARTMENT_IDS = new Set(['dept-adm', 'dept-acc', 'dept-lib', 'dept-sec', 'dept-lab']);
 
 type SectionKey = 'all' | 'teachers' | 'employees' | 'departments' | 'structures' | 'profile';
 

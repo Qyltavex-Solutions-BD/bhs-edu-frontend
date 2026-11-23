@@ -1523,7 +1523,7 @@ export function PublicTeachersListPage() {
     setSearchParams(next, { replace: true });
   };
 
-  const ADMIN_DEPARTMENT_IDS = useMemo(() => new Set(['dept-adm', 'dept-acc', 'dept-lib', 'dept-sec']), []);
+  const ADMIN_DEPARTMENT_IDS = useMemo(() => new Set(['dept-adm', 'dept-acc', 'dept-lib', 'dept-sec', 'dept-lab']), []);
 
   const departmentList = useMemo(() => {
     if (!db) return [];

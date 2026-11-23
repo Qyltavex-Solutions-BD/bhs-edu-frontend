@@ -1024,7 +1024,7 @@ function saveTeacherAssignment(body: unknown): { data?: TeacherAssignment; error
     classId: section.classId,
     sectionId: section.id,
     classSubjectId: classSubject.id,
-    canEnterMarks: true,
+    canEnterMarks: payload.canEnterMarks ?? true,
     assignedDate: today,
     isActive: true,
     createdAt: nowIso(),

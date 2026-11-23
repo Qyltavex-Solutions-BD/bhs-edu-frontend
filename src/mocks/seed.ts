@@ -362,6 +362,7 @@ export function createInitialSeed(): MockDatabase {
     { id: 'dept-acc', name: 'হিসাব ও অর্থ শাখা', code: 'ACC', description: 'বেতন-ভাতা, ফি আদায়, অডিট ও আর্থিক ব্যবস্থাপনা', displayOrder: 10, status: DepartmentStatus.ACTIVE, createdAt: NOW, updatedAt: NOW },
     { id: 'dept-lib', name: 'গ্রন্থাগার শাখা', code: 'LIB', description: 'পুস্তক সংরক্ষণ, ইস্যু-রিটার্ন ও লাইব্রেরি সেবা', displayOrder: 11, status: DepartmentStatus.ACTIVE, createdAt: NOW, updatedAt: NOW },
     { id: 'dept-sec', name: 'নিরাপত্তা ও পরিচ্ছন্নতা শাখা', code: 'SEC', description: 'ক্যাম্পাস নিরাপত্তা, নৈশপ্রহরী ও রক্ষণাবেক্ষণ সেবা', displayOrder: 12, status: DepartmentStatus.ACTIVE, createdAt: NOW, updatedAt: NOW },
+    { id: 'dept-lab', name: 'ল্যাব শাখা', code: 'LAB', description: 'বিজ্ঞানাগার ও কম্পিউটার ল্যাবের যন্ত্রপাতি ও ব্যবহারিক সহায়তা', displayOrder: 13, status: DepartmentStatus.ACTIVE, createdAt: NOW, updatedAt: NOW },
   ];
 
   const staffStructures: StaffStructure[] = [
@@ -373,6 +374,7 @@ export function createInitialSeed(): MockDatabase {
     { id: 'ss-6', designation: 'অফিস সহায়ক ও নিরাপত্তা কর্মী', staffType: StaffType.EMPLOYEE, totalPositions: 3, filledPositions: 1, departmentId: 'dept-sec', isActive: true, isDeleted: false, createdAt: NOW, updatedAt: NOW },
     { id: 'ss-7', designation: 'হিসাবরক্ষক', staffType: StaffType.OFFICER, totalPositions: 1, filledPositions: 1, departmentId: 'dept-acc', isActive: true, isDeleted: false, createdAt: NOW, updatedAt: NOW },
     { id: 'ss-8', designation: 'সহকারী গ্রন্থাগারিক', staffType: StaffType.OFFICER, totalPositions: 1, filledPositions: 1, departmentId: 'dept-lib', isActive: true, isDeleted: false, createdAt: NOW, updatedAt: NOW },
+    { id: 'ss-9', designation: 'ল্যাব সহকারী', staffType: StaffType.OFFICER, totalPositions: 2, filledPositions: 1, departmentId: 'dept-lab', isActive: true, isDeleted: false, createdAt: NOW, updatedAt: NOW },
   ];
 
   const staff: Staff[] = [
@@ -390,6 +392,7 @@ export function createInitialSeed(): MockDatabase {
     { id: 'staff-12', userId: null, employeeId: 'T-010', name: 'মাওলানা মোঃ রফিকুল ইসলাম', nameBn: 'মাওলানা মোঃ রফিকুল ইসলাম', photo: '/images/teacher_kamrul_portrait_1795155721415.jpg', designation: 'সহকারী শিক্ষক (ধর্ম ও নৈতিক শিক্ষা)', qualification: 'কামিল, এম.এ (ইসলামিক স্টাডিজ)', staffType: StaffType.TEACHER, departmentId: 'dept-rel', staffStructureId: 'ss-4', employmentType: EmploymentType.PERMANENT, gender: Gender.MALE, bloodGroup: BloodGroup.A_POSITIVE, religion: Religion.ISLAM, phone: '01711-200110', email: 'rafiqul@bhs.edu.bd', joiningDate: '2021-01-10', displayOrder: 12, status: StaffStatus.ACTIVE, createdAt: NOW, updatedAt: NOW },
     { id: 'staff-13', userId: null, employeeId: 'EMP-003', name: 'মোহাম্মদ জাহাঙ্গীর আলম', nameBn: 'মোহাম্মদ জাহাঙ্গীর আলম', photo: '/images/teacher_kamrul_portrait_1795155721415.jpg', designation: 'হিসাবরক্ষক', qualification: 'এম.কম (হিসাববিজ্ঞান)', staffType: StaffType.OFFICER, departmentId: 'dept-acc', staffStructureId: 'ss-7', employmentType: EmploymentType.PERMANENT, gender: Gender.MALE, bloodGroup: BloodGroup.B_POSITIVE, religion: Religion.ISLAM, phone: '01711-200203', email: 'accounts@bhs.edu.bd', joiningDate: '2016-08-01', displayOrder: 13, status: StaffStatus.ACTIVE, createdAt: NOW, updatedAt: NOW },
     { id: 'staff-14', userId: null, employeeId: 'EMP-004', name: 'মোছাঃ রোকেয়া খাতুন', nameBn: 'মোছাঃ রোকেয়া খাতুন', photo: '/images/teacher_sabina_portrait_1795155721585.jpg', designation: 'সহকারী গ্রন্থাগারিক', qualification: 'বি.এ (গ্রন্থাগার বিজ্ঞান)', staffType: StaffType.OFFICER, departmentId: 'dept-lib', staffStructureId: 'ss-8', employmentType: EmploymentType.PERMANENT, gender: Gender.FEMALE, bloodGroup: BloodGroup.A_POSITIVE, religion: Religion.ISLAM, phone: '01711-200204', email: 'library@bhs.edu.bd', joiningDate: '2019-11-15', displayOrder: 14, status: StaffStatus.ACTIVE, createdAt: NOW, updatedAt: NOW },
+    { id: 'staff-15', userId: null, employeeId: 'EMP-005', name: 'তানভীর আহমেদ', nameBn: 'তানভীর আহমেদ', photo: '/images/teacher_kamrul_portrait_1795155721415.jpg', designation: 'ল্যাব সহকারী', qualification: 'বি.এসসি (কম্পিউটার/পদার্থ)', staffType: StaffType.OFFICER, departmentId: 'dept-lab', staffStructureId: 'ss-9', employmentType: EmploymentType.PERMANENT, gender: Gender.MALE, bloodGroup: BloodGroup.O_POSITIVE, religion: Religion.ISLAM, phone: '01711-200205', email: 'lab@bhs.edu.bd', joiningDate: '2020-03-01', displayOrder: 15, status: StaffStatus.ACTIVE, createdAt: NOW, updatedAt: NOW },
   ];
 
   const administrators: Administrator[] = [

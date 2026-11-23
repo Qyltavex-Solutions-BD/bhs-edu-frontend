@@ -25,8 +25,8 @@ const SUB_TAB_GROUPS: SubLink[][] = [
     { href: '/admin/academic/books', labelBn: 'পাঠ্যবই', labelEn: 'Textbooks' },
   ],
   [
-    { href: '/admin/academic/teacher-assignments', labelBn: 'বিষয় শিক্ষক', labelEn: 'Subject Teachers' },
-    { href: '/admin/academic/class-teachers', labelBn: 'শ্রেণিশিক্ষক', labelEn: 'Class Teachers' },
+    { href: '/admin/academic/teacher-assignments', labelBn: 'বিষয় শিক্ষক বণ্টন', labelEn: 'Subject Teachers' },
+    { href: '/admin/academic/class-teachers', labelBn: 'শ্রেণি শিক্ষক', labelEn: 'Class Teachers' },
   ],
   [
     { href: '/admin/academic/documents', labelBn: 'সিলেবাস', labelEn: 'Syllabus' },
