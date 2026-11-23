@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ExternalLink, Printer } from 'lucide-react';
 import { toast } from 'sonner';
@@ -38,6 +38,8 @@ import type { Department, Staff, StaffStructure } from '@/src/types/entities';
 function errorMessage(err: unknown, fallback: string) {
   return (err as { message?: string })?.message || fallback;
 }
+
+const ADMIN_DEPARTMENT_IDS = new Set(['dept-adm', 'dept-acc', 'dept-lib', 'dept-sec']);
 
 type SectionKey = 'all' | 'teachers' | 'employees' | 'departments' | 'structures' | 'profile';
 
@@ -110,6 +112,23 @@ function Directory({ db, kind, createOpen }: { db: MockDatabase; kind: 'all' | '
   const [printOpen, setPrintOpen] = useState(false);
   const [departmentId, setDepartmentId] = useState('ALL');
   const [status, setStatus] = useState('ALL');
+
+  const departmentOptions = useMemo(() => {
+    if (kind === 'teachers') {
+      return db.departments.filter((d) => !ADMIN_DEPARTMENT_IDS.has(d.id) || d.id === 'dept-adm');
+    }
+    if (kind === 'employees') {
+      return db.departments.filter((d) => ADMIN_DEPARTMENT_IDS.has(d.id));
+    }
+    return db.departments;
+  }, [db.departments, kind]);
+
+  useEffect(() => {
+    if (departmentId !== 'ALL' && !departmentOptions.some((d) => d.id === departmentId)) {
+      setDepartmentId('ALL');
+    }
+  }, [departmentOptions, departmentId]);
+
   const rows = db.staff.filter((member) => {
     if (kind === 'teachers' && member.staffType !== StaffType.TEACHER) return false;
     if (kind === 'employees' && member.staffType === StaffType.TEACHER) return false;
@@ -165,7 +184,7 @@ function Directory({ db, kind, createOpen }: { db: MockDatabase; kind: 'all' | '
           <div className="flex gap-2">
             <Select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)} className="w-40 h-9">
               <option value="ALL">{pick('সকল বিভাগ', 'All departments')}</option>
-              {db.departments.map((item) => (
+              {departmentOptions.map((item) => (
                 <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </Select>
@@ -339,9 +358,23 @@ function StaffForm({
         <FormField label={pick('বিভাগ', 'Department')}>
           <Select value={form.departmentId} onChange={(event) => setForm({ ...form, departmentId: event.target.value })}>
             <option value="">{pick('নেই', 'None')}</option>
-            {db.departments.filter((item) => item.status === DepartmentStatus.ACTIVE || item.id === form.departmentId).map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
-            ))}
+            {form.staffType === StaffType.TEACHER ? (
+              <optgroup label={pick('একাডেমিক বিভাগ', 'Academic Departments')}>
+                {db.departments
+                  .filter((item) => (!ADMIN_DEPARTMENT_IDS.has(item.id) || item.id === 'dept-adm') && (item.status === DepartmentStatus.ACTIVE || item.id === form.departmentId))
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))}
+              </optgroup>
+            ) : (
+              <optgroup label={pick('প্রশাসনিক ও সেবা শাখা', 'Administrative & Support Branches')}>
+                {db.departments
+                  .filter((item) => ADMIN_DEPARTMENT_IDS.has(item.id) && (item.status === DepartmentStatus.ACTIVE || item.id === form.departmentId))
+                  .map((item) => (
+                    <option key={item.id} value={item.id}>{item.name}</option>
+                  ))}
+              </optgroup>
+            )}
           </Select>
         </FormField>
         <FormField label={pick('নিয়োগ', 'Employment')}>
@@ -689,9 +722,23 @@ function Posts({ db }: { db: MockDatabase }) {
           <FormField label={pick('বিভাগ', 'Department')}>
             <Select value={form.departmentId} onChange={(event) => setForm({ ...form, departmentId: event.target.value })}>
               <option value="">{pick('সাধারণ', 'General')}</option>
-              {db.departments.map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
+              {form.staffType === StaffType.TEACHER ? (
+                <optgroup label={pick('একাডেমিক বিভাগ', 'Academic Departments')}>
+                  {db.departments
+                    .filter((item) => !ADMIN_DEPARTMENT_IDS.has(item.id) || item.id === 'dept-adm')
+                    .map((item) => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
+                    ))}
+                </optgroup>
+              ) : (
+                <optgroup label={pick('প্রশাসনিক ও সেবা শাখা', 'Administrative & Support Branches')}>
+                  {db.departments
+                    .filter((item) => ADMIN_DEPARTMENT_IDS.has(item.id))
+                    .map((item) => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
+                    ))}
+                </optgroup>
+              )}
             </Select>
           </FormField>
           <FormField label={pick('আসন সংখ্যা', 'Number of posts')} required>
