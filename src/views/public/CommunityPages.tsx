@@ -8,18 +8,29 @@ import {
   ArrowLeft,
   ArrowRight,
   Calendar,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   MapPin,
   Phone,
   Mail,
   Paperclip,
+  Printer,
   Search,
   ExternalLink,
   Download,
   Eye,
   FileText,
   Film,
+  GraduationCap,
+  Maximize2,
+  Sparkles,
+  Trophy,
+  X,
 } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { MasonryPhotoAlbum } from 'react-photo-album';
+import 'react-photo-album/masonry.css';
 import { useGetBootstrapQuery } from '@/src/store/api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
@@ -38,149 +49,362 @@ import {
   NoticeDocumentViewer,
   downloadNoticeDocument,
 } from '@/src/components/shared/NoticeDocumentViewer';
+import { ChromePdfViewer } from '@/src/components/shared/ChromePdfViewer';
 import { Button, Card, FormField, Input, Select, Textarea } from '@/src/components/ui/primitives';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { AchievementType, MediaType, NoticeStatus, PublicationType } from '@/src/types/enums';
-import type { Notice } from '@/src/types/entities';
+import type { Achievement, Notice } from '@/src/types/entities';
+import { cn } from '@/src/lib/utils/cn';
+
+type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
 
 export function PublicNoticesListPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const { locale, pick } = useI18n();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [previewNotice, setPreviewNotice] = useState<Notice | null>(null);
-  const search = searchParams.get('q') ?? '';
-  const urgentOnly = searchParams.get('urgent') === '1';
+  const [searchParams] = useSearchParams();
 
-  const setParam = (key: string, value: string | null) => {
-    const next = new URLSearchParams(searchParams);
-    if (!value) next.delete(key);
-    else next.set(key, value);
-    setSearchParams(next, { replace: true });
+  const [noticeTab, setNoticeTab] = useState<NoticeTab>(
+    searchParams.get('urgent') === '1' ? 'urgent' : 'all'
+  );
+  const [noticeQuery, setNoticeQuery] = useState(searchParams.get('q') ?? '');
+  const [pageIndex, setPageIndex] = useState(0);
+  const pageSize = 10;
+
+  const noticeTabs: { key: NoticeTab; labelBn: string; labelEn: string }[] = [
+    { key: 'all', labelBn: 'সব বিজ্ঞপ্তি', labelEn: 'All Notices' },
+    { key: 'urgent', labelBn: 'জরুরি', labelEn: 'Urgent' },
+    { key: 'exam', labelBn: 'পরীক্ষা ও ফলাফল', labelEn: 'Exams & Results' },
+    { key: 'admission', labelBn: 'ভর্তি ও একাডেমিক', labelEn: 'Admission' },
+  ];
+
+  if (isLoading || !db) {
+    return (
+      <div className="max-w-[1440px] mx-auto p-6">
+        <LoadingSkeleton />
+      </div>
+    );
+  }
+
+  const allPublished = (db.notices ?? []).filter((n) => n.status === NoticeStatus.PUBLISHED);
+
+  const filteredNotices = allPublished.filter((n) => {
+    const text = `${n.memoNo ?? ''} ${n.title} ${n.description}`.toLowerCase();
+    if (noticeQuery.trim() && !text.includes(noticeQuery.trim().toLowerCase())) {
+      return false;
+    }
+    if (noticeTab === 'urgent') return n.isUrgent;
+    if (noticeTab === 'exam') {
+      return (
+        text.includes('পরীক্ষা') ||
+        text.includes('routine') ||
+        text.includes('exam') ||
+        text.includes('ফলাফল') ||
+        text.includes('প্রবেশপত্র') ||
+        text.includes('নম্বরপত্র')
+      );
+    }
+    if (noticeTab === 'admission') {
+      return (
+        text.includes('ভর্তি') ||
+        text.includes('admission') ||
+        text.includes('একাডেমিক') ||
+        text.includes('ক্যালেন্ডার') ||
+        text.includes('ক্লাস')
+      );
+    }
+    return true;
+  });
+
+  const totalFiltered = filteredNotices.length;
+  const pageCount = Math.max(1, Math.ceil(totalFiltered / pageSize));
+  const safePageIndex = Math.min(pageIndex, pageCount - 1);
+  const startIndex = safePageIndex * pageSize;
+  const pagedRows = filteredNotices.slice(startIndex, startIndex + pageSize);
+
+  // Pagination page numbers (same format with ellipsis support)
+  const getPageNumbers = () => {
+    if (pageCount <= 7) {
+      return Array.from({ length: pageCount }, (_, i) => i + 1);
+    }
+    const pages: (number | string)[] = [];
+    if (safePageIndex + 1 <= 4) {
+      for (let i = 1; i <= Math.min(5, pageCount); i++) pages.push(i);
+      if (pageCount > 5) {
+        pages.push('...');
+        pages.push(pageCount);
+      }
+    } else if (safePageIndex + 1 >= pageCount - 3) {
+      pages.push(1);
+      pages.push('...');
+      for (let i = pageCount - 4; i <= pageCount; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      pages.push('...');
+      pages.push(safePageIndex);
+      pages.push(safePageIndex + 1);
+      pages.push(safePageIndex + 2);
+      pages.push('...');
+      pages.push(pageCount);
+    }
+    return pages;
   };
 
-  if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
-
-  const list = db.notices
-    .filter((n) => n.status === NoticeStatus.PUBLISHED)
-    .filter((n) => (urgentOnly ? n.isUrgent : true))
-    .filter(
-      (n) =>
-        n.title.toLowerCase().includes(search.toLowerCase()) ||
-        n.description.toLowerCase().includes(search.toLowerCase())
-    );
+  const paginationSummary = pick(
+    `মোট ${formatNumber(totalFiltered, 'bn')} টি তথ্য · পৃষ্ঠা ${formatNumber(safePageIndex + 1, 'bn')} / ${formatNumber(pageCount, 'bn')}`,
+    `Showing ${totalFiltered} records · Page ${safePageIndex + 1} of ${pageCount}`
+  );
 
   return (
-    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
-      <PageHeader
-        title={pick('প্রাতিষ্ঠানিক নোটিশ বোর্ড', 'Official Notice Board')}
-        description={pick('বিদ্যালয়ের প্রকাশিত সকল সরকারি, পরীক্ষা, ভর্তি ও একাডেমিক বিজ্ঞপ্তি।', 'All published institutional, exam, admission, and academic circulars.')}
-      />
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="relative flex-1 min-w-[220px] max-w-sm">
-          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-          <Input
-            value={search}
-            onChange={(e) => setParam('q', e.target.value || null)}
-            placeholder={pick('নোটিশ খুঁজুন...', 'Search notices...')}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex items-center gap-1 p-1 bg-surface-muted rounded-lg border border-border">
-          <button
-            type="button"
-            onClick={() => setParam('urgent', null)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md cursor-pointer transition-colors ${!urgentOnly ? 'bg-surface text-foreground shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            {pick('সকল বিজ্ঞপ্তি', 'All Notices')}
-          </button>
-          <button
-            type="button"
-            onClick={() => setParam('urgent', '1')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md cursor-pointer transition-colors ${urgentOnly ? 'bg-destructive text-white shadow-xs' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            {pick('শুধু জরুরি', 'Urgent Only')}
-          </button>
+    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-8 space-y-6">
+      {/* 1. Header with Valid Institutional Data & Stats */}
+      <div className="bg-surface border border-border rounded-xl p-5 sm:p-6 space-y-4 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-600" />
+              <span>{pick('অফিসিয়াল সার্কুলার পোর্টাল', 'Official Circular Portal')}</span>
+              <span className="text-muted-foreground/50">·</span>
+              <span>{pick(`EIIN: ${db.schoolProfile?.eiin || '১১১৮৬৯'}`, `EIIN: ${db.schoolProfile?.eiin || '111869'}`)}</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+              <FileText className="w-7 h-7 text-[#0c5936] dark:text-emerald-500 shrink-0" />
+              <span>{pick('প্রাতিষ্ঠানিক নোটিশ বোর্ড', 'Institutional Notice Board')}</span>
+            </h1>
+            <p className="text-base text-muted-foreground max-w-3xl leading-relaxed">
+              {pick(
+                'ভোজেশ্বর উচ্চ বিদ্যালয়ের সকল প্রাতিষ্ঠানিক আদেশ, পরীক্ষা, ফলাফল, ভর্তি ও শিক্ষা বোর্ডের জরুরি বিজ্ঞপ্তি সমূহ।',
+                'Official circulars, exam schedules, results, admissions, and educational board notices for Bhojeshwar High School.'
+              )}
+            </p>
+          </div>
+
+          {/* Valid Institutional Stats */}
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="px-4 py-2.5 rounded-lg bg-surface-muted/60 border border-border text-center min-w-[100px]">
+              <span className="block text-xs text-muted-foreground font-medium">
+                {pick('মোট বিজ্ঞপ্তি', 'Total Notices')}
+              </span>
+              <span className="text-lg font-bold text-[#0c5936] dark:text-emerald-400 tabular-nums">
+                {formatNumber(allPublished.length, locale)}
+              </span>
+            </div>
+            <div className="px-4 py-2.5 rounded-lg bg-surface-muted/60 border border-border text-center min-w-[100px]">
+              <span className="block text-xs text-muted-foreground font-medium">
+                {pick('জরুরি বিজ্ঞপ্তি', 'Urgent Notices')}
+              </span>
+              <span className="text-lg font-bold text-destructive tabular-nums">
+                {formatNumber(allPublished.filter((n) => n.isUrgent).length, locale)}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
-      {list.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <Card className="divide-y divide-border overflow-hidden">
-          {list.map((n) => {
-            const d = new Date(n.publishedAt ?? n.createdAt);
-            const day = new Intl.NumberFormat(locale === 'bn' ? 'bn-BD' : 'en-US').format(d.getDate());
-            const month = new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', { month: 'short' }).format(d);
-            const year = new Intl.NumberFormat(locale === 'bn' ? 'bn-BD' : 'en-US', { useGrouping: false }).format(d.getFullYear());
-            return (
-              <div
-                key={n.id}
-                className="group flex items-center gap-4 p-4 sm:px-5 hover:bg-surface-muted/40 transition-colors"
-              >
-                <div className="w-14 shrink-0 rounded-lg border border-border bg-surface text-center overflow-hidden tabular-nums">
-                  <div
-                    className={`text-xs font-semibold py-0.5 border-b leading-tight ${
-                      n.isUrgent
-                        ? 'bg-destructive/10 text-destructive border-destructive/20'
-                        : 'bg-secondary/10 text-secondary border-secondary/15'
-                    }`}
-                  >
-                    {month}
-                  </div>
-                  <div className="py-1">
-                    <p className="text-base font-bold text-foreground leading-none">{day}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-none">{year}</p>
-                  </div>
-                </div>
 
-                <div className="min-w-0 flex-1 space-y-1">
-                  {(n.isUrgent || n.memoNo) && (
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground tabular-nums">
-                      {n.isUrgent && (
-                        <span className="px-2 py-0.5 rounded bg-destructive text-white text-xs font-semibold leading-none">
-                          {pick('জরুরি', 'Urgent')}
-                        </span>
-                      )}
-                      {n.memoNo && <span className="font-mono">{n.memoNo}</span>}
-                    </div>
+      {/* 2. Main Card containing Search/Filter Strip, Table & Pagination */}
+      <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-xs">
+        {/* Search & Filtering Strip (Same format as HomePage) */}
+        <div className="px-5 sm:px-6 py-3 bg-surface-muted/30 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {noticeTabs.map((tab) => {
+              const active = noticeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => {
+                    setNoticeTab(tab.key);
+                    setPageIndex(0);
+                  }}
+                  className={cn(
+                    'px-3 py-1.5 text-base font-medium rounded-md transition-colors cursor-pointer whitespace-nowrap',
+                    active
+                      ? 'bg-[#0c5936] text-white shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-surface'
                   )}
-                  <Link
-                    href={`/notices/${n.id}`}
-                    className="block text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug"
-                  >
-                    {n.title}
-                  </Link>
-                </div>
+                >
+                  {locale === 'bn' ? tab.labelBn : tab.labelEn}
+                </button>
+              );
+            })}
+          </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPreviewNotice(n)}
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">{pick('প্রিভিউ', 'Preview')}</span>
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={() => downloadNoticeDocument(n, db.schoolProfile, locale)}
-                    aria-label={pick('ডাউনলোড', 'Download')}
-                    title={pick('ডাউনলোড করুন', 'Download')}
-                    className="h-8 w-8 inline-flex items-center justify-center rounded-lg border border-border bg-surface text-muted-foreground hover:text-primary hover:border-primary/45 transition-colors cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </Card>
-      )}
+          <div className="relative w-full sm:w-64">
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={noticeQuery}
+              onChange={(e) => {
+                setNoticeQuery(e.target.value);
+                setPageIndex(0);
+              }}
+              placeholder={pick('স্মারক বা বিষয় খুঁজুন...', 'Search memo or title...')}
+              className="w-full h-9 pl-9 pr-3 text-base bg-surface border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+            />
+          </div>
+        </div>
 
-      <NoticeDocumentModal
-        notice={previewNotice}
-        school={db.schoolProfile}
-        onClose={() => setPreviewNotice(null)}
-      />
+        {/* 3. Notice Table (4 columns: নং, শিরোনাম, প্রকাশের তারিখ, কার্যকলাপ) with base 16px font */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-base border-collapse">
+            <thead>
+              <tr className="border-b border-border bg-surface-muted/50 text-foreground font-bold text-base">
+                <th className="py-3 px-4 text-center border-r border-border w-16 shrink-0">
+                  {pick('নং', 'SL')}
+                </th>
+                <th className="py-3 px-5 text-left border-r border-border">
+                  {pick('শিরোনাম', 'Title')}
+                </th>
+                <th className="py-3 px-4 text-center border-r border-border w-36 sm:w-44 shrink-0">
+                  {pick('প্রকাশের তারিখ', 'Publish Date')}
+                </th>
+                <th className="py-3 px-4 text-center w-36 shrink-0">
+                  {pick('কার্যকলাপ', 'Action')}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {pagedRows.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="py-12 text-center text-base text-muted-foreground">
+                    {pick('এই বিভাগে কোনো বিজ্ঞপ্তি পাওয়া যায়নি।', 'No notices found in this category.')}
+                  </td>
+                </tr>
+              ) : (
+                pagedRows.map((n, idx) => {
+                  const serial = startIndex + idx + 1;
+                  const pubDate = new Date(n.publishedAt ?? n.createdAt);
+                  const isRecent = Date.now() - pubDate.getTime() < 14 * 24 * 60 * 60 * 1000;
+                  const showNewBadge = n.isUrgent || isRecent;
+                  const day = String(pubDate.getDate()).padStart(2, '0');
+                  const month = String(pubDate.getMonth() + 1).padStart(2, '0');
+                  const year = pubDate.getFullYear();
+                  const rawDate = `${day}-${month}-${year}`;
+                  const formattedDate = locale === 'bn' ? formatNumber(rawDate, 'bn') : rawDate;
+
+                  return (
+                    <tr
+                      key={n.id}
+                      className="hover:bg-emerald-50/30 dark:hover:bg-emerald-950/15 transition-colors"
+                    >
+                      {/* নং */}
+                      <td className="py-4 px-3 text-center border-r border-border tabular-nums font-medium text-base text-foreground">
+                        {formatNumber(serial, locale)}
+                      </td>
+
+                      {/* শিরোনাম */}
+                      <td className="py-4 px-5 border-r border-border">
+                        <div className="space-y-1.5">
+                          <Link
+                            href={`/notices/${n.id}`}
+                            className="text-base font-medium text-foreground hover:text-[#0c5936] dark:hover:text-emerald-400 hover:underline leading-relaxed block transition-colors"
+                          >
+                            {n.title}
+                          </Link>
+
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            {showNewBadge && (
+                              <span className="px-2 py-0.5 rounded-sm bg-[#D32F2F] text-white text-[12px] font-bold leading-none">
+                                {pick('নতুন', 'New')}
+                              </span>
+                            )}
+                            <span className="px-2 py-0.5 rounded-sm bg-surface-muted border border-border text-[12px] font-medium text-foreground">
+                              {n.isUrgent ? pick('জরুরি', 'Urgent') : pick('সাধারণ', 'General')}
+                            </span>
+                            {n.memoNo && (
+                              <span className="text-[12px] text-muted-foreground font-mono">
+                                {n.memoNo}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* প্রকাশের তারিখ */}
+                      <td className="py-4 px-4 text-center border-r border-border tabular-nums whitespace-nowrap text-base text-foreground">
+                        {formattedDate}
+                      </td>
+
+                      {/* কার্যকলাপ */}
+                      <td className="py-4 px-4 text-center whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-2">
+                          <Link
+                            href={`/notices/${n.id}`}
+                            className="text-base font-semibold text-[#1a56db] dark:text-blue-400 hover:text-[#0c5936] dark:hover:text-emerald-400 hover:underline transition-colors"
+                          >
+                            {pick('দেখুন', 'View')}
+                          </Link>
+                          <span className="text-muted-foreground/40">|</span>
+                          <button
+                            type="button"
+                            onClick={() => downloadNoticeDocument(n, db.schoolProfile, locale, false)}
+                            title={pick('ডাউনলোড করুন', 'Download')}
+                            className="text-base font-semibold text-[#0c5936] dark:text-emerald-400 hover:underline inline-flex items-center gap-1 cursor-pointer transition-colors"
+                          >
+                            <Download className="w-4 h-4" />
+                            <span className="hidden sm:inline">{pick('ডাউনলোড', 'Download')}</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* 4. Admin-Format Pagination */}
+        <div className="p-4 bg-surface-muted/20 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-base text-muted-foreground">
+          <span className="tabular-nums font-medium">{paginationSummary}</span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
+              disabled={safePageIndex <= 0}
+              className="cursor-pointer text-base"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>{locale === 'bn' ? 'পূর্ববর্তী' : 'Prev'}</span>
+            </Button>
+
+            {/* Page number buttons */}
+            {getPageNumbers().map((p, idx) => {
+              if (p === '...') {
+                return (
+                  <span key={`ell-${idx}`} className="px-2 text-muted-foreground select-none">
+                    ...
+                  </span>
+                );
+              }
+              const pageNum = p as number;
+              const isActive = pageNum === safePageIndex + 1;
+              return (
+                <Button
+                  key={pageNum}
+                  variant={isActive ? 'primary' : 'outline'}
+                  size="sm"
+                  onClick={() => setPageIndex(pageNum - 1)}
+                  className="min-w-[36px] px-2 tabular-nums cursor-pointer text-base"
+                >
+                  {formatNumber(pageNum, locale)}
+                </Button>
+              );
+            })}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPageIndex((p) => Math.min(pageCount - 1, p + 1))}
+              disabled={safePageIndex >= pageCount - 1}
+              className="cursor-pointer text-base"
+            >
+              <span>{locale === 'bn' ? 'পরবর্তী' : 'Next'}</span>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -198,61 +422,118 @@ export function PublicNoticeDetailPage() {
     .filter((n) => n.status === NoticeStatus.PUBLISHED && n.id !== notice.id)
     .slice(0, 4);
 
+  const updatedDate = new Date(notice.updatedAt ?? notice.publishedAt ?? notice.createdAt);
+  const dayName = new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', { weekday: 'long' }).format(updatedDate);
+  const dateFormatted = formatDateLong(notice.publishedAt ?? notice.createdAt, locale);
+
+  const pubDate = new Date(notice.publishedAt ?? notice.createdAt);
+  const day = String(pubDate.getDate()).padStart(2, '0');
+  const month = String(pubDate.getMonth() + 1).padStart(2, '0');
+  const year = pubDate.getFullYear();
+  const rawDate = `${day}-${month}-${year}`;
+  const formattedDateCode = locale === 'bn' ? formatNumber(rawDate, 'bn') : rawDate;
+
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 no-print">
-        <Link href="/notices" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
-          <ArrowLeft className="w-4 h-4" /> {pick('সকল নোটিশ আর্কাইভ', 'All Notices Archive')}
+      {/* Top Meta Line: Last Updated (14px font, print icon removed) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-border text-[14px] text-muted-foreground no-print">
+        <Link
+          href="/notices"
+          className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-primary hover:underline"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>{pick('সকল নোটিশ আর্কাইভ', 'All Notices Archive')}</span>
         </Link>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground tabular-nums">
-          {notice.memoNo && <span className="font-mono font-medium text-foreground">{notice.memoNo}</span>}
-          <span>·</span>
-          <span>{formatDateLong(notice.publishedAt ?? notice.createdAt, locale)}</span>
+
+        <div>
+          <span>
+            {pick('কনটেন্টটি শেষ হাল-নাগাদ করা হয়েছে:', 'Content Last Updated:')}{' '}
+            <strong className="font-semibold text-foreground">{dayName}, {dateFormatted}</strong>
+          </span>
         </div>
       </div>
 
-      <div className="space-y-2 no-print">
-        {notice.isUrgent && (
-          <span className="inline-block px-2.5 py-0.5 rounded bg-destructive text-white text-xs font-semibold">
-            {pick('জরুরি বিজ্ঞপ্তি', 'Urgent Notice')}
+      {/* Official Notice Title (Large bold heading) */}
+      <div className="space-y-3 no-print">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground leading-snug">
+          {notice.title}
+        </h1>
+
+        {/* Metadata Chips Strip */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+          <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium">
+            {pick('কনটেন্ট: নোটিশ', 'Content: Notice')}
           </span>
-        )}
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-snug">{notice.title}</h1>
+          <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium tabular-nums">
+            {pick('প্রকাশের তারিখ:', 'Published:')} {formattedDateCode}
+          </span>
+          {notice.memoNo && (
+            <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium font-mono">
+              {pick('স্মারক নং:', 'Memo No:')} {notice.memoNo}
+            </span>
+          )}
+          <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium">
+            {pick('বিভাগ:', 'Category:')} {notice.isUrgent ? pick('জরুরি বিজ্ঞপ্তি', 'Urgent') : pick('সাধারণ নোটিশ', 'General')}
+          </span>
+        </div>
       </div>
 
-      {/* Full Interactive Document Viewer (PDF / Scanned Image / Official A4 Circular) */}
-      <NoticeDocumentViewer notice={notice} school={db.schoolProfile} />
+      {/* Full Chrome-Like PDF Document Viewer (Embedded - matches Image 2 from bteb.gov.bd) */}
+      <ChromePdfViewer notice={notice} school={db.schoolProfile} />
 
-      {/* Other Recent Notices */}
+      {/* Other Recent Notices (matches bteb.gov.bd bottom list) */}
       {recentOthers.length > 0 && (
-        <div className="pt-4 space-y-3 no-print">
-          <h2 className="text-base font-bold text-foreground">
-            {pick('অন্যান্য সাম্প্রতিক বিজ্ঞপ্তি', 'Other Recent Notices')}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {recentOthers.map((item) => (
-              <Link
-                key={item.id}
-                href={`/notices/${item.id}`}
-                className="group p-4 rounded-xl bg-surface border border-border hover:border-primary/45 transition-colors flex items-start justify-between gap-3"
-              >
-                <div className="min-w-0 space-y-1">
-                  <div className="flex items-center gap-2">
-                    {item.isUrgent && (
-                      <span className="px-2 py-0.5 rounded bg-destructive text-white text-xs font-semibold leading-none">
-                        {pick('জরুরি', 'Urgent')}
-                      </span>
-                    )}
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {formatDateLong(item.publishedAt ?? item.createdAt, locale)}
-                    </span>
+        <div className="pt-6 space-y-4 no-print border-t border-border">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+              <FileText className="w-4 h-4 text-emerald-700 dark:text-emerald-500" />
+              <span>{pick('অন্যান্য সাম্প্রতিক নোটিশ', 'Other Recent Notices')}</span>
+            </h2>
+            <Link href="/notices" className="text-xs font-semibold text-primary hover:underline">
+              {pick('সব নোটিশ', 'View All')}
+            </Link>
+          </div>
+
+          <div className="divide-y divide-border border border-border rounded-xl bg-surface overflow-hidden">
+            {recentOthers.map((item) => {
+              const itemDate = new Date(item.publishedAt ?? item.createdAt);
+              const iDay = String(itemDate.getDate()).padStart(2, '0');
+              const iMonth = String(itemDate.getMonth() + 1).padStart(2, '0');
+              const iYear = itemDate.getFullYear();
+              const iRaw = `${iDay}-${iMonth}-${iYear}`;
+              const iFormatted = locale === 'bn' ? formatNumber(iRaw, 'bn') : iRaw;
+
+              return (
+                <div
+                  key={item.id}
+                  className="group px-4 py-3 hover:bg-surface-muted/40 transition-colors flex items-start gap-3"
+                >
+                  <span className="w-2 h-2 rounded-full bg-[#0c5936] shrink-0 mt-1.5" />
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <Link
+                      href={`/notices/${item.id}`}
+                      className="block text-sm font-semibold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-1"
+                    >
+                      {item.title}
+                    </Link>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+                      <span>{iFormatted}</span>
+                      {item.isUrgent && (
+                        <span className="px-1.5 py-0.2 rounded bg-red-600 text-white text-[10px] font-bold">
+                          {pick('জরুরি', 'Urgent')}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-sm font-semibold text-foreground group-hover:text-primary line-clamp-2">
-                    {item.title}
-                  </p>
+                  <Link
+                    href={`/notices/${item.id}`}
+                    className="text-muted-foreground group-hover:text-primary transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Link>
                 </div>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -1045,6 +1326,8 @@ export function PublicAchievementsPage() {
   const { locale, pick } = useI18n();
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
+  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
+
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
 
   const filtered = db.achievements
@@ -1058,11 +1341,35 @@ export function PublicAchievementsPage() {
         .includes(q);
     });
 
+  const MASONRY_DIMENSIONS = [
+    { width: 800, height: 1050 },
+    { width: 1200, height: 800 },
+    { width: 900, height: 950 },
+    { width: 850, height: 1100 },
+    { width: 1200, height: 850 },
+    { width: 950, height: 900 },
+  ];
+
+  const albumPhotos = filtered.map((ach, idx) => {
+    const dim = MASONRY_DIMENSIONS[idx % MASONRY_DIMENSIONS.length];
+    const photoSrc = ach.image ? getCampusPhoto(ach.image).src : '/images/teacher_kamrul_portrait_1795155721415.jpg';
+    return {
+      src: photoSrc,
+      width: dim.width,
+      height: dim.height,
+      key: ach.id,
+      achievement: ach,
+    };
+  });
+
   return (
-    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
+    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-8">
       <PageHeader
         title={pick('অর্জন ও কৃতী শিক্ষার্থী', 'Achievements & Alumni')}
-        description={pick('প্রাতিষ্ঠানিক অর্জন ও সম্মতিপ্রাপ্ত কৃতী শিক্ষার্থীদের তালিকা।', 'Institutional milestones and consented student recognitions.')}
+        description={pick(
+          'ভোজেশ্বর উচ্চ বিদ্যালয়ের স্মরণীয় মুহূর্ত, জাতীয় ও মেধা তালিকায় স্থানপ্রাপ্ত কৃতি শিক্ষার্থী এবং বিশিষ্ট প্রাক্তন শিক্ষার্থীদের মেসনারি স্মৃতি গ্যালারি।',
+          'A responsive masonry showcase honoring board toppers, science innovators, and distinguished alumni of Bhojeshwar High School.'
+        )}
       />
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -1092,41 +1399,223 @@ export function PublicAchievementsPage() {
           title={pick('কোনো অর্জন পাওয়া যায়নি', 'No matching achievements found')}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {filtered.map((ach) => (
-            <Card key={ach.id} className="p-6 flex flex-col sm:flex-row gap-4">
-              {ach.image && (
-                <img
-                  src={getCampusPhoto(ach.image).src}
-                  alt={ach.title}
-                  referrerPolicy="no-referrer"
-                  className="w-full sm:w-28 h-40 sm:h-28 rounded object-cover border border-border shrink-0"
-                />
-              )}
-              <div className="space-y-2 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadge enumName="AchievementType" value={ach.type} />
-                  {ach.batch && (
-                    <span className="text-xs font-medium text-muted-foreground tabular-nums">
-                      {ach.batch}
-                    </span>
-                  )}
-                  {ach.achievedAt && (
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      · {formatDateShort(ach.achievedAt, locale)}
-                    </span>
-                  )}
-                </div>
-                <h2 className="text-lg font-bold text-foreground">{ach.title}</h2>
-                {ach.personName && (
-                  <p className="text-sm text-primary font-medium">{ach.personName}</p>
-                )}
-                <p className="text-base text-muted-foreground leading-relaxed">{ach.description}</p>
-              </div>
-            </Card>
-          ))}
+        <div className="w-full">
+          <MasonryPhotoAlbum
+            photos={albumPhotos}
+            columns={(containerWidth) => {
+              if (containerWidth < 640) return 1;
+              if (containerWidth < 1024) return 2;
+              return 3;
+            }}
+            spacing={24}
+            render={{
+              photo: ({ onClick }, { photo }) => {
+                const ach = photo.achievement;
+                const isAlumni = ach.type === AchievementType.NOTABLE_ALUMNI;
+                const isStudentStar = ach.type === AchievementType.STUDENT_STAR;
+
+                return (
+                  <div
+                    onClick={() => setSelectedAchievement(ach)}
+                    className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-surface shadow-sm hover:shadow-xl hover:border-primary/45 transition-all duration-300 flex flex-col"
+                  >
+                    {/* Photo Visual Frame */}
+                    <div className="relative w-full overflow-hidden bg-surface-muted">
+                      <img
+                        src={photo.src}
+                        alt={ach.personName ?? ach.title}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover object-top transition-transform duration-500 ease-out group-hover:scale-105"
+                        style={{
+                          aspectRatio: `${photo.width} / ${photo.height}`,
+                        }}
+                      />
+
+                      {/* Subtle Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+
+                      {/* Top Left Badge: Category */}
+                      <div className="absolute top-3 left-3 z-10">
+                        {isAlumni ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500 text-white shadow-md backdrop-blur-sm">
+                            <GraduationCap className="w-3.5 h-3.5" />
+                            <span>{pick('কৃতি প্রাক্তন শিক্ষার্থী', 'Notable Alumni')}</span>
+                          </span>
+                        ) : isStudentStar ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-primary-foreground shadow-md backdrop-blur-sm">
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>{pick('কৃতি শিক্ষার্থী', 'Student Star')}</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-600 text-white shadow-md backdrop-blur-sm">
+                            <Trophy className="w-3.5 h-3.5" />
+                            <span>{pick('প্রাতিষ্ঠানিক স্বীকৃতি', 'Institution Milestone')}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Top Right: Batch Pill */}
+                      {ach.batch && (
+                        <div className="absolute top-3 right-3 z-10">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-black/60 text-white border border-white/20 backdrop-blur-md tabular-nums">
+                            {ach.batch}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Bottom Floating Info inside Image */}
+                      <div className="absolute inset-x-0 bottom-0 p-4 text-white z-10">
+                        {ach.personName && (
+                          <p className="text-lg font-bold leading-tight drop-shadow-sm group-hover:text-primary-foreground">
+                            {ach.personName}
+                          </p>
+                        )}
+                        <p className="text-xs font-medium text-white/90 line-clamp-1 mt-0.5">
+                          {ach.title}
+                        </p>
+                      </div>
+
+                      {/* Hover Click-to-Expand Badge */}
+                      <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 backdrop-blur-[2px]">
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-slate-900 text-xs font-bold shadow-xl">
+                          <Maximize2 className="w-3.5 h-3.5 text-primary" />
+                          <span>{pick('বিস্তারিত সাফল্যগাথা', 'View Story')}</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Card Bottom Description Block */}
+                    {ach.description && (
+                      <div className="p-4 bg-surface border-t border-border flex flex-col justify-between gap-2.5 flex-1">
+                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                          {ach.description}
+                        </p>
+                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs font-semibold text-primary">
+                          <span className="inline-flex items-center gap-1 group-hover:underline">
+                            <span>{pick('সম্পূর্ণ বিবরণী', 'Full Details')}</span>
+                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                          </span>
+                          {ach.achievedAt && (
+                            <span className="text-[11px] text-muted-foreground tabular-nums">
+                              {formatDateShort(ach.achievedAt, locale)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              },
+            }}
+          />
         </div>
       )}
+
+      {/* Lightbox Modal on clicking any card */}
+      <AnimatePresence>
+        {selectedAchievement && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6"
+            onClick={() => setSelectedAchievement(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.94, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.94, opacity: 0, y: 15 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="relative max-w-2xl w-full bg-surface border border-border rounded-2xl overflow-hidden shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                type="button"
+                aria-label="Close modal"
+                onClick={() => setSelectedAchievement(null)}
+                className="absolute top-3 right-3 z-20 h-9 w-9 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center cursor-pointer transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-12">
+                <div className="sm:col-span-5 relative aspect-square sm:aspect-auto min-h-[260px] bg-neutral-900">
+                  <img
+                    src={selectedAchievement.image ? getCampusPhoto(selectedAchievement.image).src : '/images/teacher_kamrul_portrait_1795155721415.jpg'}
+                    alt={selectedAchievement.personName ?? selectedAchievement.title}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover object-top"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+                </div>
+
+                <div className="sm:col-span-7 p-6 flex flex-col justify-between gap-4">
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {selectedAchievement.type === AchievementType.NOTABLE_ALUMNI ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500 text-white">
+                          <GraduationCap className="w-3.5 h-3.5" />
+                          <span>{pick('কৃতি প্রাক্তন শিক্ষার্থী', 'Notable Alumni')}</span>
+                        </span>
+                      ) : selectedAchievement.type === AchievementType.STUDENT_STAR ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary text-primary-foreground">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>{pick('কৃতি শিক্ষার্থী', 'Student Star')}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-600 text-white">
+                          <Trophy className="w-3.5 h-3.5" />
+                          <span>{pick('প্রাতিষ্ঠানিক স্বীকৃতি', 'Institution Milestone')}</span>
+                        </span>
+                      )}
+
+                      {selectedAchievement.batch && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-surface-muted border border-border text-foreground tabular-nums">
+                          {selectedAchievement.batch}
+                        </span>
+                      )}
+
+                      {selectedAchievement.achievedAt && (
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          · {formatDateShort(selectedAchievement.achievedAt, locale)}
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      {selectedAchievement.personName && (
+                        <h3 className="text-xl font-bold text-foreground">
+                          {selectedAchievement.personName}
+                        </h3>
+                      )}
+                      <p className="text-sm font-semibold text-primary mt-0.5">
+                        {selectedAchievement.title}
+                      </p>
+                    </div>
+
+                    {selectedAchievement.description && (
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {selectedAchievement.description}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="pt-3 border-t border-border flex items-center justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelectedAchievement(null)}
+                    >
+                      {pick('বন্ধ করুন', 'Close')}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

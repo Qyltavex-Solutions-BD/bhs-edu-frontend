@@ -100,7 +100,8 @@ export function NoticeFormatBadge({
 export function downloadNoticeDocument(
   notice: Notice,
   school?: SchoolProfile | null,
-  locale: 'bn' | 'en' = 'bn'
+  locale: 'bn' | 'en' = 'bn',
+  showToast: boolean = true
 ) {
   // 1. If an actual uploaded PDF or Image data URL exists, download the exact uploaded binary file
   if (notice.attachmentUrl) {
@@ -110,11 +111,13 @@ export function downloadNoticeDocument(
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    toast.success(
-      locale === 'bn'
-        ? `${notice.attachment || 'বিজ্ঞপ্তি'} ডাউনলোড শুরু হয়েছে।`
-        : `Downloading ${notice.attachment || 'notice document'}.`
-    );
+    if (showToast) {
+      toast.success(
+        locale === 'bn'
+          ? `${notice.attachment || 'বিজ্ঞপ্তি'} ডাউনলোড শুরু হয়েছে।`
+          : `Downloading ${notice.attachment || 'notice document'}.`
+      );
+    }
     return;
   }
 
@@ -195,11 +198,13 @@ export function downloadNoticeDocument(
   a.click();
   document.body.removeChild(a);
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast.success(
-    locale === 'bn'
-      ? 'অফিসিয়াল বিজ্ঞপ্তির কপি ডাউনলোড হয়েছে (প্রিন্ট/PDF সেভ করতে ফাইলটি খুলুন)।'
-      : 'Official circular copy downloaded.'
-  );
+  if (showToast) {
+    toast.success(
+      locale === 'bn'
+        ? 'অফিসিয়াল বিজ্ঞপ্তির কপি ডাউনলোড হয়েছে (প্রিন্ট/PDF সেভ করতে ফাইলটি খুলুন)।'
+        : 'Official circular copy downloaded.'
+    );
+  }
 }
 
 /**
