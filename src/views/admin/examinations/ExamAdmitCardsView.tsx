@@ -308,8 +308,8 @@ export function ExamAdmitCardsView() {
       ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-xs">
+            <table className="w-full text-base">
+              <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-sm font-semibold uppercase tracking-wider">
                 <tr>
                   <th className="px-4 py-3 text-center w-10">
                     <input
@@ -341,14 +341,14 @@ export function ExamAdmitCardsView() {
                           }
                         />
                       </td>
-                      <td className="px-3 py-3 text-center font-bold">{formatNumber(st.roll, locale)}</td>
+                      <td className="px-3 py-3 text-center font-medium">{formatNumber(st.roll, locale)}</td>
                       <td className="px-4 py-3">
                         <div className="font-semibold text-foreground">
                           {locale === 'bn' ? st.nameBn || st.nameEn : st.nameEn}
                         </div>
-                        <p className="text-xs font-mono text-muted-foreground">{st.studentId}</p>
+                        <p className="text-sm font-mono text-muted-foreground">{st.studentId}</p>
                       </td>
-                      <td className="px-3 py-3 text-xs">
+                      <td className="px-3 py-3 text-sm">
                         <span className="font-medium text-foreground">
                           {st.className} ({st.sectionName})
                         </span>
@@ -356,7 +356,7 @@ export function ExamAdmitCardsView() {
                           <span className="block text-muted-foreground">{st.groupName}</span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-xs">
+                      <td className="px-3 py-3 text-sm">
                         <span className="font-medium text-foreground">
                           {st.hallRoom || pick('নির্ধারিত হয়নি', 'Not Assigned')}
                         </span>
@@ -366,7 +366,7 @@ export function ExamAdmitCardsView() {
                           </span>
                         )}
                       </td>
-                      <td className="px-3 py-3 text-center text-xs font-medium">
+                      <td className="px-3 py-3 text-center text-sm font-medium">
                         {formatNumber(item.props.schedule.length, locale)}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">

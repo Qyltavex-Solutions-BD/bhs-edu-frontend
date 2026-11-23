@@ -170,12 +170,12 @@ export function StepClassAndAcademic({
         />
 
         {/* Crisp Segmented Institutional Class Bar */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground">
+        <div className="space-y-2.5">
+          <label className="block text-base font-semibold text-foreground">
             {pick('ভর্তিচ্ছু শ্রেণি', 'Target Class')}
             <span className="text-destructive ml-1">*</span>
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-5 border border-border rounded-[4px] overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-border">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
             {availableClasses.map((cls) => {
               const active = cls.id === targetClassId;
               const clsRules = getClassAdmissionRules(cls.numericValue);
@@ -184,18 +184,18 @@ export function StepClassAndAcademic({
                   key={cls.id}
                   type="button"
                   onClick={() => handleClassChange(cls.id)}
-                  className={`px-3 py-2.5 text-left transition-colors duration-150 cursor-pointer ${
+                  className={`p-3.5 rounded-2xl border text-left transition-all duration-150 cursor-pointer ${
                     active
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-surface text-foreground hover:bg-surface-muted/70'
+                      ? 'border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/25'
+                      : 'border-border/80 bg-surface text-foreground hover:bg-surface-muted/60'
                   }`}
                 >
-                  <span className="block text-sm font-semibold leading-tight">
+                  <span className="block text-base font-bold leading-tight">
                     {locale === 'bn' ? cls.nameBn || cls.name : cls.name}
                   </span>
                   <span
-                    className={`block text-xs mt-0.5 leading-tight ${
-                      active ? 'text-primary-foreground/85' : 'text-muted-foreground'
+                    className={`block text-xs mt-1 leading-tight ${
+                      active ? 'text-primary-foreground/90' : 'text-muted-foreground'
                     }`}
                   >
                     {clsRules.isTransferOrReadmissionOnly
@@ -209,14 +209,14 @@ export function StepClassAndAcademic({
             })}
           </div>
           {errors.targetClassId && (
-            <p className="text-xs text-destructive font-medium">
+            <p className="text-sm text-destructive font-medium">
               {errors.targetClassId.message}
             </p>
           )}
         </div>
 
         {/* Concise Institutional Policy Strip */}
-        <div className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-[4px] border border-border bg-surface-muted/50 text-xs text-foreground/90">
+        <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-primary/20 bg-primary/5 text-sm text-foreground/90">
           <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
           <p className="leading-relaxed">
             {locale === 'bn' ? rules.policyNoteBn : rules.policyNoteEn}
@@ -224,12 +224,12 @@ export function StepClassAndAcademic({
         </div>
 
         {/* Admission Type Inline Radio Controls */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground">
+        <div className="space-y-2.5">
+          <label className="block text-base font-semibold text-foreground">
             {pick('ভর্তির ধরন', 'Admission Type')}
             <span className="text-destructive ml-1">*</span>
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {(['NEW', 'TRANSFER', 'READMISSION'] as AdmissionType[]).map((type) => {
               const allowed = rules.allowedAdmissionTypes.includes(type);
               const active = admissionType === type;
@@ -242,26 +242,26 @@ export function StepClassAndAcademic({
                   onClick={() =>
                     setValue('admissionType', type, { shouldValidate: true })
                   }
-                  className={`flex items-start gap-2.5 px-3 py-2.5 rounded-[4px] border text-left transition-colors duration-150 ${
+                  className={`flex items-start gap-3 p-4 rounded-2xl border text-left transition-all duration-150 ${
                     !allowed
-                      ? 'border-border/60 bg-surface-muted/30 text-muted-foreground/55 cursor-not-allowed'
+                      ? 'border-border/50 bg-surface-muted/20 text-muted-foreground/50 cursor-not-allowed'
                       : active
-                        ? 'border-primary bg-primary/5 text-foreground cursor-pointer'
-                        : 'border-border bg-surface text-foreground hover:bg-surface-muted/50 cursor-pointer'
+                        ? 'border-primary bg-primary/5 text-foreground ring-1 ring-primary cursor-pointer shadow-xs'
+                        : 'border-border/80 bg-surface text-foreground hover:bg-surface-muted/50 cursor-pointer'
                   }`}
                 >
                   <span
-                    className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
-                      active ? 'border-primary' : 'border-muted-foreground/45'
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+                      active ? 'border-primary' : 'border-muted-foreground/40'
                     }`}
                   >
-                    {active && <span className="w-2 h-2 rounded-full bg-primary" />}
+                    {active && <span className="w-2.5 h-2.5 rounded-full bg-primary" />}
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-sm font-medium leading-tight">
+                    <span className="block text-base font-semibold leading-tight">
                       {locale === 'bn' ? meta.bn : meta.en}
                     </span>
-                    <span className="block text-xs text-muted-foreground mt-0.5 leading-snug">
+                    <span className="block text-xs text-muted-foreground mt-1 leading-snug">
                       {!allowed
                         ? numericClass === 6
                           ? pick('৬ষ্ঠ শ্রেণিতে প্রযোজ্য নয়', 'Not applicable for Class 6')
@@ -278,7 +278,7 @@ export function StepClassAndAcademic({
             })}
           </div>
           {errors.admissionType && (
-            <p className="text-xs text-destructive font-medium">
+            <p className="text-sm text-destructive font-medium">
               {errors.admissionType.message}
             </p>
           )}
@@ -518,8 +518,8 @@ export function StepClassAndAcademic({
             </AdmissionField>
 
             {boardRegDuplicate && (
-              <div className="sm:col-span-2 flex items-start gap-2 px-3 py-2.5 rounded-[4px] border border-destructive/40 bg-destructive/5 text-xs text-destructive">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="sm:col-span-2 flex items-start gap-2.5 px-4 py-3 rounded-2xl border border-destructive/40 bg-destructive/5 text-sm text-destructive">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                 <span>{boardRegDuplicate}</span>
               </div>
             )}
