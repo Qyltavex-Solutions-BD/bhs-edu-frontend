@@ -79,15 +79,33 @@ interface CustomQueryArgs {
 
 const hybridBaseQuery: BaseQueryFn<CustomQueryArgs, unknown, { status: number; message: string }> =
   async (args, api, extraOptions) => {
+    // 1. If global mock mode is forced on, serve from mock adapter
     if (USE_MOCK) {
       const res = await handleMockRequest(args.url, args.method ?? 'GET', args.body);
       if (res.error) return { error: res.error };
       return { data: res.data };
     }
 
+    // 2. /bootstrap is the frontend mock-state provider; always provide seed db
+    if (args.url === '/bootstrap') {
+      const res = await handleMockRequest(args.url, 'GET', args.body);
+      if (res.error) return { error: res.error };
+      return { data: res.data };
+    }
+
+    // 3. Try real backend
     const result = await realFetchBaseQuery(args, api, extraOptions);
     if (result.error) {
       const status = typeof result.error.status === 'number' ? result.error.status : 500;
+
+      // 4. Fallback to mock adapter if the endpoint is not yet implemented on the backend (404)
+      if (status === 404 || result.error.status === 'FETCH_ERROR') {
+        const mockRes = await handleMockRequest(args.url, args.method ?? 'GET', args.body);
+        if (!mockRes.error) {
+          return { data: mockRes.data };
+        }
+      }
+
       const errData = result.error.data as
         | {
             message?: string;
