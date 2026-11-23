@@ -14,10 +14,10 @@ import { Button, Card, FormField, Input, Switch } from '@/src/components/ui/prim
 import type { MockDatabase } from '@/src/mocks/seed';
 import { errorMessage } from './shared';
 
-const emptyClass = { name: '', numericValue: '', sectionNames: '', isActive: true };
+const emptyClass = { name: '', nameBn: '', numericValue: '', sectionNames: '', isActive: true };
 
 export function ClassesPanel({ db }: { db: MockDatabase }) {
-  const { pick } = useI18n();
+  const { locale, pick } = useI18n();
   const selectedYearId = useAppSelector((state) => state.ui.selectedAcademicYearId);
   const { data: realClasses, isLoading: loadingClasses } = useGetSchoolClassesQuery();
   const [saveClass, { isLoading: saving }] = useSaveSchoolClassMutation();
@@ -35,6 +35,7 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
     const trimmedName = form.name.trim();
+    const trimmedNameBn = form.nameBn.trim() || undefined;
     const numVal = parseInt(form.numericValue, 10);
 
     if (!trimmedName) {
@@ -58,11 +59,13 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
           ? {
               id: editingId,
               name: trimmedName,
+              nameBn: trimmedNameBn,
               numericValue: numVal,
               isActive: form.isActive,
             }
           : {
               name: trimmedName,
+              nameBn: trimmedNameBn,
               numericValue: numVal,
               isActive: form.isActive,
               sections,
@@ -106,14 +109,22 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
             </Button>
           )}
         </div>
-        <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
-          <FormField label={pick('শ্রেণির নাম', 'Class name')}>
+        <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+          <FormField label={pick('ইংরেজি নাম', 'English name')}>
             <Input
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
               placeholder="e.g. Class 6"
               maxLength={50}
               required
+            />
+          </FormField>
+          <FormField label={pick('বাংলা নাম', 'Bangla name')}>
+            <Input
+              value={form.nameBn}
+              onChange={(event) => setForm({ ...form, nameBn: event.target.value })}
+              placeholder="যেমন: ৬ষ্ঠ শ্রেণি"
+              maxLength={50}
             />
           </FormField>
           <FormField label={pick('শ্রেণি নম্বর (ক্রমিক)', 'Class number')}>
@@ -132,7 +143,7 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
               <Input
                 value={form.sectionNames}
                 onChange={(event) => setForm({ ...form, sectionNames: event.target.value })}
-                placeholder="A, B, C"
+                placeholder="A, B, C বা ক, খ"
               />
             </FormField>
           )}
@@ -161,11 +172,29 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
                 ? schoolClass.sections
                 : db.sections.filter((section) => section.classId === schoolClass.id);
 
+            const displayName =
+              locale === 'bn'
+                ? schoolClass.nameBn || schoolClass.name
+                : schoolClass.name;
+            const secondaryName =
+              schoolClass.nameBn && schoolClass.nameBn !== displayName
+                ? ` (${schoolClass.nameBn})`
+                : schoolClass.name !== displayName
+                  ? ` (${schoolClass.name})`
+                  : '';
+
             return (
               <Card key={schoolClass.id} className="p-5 space-y-2.5">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="text-base font-bold text-primary">{schoolClass.name}</h3>
+                    <h3 className="text-base font-bold text-primary">
+                      {displayName}
+                      {secondaryName && (
+                        <span className="text-xs font-normal text-muted-foreground ml-1">
+                          {secondaryName}
+                        </span>
+                      )}
+                    </h3>
                     <p className="text-xs text-muted-foreground">
                       {pick('নম্বর', 'Numeric')}: {schoolClass.numericValue} ·{' '}
                       {schoolClass.isActive
@@ -182,6 +211,7 @@ export function ClassesPanel({ db }: { db: MockDatabase }) {
                         setEditingId(schoolClass.id);
                         setForm({
                           name: schoolClass.name,
+                          nameBn: schoolClass.nameBn ?? '',
                           numericValue: String(schoolClass.numericValue),
                           sectionNames: '',
                           isActive: schoolClass.isActive,

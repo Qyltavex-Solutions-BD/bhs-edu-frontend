@@ -3,6 +3,7 @@ import type { SchoolClass } from '@/src/types/entities';
 
 export interface CreateClassPayload {
   name: string;
+  nameBn?: string;
   numericValue: number;
   isActive?: boolean;
   sections?: string[];
@@ -12,6 +13,7 @@ export interface CreateClassPayload {
 export interface UpdateClassPayload {
   id: string;
   name?: string;
+  nameBn?: string;
   numericValue?: number;
   isActive?: boolean;
 }
@@ -46,6 +48,7 @@ export const classApi = schoolApi.injectEndpoints({
       {
         id?: string;
         name: string;
+        nameBn?: string;
         numericValue: number;
         isActive?: boolean;
         sections?: string[];
