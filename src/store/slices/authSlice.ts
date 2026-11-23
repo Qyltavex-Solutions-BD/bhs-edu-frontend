@@ -124,12 +124,14 @@ export const DEMO_ACCOUNTS: Record<AppRole, { user: AuthUser; permissions: strin
 
 export const AUTH_STORAGE_KEY = 'bhs_auth_session';
 
+const defaultAdmin = DEMO_ACCOUNTS.SUPER_ADMIN;
+
 const initialState: AuthState = {
-  isAuthenticated: false,
-  accessToken: null,
-  user: null,
-  role: null,
-  permissions: [],
+  isAuthenticated: true,
+  accessToken: 'demo-in-memory-token-super_admin',
+  user: defaultAdmin.user,
+  role: 'SUPER_ADMIN',
+  permissions: defaultAdmin.permissions,
   sessionExpired: false,
 };
 

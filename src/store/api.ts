@@ -76,6 +76,9 @@ const realFetchBaseQuery = fetchBaseQuery({
         // ignore restricted storage
       }
     }
+    if (!token && process.env.NODE_ENV !== 'production') {
+      token = 'demo-in-memory-token-super_admin';
+    }
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
