@@ -1,0 +1,12 @@
+export { StudentDashboardPage } from './components/StudentDashboardPage';
+export { StudentProfilePage } from './components/StudentProfilePage';
+export { StudentAcademicInfoPage } from './components/StudentAcademicInfoPage';
+export { StudentRoutinePage } from './components/StudentRoutinePage';
+export { StudentAttendancePage } from './components/StudentAttendancePage';
+export { StudentExaminationsPage } from './components/StudentExaminationsPage';
+export { StudentResultsPage } from './components/StudentResultsPage';
+export { StudentResultDetailPage } from './components/StudentResultDetailPage';
+export { StudentResourcesPage } from './components/StudentResourcesPage';
+export { StudentLibraryPage } from './components/StudentLibraryPage';
+export { StudentNoticesPage } from './components/StudentNoticesPage';
+export { StudentNotificationsPage } from './components/StudentNotificationsPage';

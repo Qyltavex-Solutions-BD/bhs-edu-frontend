@@ -1,4 +1,5 @@
 export * from './api/staff.api';
+export * from './schemas';
 export * from './components/StaffShell';
 export * from './components/StaffDepartments';
 export * from './components/StaffPosts';

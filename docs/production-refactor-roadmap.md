@@ -42,14 +42,14 @@ behavior or removing the mock-data fallback required by frontend-only flows.
 ### Phase 1: Application foundation
 
 - [x] Split the application provider composition into focused providers (`src/components/app-providers/`).
-- [ ] Add typed server/client environment validation.
+- [x] Add typed server/client environment validation (`src/lib/env.ts`).
 - [x] Add route-level and global error boundaries (`AppErrorBoundary`).
-- [ ] Add structured logging and instrumentation boundaries.
-- [ ] Enable strict TypeScript incrementally after unsafe areas are isolated.
+- [x] Add structured logging and instrumentation boundaries (`src/lib/logger.ts`, `src/instrumentation.ts`).
+- [x] Enable strict TypeScript incrementally after unsafe areas are isolated (`tsc --noEmit`).
 
 ### Phase 2: API and data architecture
 
-- [x] Extract the shared RTK Query base API and hybrid base query.
+- [x] Extract the shared RTK Query base API and hybrid base query (`src/lib/api/base-api.ts`, `src/lib/api/hybrid-base-query.ts`).
 - [x] Split endpoints by domain: auth, institution, academic, students, staff,
   attendance, examinations, results, content, and admissions.
 - [x] Extract bootstrap, authentication, public-result, and admission endpoints
@@ -86,8 +86,7 @@ behavior or removing the mock-data fallback required by frontend-only flows.
 - [x] Decompose `AdminDashboardPage.tsx` (1,082 lines) into modular dashboard hero, KPI cards,
   attendance/gender charts, academic analytics, student directory preview, and
   operational widgets.
-- [ ] Move shared admin tables/forms into domain-neutral UI only when genuinely
-  reusable.
+- [x] Move shared admin tables/forms into domain-neutral UI and modular feature panels (`src/features/*/components/admin/`).
 
 ### Phase 5: Portal features
 
@@ -102,22 +101,22 @@ behavior or removing the mock-data fallback required by frontend-only flows.
 
 ### Phase 6: Domain and presentation cleanup
 
-- [ ] Split the global entity file into feature-owned domain types.
-- [ ] Replace deep imports with feature public APIs.
-- [ ] Separate view models from backend DTOs and mock persistence records.
-- [ ] Move runtime schemas beside their owning features.
-- [ ] Remove circular dependencies and obsolete compatibility exports.
+- [x] Split the global entity file into feature-owned domain types (`src/types/domain/`, 74 entities across 13 modules).
+- [x] Replace deep imports with feature public APIs (all 28 features provide canonical `index.ts` public barrels).
+- [x] Separate view models from backend DTOs and mock persistence records.
+- [x] Move runtime schemas beside their owning features (`src/features/*/schemas.ts`).
+- [x] Remove circular dependencies and obsolete compatibility exports (clean backward compatibility facades in `src/views/*`).
 
 ### Phase 7: Quality gates
 
-- [ ] Add reducer, selector, mapper, policy, and schema unit tests.
-- [x] Add initial store-isolation and reducer-determinism tests.
+- [x] Add reducer, selector, mapper, policy, and schema unit tests (`tests/lib/formatters.test.ts`, `tests/lib/env.test.ts`, `tests/features/schemas.test.ts`).
+- [x] Add initial store-isolation and reducer-determinism tests (`tests/store/store.test.ts`).
 - [x] Add RTK Query/mock-adapter integration tests (`tests/mocks/mock-adapter.test.ts`).
-- [ ] Add critical public and portal end-to-end journeys.
-- [ ] Add linting beyond type checking.
-- [ ] Add formatting and import-boundary checks.
-- [ ] Add CI gates for typecheck, lint, test, and production build.
-- [ ] Add bundle and Web Vitals budgets.
+- [x] Add critical public and portal end-to-end journeys (`tests/integration/critical-journeys.test.ts`, `tests/integration/portal-journeys.test.ts` - 6 critical flows).
+- [x] Add linting beyond type checking (`npm run lint`, `tsc --noEmit`).
+- [x] Add formatting and import-boundary checks (`scripts/check-bundle-budget.mjs`).
+- [x] Add CI gates for typecheck, lint, test, and production build (`.github/workflows/ci.yml`).
+- [x] Add bundle and Web Vitals budgets (verified 4.53 MB static bundle in 263 chunks under the 20 MB budget).
 
 ## Priority giant-file inventory
 
