@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { SubjectCategory } from '@/src/types/enums';
+import { BookType, SubjectCategory } from '@/src/types/enums';
 
 export const subjectSchema = z.object({
   name: z
@@ -116,4 +116,26 @@ export const rolloverClassSubjectSchema = z.object({
 });
 
 export type RolloverClassSubjectFormValues = z.infer<typeof rolloverClassSubjectSchema>;
+
+export const bookSchema = z.object({
+  classId: z.string().min(1, 'শ্রেণি নির্বাচন করুন'),
+  subjectId: z.string().min(1, 'বিষয় নির্বাচন করুন'),
+  name: z
+    .string()
+    .trim()
+    .min(1, 'বইয়ের নাম আবশ্যক')
+    .max(200, 'বইয়ের নাম ২০০ অক্ষরের বেশি হতে পারবে না'),
+  bookCode: z
+    .string()
+    .trim()
+    .max(50, 'বই কোড ৫০ অক্ষরের বেশি হতে পারবে না')
+    .optional()
+    .or(z.literal('')),
+  type: z.nativeEnum(BookType),
+  displayOrder: z.number().int().min(0, 'ক্রম ০ বা তার বেশি হতে হবে'),
+  isActive: z.boolean(),
+});
+
+export type BookFormValues = z.infer<typeof bookSchema>;
+
 

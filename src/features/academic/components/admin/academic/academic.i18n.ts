@@ -1,7 +1,14 @@
 'use client';
 
 import { useI18n } from '@/src/lib/i18n';
-import { SubjectCategory } from '@/src/types/enums';
+import { BookType, SubjectCategory } from '@/src/types/enums';
+
+export const BOOK_TYPE_LABELS: Record<BookType, { bn: string; en: string }> = {
+  [BookType.TEXTBOOK]: { bn: 'মূল পাঠ্যবই', en: 'Textbook' },
+  [BookType.SUPPLEMENTARY]: { bn: 'সহপাঠ / দ্রুতপঠন', en: 'Supplementary' },
+  [BookType.GRAMMAR]: { bn: 'ব্যাকরণ ও নির্মিতি', en: 'Grammar' },
+  [BookType.REFERENCE]: { bn: 'সহায়ক বই', en: 'Reference' },
+};
 
 export const CATEGORY_LABELS: Record<SubjectCategory, { bn: string; en: string }> = {
   [SubjectCategory.GENERAL]: { bn: 'সাধারণ', en: 'General' },
@@ -235,6 +242,37 @@ export const ACADEMIC_DICTIONARY = {
     inactiveOnly: { bn: 'শুধু নিষ্ক্রিয়', en: 'Inactive only' },
     rolloverSuccess: { bn: 'পাঠ্যক্রম সফলভাবে কপি সম্পন্ন হয়েছে।', en: 'Curriculum rolled over successfully.' },
     rolloverFailed: { bn: 'পাঠ্যক্রম কপি করা যায়নি।', en: 'Could not rollover curriculum.' },
+  },
+  books: {
+    panelTitle: { bn: 'পাঠ্যবই তালিকা', en: 'Prescribed Books' },
+    newBookButton: { bn: 'নতুন পাঠ্যবই', en: 'Add Prescribed Book' },
+    editTitle: { bn: 'পাঠ্যবই সম্পাদনা', en: 'Edit Book' },
+    newTitle: { bn: 'নতুন পাঠ্যবই যুক্ত করুন', en: 'Add Prescribed Book' },
+    modalDescription: {
+      bn: 'নির্দিষ্ট শ্রেণি ও বিষয়ের জন্য পাঠ্যবই বা সহপাঠের তথ্য দিন।',
+      en: 'Set textbook, grammar, or supplementary book for a class and subject.',
+    },
+    classLabel: { bn: 'শ্রেণি', en: 'Class' },
+    subjectLabel: { bn: 'বিষয়', en: 'Subject' },
+    nameLabel: { bn: 'বইয়ের নাম', en: 'Book Name' },
+    namePlaceholder: { bn: 'যেমন: চারুপাঠ, আনন্দপাঠ বা সাধারণ গণিত', en: 'e.g. Charupath, Anandapath' },
+    codeLabel: { bn: 'বই কোড', en: 'Book Code' },
+    codePlaceholder: { bn: 'যেমন: NCTB-B6-101', en: 'e.g. NCTB-B6-101' },
+    typeLabel: { bn: 'বইয়ের ধরন', en: 'Book Type' },
+    orderLabel: { bn: 'ক্রম', en: 'Order' },
+    createSuccess: { bn: 'নতুন পাঠ্যবই যুক্ত হয়েছে।', en: 'Book created successfully.' },
+    updateSuccess: { bn: 'পাঠ্যবই হালনাগাদ হয়েছে।', en: 'Book updated successfully.' },
+    deleteSuccess: { bn: 'পাঠ্যবই মুছে ফেলা হয়েছে।', en: 'Book deleted successfully.' },
+    saveFailed: { bn: 'পাঠ্যবই সংরক্ষণ করা যায়নি।', en: 'Could not save the book.' },
+    deleteFailed: { bn: 'পাঠ্যবই মুছে ফেলা যায়নি।', en: 'Could not delete the book.' },
+    emptyBooks: { bn: 'এই শ্রেণির জন্য কোনো পাঠ্যবই পাওয়া যায়নি।', en: 'No books found for this class.' },
+    allTypes: { bn: 'সব ধরনের বই', en: 'All Types' },
+    allSubjects: { bn: 'সকল বিষয়', en: 'All Subjects' },
+    searchPlaceholder: { bn: 'বইয়ের নাম বা কোড দিয়ে খুঁজুন...', en: 'Search by book name or code...' },
+    statsTotal: { bn: 'মোট পাঠ্যবই', en: 'Total Books' },
+    statsTextbook: { bn: 'মূল পাঠ্যবই', en: 'Textbooks' },
+    statsSupplementary: { bn: 'সহপাঠ', en: 'Supplementary' },
+    statsGrammar: { bn: 'ব্যাকরণ', en: 'Grammar' },
   },
 } as const;
 

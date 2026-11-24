@@ -75,6 +75,7 @@ export function ClassSubjectsPanel({
       : (db?.academicYears ?? []);
 
   // Filter States
+  const [selectedYearId, setSelectedYearId] = useState<string>('');
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [groupFilter, setGroupFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'compulsory' | 'optional'>('all');
@@ -82,22 +83,50 @@ export function ClassSubjectsPanel({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [fromYearId, setFromYearId] = useState<string>('');
 
-  // Set default classId once classes load
+  // Synchronize selectedYearId with real years from backend database
   useEffect(() => {
-    if (!selectedClassId && classList.length > 0) {
+    if (realYears && realYears.length > 0) {
+      const match =
+        realYears.find((y) => y.id === year?.id) ||
+        realYears.find((y) => y.name === year?.name || y.name.includes(year?.name || '')) ||
+        realYears.find((y) => y.isActive) ||
+        realYears[0];
+      if (match && selectedYearId !== match.id) {
+        setSelectedYearId(match.id);
+      }
+    } else if (year?.id && !selectedYearId) {
+      setSelectedYearId(year.id);
+    }
+  }, [realYears, year, selectedYearId]);
+
+  const activeYear = useMemo(() => {
+    return yearList.find((y) => y.id === selectedYearId) || year;
+  }, [yearList, selectedYearId, year]);
+
+  // Set default classId once classes load and keep synchronized with real database classes
+  useEffect(() => {
+    if (realClasses && realClasses.length > 0) {
+      const match =
+        realClasses.find((c) => c.id === selectedClassId) ||
+        realClasses.find((c) => c.numericValue === classList.find((x) => x.id === selectedClassId)?.numericValue) ||
+        realClasses[0];
+      if (match && selectedClassId !== match.id) {
+        setSelectedClassId(match.id);
+      }
+    } else if (!selectedClassId && classList.length > 0) {
       setSelectedClassId(classList[0].id);
     }
-  }, [classList, selectedClassId]);
+  }, [realClasses, classList, selectedClassId]);
 
   // Set default fromYearId for rollover
   useEffect(() => {
     if (!fromYearId && yearList.length > 0) {
-      const otherYear = yearList.find((item) => item.id !== year.id);
+      const otherYear = yearList.find((item) => item.id !== selectedYearId);
       if (otherYear) {
         setFromYearId(otherYear.id);
       }
     }
-  }, [yearList, year.id, fromYearId]);
+  }, [yearList, selectedYearId, fromYearId]);
 
   // Class subjects query for this year & selected class (GET API Integration)
   const {
@@ -106,9 +135,12 @@ export function ClassSubjectsPanel({
     isFetching: fetchingClassSubjects,
     refetch: refetchClassSubjects,
   } = useGetClassSubjectsQuery(
-    selectedClassId
-      ? { academicYearId: year.id, classId: selectedClassId }
-      : { academicYearId: year.id }
+    selectedYearId
+      ? selectedClassId
+        ? { academicYearId: selectedYearId, classId: selectedClassId }
+        : { academicYearId: selectedYearId }
+      : undefined,
+    { skip: !selectedYearId }
   );
 
   // When real API responds, use realClassSubjects directly (even if [] for an empty class), else fallback to mock
@@ -155,10 +187,13 @@ export function ClassSubjectsPanel({
     }
   }, [selectedClassId, setValue]);
 
-  // Set initial subjectId when subjectList loads
+  // Set initial subjectId when subjectList loads and keep synchronized with real database subjects
   useEffect(() => {
-    if (!formSubjectId && subjectList.length > 0) {
-      setValue('subjectId', subjectList[0].id);
+    if (subjectList.length > 0) {
+      const isValid = subjectList.some((s) => s.id === formSubjectId);
+      if (!isValid) {
+        setValue('subjectId', subjectList[0].id);
+      }
     }
   }, [subjectList, formSubjectId, setValue]);
 
@@ -192,20 +227,22 @@ export function ClassSubjectsPanel({
       rawList
         .filter(
           (item) =>
-            item.academicYearId === year.id &&
+            (!selectedYearId || item.academicYearId === selectedYearId) &&
             item.classId === selectedClassId &&
             (usesGroup ? (item.groupId ?? '') === (formGroupId || '') : true)
         )
         .map((item) => item.subjectId)
     );
-  }, [rawList, year.id, selectedClassId, usesGroup, formGroupId]);
+  }, [rawList, selectedYearId, selectedClassId, usesGroup, formGroupId]);
 
-  // Calculate live statistics for selected class
+  // Calculate live statistics for selected class & academic year
   const classSubjectsAll = useMemo(() => {
-    return rawList.filter(
-      (item) => item.academicYearId === year.id && item.classId === selectedClassId
-    );
-  }, [rawList, year.id, selectedClassId]);
+    return rawList.filter((item) => {
+      const matchYear = selectedYearId ? item.academicYearId === selectedYearId : true;
+      const matchClass = selectedClassId ? item.classId === selectedClassId : true;
+      return matchYear && matchClass;
+    });
+  }, [rawList, selectedYearId, selectedClassId]);
 
   const stats = useMemo(() => {
     const total = classSubjectsAll.length;
@@ -261,10 +298,10 @@ export function ClassSubjectsPanel({
   const onAssign = async (values: AssignClassSubjectFormValues) => {
     try {
       await assignSubject({
-        academicYearId: year.id,
+        academicYearId: selectedYearId || year.id,
         classId: values.classId,
         subjectId: values.subjectId,
-        groupId: usesGroup ? (values.groupId || null) : null,
+        groupId: usesGroup && values.groupId?.trim() ? values.groupId.trim() : null,
         isOptional: values.isOptional,
         displayOrder: classSubjectsAll.length + 1,
       }).unwrap();
@@ -321,7 +358,7 @@ export function ClassSubjectsPanel({
     try {
       const result = await rollover({
         fromAcademicYearId: fromYearId,
-        toAcademicYearId: year.id,
+        toAcademicYearId: selectedYearId || year.id,
       }).unwrap();
       toast.success(
         isBn
@@ -339,9 +376,9 @@ export function ClassSubjectsPanel({
       <Card className="p-5 border-l-4 border-l-primary space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                {year.name} {isBn ? 'শিক্ষাবর্ষ' : 'Academic Year'}
+                {activeYear.name}
               </span>
               {currentClass && (
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-surface-muted text-foreground border border-border">
@@ -354,14 +391,31 @@ export function ClassSubjectsPanel({
             </h2>
           </div>
 
-          <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+            {/* Academic Year Selector */}
+            {yearList.length > 1 && (
+              <FormField label={isBn ? 'শিক্ষাবর্ষ' : 'Academic Year'}>
+                <Select
+                  value={selectedYearId}
+                  onChange={(e) => setSelectedYearId(e.target.value)}
+                  className="min-w-36 text-xs h-9 font-semibold"
+                >
+                  {yearList.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} {item.isActive ? `(${isBn ? 'সক্রিয়' : 'Active'})` : ''}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            )}
+
             <Button
               type="button"
               variant="outline"
               size="sm"
               disabled={fetchingClassSubjects}
               onClick={() => refetchClassSubjects()}
-              className="gap-1.5"
+              className="gap-1.5 self-end h-9"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${fetchingClassSubjects ? 'animate-spin' : ''}`} />
               <span>{isBn ? 'রিফ্রেশ' : 'Refresh'}</span>
@@ -411,7 +465,7 @@ export function ClassSubjectsPanel({
             className="min-w-44"
           >
             {yearList
-              .filter((item) => item.id !== year.id)
+              .filter((item) => item.id !== selectedYearId)
               .map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
