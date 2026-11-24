@@ -219,8 +219,6 @@ export function MarksEntryView() {
     return { matched, errors };
   }, [db, activeExamSubject, csvText, targetEnrollments, locale]);
 
-  if (isLoading || !db) return <LoadingSkeleton rows={6} />;
-
   const dirtyCount = Object.keys(drafts).length;
   const deadlineExpired = Boolean(
     activeExam?.marksEntryDeadline && new Date(activeExam.marksEntryDeadline) < new Date()
@@ -234,7 +232,7 @@ export function MarksEntryView() {
 
   const getRow = (enrollmentId: string): DraftMarkRow => {
     if (drafts[enrollmentId]) return drafts[enrollmentId];
-    const mk = db.marks.find(
+    const mk = db?.marks.find(
       (m) => m.studentEnrollmentId === enrollmentId && m.examSubjectId === resolvedSubjectId
     );
     return {
@@ -413,11 +411,14 @@ export function MarksEntryView() {
     reader.readAsText(file);
   };
 
-  const activeSubjectMeta = activeExamSubject
+  const activeSubjectMeta = activeExamSubject && db
     ? db.subjects.find((s) => s.id === activeExamSubject.subjectId)
     : null;
 
   const kpis = useMemo(() => {
+    if (!db) {
+      return { total: 0, enteredCount: 0, absentCount: 0, passedCount: 0, failedCount: 0, progressPct: 0 };
+    }
     let enteredCount = 0;
     let absentCount = 0;
     let passedCount = 0;
@@ -462,6 +463,8 @@ export function MarksEntryView() {
       progressPct,
     };
   }, [targetEnrollments, drafts, db, resolvedSubjectId, activeExamSubject, scaleRanges]);
+
+  if (isLoading || !db) return <LoadingSkeleton rows={6} />;
 
   return (
     <div className="space-y-6">

@@ -138,17 +138,17 @@ export function ExamRoutinesView() {
     return issues;
   }, [db, routines]);
 
-  if (isLoading || !db) return <LoadingSkeleton rows={6} />;
-
-  const activeClass = activeExam ? db.classes.find((c) => c.id === activeExam.classId) : null;
-  const activeYear = activeExam ? db.academicYears.find((y) => y.id === activeExam.academicYearId) : null;
-
   const uniqueDates = useMemo(() => new Set(routines.map((r) => r.examDate)).size, [routines]);
   const coveredSubjectIds = useMemo(() => new Set(routines.map((r) => r.examSubjectId)).size, [routines]);
   const uniqueRooms = useMemo(
     () => new Set(routines.map((r) => r.roomNo?.trim()).filter(Boolean)).size,
     [routines]
   );
+
+  if (isLoading || !db) return <LoadingSkeleton rows={6} />;
+
+  const activeClass = activeExam ? db.classes.find((c) => c.id === activeExam.classId) : null;
+  const activeYear = activeExam ? db.academicYears.find((y) => y.id === activeExam.academicYearId) : null;
   const hasConflict = conflicts.length > 0;
 
   const openCreate = () => {
