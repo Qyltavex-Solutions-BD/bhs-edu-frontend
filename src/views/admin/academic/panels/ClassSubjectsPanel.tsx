@@ -146,6 +146,15 @@ export function ClassSubjectsPanel({
       ? realClassSubjects
       : (db?.classSubjects ?? []);
 
+  // All class subjects for selected academic year and class
+  const classSubjectsAll = useMemo(() => {
+    return (rawList || []).filter((item) => {
+      const matchYear = selectedYearId ? item.academicYearId === selectedYearId : true;
+      const matchClass = selectedClassId ? item.classId === selectedClassId : true;
+      return matchYear && matchClass;
+    });
+  }, [rawList, selectedYearId, selectedClassId]);
+
   // Mutations
   const [assignSubject, { isLoading: assigning }] = useAssignClassSubjectMutation();
   const [updateSubject] = useUpdateClassSubjectMutation();
@@ -269,15 +278,6 @@ export function ClassSubjectsPanel({
       setValue('subjectId', '');
     }
   }, [availableSubjects, formSubjectId, setValue]);
-
-  // All class subjects for selected academic year and class
-  const classSubjectsAll = useMemo(() => {
-    return rawList.filter((item) => {
-      const matchYear = selectedYearId ? item.academicYearId === selectedYearId : true;
-      const matchClass = selectedClassId ? item.classId === selectedClassId : true;
-      return matchYear && matchClass;
-    });
-  }, [rawList, selectedYearId, selectedClassId]);
 
   // Filtered and sorted class subjects for the table
   const filteredSubjects = useMemo(() => {
