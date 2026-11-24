@@ -1346,22 +1346,25 @@ export function TeacherResultsPage() {
   const [examId, setExamId] = useState('exam-hy-10');
   const [previewSummaryId, setPreviewSummaryId] = useState<string | null>(null);
 
-  if (isLoading || !db || !teacher) return <LoadingSkeleton />;
-  const myClassIds = Array.from(
-    new Set(db.teacherAssignments.filter((a) => a.staffId === teacher.id).map((a) => a.classId))
-  );
-  const myExams = db.exams.filter((e) => myClassIds.includes(e.classId));
+  const myClassIds = db && teacher
+    ? Array.from(
+        new Set(db.teacherAssignments.filter((a) => a.staffId === teacher.id).map((a) => a.classId))
+      )
+    : [];
+  const myExams = db ? db.exams.filter((e) => myClassIds.includes(e.classId)) : [];
   const exam = myExams.find((e) => e.id === examId) ?? myExams[0];
-  const summaries = db.resultSummaries
-    .filter((r) => r.examId === exam?.id)
-    .sort((a, b) => (a.meritPosition ?? 999) - (b.meritPosition ?? 999));
+  const summaries = db
+    ? db.resultSummaries
+        .filter((r) => r.examId === exam?.id)
+        .sort((a, b) => (a.meritPosition ?? 999) - (b.meritPosition ?? 999))
+    : [];
 
   const selectedSummary = previewSummaryId
     ? summaries.find((s) => s.id === previewSummaryId)
     : null;
 
   const marksheetProps = useMemo(() => {
-    if (!selectedSummary || !exam) return null;
+    if (!db || !selectedSummary || !exam) return null;
     const enr = db.enrollments.find((e) => e.id === selectedSummary.studentEnrollmentId);
     const stu = db.students.find((s) => s.id === enr?.studentId);
     const cls = db.classes.find((c) => c.id === enr?.classId);
@@ -1415,6 +1418,8 @@ export function TeacherResultsPage() {
       subjects,
     };
   }, [selectedSummary, exam, db]);
+
+  if (isLoading || !db || !teacher) return <LoadingSkeleton />;
 
   return (
     <div className="space-y-6">

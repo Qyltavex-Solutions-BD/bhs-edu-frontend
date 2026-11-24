@@ -484,48 +484,8 @@ export function HomePage() {
     return combined;
   }, [db, pick]);
 
-  if (isLoading || !db) {
-    return (
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 pt-24 pb-12">
-        <LoadingSkeleton rows={8} />
-      </div>
-    );
-  }
-
-  const safeSlideIdx = slideIndex % Math.max(1, heroSlides.length);
-  const currentSlide = heroSlides[safeSlideIdx];
-  const currentHeroPhoto = getCampusPhoto(currentSlide?.image);
-
-  const teachersPreview = db.staff
-    .filter((s) => s.staffType === StaffType.TEACHER && s.status === StaffStatus.ACTIVE)
-    .sort((a, b) => a.displayOrder - b.displayOrder)
-    .slice(0, 4);
-
-  const activeFacilities = db.facilities.filter((f) => f.isActive);
-  const activeSectionsCount = db.sections.filter((s) => s.isActive).length;
-  const publishedNews = [...db.news]
-    .filter((n) => n.isPublished)
-    .sort((a, b) => {
-      const ta = new Date(a.publishedAt ?? a.createdAt).getTime();
-      const tb = new Date(b.publishedAt ?? b.createdAt).getTime();
-      return tb - ta;
-    })
-    .slice(0, 3);
-  const upcomingEvents = [...db.events]
-    .filter((e) => e.isPublished)
-    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-    .slice(0, 4);
-  const yearsSinceEst = 2026 - (db.schoolProfile.establishedYear ?? 1978);
-
-  const presidentMsg =
-    db.leadershipMessages.find((m) => m.type === 'CHAIRMAN' && m.isPublished) ||
-    db.leadershipMessages[1];
-  const principalMsg =
-    db.leadershipMessages.find((m) => m.type === 'PRINCIPAL' && m.isPublished) ||
-    db.leadershipMessages[0];
-
   const institutionStars = useMemo(() => {
-    const publishedStars = db.achievements.filter(
+    const publishedStars = (db?.achievements ?? []).filter(
       (a) =>
         a.isPublished &&
         (a.type === AchievementType.STUDENT_STAR || a.type === AchievementType.NOTABLE_ALUMNI)
@@ -657,7 +617,47 @@ export function HomePage() {
       }
     }
     return combined.slice(0, 6);
-  }, [db.achievements, locale]);
+  }, [db?.achievements, locale]);
+
+  if (isLoading || !db) {
+    return (
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 pt-24 pb-12">
+        <LoadingSkeleton rows={8} />
+      </div>
+    );
+  }
+
+  const safeSlideIdx = slideIndex % Math.max(1, heroSlides.length);
+  const currentSlide = heroSlides[safeSlideIdx];
+  const currentHeroPhoto = getCampusPhoto(currentSlide?.image);
+
+  const teachersPreview = db.staff
+    .filter((s) => s.staffType === StaffType.TEACHER && s.status === StaffStatus.ACTIVE)
+    .sort((a, b) => a.displayOrder - b.displayOrder)
+    .slice(0, 4);
+
+  const activeFacilities = db.facilities.filter((f) => f.isActive);
+  const activeSectionsCount = db.sections.filter((s) => s.isActive).length;
+  const publishedNews = [...db.news]
+    .filter((n) => n.isPublished)
+    .sort((a, b) => {
+      const ta = new Date(a.publishedAt ?? a.createdAt).getTime();
+      const tb = new Date(b.publishedAt ?? b.createdAt).getTime();
+      return tb - ta;
+    })
+    .slice(0, 3);
+  const upcomingEvents = [...db.events]
+    .filter((e) => e.isPublished)
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+    .slice(0, 4);
+  const yearsSinceEst = 2026 - (db.schoolProfile.establishedYear ?? 1978);
+
+  const presidentMsg =
+    db.leadershipMessages.find((m) => m.type === 'CHAIRMAN' && m.isPublished) ||
+    db.leadershipMessages[1];
+  const principalMsg =
+    db.leadershipMessages.find((m) => m.type === 'PRINCIPAL' && m.isPublished) ||
+    db.leadershipMessages[0];
 
   const academicStreams = [
     {

@@ -363,35 +363,6 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
     }
   };
 
-  if (admittedResult) {
-    return (
-      <AdmissionConfirmationView
-        db={db}
-        result={admittedResult}
-        onAdmitAnother={() => {
-          setAdmittedResult(null);
-          setFullFormApp(null);
-        }}
-      />
-    );
-  }
-
-  if (fullFormApp) {
-    return (
-      <UnifiedAdmissionForm
-        mode="admin"
-        db={db}
-        yearId={yearId}
-        prefillApplication={fullFormApp}
-        onAdminSuccess={(result) => {
-          setFullFormApp(null);
-          setAdmittedResult(result);
-        }}
-        onCancel={() => setFullFormApp(null)}
-      />
-    );
-  }
-
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'ADMITTED' | 'REJECTED'>('ALL');
   const [classFilter, setClassFilter] = useState<string>('ALL');
 
@@ -443,6 +414,35 @@ function Admissions({ db, yearId }: { db: MockDatabase; yearId: string }) {
       return true;
     });
   }, [rows, statusFilter, classFilter]);
+
+  if (admittedResult) {
+    return (
+      <AdmissionConfirmationView
+        db={db}
+        result={admittedResult}
+        onAdmitAnother={() => {
+          setAdmittedResult(null);
+          setFullFormApp(null);
+        }}
+      />
+    );
+  }
+
+  if (fullFormApp) {
+    return (
+      <UnifiedAdmissionForm
+        mode="admin"
+        db={db}
+        yearId={yearId}
+        prefillApplication={fullFormApp}
+        onAdminSuccess={(result) => {
+          setFullFormApp(null);
+          setAdmittedResult(result);
+        }}
+        onCancel={() => setFullFormApp(null)}
+      />
+    );
+  }
 
   const appClass = app ? db.classes.find((c) => c.id === app.targetClassId) : undefined;
   const appGroup = app ? db.academicGroups.find((g) => g.id === app.targetGroupId) : undefined;
