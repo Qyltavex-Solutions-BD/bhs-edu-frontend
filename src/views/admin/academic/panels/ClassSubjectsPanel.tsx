@@ -21,6 +21,7 @@ import {
   useDeleteClassSubjectMutation,
   useGetAcademicGroupsQuery,
   useGetAcademicYearsQuery,
+  useGetBooksQuery,
   useGetClassSubjectsQuery,
   useGetSchoolClassesQuery,
   useGetSubjectsQuery,
@@ -187,16 +188,6 @@ export function ClassSubjectsPanel({
     }
   }, [selectedClassId, setValue]);
 
-  // Set initial subjectId when subjectList loads and keep synchronized with real database subjects
-  useEffect(() => {
-    if (subjectList.length > 0) {
-      const isValid = subjectList.some((s) => s.id === formSubjectId);
-      if (!isValid) {
-        setValue('subjectId', subjectList[0].id);
-      }
-    }
-  }, [subjectList, formSubjectId, setValue]);
-
   // Subject label resolver (prefers joined relation from backend, falls back to subject catalog lookup)
   const resolveSubject = (item: ClassSubject) => {
     const catalogItem = subjectList.find((entry) => entry.id === item.subjectId);
@@ -234,6 +225,54 @@ export function ClassSubjectsPanel({
         .map((item) => item.subjectId)
     );
   }, [rawList, selectedYearId, selectedClassId, usesGroup, formGroupId]);
+
+  // Books prescribed for the selected class (from the Books catalog)
+  const { data: realBooks } = useGetBooksQuery(
+    selectedClassId ? { classId: selectedClassId } : undefined,
+    { skip: !selectedClassId }
+  );
+
+  const booksForSelectedClass = useMemo(() => {
+    if (realBooks !== undefined) return realBooks;
+    return (db?.books ?? []).filter((b) => b.classId === selectedClassId);
+  }, [realBooks, db?.books, selectedClassId]);
+
+  // Subject IDs that are actually prescribed for this class in the Books catalog
+  const classPrescribedSubjectIds = useMemo(() => {
+    return new Set(booksForSelectedClass.map((b) => b.subjectId));
+  }, [booksForSelectedClass]);
+
+  // Subjects that legitimately belong to the selected class
+  const classRelevantSubjects = useMemo(() => {
+    if (classPrescribedSubjectIds.size > 0) {
+      return subjectList.filter((s) => classPrescribedSubjectIds.has(s.id));
+    }
+    // Fallback: If no books defined yet, filter out SSC-only subjects for junior classes (Class 6-8)
+    if (!usesGroup) {
+      const sscOnlyOfficialCodes = new Set(['126', '136', '137', '138', '140', '141', '143', '146', '152', '153', '156']);
+      return subjectList.filter((s) => !s.officialCode || !sscOnlyOfficialCodes.has(s.officialCode));
+    }
+    return subjectList;
+  }, [subjectList, classPrescribedSubjectIds, usesGroup]);
+
+  // Available (unassigned) subjects for the current class & group
+  const availableSubjects = useMemo(() => {
+    return classRelevantSubjects.filter(
+      (s) => s.isActive && !assignedSubjectIdsForCurrentGroup.has(s.id)
+    );
+  }, [classRelevantSubjects, assignedSubjectIdsForCurrentGroup]);
+
+  // Set initial subjectId to first available (unassigned) subject, or empty if all assigned
+  useEffect(() => {
+    if (availableSubjects.length > 0) {
+      const isValid = availableSubjects.some((s) => s.id === formSubjectId);
+      if (!isValid) {
+        setValue('subjectId', availableSubjects[0].id);
+      }
+    } else {
+      setValue('subjectId', '');
+    }
+  }, [availableSubjects, formSubjectId, setValue]);
 
   // Calculate live statistics for selected class & academic year
   const classSubjectsAll = useMemo(() => {
@@ -276,7 +315,7 @@ export function ClassSubjectsPanel({
         const resolved = resolveSubject(item);
         const matchTitle = (resolved.displayTitle || '').toLowerCase().includes(q);
         const matchSub = (resolved.subtitle || '').toLowerCase().includes(q);
-        const matchCode = (resolved.code || '').toLowerCase().includes(q);
+        const matchCode = usesGroup && (resolved.code || '').toLowerCase().includes(q);
         return matchTitle || matchSub || matchCode;
       })
       .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
@@ -553,19 +592,26 @@ export function ClassSubjectsPanel({
             <Select
               value={formSubjectId}
               onChange={(e) => setValue('subjectId', e.target.value, { shouldValidate: true })}
+              disabled={availableSubjects.length === 0}
             >
-              {subjectList
-                .filter((subject) => subject.isActive)
-                .map((subject) => {
-                  const isAssigned = assignedSubjectIdsForCurrentGroup.has(subject.id);
-                  return (
-                    <option key={subject.id} value={subject.id} disabled={isAssigned}>
-                      {subject.officialCode ? `[${subject.officialCode}] ` : ''}
+              {availableSubjects.length === 0 ? (
+                <option value="">
+                  {isBn
+                    ? '— সব বিষয় যুক্ত আছে'
+                    : '— All subjects assigned (No remaining subjects) —'}
+                </option>
+              ) : (
+                <>
+                  <option value="" disabled>
+                    {t(dict.classSubjects.selectSubjectPlaceholder)}
+                  </option>
+                  {availableSubjects.map((subject) => (
+                    <option key={subject.id} value={subject.id}>
                       {isBn ? subject.nameBn || subject.name : subject.name}
-                      {isAssigned ? ` (${t(dict.classSubjects.alreadyAssigned)})` : ''}
                     </option>
-                  );
-                })}
+                  ))}
+                </>
+              )}
             </Select>
           </FormField>
 
@@ -598,7 +644,7 @@ export function ClassSubjectsPanel({
           <Button
             type="submit"
             variant="primary"
-            disabled={assigning || !selectedClassId || !formSubjectId}
+            disabled={assigning || !selectedClassId || !formSubjectId || availableSubjects.length === 0}
             className="gap-1.5"
           >
             <Plus className="w-4 h-4" />
@@ -761,9 +807,9 @@ export function ClassSubjectsPanel({
                       {formatNumber(item.displayOrder || index + 1, locale)}
                     </td>
 
-                    {/* NCTB Official Code Badge */}
+                    {/* NCTB Official Code Badge (Class 9-10 Only) */}
                     <td className="p-3">
-                      {resolved.code ? (
+                      {usesGroup && resolved.code ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold font-mono bg-surface-muted text-foreground border border-border">
                           {resolved.code}
                         </span>

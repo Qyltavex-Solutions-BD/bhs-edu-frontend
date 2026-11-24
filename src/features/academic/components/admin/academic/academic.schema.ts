@@ -128,7 +128,7 @@ export const bookSchema = z.object({
   bookCode: z
     .string()
     .trim()
-    .max(50, 'বই কোড ৫০ অক্ষরের বেশি হতে পারবে না')
+    .max(50, 'বিষয় কোড ৫০ অক্ষরের বেশি হতে পারবে না')
     .optional()
     .or(z.literal('')),
   type: z.nativeEnum(BookType),

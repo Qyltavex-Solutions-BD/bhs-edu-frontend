@@ -151,6 +151,7 @@ export function BooksPanel({
   }, [subjectList, formSubjectId, setValue]);
 
   const currentClass = classList.find((c) => c.id === selectedClassId);
+  const isJuniorClass = (currentClass?.numericValue ?? 0) < 9;
 
   const startCreate = () => {
     setEditingId(null);
@@ -185,11 +186,12 @@ export function BooksPanel({
 
   const onSubmit = async (values: BookFormValues) => {
     try {
+      const sanitizedCode = !isJuniorClass && values.bookCode?.trim() ? values.bookCode.trim() : undefined;
       if (editingId) {
         await updateBook({
           id: editingId,
           name: values.name.trim(),
-          bookCode: values.bookCode?.trim() || undefined,
+          bookCode: sanitizedCode,
           type: values.type,
           displayOrder: values.displayOrder,
           isActive: values.isActive,
@@ -200,7 +202,7 @@ export function BooksPanel({
           classId: values.classId,
           subjectId: values.subjectId,
           name: values.name.trim(),
-          bookCode: values.bookCode?.trim() || undefined,
+          bookCode: sanitizedCode,
           type: values.type,
           displayOrder: values.displayOrder,
         }).unwrap();
@@ -283,7 +285,7 @@ export function BooksPanel({
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
           const matchName = book.name.toLowerCase().includes(q);
-          const matchCode = (book.bookCode || '').toLowerCase().includes(q);
+          const matchCode = !isJuniorClass && (book.bookCode || '').toLowerCase().includes(q);
           const sub = resolveSubject(book.subjectId, (book as BookWithRelations).subject);
           const matchSub = (sub.displayTitle || '').toLowerCase().includes(q);
           return matchName || matchCode || matchSub;
@@ -541,7 +543,7 @@ export function BooksPanel({
                 </td>
               </tr>
             ) : (
-              filteredBooks.map((book) => {
+              filteredBooks.map((book, index) => {
                 const sub = resolveSubject(
                   book.subjectId,
                   (book as BookWithRelations).subject
@@ -555,8 +557,8 @@ export function BooksPanel({
 
                 return (
                   <tr key={book.id} className="hover:bg-surface-muted/40 transition-colors">
-                    <td className="p-3 tabular-nums text-muted-foreground text-xs">
-                      #{book.displayOrder ?? 1}
+                    <td className="p-3 tabular-nums text-muted-foreground text-xs font-semibold">
+                      {formatNumber(book.displayOrder ?? index + 1, locale)}
                     </td>
 
                     <td className="p-3 font-semibold text-foreground">
@@ -567,18 +569,17 @@ export function BooksPanel({
                     </td>
 
                     <td className="p-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-medium text-foreground">{sub.displayTitle}</span>
-                        {sub.code && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-surface-muted border border-border text-muted-foreground">
-                            {sub.code}
-                          </span>
-                        )}
-                      </div>
+                      <span className="font-medium text-foreground">{sub.displayTitle}</span>
                     </td>
 
                     <td className="p-3 font-mono text-xs text-muted-foreground">
-                      {book.bookCode || '—'}
+                      {!isJuniorClass && (book.bookCode || sub.code) ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold font-mono bg-surface-muted text-foreground border border-border">
+                          {book.bookCode || sub.code}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
                     </td>
 
                     <td className="p-3">
@@ -664,7 +665,6 @@ export function BooksPanel({
                 {subjectList.map((sub) => (
                   <option key={sub.id} value={sub.id}>
                     {isBn ? sub.nameBn || sub.name : sub.name}
-                    {sub.officialCode ? ` (${sub.officialCode})` : ''}
                   </option>
                 ))}
               </Select>
@@ -678,13 +678,19 @@ export function BooksPanel({
             />
           </FormField>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label={t(dict.books.codeLabel)} error={errors.bookCode?.message}>
-              <Input
-                {...register('bookCode')}
-                placeholder={t(dict.books.codePlaceholder)}
-              />
-            </FormField>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+            {!isJuniorClass ? (
+              <FormField label={t(dict.books.codeLabel)} error={errors.bookCode?.message}>
+                <Input
+                  {...register('bookCode')}
+                  placeholder={t(dict.books.codePlaceholder)}
+                />
+              </FormField>
+            ) : (
+              <div className="p-2.5 rounded-lg bg-surface-muted border border-border text-xs text-muted-foreground flex items-center h-10 mt-2">
+                <span>{isBn ? '৬ষ্ঠ–৮ম শ্রেণির জন্য কোনো বিষয় কোড নেই।' : 'No subject code applies to Class 6–8.'}</span>
+              </div>
+            )}
 
             <FormField label={t(dict.books.typeLabel)} required error={errors.type?.message}>
               <Select
