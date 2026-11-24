@@ -585,7 +585,7 @@ export function AcademicRoutine({
             </span>
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {pick('রবি–বৃহস্পতিবার · দৈনিক ৬ পিরিয়ড', 'Sun–Thu · 6 periods/day')}
+            {pick('রবি–বৃহস্পতিবার · দৈনিক ৫ পিরিয়ড', 'Sun–Thu · 5 periods/day')}
           </p>
         </Card>
 
@@ -615,10 +615,10 @@ export function AcademicRoutine({
             {pick('বিদ্যালয়ের সময়সূচি', 'School Bell Hours')}
           </p>
           <p className="mt-1 text-xl font-bold tabular-nums text-foreground pt-0.5">
-            {pick('সকাল ১০:০০ – বিকাল ৩:০০', '10:00 AM – 3:00 PM')}
+            {pick('সকাল ১০:০০ – বিকাল ৪:০০', '10:00 AM – 4:00 PM')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {pick('সমাবেশ ৯:৪৫ · টিফিন ১২:১৫–১২:৪৫', 'Assembly 9:45 · Tiffin 12:15–12:45')}
+            {pick('টিফিন ০১:০০–০২:০০ (১ ঘণ্টা)', 'Tiffin 1:00–2:00 PM (1 hour)')}
           </p>
         </Card>
 
@@ -924,7 +924,7 @@ export function AcademicRoutine({
               <th className="p-2.5 border-b border-x border-border text-center bg-surface-muted/80 w-24">
                 <div className="text-xs font-semibold text-primary">{pick('টিফিন', 'Tiffin')}</div>
                 <div className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                  {pick('১২:১৫–১২:৪৫', '12:15–12:45')}
+                  {pick('০১:০০–০২:০০', '01:00–02:00')}
                 </div>
               </th>
               {PERIOD_META.slice(3).map((period) => (
@@ -961,11 +961,11 @@ export function AcademicRoutine({
                     <div className="flex flex-col items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">
                       <Clock className="w-4 h-4 text-primary" />
                       <span>{pick('টিফিন', 'Tiffin')}</span>
-                      <span className="tabular-nums">{pick('৩০ মি.', '30m')}</span>
+                      <span className="tabular-nums">{pick('১ ঘণ্টা', '60m')}</span>
                     </div>
                   </td>
                 )}
-                {[4, 5, 6].map((p) =>
+                {[4, 5].map((p) =>
                   viewMode === 'section' ? renderSectionCell(day, p) : renderTeacherCell(day, p)
                 )}
               </tr>
