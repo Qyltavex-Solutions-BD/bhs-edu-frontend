@@ -24,11 +24,11 @@ import {
 import { loginSchema, type LoginFormValues } from '@/src/lib/validations/schemas';
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import { DEMO_ACCOUNTS, loginWithDemoRole, setCredentials, type AppRole } from '@/src/store/slices/authSlice';
-import { useLoginMutation } from '@/src/store/api';
 import {
+  useLoginUserMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
-} from '@/src/services/auth/auth.api';
+} from '@/src/features/auth/api/auth.api';
 import { useI18n } from '@/src/lib/i18n';
 import { SchoolEmblem } from '@/src/components/shared/Feedback';
 import { Button, Card, FormField, Input } from '@/src/components/ui/primitives';
@@ -45,7 +45,7 @@ export function LoginPage() {
     defaultValues: { identifier: '', password: '', rememberMe: true },
   });
 
-  const [loginApi, { isLoading: isLoggingIn }] = useLoginMutation();
+  const [loginApi, { isLoading: isLoggingIn }] = useLoginUserMutation();
 
   const handleDemoLogin = async (role: AppRole) => {
     // Map role to backend seeded credentials

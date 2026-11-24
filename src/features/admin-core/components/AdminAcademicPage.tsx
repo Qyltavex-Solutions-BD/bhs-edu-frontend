@@ -1,0 +1,797 @@
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { useParams } from '@/src/lib/navigation';
+import { toast } from 'sonner';
+import {
+  ArrowDown,
+  ArrowUp,
+  Download,
+  FileText,
+  GripVertical,
+  Plus,
+  ShieldCheck,
+  Trash2,
+  Upload,
+} from 'lucide-react';
+import {
+  useAddSyllabusEntryMutation,
+  useGetBootstrapQuery,
+  useRemoveSyllabusEntryMutation,
+  useRemoveSyllabusFileMutation,
+  useReorderCmsItemsMutation,
+  useSaveSyllabusFileMutation,
+  useToggleCmsItemMutation,
+  useToggleRolePermissionMutation,
+  useUpdateSchoolProfileMutation,
+} from '@/src/store/api';
+import { PrintableIdCardSheet } from '@/src/components/print/PrintDocuments';
+import { useI18n } from '@/src/lib/i18n';
+import { formatDateShort, formatNumber } from '@/src/lib/formatters';
+import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
+import {
+  getCommitteePortrait,
+  LoadingSkeleton,
+  PageHeader,
+  SchoolEmblem,
+} from '@/src/components/shared/Feedback';
+import {
+  Button,
+  Card,
+  FormField,
+  Input,
+  Modal,
+  SegmentedTabs,
+  Select,
+  Switch,
+  Textarea,
+} from '@/src/components/ui/primitives';
+import { StatusBadge } from '@/src/components/shared/StatusBadge';
+import { DataTable } from '@/src/components/shared/DataTable';
+import type { SyllabusExamTerm } from '@/src/types/entities';
+import {
+  AcademicFoundation,
+  useAcademicYearSelection,
+} from '@/src/views/admin/AcademicFoundation';
+import { AcademicShell } from '@/src/views/admin/AcademicShell';
+import { AcademicCalendar } from '@/src/views/admin/AcademicCalendar';
+import { AcademicCurriculum } from '@/src/views/admin/AcademicCurriculum';
+import { AcademicPolicies } from '@/src/views/admin/AcademicPolicies';
+import { AcademicRoutine } from '@/src/views/admin/AcademicRoutine';
+import { AcademicStaffing } from '@/src/views/admin/AcademicStaffing';
+
+type AcademicTab =
+  | 'years'
+  | 'groups'
+  | 'classes'
+  | 'sections'
+  | 'subjects'
+  | 'catalog'
+  | 'books'
+  | 'class-teachers'
+  | 'assignments'
+  | 'routines'
+  | 'events'
+  | 'documents'
+  | 'policies';
+
+const PAGE_COPY: Record<
+  AcademicTab,
+  { titleBn: string; titleEn: string; descBn: string; descEn: string; year: boolean }
+> = {
+  years: {
+    titleBn: 'শিক্ষাবর্ষ',
+    titleEn: 'Academic years',
+    descBn: 'এক সময়ে একটি বছর চলতি সেশন। অন্য বছর খুলে আগের সেশনের তথ্য দেখা যায়।',
+    descEn: 'One year is the current session. Open another year to review a previous session.',
+    year: false,
+  },
+  groups: {
+    titleBn: 'বিভাগ',
+    titleEn: 'Streams',
+    descBn: '৯ম ও ১০ম শ্রেণির বিভাগ। ৬ষ্ঠ থেকে ৮ম শ্রেণিতে বিভাগ নেই।',
+    descEn: 'Streams for classes 9 and 10. Classes 6–8 have no stream.',
+    year: false,
+  },
+  classes: {
+    titleBn: 'শ্রেণি',
+    titleEn: 'Classes',
+    descBn: 'বিদ্যালয়ের শ্রেণি। নতুন শ্রেণির সাথে শাখার নামও দেওয়া যায়।',
+    descEn: 'School classes. A new class can include its section names.',
+    year: false,
+  },
+  sections: {
+    titleBn: 'শাখা',
+    titleEn: 'Sections',
+    descBn: 'প্রতিটি শাখা একটি শ্রেণির অন্তর্গত। এক শ্রেণিতে শাখার নাম আলাদা হতে হয়।',
+    descEn: 'Each section belongs to one class. Section names are unique within a class.',
+    year: false,
+  },
+  catalog: {
+    titleBn: 'বিষয় তালিকা',
+    titleEn: 'Subject catalog',
+    descBn: 'বোর্ডের বিষয় এখানে তৈরি হয়। তারপর শ্রেণির পাঠ্যক্রমে বসানো হয়।',
+    descEn: 'Board subjects are created here, then placed on a class curriculum.',
+    year: false,
+  },
+  subjects: {
+    titleBn: 'শ্রেণির বিষয়',
+    titleEn: 'Class subjects',
+    descBn: 'এই শিক্ষাবর্ষে কোন শ্রেণি কোন বিষয় পড়বে। ৯–১০ এ বিভাগ ও ঐচ্ছিক বিষয় আলাদা।',
+    descEn: 'Which subjects each class studies this year. Classes 9–10 can use streams and optional subjects.',
+    year: true,
+  },
+  books: {
+    titleBn: 'পাঠ্যবই',
+    titleEn: 'Textbooks',
+    descBn: 'বই শ্রেণি ও বিষয়ের সাথে থাকে। শুধু এই বছরের পাঠ্যক্রমের বিষয়ে বই যোগ হয়।',
+    descEn: 'A book belongs to a class and subject, and only for a subject on this year’s curriculum.',
+    year: true,
+  },
+  'class-teachers': {
+    titleBn: 'শ্রেণি শিক্ষক',
+    titleEn: 'Class teachers',
+    descBn: 'এক শাখায় একজন শ্রেণি শিক্ষক। একজন শিক্ষক এক বছরে একটি শাখা ধরেন।',
+    descEn: 'One class teacher per section. A teacher holds one section in a year.',
+    year: true,
+  },
+  assignments: {
+    titleBn: 'বিষয় শিক্ষক বণ্টন',
+    titleEn: 'Subject teacher assignments',
+    descBn: 'শ্রেণি ও বিষয়ভিত্তিক শিক্ষক বণ্টন। ক্লাস রুটিন ও পরীক্ষার নম্বর এন্ট্রি এই বণ্টন অনুসারেই নির্ধারিত হয়।',
+    descEn: 'Assign teachers to subjects and sections. Timetable and marks entry use these assignments.',
+    year: true,
+  },
+  routines: {
+    titleBn: 'ক্লাস রুটিন',
+    titleEn: 'Class timetable',
+    descBn: 'পাবলিক রুটিনের মতো সাপ্তাহিক সময়সূচি। পিরিয়ড যোগ, সরানো ও মুছা যায়।',
+    descEn: 'The weekly timetable, in the same layout as the public page.',
+    year: true,
+  },
+  events: {
+    titleBn: 'একাডেমিক ক্যালেন্ডার',
+    titleEn: 'Academic calendar',
+    descBn: 'ছুটি, অনুষ্ঠান ও ভর্তির তারিখ এই শিক্ষাবর্ষে থাকে।',
+    descEn: 'Holidays, events, and admission dates for this academic year.',
+    year: true,
+  },
+  documents: {
+    titleBn: 'সিলেবাস',
+    titleEn: 'Syllabus',
+    descBn: 'অধ্যায়ের তালিকা ও অফিসিয়াল ফাইল। বিষয় এই বছরের পাঠ্যক্রম থেকে আসে।',
+    descEn: 'Chapter lists and official files. Subjects come from this year’s curriculum.',
+    year: true,
+  },
+  policies: {
+    titleBn: 'নীতিমালা',
+    titleEn: 'School policies',
+    descBn: 'শিক্ষার্থী বিধি, অভিভাবক নির্দেশনা ও পোশাকবিধি। প্রকাশিত হলে পাবলিক পাতায় যায়।',
+    descEn: 'Student rules, parent guidelines, and dress code. Published items appear on the public page.',
+    year: false,
+  },
+};
+
+export function AdminAcademicPage({
+  defaultTab = 'years',
+}: {
+  defaultTab?: AcademicTab;
+}) {
+  const { data: db, isLoading } = useGetBootstrapQuery();
+  const selectedYear = useAcademicYearSelection(db?.academicYears);
+  const [saveSyllabusFile, { isLoading: savingSyllabusFile }] = useSaveSyllabusFileMutation();
+  const [addSyllabusEntry, { isLoading: addingSyllabusEntry }] = useAddSyllabusEntryMutation();
+  const [removeSyllabusEntry] = useRemoveSyllabusEntryMutation();
+  const [removeSyllabusFile] = useRemoveSyllabusFileMutation();
+  const { locale, pick } = useI18n();
+  const [tab, setTab] = useState(defaultTab);
+  const [syllabusFileForm, setSyllabusFileForm] = useState<{
+    classId: string;
+    examTerm: SyllabusExamTerm;
+    groupId: string;
+    title: string;
+    fileName: string;
+    fileSize: string;
+    fileType: 'PDF' | 'IMAGE';
+    fileUrl: string;
+  }>({
+    classId: 'cls-10',
+    examTerm: 'HALF_YEARLY',
+    groupId: '',
+    title: '',
+    fileName: '',
+    fileSize: '',
+    fileType: 'PDF',
+    fileUrl: '',
+  });
+  const [syllabusEntryForm, setSyllabusEntryForm] = useState<{
+    classId: string;
+    examTerm: SyllabusExamTerm;
+    groupId: string;
+    subjectId: string;
+    chaptersBn: string;
+    marksBreakdownBn: string;
+  }>({
+    classId: 'cls-10',
+    examTerm: 'HALF_YEARLY',
+    groupId: '',
+    subjectId: 'sub-101',
+    chaptersBn: '',
+    marksBreakdownBn: 'সৃজনশীল ৭০ + বহুনির্বাচনি ৩০ = ১০০',
+  });
+  const [syllabusModal, setSyllabusModal] = useState<null | 'file' | 'entry'>(null);
+
+  if (isLoading || !db) return <LoadingSkeleton />;
+
+  const curriculumSubjectsFor = (classId: string, groupId: string) => {
+    const schoolClass = db.classes.find((item) => item.id === classId);
+    const stream = (schoolClass?.numericValue ?? 0) >= 9 ? groupId : '';
+    const seen = new Set<string>();
+    return db.classSubjects.flatMap((row) => {
+      if (!row.isActive || row.academicYearId !== selectedYear?.id || row.classId !== classId) return [];
+      if (stream) {
+        if (row.groupId !== stream && row.groupId != null) return [];
+      } else if (row.groupId != null) {
+        return [];
+      }
+      if (seen.has(row.subjectId)) return [];
+      seen.add(row.subjectId);
+      const subject = db.subjects.find((item) => item.id === row.subjectId);
+      return subject ? [subject] : [];
+    });
+  };
+
+  const groupsOnCurriculum = (classId: string) =>
+    db.academicGroups.filter((group) =>
+      db.classSubjects.some(
+        (row) =>
+          row.isActive &&
+          row.academicYearId === selectedYear?.id &&
+          row.classId === classId &&
+          row.groupId === group.id
+      )
+    );
+
+  const handleSyllabusFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const sizeKb = Math.max(1, Math.round(file.size / 1024));
+    const formattedSize = sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSyllabusFileForm((prev) => ({
+        ...prev,
+        fileName: file.name,
+        fileSize: formattedSize,
+        fileType: isPdf ? 'PDF' : 'IMAGE',
+        fileUrl: typeof reader.result === 'string' ? reader.result : '',
+        title: prev.title.trim() ? prev.title : file.name.replace(/\.[^.]+$/, ''),
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadSyllabusFile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedYear) {
+      toast.error(pick('আগে একটি শিক্ষাবর্ষ নির্বাচন করুন।', 'Select an academic year first.'));
+      return;
+    }
+    if (!syllabusFileForm.title.trim() || !syllabusFileForm.fileName) {
+      toast.error(pick('অনুগ্রহ করে শিরোনাম ও সিলেবাস ফাইল নির্বাচন করুন।', 'Please provide a title and select a file.'));
+      return;
+    }
+    try {
+      await saveSyllabusFile({
+        academicYearId: selectedYear?.id ?? '',
+        classId: syllabusFileForm.classId,
+        groupId: syllabusFileForm.groupId || null,
+        examTerm: syllabusFileForm.examTerm,
+        title: syllabusFileForm.title.trim(),
+        fileName: syllabusFileForm.fileName,
+        fileSize: syllabusFileForm.fileSize || '250 KB',
+        fileType: syllabusFileForm.fileType,
+        fileUrl: syllabusFileForm.fileUrl || null,
+        publishedAt: new Date().toISOString().slice(0, 10),
+        isPublished: true,
+      }).unwrap();
+      toast.success(pick('সিলেবাস ফাইল সফলভাবে প্রকাশিত হয়েছে।', 'Syllabus file published successfully.'));
+      setSyllabusModal(null);
+      setSyllabusFileForm((prev) => ({
+        ...prev,
+        title: '',
+        fileName: '',
+        fileSize: '',
+        fileUrl: '',
+      }));
+    } catch (err) {
+      toast.error(
+        (err as { message?: string })?.message ??
+          pick('সিলেবাস ফাইল সংরক্ষণে সমস্যা হয়েছে।', 'Failed to save syllabus file.')
+      );
+    }
+  };
+
+  const handleAddSyllabusEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedYear) {
+      toast.error(pick('আগে একটি শিক্ষাবর্ষ নির্বাচন করুন।', 'Select an academic year first.'));
+      return;
+    }
+    if (!syllabusEntryForm.chaptersBn.trim()) {
+      toast.error(pick('নির্ধারিত অধ্যায়ের বিবরণ লিখুন।', 'Please enter chapter scope details.'));
+      return;
+    }
+    const allowedSubjects = curriculumSubjectsFor(syllabusEntryForm.classId, syllabusEntryForm.groupId);
+    if (!allowedSubjects.some((subject) => subject.id === syllabusEntryForm.subjectId)) {
+      toast.error(
+        pick(
+          'এই বিষয়টি ওই শ্রেণির এই শিক্ষাবর্ষের পাঠ্যতালিকায় নেই।',
+          'That subject is not on this class curriculum for the year.'
+        )
+      );
+      return;
+    }
+    try {
+      await addSyllabusEntry({
+        academicYearId: selectedYear?.id ?? '',
+        classId: syllabusEntryForm.classId,
+        groupId: syllabusEntryForm.groupId || null,
+        examTerm: syllabusEntryForm.examTerm,
+        subjectId: syllabusEntryForm.subjectId,
+        chaptersBn: syllabusEntryForm.chaptersBn.trim(),
+        chaptersEn: syllabusEntryForm.chaptersBn.trim(),
+        marksBreakdownBn: syllabusEntryForm.marksBreakdownBn.trim() || 'মোট নম্বর: ১০০',
+        marksBreakdownEn: syllabusEntryForm.marksBreakdownBn.trim() || 'Total Marks: 100',
+        displayOrder: db.syllabusEntries.length + 1,
+      }).unwrap();
+      toast.success(pick('অধ্যায়ভিত্তিক সিলেবাস যুক্ত হয়েছে।', 'Chapter-wise syllabus entry added.'));
+      setSyllabusModal(null);
+      setSyllabusEntryForm((prev) => ({ ...prev, chaptersBn: '' }));
+    } catch (err) {
+      toast.error(
+        (err as { message?: string })?.message ??
+          pick('সিলেবাস এন্ট্রি যুক্ত করতে ব্যর্থ হয়েছে।', 'Failed to add syllabus entry.')
+      );
+    }
+  };
+
+  const handleRemoveSyllabusFile = async (id: string) => {
+    try {
+      await removeSyllabusFile({ id }).unwrap();
+      toast.success(pick('সিলেবাস ফাইল মুছে ফেলা হয়েছে।', 'Syllabus file removed.'));
+    } catch (err) {
+      toast.error((err as { message?: string })?.message ?? pick('ফাইল মোছা যায়নি।', 'Could not remove the file.'));
+    }
+  };
+
+  const handleRemoveSyllabusEntry = async (id: string) => {
+    try {
+      await removeSyllabusEntry({ id }).unwrap();
+      toast.success(pick('অধ্যায়ের সারি মুছে ফেলা হয়েছে।', 'Chapter row removed.'));
+    } catch (err) {
+      toast.error((err as { message?: string })?.message ?? pick('সারি মোছা যায়নি।', 'Could not remove the row.'));
+    }
+  };
+
+  return (
+    <AcademicShell
+      title={pick(PAGE_COPY[tab].titleBn, PAGE_COPY[tab].titleEn)}
+      description={pick(PAGE_COPY[tab].descBn, PAGE_COPY[tab].descEn)}
+      years={db.academicYears}
+      selectedYear={selectedYear}
+      showYear={PAGE_COPY[tab].year}
+    >
+
+      {(tab === 'years' || tab === 'groups' || tab === 'classes' || tab === 'sections') && (
+        <AcademicFoundation tab={tab} db={db} />
+      )}
+
+      {tab === 'subjects' && selectedYear && <AcademicCurriculum db={db} year={selectedYear} section="curriculum" />}
+
+      {tab === 'catalog' && <AcademicCurriculum db={db} year={selectedYear ?? db.academicYears[0]} section="catalog" />}
+
+      {tab === 'books' && selectedYear && <AcademicCurriculum db={db} year={selectedYear} section="books" />}
+
+      {tab === 'class-teachers' && selectedYear && (
+        <AcademicStaffing mode="class-teachers" db={db} year={selectedYear} />
+      )}
+
+      {tab === 'assignments' && selectedYear && (
+        <AcademicStaffing mode="assignments" db={db} year={selectedYear} />
+      )}
+
+      {tab === 'events' && selectedYear && <AcademicCalendar db={db} year={selectedYear} />}
+
+      {tab === 'routines' && selectedYear && <AcademicRoutine db={db} year={selectedYear} />}
+
+      {tab === 'documents' && (
+        <div className="space-y-6">
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="primary" onClick={() => setSyllabusModal('file')}>
+              <Upload className="w-4 h-4" />
+              {pick('সিলেবাস ফাইল', 'Syllabus file')}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setSyllabusModal('entry')}>
+              <Plus className="w-4 h-4" />
+              {pick('অধ্যায় যোগ', 'Add chapters')}
+            </Button>
+          </div>
+          <Modal
+            open={syllabusModal === 'file'}
+            onClose={() => setSyllabusModal(null)}
+            title={pick('সিলেবাস ফাইল প্রকাশ', 'Publish a syllabus file')}
+            description={pick(
+              'ফাইলটি পাবলিক সিলেবাস পাতায় ডাউনলোডের জন্য উন্মুক্ত হবে।',
+              'The file becomes available to download on the public syllabus page.'
+            )}
+          >
+              <form onSubmit={handleUploadSyllabusFile} className="space-y-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormField label={pick('শ্রেণি', 'Class')}>
+                    <Select
+                      value={syllabusFileForm.classId}
+                      onChange={(e) =>
+                        setSyllabusFileForm({ ...syllabusFileForm, classId: e.target.value, groupId: '' })
+                      }
+                    >
+                      {db.classes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {locale === 'bn' ? c.nameBn ?? c.name : c.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormField>
+                  <FormField label={pick('পরীক্ষার পর্ব', 'Exam Term')}>
+                    <Select
+                      value={syllabusFileForm.examTerm}
+                      onChange={(e) =>
+                        setSyllabusFileForm({
+                          ...syllabusFileForm,
+                          examTerm: e.target.value as SyllabusExamTerm,
+                        })
+                      }
+                    >
+                      <option value="HALF_YEARLY">{pick('অর্ধবার্ষিক পরীক্ষা', 'Half-Yearly Exam')}</option>
+                      <option value="ANNUAL">{pick('বার্ষিক পরীক্ষা', 'Annual Exam')}</option>
+                      <option value="SELECTION">{pick('নির্বাচনি (এসএসসি)', 'Selection / SSC')}</option>
+                    </Select>
+                  </FormField>
+                </div>
+
+                {(db.classes.find((c) => c.id === syllabusFileForm.classId)?.numericValue ?? 0) >= 9 && (
+                  <FormField label={pick('বিভাগ (ঐচ্ছিক)', 'Academic Stream (Optional)')}>
+                    <Select
+                      value={syllabusFileForm.groupId}
+                      onChange={(e) => setSyllabusFileForm({ ...syllabusFileForm, groupId: e.target.value })}
+                    >
+                      <option value="">{pick('সকল বিভাগ (সমন্বিত ফাইল)', 'All Streams (Combined)')}</option>
+                      {groupsOnCurriculum(syllabusFileForm.classId).map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {locale === 'bn' ? g.nameBn ?? g.name : g.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormField>
+                )}
+
+                <FormField label={pick('সিলেবাসের শিরোনাম', 'Syllabus Title')}>
+                  <Input
+                    value={syllabusFileForm.title}
+                    onChange={(e) => setSyllabusFileForm({ ...syllabusFileForm, title: e.target.value })}
+                    placeholder={pick(
+                      'যেমন: দশম শ্রেণি — অর্ধবার্ষিক পরীক্ষা সিলেবাস ২০২৬',
+                      'e.g., Class 10 — Half-Yearly Syllabus 2026'
+                    )}
+                  />
+                </FormField>
+
+                <FormField label={pick('সিলেবাস ফাইল নির্বাচন (PDF / JPG / PNG)', 'Select File (PDF / Image)')}>
+                  <input
+                    type="file"
+                    accept=".pdf,image/*"
+                    onChange={handleSyllabusFilePick}
+                    className="block w-full text-sm text-muted-foreground file:mr-3 file:py-2 file:px-3.5 file:rounded-[var(--radius)] file:border file:border-border file:text-sm file:font-medium file:bg-surface-muted file:text-foreground hover:file:bg-surface-muted/80 cursor-pointer"
+                  />
+                  {syllabusFileForm.fileName && (
+                    <p className="text-xs font-mono text-primary mt-1.5">
+                      {syllabusFileForm.fileName} · {syllabusFileForm.fileSize} ({syllabusFileForm.fileType})
+                    </p>
+                  )}
+                </FormField>
+
+                <Button type="submit" variant="primary" disabled={savingSyllabusFile}>
+                  <Upload className="w-4 h-4" />
+                  {pick('সিলেবাস ফাইল প্রকাশ করুন', 'Publish Syllabus File')}
+                </Button>
+              </form>
+          </Modal>
+
+          <Modal
+            open={syllabusModal === 'entry'}
+            onClose={() => setSyllabusModal(null)}
+            title={pick('অধ্যায়ভিত্তিক সিলেবাস', 'Chapter row')}
+            description={pick(
+              'বিষয় এই শিক্ষাবর্ষের পাঠ্যক্রম থেকে আসে। একই সারি আবার সেভ করলে আপডেট হয়।',
+              'Subjects come from this year’s curriculum. Saving the same row updates it.'
+            )}
+          >
+              <form onSubmit={handleAddSyllabusEntry} className="space-y-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormField label={pick('শ্রেণি', 'Class')}>
+                    <Select
+                      value={syllabusEntryForm.classId}
+                      onChange={(e) => {
+                        const classId = e.target.value;
+                        const nextSubject = curriculumSubjectsFor(classId, '')[0];
+                        setSyllabusEntryForm({
+                          ...syllabusEntryForm,
+                          classId,
+                          groupId: '',
+                          subjectId: nextSubject?.id ?? '',
+                        });
+                      }}
+                    >
+                      {db.classes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {locale === 'bn' ? c.nameBn ?? c.name : c.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormField>
+                  <FormField label={pick('পরীক্ষার পর্ব', 'Exam Term')}>
+                    <Select
+                      value={syllabusEntryForm.examTerm}
+                      onChange={(e) =>
+                        setSyllabusEntryForm({
+                          ...syllabusEntryForm,
+                          examTerm: e.target.value as SyllabusExamTerm,
+                        })
+                      }
+                    >
+                      <option value="HALF_YEARLY">{pick('অর্ধবার্ষিক পরীক্ষা', 'Half-Yearly Exam')}</option>
+                      <option value="ANNUAL">{pick('বার্ষিক পরীক্ষা', 'Annual Exam')}</option>
+                      <option value="SELECTION">{pick('নির্বাচনি (এসএসসি)', 'Selection / SSC')}</option>
+                    </Select>
+                  </FormField>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormField label={pick('বিষয়', 'Subject')} hint={pick('শুধু এই শিক্ষাবর্ষের পাঠ্যতালিকার বিষয়।', 'Only subjects on this year’s curriculum.')}>
+                    <Select
+                      value={
+                        curriculumSubjectsFor(syllabusEntryForm.classId, syllabusEntryForm.groupId).some(
+                          (subject) => subject.id === syllabusEntryForm.subjectId
+                        )
+                          ? syllabusEntryForm.subjectId
+                          : ''
+                      }
+                      onChange={(e) => setSyllabusEntryForm({ ...syllabusEntryForm, subjectId: e.target.value })}
+                    >
+                      <option value="">{pick('বিষয় বাছুন', 'Choose a subject')}</option>
+                      {curriculumSubjectsFor(syllabusEntryForm.classId, syllabusEntryForm.groupId).map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.officialCode ? `[${s.officialCode}] ` : ''}
+                          {locale === 'bn' ? s.nameBn ?? s.name : s.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormField>
+                  {(db.classes.find((c) => c.id === syllabusEntryForm.classId)?.numericValue ?? 0) >= 9 && (
+                    <FormField label={pick('বিভাগ', 'Stream')}>
+                      <Select
+                        value={syllabusEntryForm.groupId}
+                        onChange={(e) => {
+                          const groupId = e.target.value;
+                          const nextSubject = curriculumSubjectsFor(syllabusEntryForm.classId, groupId)[0];
+                          setSyllabusEntryForm({
+                            ...syllabusEntryForm,
+                            groupId,
+                            subjectId: nextSubject?.id ?? '',
+                          });
+                        }}
+                      >
+                        <option value="">{pick('আবশ্যিক (সকল বিভাগ)', 'Compulsory (All)')}</option>
+                        {groupsOnCurriculum(syllabusEntryForm.classId).map((g) => (
+                          <option key={g.id} value={g.id}>
+                            {locale === 'bn' ? g.nameBn ?? g.name : g.name}
+                          </option>
+                        ))}
+                      </Select>
+                    </FormField>
+                  )}
+                </div>
+
+                <FormField label={pick('নির্ধারিত অধ্যায় ও পাঠ্যসীমা', 'Chapters & Scope')}>
+                  <Textarea
+                    rows={2}
+                    value={syllabusEntryForm.chaptersBn}
+                    onChange={(e) => setSyllabusEntryForm({ ...syllabusEntryForm, chaptersBn: e.target.value })}
+                    placeholder={pick(
+                      'যেমন: অধ্যায় ১ (ভৌত রাশি), অধ্যায় ২ (গতি), অধ্যায় ৩ (বল)',
+                      'e.g., Chapters 1–4 with practicals'
+                    )}
+                  />
+                </FormField>
+
+                <FormField label={pick('মানবণ্টন', 'Marks Breakdown')}>
+                  <Input
+                    value={syllabusEntryForm.marksBreakdownBn}
+                    onChange={(e) =>
+                      setSyllabusEntryForm({ ...syllabusEntryForm, marksBreakdownBn: e.target.value })
+                    }
+                  />
+                </FormField>
+
+                <Button type="submit" variant="primary" disabled={addingSyllabusEntry}>
+                  <Plus className="w-4 h-4" />
+                  {pick('অধ্যায় এন্ট্রি যুক্ত করুন', 'Add Syllabus Entry')}
+                </Button>
+              </form>
+          </Modal>
+
+          {/* Published Syllabus Files Table */}
+          <Card className="overflow-x-auto">
+            <div className="p-5 pb-3 flex flex-wrap items-center justify-between gap-2 border-b border-border">
+              <div>
+                <h3 className="text-base font-bold text-foreground">
+                  {pick('প্রকাশিত সিলেবাস ফাইলসমূহ', 'Published Syllabus Files')}
+                </h3>
+                <p className="text-sm text-muted-foreground tabular-nums">
+                  {pick(
+                    `মোট ${formatNumber(db.syllabusFiles.filter((f) => f.academicYearId === selectedYear?.id).length, 'bn')}টি সিলেবাস ফাইল · ${formatNumber(db.syllabusEntries.filter((f) => f.academicYearId === selectedYear?.id).length, 'bn')}টি অধ্যায়ভিত্তিক সারি`,
+                    `${db.syllabusFiles.filter((f) => f.academicYearId === selectedYear?.id).length} syllabus files · ${db.syllabusEntries.filter((f) => f.academicYearId === selectedYear?.id).length} chapter entries`
+                  )}
+                </p>
+              </div>
+              <Link href="/academics/syllabus">
+                <Button variant="outline" size="sm" className="whitespace-nowrap">
+                  <FileText className="w-4 h-4" />
+                  {pick('পাবলিক সিলেবাস দেখুন', 'View Public Page')}
+                </Button>
+              </Link>
+            </div>
+            <table className="w-full text-sm">
+              <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border">
+                <tr>
+                  <th className="p-3 text-left">{pick('শ্রেণি', 'Class')}</th>
+                  <th className="p-3 text-left">{pick('পরীক্ষা', 'Term')}</th>
+                  <th className="p-3 text-left">{pick('শিরোনাম ও ফাইল', 'Title & File')}</th>
+                  <th className="p-3 text-left">{pick('সাইজ', 'Size')}</th>
+                  <th className="p-3 text-left">{pick('প্রকাশের তারিখ', 'Published')}</th>
+                  <th className="p-3 text-right">{pick('অবস্থা', 'Action')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {db.syllabusFiles.filter((f) => f.academicYearId === selectedYear?.id).map((f) => {
+                  const cls = db.classes.find((c) => c.id === f.classId);
+                  const termLabel =
+                    f.examTerm === 'HALF_YEARLY'
+                      ? pick('অর্ধবার্ষিক', 'Half-Yearly')
+                      : f.examTerm === 'ANNUAL'
+                        ? pick('বার্ষিক', 'Annual')
+                        : pick('নির্বাচনি', 'Selection');
+                  return (
+                    <tr key={f.id} className="hover:bg-surface-muted/30">
+                      <td className="p-3 font-medium whitespace-nowrap">
+                        {locale === 'bn' ? cls?.nameBn ?? cls?.name : cls?.name}
+                      </td>
+                      <td className="p-3 whitespace-nowrap text-muted-foreground">{termLabel}</td>
+                      <td className="p-3">
+                        <p className="font-semibold text-foreground">{f.title}</p>
+                        <p className="text-xs font-mono text-muted-foreground">{f.fileName}</p>
+                      </td>
+                      <td className="p-3 tabular-nums text-muted-foreground whitespace-nowrap">
+                        {f.fileType} · {f.fileSize}
+                      </td>
+                      <td className="p-3 tabular-nums text-muted-foreground whitespace-nowrap">
+                        {formatDateShort(f.publishedAt, locale)}
+                      </td>
+                      <td className="p-3 text-right whitespace-nowrap">
+                        {f.fileUrl ? (
+                          <a href={f.fileUrl} download={f.fileName} className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+                            <Download className="w-4 h-4" />
+                            {pick('ডাউনলোড', 'Download')}
+                          </a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground mr-2">
+                            {pick('ওয়েব সিলেবাস (প্রিন্টযোগ্য)', 'Web Printable')}
+                          </span>
+                        )}
+                        <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveSyllabusFile(f.id)}>
+                          {pick('মুছুন', 'Remove')}
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </Card>
+
+          <Card className="overflow-x-auto">
+            <div className="p-5 pb-3 border-b border-border">
+              <h3 className="text-base font-bold text-foreground">
+                {pick('অধ্যায়ভিত্তিক সিলেবাস', 'Chapter-wise syllabus')}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                {pick(
+                  'একই শ্রেণি, বিভাগ, পর্ব ও বিষয়ে আবার সেভ করলে সারিটি আপডেট হয়।',
+                  'Saving the same class, stream, term, and subject updates that row.'
+                )}
+              </p>
+            </div>
+            <table className="w-full text-sm">
+              <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border">
+                <tr>
+                  <th className="p-3 text-left">{pick('শ্রেণি', 'Class')}</th>
+                  <th className="p-3 text-left">{pick('বিষয়', 'Subject')}</th>
+                  <th className="p-3 text-left">{pick('অধ্যায়', 'Chapters')}</th>
+                  <th className="p-3 text-right">{pick('কাজ', 'Actions')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {db.syllabusEntries.filter((entry) => entry.academicYearId === selectedYear?.id).length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="p-6 text-muted-foreground">
+                      {pick('এই শিক্ষাবর্ষে এখনো অধ্যায়ের সারি নেই।', 'No chapter rows for this academic year yet.')}
+                    </td>
+                  </tr>
+                )}
+                {db.syllabusEntries
+                  .filter((entry) => entry.academicYearId === selectedYear?.id)
+                  .map((entry) => {
+                    const schoolClass = db.classes.find((item) => item.id === entry.classId);
+                    const subject = db.subjects.find((item) => item.id === entry.subjectId);
+                    const group = db.academicGroups.find((item) => item.id === entry.groupId);
+                    return (
+                      <tr key={entry.id} className="hover:bg-surface-muted/30">
+                        <td className="p-3 whitespace-nowrap">
+                          {locale === 'bn' ? schoolClass?.nameBn ?? schoolClass?.name : schoolClass?.name}
+                          {group ? ` · ${locale === 'bn' ? group.nameBn ?? group.name : group.name}` : ''}
+                        </td>
+                        <td className="p-3 font-medium">
+                          {locale === 'bn' ? subject?.nameBn ?? subject?.name : subject?.name}
+                        </td>
+                        <td className="p-3 text-muted-foreground">{entry.chaptersBn}</td>
+                        <td className="p-3 text-right whitespace-nowrap">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSyllabusEntryForm({
+                                classId: entry.classId,
+                                examTerm: entry.examTerm,
+                                groupId: entry.groupId ?? '',
+                                subjectId: entry.subjectId,
+                                chaptersBn: entry.chaptersBn,
+                                marksBreakdownBn: entry.marksBreakdownBn,
+                              });
+                              setSyllabusModal('entry');
+                            }}
+                          >
+                            {pick('সম্পাদনা', 'Edit')}
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveSyllabusEntry(entry.id)}>
+                            <Trash2 className="w-4 h-4" />
+                            {pick('মুছুন', 'Remove')}
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+              </tbody>
+            </table>
+          </Card>
+
+        </div>
+      )}
+
+      {tab === 'policies' && <AcademicPolicies db={db} />}
+    </AcademicShell>
+  );
+}
+

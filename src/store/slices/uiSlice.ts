@@ -36,42 +36,15 @@ const uiSlice = createSlice({
     },
     setSelectedAcademicYear(state, action: PayloadAction<string>) {
       state.selectedAcademicYearId = action.payload;
-      try {
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem('bhs_academic_year', action.payload);
-        }
-      } catch {
-        // ignore restricted storage
-      }
     },
     setTheme(state, action: PayloadAction<'light' | 'dark'>) {
       state.theme = action.payload;
-      try {
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem('bhs_theme', action.payload);
-        }
-      } catch {
-        // ignore
-      }
     },
     toggleTheme(state) {
-      const next = state.theme === 'light' ? 'dark' : 'light';
-      state.theme = next;
-      try {
-        if (typeof window !== 'undefined') window.localStorage.setItem('bhs_theme', next);
-      } catch {
-        // ignore
-      }
+      state.theme = state.theme === 'light' ? 'dark' : 'light';
     },
     toggleSidebar(state) {
       state.sidebarCollapsed = !state.sidebarCollapsed;
-      try {
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem('bhs_sidebar_collapsed', String(state.sidebarCollapsed));
-        }
-      } catch {
-        // ignore
-      }
     },
     setCommandPaletteOpen(state, action: PayloadAction<boolean>) {
       state.commandPaletteOpen = action.payload;

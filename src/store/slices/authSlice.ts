@@ -135,31 +135,6 @@ const initialState: AuthState = {
   sessionExpired: false,
 };
 
-const saveSessionToStorage = (data: {
-  accessToken: string;
-  user: any;
-  role: AppRole | null;
-  permissions: string[];
-}) => {
-  if (typeof window !== 'undefined') {
-    try {
-      window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data));
-    } catch {
-      // ignore storage access error
-    }
-  }
-};
-
-const clearSessionFromStorage = () => {
-  if (typeof window !== 'undefined') {
-    try {
-      window.localStorage.removeItem(AUTH_STORAGE_KEY);
-    } catch {
-      // ignore storage access error
-    }
-  }
-};
-
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -190,12 +165,6 @@ const authSlice = createSlice({
       state.permissions = preset.permissions;
       state.sessionExpired = false;
 
-      saveSessionToStorage({
-        accessToken: token,
-        user: preset.user,
-        role: action.payload,
-        permissions: preset.permissions,
-      });
     },
     setCredentials(
       state,
@@ -213,12 +182,6 @@ const authSlice = createSlice({
       if (action.payload.permissions) state.permissions = action.payload.permissions;
       state.sessionExpired = false;
 
-      saveSessionToStorage({
-        accessToken: action.payload.accessToken,
-        user: state.user,
-        role: state.role,
-        permissions: state.permissions,
-      });
     },
     logout(state) {
       state.isAuthenticated = false;
@@ -227,13 +190,11 @@ const authSlice = createSlice({
       state.role = null;
       state.permissions = [];
       state.sessionExpired = false;
-      clearSessionFromStorage();
     },
     triggerSessionExpired(state) {
       state.sessionExpired = true;
       state.isAuthenticated = false;
       state.accessToken = null;
-      clearSessionFromStorage();
     },
     dismissSessionExpired(state) {
       state.sessionExpired = false;
