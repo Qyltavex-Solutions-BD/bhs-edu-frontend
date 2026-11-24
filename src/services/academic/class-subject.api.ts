@@ -114,6 +114,16 @@ export const classSubjectApi = schoolApi.injectEndpoints({
       transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ['Academic', 'Bootstrap'],
     }),
+
+    getPublicCurriculum: builder.query<any, { classId: string; academicYearId?: string }>({
+      query: ({ classId, academicYearId }) => ({
+        url: `/academic/class-subjects/public/curriculum/${classId}`,
+        method: 'GET',
+        params: academicYearId ? { academicYearId } : undefined,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      providesTags: ['Academic'],
+    }),
   }),
   overrideExisting: true,
 });
@@ -126,4 +136,5 @@ export const {
   useToggleClassSubjectActiveMutation,
   useRolloverClassSubjectsMutation,
   useDeleteClassSubjectMutation,
+  useGetPublicCurriculumQuery,
 } = classSubjectApi;

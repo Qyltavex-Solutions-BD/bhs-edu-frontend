@@ -112,22 +112,34 @@ export const academicApi = baseApi.injectEndpoints({
       invalidatesTags: ['Academic', 'Bootstrap'],
     }),
 
-    addClassRoutine: builder.mutation<ClassRoutine, Omit<ClassRoutine, 'id' | 'createdAt' | 'updatedAt'>>({
-      query: (body) => ({ url: '/academic/routines', method: 'POST', body }),
-      invalidatesTags: ['Academic', 'Audit'],
+    addClassRoutine: builder.mutation<ClassRoutine, any>({
+      query: (body) => ({ url: '/class-routines', method: 'POST', body }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ['Academic', 'Bootstrap'],
     }),
 
     moveClassRoutineSlot: builder.mutation<
-      ClassRoutine,
-      { routineId: string; targetDay: ClassRoutine['day']; targetPeriodNumber: number }
+      any,
+      { routineId: string; targetDay: ClassRoutine['day']; targetPeriodNumber: number; startTime?: string; endTime?: string }
     >({
-      query: (body) => ({ url: '/academic/routines/move', method: 'POST', body }),
-      invalidatesTags: ['Academic', 'Audit'],
+      query: ({ routineId, targetDay, targetPeriodNumber, startTime, endTime }) => ({
+        url: `/class-routines/${routineId}`,
+        method: 'PATCH',
+        body: {
+          day: targetDay,
+          periodNumber: targetPeriodNumber,
+          ...(startTime ? { startTime } : {}),
+          ...(endTime ? { endTime } : {}),
+        },
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ['Academic', 'Bootstrap'],
     }),
 
     removeClassRoutine: builder.mutation<{ id: string }, { id: string }>({
-      query: (body) => ({ url: '/academic/routines/remove', method: 'POST', body }),
-      invalidatesTags: ['Academic', 'Bootstrap', 'Audit'],
+      query: ({ id }) => ({ url: `/class-routines/${id}`, method: 'DELETE' }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: ['Academic', 'Bootstrap'],
     }),
 
     saveSyllabusFile: builder.mutation<
