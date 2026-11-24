@@ -1,0 +1,10 @@
+export { HomePage } from './components/HomePage';
+export { HomeHeroSection } from './components/HomeHeroSection';
+export { HomeNoticeSection } from './components/HomeNoticeSection';
+export { HomeWhyStudySection } from './components/HomeWhyStudySection';
+export { HomeAdmissionBanner } from './components/HomeAdmissionBanner';
+export { HomeCampusLifeSection } from './components/HomeCampusLifeSection';
+export { HomeFacultySection } from './components/HomeFacultySection';
+export { HomeStarsSection } from './components/HomeStarsSection';
+export { HomeNewsSection } from './components/HomeNewsSection';
+export { HomeContactMapSection } from './components/HomeContactMapSection';
