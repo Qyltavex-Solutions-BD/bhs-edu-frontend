@@ -9,6 +9,28 @@ import type {
 
 export const staffApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    getStaff: builder.query<
+      Staff[],
+      {
+        staffType?: string;
+        status?: string;
+        departmentId?: string;
+        search?: string;
+        page?: number;
+        limit?: number;
+      } | void
+    >({
+      query: (params) => ({
+        url: '/staff',
+        method: 'GET',
+        params: params || undefined,
+      }),
+      transformResponse: (response: any) => {
+        const raw = response?.data ?? response;
+        return Array.isArray(raw) ? raw : [];
+      },
+      providesTags: ['Staff'],
+    }),
     createStaff: builder.mutation<Staff, Partial<Staff>>({
       query: (body) => ({ url: '/staff', method: 'POST', body }),
       invalidatesTags: ['Staff', 'Audit'],
@@ -40,6 +62,7 @@ export const staffApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetStaffQuery,
   useCreateStaffMutation,
   useUpdateStaffMutation,
   useSaveDepartmentMutation,

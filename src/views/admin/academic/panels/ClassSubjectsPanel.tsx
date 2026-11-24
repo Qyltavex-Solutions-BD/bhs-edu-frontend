@@ -100,10 +100,6 @@ export function ClassSubjectsPanel({
     }
   }, [realYears, year, selectedYearId]);
 
-  const activeYear = useMemo(() => {
-    return yearList.find((y) => y.id === selectedYearId) || year;
-  }, [yearList, selectedYearId, year]);
-
   // Set default classId once classes load and keep synchronized with real database classes
   useEffect(() => {
     if (realClasses && realClasses.length > 0) {
@@ -274,7 +270,7 @@ export function ClassSubjectsPanel({
     }
   }, [availableSubjects, formSubjectId, setValue]);
 
-  // Calculate live statistics for selected class & academic year
+  // All class subjects for selected academic year and class
   const classSubjectsAll = useMemo(() => {
     return rawList.filter((item) => {
       const matchYear = selectedYearId ? item.academicYearId === selectedYearId : true;
@@ -282,14 +278,6 @@ export function ClassSubjectsPanel({
       return matchYear && matchClass;
     });
   }, [rawList, selectedYearId, selectedClassId]);
-
-  const stats = useMemo(() => {
-    const total = classSubjectsAll.length;
-    const compulsory = classSubjectsAll.filter((i) => !i.isOptional).length;
-    const optional = classSubjectsAll.filter((i) => i.isOptional).length;
-    const active = classSubjectsAll.filter((i) => i.isActive).length;
-    return { total, compulsory, optional, active };
-  }, [classSubjectsAll]);
 
   // Filtered and sorted class subjects for the table
   const filteredSubjects = useMemo(() => {
@@ -411,91 +399,7 @@ export function ClassSubjectsPanel({
 
   return (
     <div className="space-y-6">
-      {/* 1. Header & Summary Stats Bar */}
-      <Card className="p-5 border-l-4 border-l-primary space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
-                {activeYear.name}
-              </span>
-              {currentClass && (
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-surface-muted text-foreground border border-border">
-                  {isBn ? currentClass.nameBn || currentClass.name : currentClass.name}
-                </span>
-              )}
-            </div>
-            <h2 className="text-xl font-bold text-foreground mt-1">
-              {t(dict.classSubjects.title)}
-            </h2>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
-            {/* Academic Year Selector */}
-            {yearList.length > 1 && (
-              <FormField label={isBn ? 'শিক্ষাবর্ষ' : 'Academic Year'}>
-                <Select
-                  value={selectedYearId}
-                  onChange={(e) => setSelectedYearId(e.target.value)}
-                  className="min-w-36 text-xs h-9 font-semibold"
-                >
-                  {yearList.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} {item.isActive ? `(${isBn ? 'সক্রিয়' : 'Active'})` : ''}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
-            )}
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={fetchingClassSubjects}
-              onClick={() => refetchClassSubjects()}
-              className="gap-1.5 self-end h-9"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${fetchingClassSubjects ? 'animate-spin' : ''}`} />
-              <span>{isBn ? 'রিফ্রেশ' : 'Refresh'}</span>
-            </Button>
-          </div>
-        </div>
-
-        {/* Live Counters */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-border/60">
-          <div className="p-3 rounded-lg bg-surface-muted/60 border border-border/60">
-            <p className="text-xs font-medium text-muted-foreground">{t(dict.classSubjects.statsTotal)}</p>
-            <p className="text-xl font-bold text-foreground mt-0.5">
-              {formatNumber(stats.total, locale)}
-            </p>
-          </div>
-          <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-            <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
-              {t(dict.classSubjects.statsCompulsory)}
-            </p>
-            <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400 mt-0.5">
-              {formatNumber(stats.compulsory, locale)}
-            </p>
-          </div>
-          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-              {t(dict.classSubjects.statsOptional)}
-            </p>
-            <p className="text-xl font-bold text-amber-700 dark:text-amber-400 mt-0.5">
-              {formatNumber(stats.optional, locale)}
-            </p>
-          </div>
-          <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-            <p className="text-xs font-medium text-primary">{t(dict.classSubjects.statsActive)}</p>
-            <p className="text-xl font-bold text-primary mt-0.5">
-              {formatNumber(stats.active, locale)}
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* 2. Rollover card (পূর্ববর্তী বছর থেকে কপি) */}
+      {/* 1. Rollover card (পূর্ববর্তী বছর থেকে কপি) */}
       <Card className="p-5 flex flex-wrap items-end gap-3">
         <FormField label={t(dict.classSubjects.copyFromLabel)}>
           <Select
@@ -550,6 +454,19 @@ export function ClassSubjectsPanel({
                 ))}
               </Select>
             </FormField>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={fetchingClassSubjects}
+              onClick={() => refetchClassSubjects()}
+              className="gap-1.5 self-end h-10"
+              title={isBn ? 'রিফ্রেশ' : 'Refresh'}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${fetchingClassSubjects ? 'animate-spin' : ''}`} />
+              <span>{isBn ? 'রিফ্রেশ' : 'Refresh'}</span>
+            </Button>
 
             {usesGroup && (
               <FormField label={t(dict.classSubjects.filterLabel)}>

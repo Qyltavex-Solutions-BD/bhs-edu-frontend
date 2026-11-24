@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
   Clock,
@@ -8,15 +8,23 @@ import {
   GripVertical,
   Plus,
   Printer,
+  RefreshCw,
   Trash2,
   UserCheck,
   Users,
 } from 'lucide-react';
 import {
-  useAddClassRoutineMutation,
-  useMoveClassRoutineSlotMutation,
-  useRemoveClassRoutineMutation,
-} from '@/src/store/api';
+  useGetSchoolClassesQuery,
+  useGetSectionsQuery,
+  useGetClassSubjectsQuery,
+  useGetClassRoutinesQuery,
+  useCreateClassRoutineMutation,
+  useUpdateClassRoutineMutation,
+  useDeleteClassRoutineMutation,
+  useGetTeacherAssignmentsQuery,
+  type ClassRoutineSlot,
+} from '@/src/services/academic';
+import { useGetStaffQuery } from '@/src/features/staff/api/staff.api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { getTodayWeekDay, PERIOD_META, periodClock, SCHOOL_DAYS } from '@/src/lib/classRoutine';
@@ -24,7 +32,7 @@ import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { SchoolEmblem } from '@/src/components/shared/Feedback';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Card, FormField, Input, Modal, Select } from '@/src/components/ui/primitives';
-import type { AcademicYear } from '@/src/types/entities';
+import type { AcademicYear, SchoolClass, Section } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
 import { StaffStatus, StaffType, WeekDay } from '@/src/types/enums';
 
@@ -38,98 +46,186 @@ const DAY_LABEL = {
 
 type RoutineViewMode = 'section' | 'teacher';
 
-export function AcademicRoutine({ db, year }: { db: MockDatabase; year: AcademicYear }) {
+export function AcademicRoutine({
+  db,
+  year,
+}: {
+  db?: MockDatabase;
+  year: AcademicYear;
+}) {
   const { locale, pick } = useI18n();
-  const [addRoutine, { isLoading: adding }] = useAddClassRoutineMutation();
-  const [moveRoutine] = useMoveClassRoutineSlotMutation();
-  const [removeRoutine] = useRemoveClassRoutineMutation();
+
+  // API Mutations
+  const [createRoutine, { isLoading: adding }] = useCreateClassRoutineMutation();
+  const [updateRoutine] = useUpdateClassRoutineMutation();
+  const [deleteRoutine] = useDeleteClassRoutineMutation();
 
   const [viewMode, setViewMode] = useState<RoutineViewMode>('section');
-  const [classId, setClassId] = useState('cls-10');
-  const [sectionId, setSectionId] = useState('sec-10-ka');
-  const teachers = useMemo(
-    () =>
-      db.staff.filter(
-        (s) => s.staffType === StaffType.TEACHER && s.status === StaffStatus.ACTIVE
-      ),
-    [db.staff]
+  const [classId, setClassId] = useState('');
+  const [sectionId, setSectionId] = useState('');
+  const [selectedTeacherId, setSelectedTeacherId] = useState('');
+
+  // 1. Fetch real Classes
+  const { data: realClasses } = useGetSchoolClassesQuery();
+  const classList: SchoolClass[] = useMemo(() => {
+    if (realClasses && realClasses.length > 0) return realClasses;
+    return db?.classes ?? [];
+  }, [realClasses, db?.classes]);
+
+  // Keep classId synchronized with real classes
+  useEffect(() => {
+    if (classList.length > 0 && (!classId || !classList.some((c) => c.id === classId))) {
+      setClassId(classList[0].id);
+    }
+  }, [classList, classId]);
+
+  const schoolClass = classList.find((item) => item.id === classId) ?? classList[0];
+
+  // 2. Fetch real Sections for selected class
+  const { data: realSections } = useGetSectionsQuery(
+    schoolClass?.id ? { classId: schoolClass.id } : undefined,
+    { skip: !schoolClass?.id }
   );
-  const [selectedTeacherId, setSelectedTeacherId] = useState(() => teachers[0]?.id ?? '');
+  const sections: Section[] = useMemo(() => {
+    if (realSections && realSections.length > 0) {
+      return realSections.filter((s) => s.isActive);
+    }
+    return (db?.sections ?? []).filter((s) => s.isActive && s.classId === schoolClass?.id);
+  }, [realSections, db?.sections, schoolClass?.id]);
 
-  const [dragRoutineId, setDragRoutineId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    teacherAssignmentId: '',
-    day: WeekDay.SUNDAY,
-    periodNumber: 1,
-    room: 'রুম ২০১',
-  });
-  const [composerOpen, setComposerOpen] = useState(false);
+  // Keep sectionId synchronized
+  useEffect(() => {
+    if (sections.length > 0 && (!sectionId || !sections.some((s) => s.id === sectionId))) {
+      setSectionId(sections[0].id);
+    }
+  }, [sections, sectionId]);
 
-  const schoolClass = db.classes.find((item) => item.id === classId) ?? db.classes[0];
-  const sections = db.sections.filter((section) => section.isActive && section.classId === schoolClass?.id);
-  const effectiveSectionId = sections.some((section) => section.id === sectionId)
+  const effectiveSectionId = sections.some((s) => s.id === sectionId)
     ? sectionId
     : sections[0]?.id ?? '';
   const section = sections.find((item) => item.id === effectiveSectionId);
-  const classTeacherRow = db.sectionClassTeachers.find(
-    (row) => row.sectionId === effectiveSectionId && row.academicYearId === year.id
-  );
-  const classTeacher = classTeacherRow ? db.staff.find((member) => member.id === classTeacherRow.staffId) : null;
-  const today = getTodayWeekDay();
 
-  const yearRoutines = useMemo(
-    () => db.classRoutines.filter((slot) => slot.academicYearId === year.id),
-    [db.classRoutines, year.id]
-  );
+  // 3. Fetch real Teachers
+  const { data: realStaff } = useGetStaffQuery({
+    staffType: StaffType.TEACHER,
+    status: StaffStatus.ACTIVE,
+    limit: 100,
+  });
+  const teachers = useMemo(() => {
+    if (realStaff && realStaff.length > 0) return realStaff;
+    return (db?.staff ?? []).filter(
+      (s) => s.staffType === StaffType.TEACHER && s.status === StaffStatus.ACTIVE
+    );
+  }, [realStaff, db?.staff]);
 
-  const slots = useMemo(
-    () => yearRoutines.filter((slot) => slot.sectionId === effectiveSectionId),
-    [yearRoutines, effectiveSectionId]
-  );
+  // Keep selected teacher synchronized
+  useEffect(() => {
+    if (teachers.length > 0 && (!selectedTeacherId || !teachers.some((t) => t.id === selectedTeacherId))) {
+      setSelectedTeacherId(teachers[0].id);
+    }
+  }, [teachers, selectedTeacherId]);
 
   const effectiveTeacherId = teachers.some((t) => t.id === selectedTeacherId)
     ? selectedTeacherId
     : teachers[0]?.id ?? '';
   const selectedTeacher = teachers.find((t) => t.id === effectiveTeacherId) ?? null;
+
+  // 4. Fetch real Class Subjects for selected class
+  const { data: realClassSubjects } = useGetClassSubjectsQuery(
+    schoolClass?.id ? { academicYearId: year.id, classId: schoolClass.id } : undefined,
+    { skip: !schoolClass?.id }
+  );
+  const classSubjects = useMemo(() => {
+    if (realClassSubjects && realClassSubjects.length > 0) return realClassSubjects;
+    return (db?.classSubjects ?? []).filter(
+      (cs) => cs.academicYearId === year.id && cs.classId === schoolClass?.id
+    );
+  }, [realClassSubjects, db?.classSubjects, year.id, schoolClass?.id]);
+
+  // 5. Fetch real Teacher Assignments
+  const { data: realAssignments } = useGetTeacherAssignmentsQuery(
+    effectiveSectionId ? { academicYearId: year.id, sectionId: effectiveSectionId } : undefined,
+    { skip: !effectiveSectionId }
+  );
+  const assignments = useMemo(() => {
+    if (realAssignments && realAssignments.length > 0) return realAssignments;
+    return (db?.teacherAssignments ?? []).filter(
+      (item) => item.isActive && item.academicYearId === year.id && item.sectionId === effectiveSectionId
+    );
+  }, [realAssignments, db?.teacherAssignments, year.id, effectiveSectionId]);
+
+  // 6. Fetch real Class Routines for academic year
+  const {
+    data: realRoutines,
+    isFetching: fetchingRoutines,
+    refetch: refetchRoutines,
+  } = useGetClassRoutinesQuery({
+    academicYearId: year.id,
+  });
+
+  const yearRoutines = useMemo(() => {
+    if (realRoutines && realRoutines.length > 0) return realRoutines;
+    return (db?.classRoutines ?? []).filter((slot) => slot.academicYearId === year.id) as any[];
+  }, [realRoutines, db?.classRoutines, year.id]);
+
+  // Slots for the active section
+  const slots = useMemo(
+    () =>
+      yearRoutines.filter((slot) => {
+        const secId = slot.section?.id || slot.sectionId;
+        return secId === effectiveSectionId;
+      }),
+    [yearRoutines, effectiveSectionId]
+  );
+
+  // Slots for the active teacher
   const teacherSlots = useMemo(
-    () => yearRoutines.filter((slot) => slot.staffId === effectiveTeacherId),
+    () =>
+      yearRoutines.filter((slot) => {
+        const stId = slot.teacher?.id || slot.staffId;
+        return stId === effectiveTeacherId;
+      }),
     [yearRoutines, effectiveTeacherId]
   );
 
-  const assignments = useMemo(
-    () =>
-      db.teacherAssignments.filter(
-        (item) =>
-          item.isActive && item.academicYearId === year.id && item.sectionId === effectiveSectionId
-      ),
-    [db.teacherAssignments, year.id, effectiveSectionId]
+  // Class Teacher
+  const classTeacherRow = (db?.sectionClassTeachers ?? []).find(
+    (row) => row.sectionId === effectiveSectionId && row.academicYearId === year.id
   );
+  const classTeacher = classTeacherRow
+    ? teachers.find((member) => member.id === classTeacherRow.staffId)
+    : null;
 
-  const selectedAssignment = assignments.some((item) => item.id === form.teacherAssignmentId)
-    ? form.teacherAssignmentId
-    : '';
+  const today = getTodayWeekDay();
 
-  const schoolName = locale === 'bn' ? db.schoolProfile.name : db.schoolProfile.nameEn;
+  // Drag and Drop & Form State
+  const [dragRoutineId, setDragRoutineId] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    classSubjectId: '',
+    staffId: '',
+    teacherAssignmentId: '',
+    day: WeekDay.SUNDAY,
+    periodNumber: 1,
+    room: 'রুম ২০১',
+    isBreak: false,
+  });
+  const [composerOpen, setComposerOpen] = useState(false);
+
+  const schoolName =
+    locale === 'bn'
+      ? db?.schoolProfile?.name || 'বজ্রেশ্বর উচ্চ বিদ্যালয়'
+      : db?.schoolProfile?.nameEn || 'Vojesshor High School';
 
   // Metrics
-  const uniqueTeachersInSection = new Set(slots.map((s) => s.staffId)).size;
+  const uniqueTeachersInSection = new Set(
+    slots.map((s) => s.teacher?.id || s.staffId).filter(Boolean)
+  ).size;
   const maxWeeklySlots = SCHOOL_DAYS.length * PERIOD_META.length; // 5 * 6 = 30
   const teacherFreeSlots = Math.max(0, maxWeeklySlots - teacherSlots.length);
 
-  const assignmentLabel = (id: string) => {
-    const assignment = db.teacherAssignments.find((item) => item.id === id);
-    const classSubject = assignment ? db.classSubjects.find((item) => item.id === assignment.classSubjectId) : null;
-    const subject = classSubject ? db.subjects.find((item) => item.id === classSubject.subjectId) : null;
-    const teacher = assignment ? db.staff.find((item) => item.id === assignment.staffId) : null;
-    const subjectName = locale === 'bn' ? subject?.nameBn || subject?.name : subject?.name;
-    return `${subjectName ?? '—'} — ${teacher?.name ?? '—'}`;
-  };
-
   const chooseClass = (nextClassId: string) => {
-    const nextSection = db.sections.find((sec) => sec.isActive && sec.classId === nextClassId);
     setClassId(nextClassId);
-    setSectionId(nextSection?.id ?? '');
-    setForm((prev) => ({ ...prev, teacherAssignmentId: '' }));
+    setForm((prev) => ({ ...prev, classSubjectId: '', teacherAssignmentId: '' }));
   };
 
   const chooseSection = (nextSectionId: string) => {
@@ -140,61 +236,144 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
   const openQuickAdd = (day: WeekDay, periodNumber: number) => {
     const existingRoom = slots[0]?.room || 'রুম ২০১';
     setForm({
+      classSubjectId: classSubjects[0]?.id ?? '',
+      staffId: teachers[0]?.id ?? '',
       teacherAssignmentId: assignments[0]?.id ?? '',
       day,
       periodNumber,
       room: existingRoom,
+      isBreak: false,
     });
     setComposerOpen(true);
   };
 
+  // Helper to resolve Subject display title
+  const resolveSubjectName = (slot: any) => {
+    if (slot.subject?.name) return slot.subject.name;
+    if (slot.classSubjectId) {
+      const cs = classSubjects.find((x) => x.id === slot.classSubjectId);
+      if (cs) {
+        return (
+          cs.subject?.name ||
+          (db?.subjects ?? []).find((s) => s.id === cs.subjectId)?.name ||
+          '—'
+        );
+      }
+    }
+    if (slot.teacherAssignmentId) {
+      const ta = assignments.find((x) => x.id === slot.teacherAssignmentId);
+      if (ta) {
+        const cs = classSubjects.find((x) => x.id === ta.classSubjectId);
+        return (
+          cs?.subject?.name ||
+          (db?.subjects ?? []).find((s) => s.id === (cs?.subjectId || cs?.subject?.id))?.name ||
+          '—'
+        );
+      }
+    }
+    return '—';
+  };
+
+  // Helper to resolve Teacher name
+  const resolveTeacherName = (slot: any) => {
+    if (slot.teacher?.name) return slot.teacher.name;
+    const stId = slot.staffId || slot.teacher?.id;
+    if (stId) {
+      const t = teachers.find((x) => x.id === stId);
+      if (t) return t.name;
+    }
+    return '—';
+  };
+
   const onAdd = async (event: React.FormEvent) => {
     event.preventDefault();
-    const assignment = assignments.find((item) => item.id === selectedAssignment);
-    if (!assignment || !effectiveSectionId) {
-      toast.error(pick('এই শাখায় আগে বিষয় শিক্ষক নির্ধারণ করুন।', 'Assign a subject teacher for this section first.'));
+
+    if (!schoolClass || !effectiveSectionId) {
+      toast.error(pick('শ্রেণি ও শাখা নির্বাচন করুন।', 'Please select class and section.'));
       return;
     }
+
+    if (!form.isBreak && !form.classSubjectId) {
+      toast.error(pick('পাঠদানের বিষয় নির্বাচন করুন।', 'Please select a subject.'));
+      return;
+    }
+
     const clock = periodClock(form.periodNumber);
+
     try {
-      await addRoutine({
+      // Find matching teacher assignment if any
+      const matchedAssignment = assignments.find(
+        (a) =>
+          a.classSubjectId === form.classSubjectId &&
+          (!form.staffId || a.staffId === form.staffId)
+      );
+
+      await createRoutine({
         academicYearId: year.id,
-        teacherAssignmentId: assignment.id,
-        staffId: assignment.staffId,
+        classId: schoolClass.id,
         sectionId: effectiveSectionId,
+        classSubjectId: form.isBreak ? undefined : form.classSubjectId || undefined,
+        staffId: form.isBreak ? undefined : form.staffId || undefined,
+        teacherAssignmentId: form.isBreak
+          ? undefined
+          : matchedAssignment?.id || form.teacherAssignmentId || undefined,
         day: form.day,
         periodNumber: form.periodNumber,
+        periodName: form.isBreak
+          ? pick('টিফিন / বিরতি', 'Tiffin / Break')
+          : pick(clock.labelBn, clock.labelEn),
         startTime: clock.startTime,
         endTime: clock.endTime,
-        room: form.room.trim() || '—',
+        room: form.room.trim() || undefined,
+        isBreak: form.isBreak,
       }).unwrap();
-      toast.success(pick('ক্লাস রুটিনে পিরিয়ড সফলভাবে যুক্ত হয়েছে।', 'Routine period added successfully.'));
+
+      toast.success(
+        pick('ক্লাস রুটিনে পিরিয়ড সফলভাবে যুক্ত হয়েছে।', 'Routine period added successfully.')
+      );
       setComposerOpen(false);
-    } catch (err) {
-      toast.error((err as { message?: string })?.message ?? pick('পিরিয়ড বসানো যায়নি।', 'Could not add the period.'));
+    } catch (err: any) {
+      const msg =
+        err?.data?.message ||
+        err?.message ||
+        pick('পিরিয়ড বসানো যায়নি।', 'Could not add the period.');
+      toast.error(msg);
     }
   };
 
   const onRemove = async (id: string) => {
     try {
-      await removeRoutine({ id }).unwrap();
+      await deleteRoutine(id).unwrap();
       toast.success(pick('পিরিয়ড মুছে ফেলা হয়েছে।', 'Period removed.'));
-    } catch (err) {
-      toast.error((err as { message?: string })?.message ?? pick('পিরিয়ড মোছা যায়নি।', 'Could not remove the period.'));
+    } catch (err: any) {
+      const msg =
+        err?.data?.message ||
+        err?.message ||
+        pick('পিরিয়ড মোছা যায়নি।', 'Could not remove the period.');
+      toast.error(msg);
     }
   };
 
   const onDrop = async (day: WeekDay, periodNumber: number) => {
     if (!dragRoutineId) return;
+    const clock = periodClock(periodNumber);
     try {
-      await moveRoutine({
-        routineId: dragRoutineId,
-        targetDay: day,
-        targetPeriodNumber: periodNumber,
+      await updateRoutine({
+        id: dragRoutineId,
+        day,
+        periodNumber,
+        startTime: clock.startTime,
+        endTime: clock.endTime,
       }).unwrap();
-      toast.success(pick('রুটিন পিরিয়ড সফলভাবে স্থানান্তরিত হয়েছে।', 'Period moved successfully.'));
-    } catch (err) {
-      toast.error((err as { message?: string })?.message ?? pick('এই ঘরে পিরিয়ড সরানো যায়নি।', 'Could not move the period.'));
+      toast.success(
+        pick('রুটিন পিরিয়ড সফলভাবে স্থানান্তরিত হয়েছে।', 'Period moved successfully.')
+      );
+    } catch (err: any) {
+      const msg =
+        err?.data?.message ||
+        err?.message ||
+        pick('এই ঘরে পিরিয়ড সরানো যায়নি।', 'Could not move the period.');
+      toast.error(msg);
     } finally {
       setDragRoutineId(null);
     }
@@ -211,13 +390,12 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
         return da !== dbIdx ? da - dbIdx : a.periodNumber - b.periodNumber;
       })
       .map((slot) => {
-        const ta = db.teacherAssignments.find((x) => x.id === slot.teacherAssignmentId);
-        const cs = ta ? db.classSubjects.find((x) => x.id === ta.classSubjectId) : null;
-        const sub = cs ? db.subjects.find((x) => x.id === cs.subjectId) : null;
-        const staff = db.staff.find((x) => x.id === slot.staffId);
-        const sec = db.sections.find((x) => x.id === slot.sectionId);
-        const cls = sec ? db.classes.find((x) => x.id === sec.classId) : null;
         const pm = periodClock(slot.periodNumber);
+        const subName = resolveSubjectName(slot);
+        const tName = resolveTeacherName(slot);
+        const secName = slot.section?.name || section?.name || '';
+        const clsName = slot.class?.name || (locale === 'bn' ? schoolClass?.nameBn || schoolClass?.name : schoolClass?.name) || '';
+
         return {
           day: pick(
             DAY_LABEL[slot.day as keyof typeof DAY_LABEL]?.[0] ?? slot.day,
@@ -225,9 +403,9 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
           ),
           period: pick(pm.labelBn, pm.labelEn),
           time: pick(pm.timeBn, pm.timeEn),
-          classSection: `${locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name} (${sec?.name ?? ''})`,
-          subject: locale === 'bn' ? sub?.nameBn || sub?.name || '—' : sub?.name || '—',
-          teacher: staff?.name ?? '—',
+          classSection: `${clsName} (${secName})`,
+          subject: slot.isBreak ? pick('টিফিন / বিরতি', 'Break') : subName,
+          teacher: slot.isBreak ? '—' : tName,
           room: slot.room ?? '—',
         };
       });
@@ -236,7 +414,7 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
       rows,
       viewMode === 'section'
         ? `class-routine-${schoolClass?.numericValue ?? 'cls'}-${section?.name ?? 'sec'}.csv`
-        : `teacher-schedule-${selectedTeacher?.employeeId ?? 'teacher'}.csv`,
+        : `teacher-schedule-${selectedTeacher?.name ?? 'teacher'}.csv`,
       [
         { key: 'day', label: pick('বার', 'Day') },
         { key: 'period', label: pick('পিরিয়ড', 'Period') },
@@ -251,6 +429,7 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
 
   const renderSectionCell = (day: WeekDay, period: number) => {
     const slot = slots.find((item) => item.day === day && item.periodNumber === period);
+
     if (!slot) {
       return (
         <td
@@ -275,10 +454,48 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
         </td>
       );
     }
-    const assignment = db.teacherAssignments.find((item) => item.id === slot.teacherAssignmentId);
-    const classSubject = assignment ? db.classSubjects.find((item) => item.id === assignment.classSubjectId) : null;
-    const subject = classSubject ? db.subjects.find((item) => item.id === classSubject.subjectId) : null;
-    const teacher = db.staff.find((item) => item.id === slot.staffId);
+
+    if (slot.isBreak) {
+      return (
+        <td
+          key={period}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => {
+            event.preventDefault();
+            void onDrop(day, period);
+          }}
+          className="p-2.5 align-top border-r border-border/50 last:border-r-0"
+        >
+          <div
+            draggable
+            onDragStart={() => setDragRoutineId(slot.id)}
+            className="rounded-[var(--radius)] border border-amber-500/30 bg-amber-500/10 p-2.5 cursor-grab active:cursor-grabbing hover:border-amber-500/50 transition-colors"
+          >
+            <div className="flex items-start justify-between gap-1">
+              <p className="font-semibold text-amber-700 dark:text-amber-300 text-xs leading-snug">
+                {slot.periodName || pick('বিরতি / টিফিন', 'Break / Tiffin')}
+              </p>
+              <button
+                type="button"
+                className="p-0.5 rounded text-muted-foreground hover:text-destructive cursor-pointer no-print"
+                aria-label={pick('পিরিয়ড মুছুন', 'Remove period')}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={() => onRemove(slot.id)}
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1 tabular-nums">
+              {periodClock(slot.periodNumber).timeBn}
+            </p>
+          </div>
+        </td>
+      );
+    }
+
+    const subjectName = resolveSubjectName(slot);
+    const teacherName = resolveTeacherName(slot);
+
     return (
       <td
         key={period}
@@ -292,11 +509,11 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
         <div
           draggable
           onDragStart={() => setDragRoutineId(slot.id)}
-          className="rounded-[var(--radius)] border border-border/70 bg-background p-2.5 cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors"
+          className="rounded-[var(--radius)] border border-border/70 bg-background p-2.5 cursor-grab active:cursor-grabbing hover:border-primary/40 transition-colors shadow-xs"
         >
           <div className="flex items-start justify-between gap-1">
-            <p className="font-semibold text-foreground text-xs leading-snug">
-              {locale === 'bn' ? subject?.nameBn || subject?.name : subject?.name}
+            <p className="font-semibold text-foreground text-xs leading-snug line-clamp-1">
+              {subjectName}
             </p>
             <span className="inline-flex items-center gap-0.5 shrink-0 no-print">
               <button
@@ -311,8 +528,8 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
               <GripVertical className="w-3 h-3 text-muted-foreground" />
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1 truncate">{teacher?.name}</p>
-          <p className="text-xs text-primary font-medium tabular-nums mt-0.5">{slot.room}</p>
+          <p className="text-xs text-muted-foreground mt-1 truncate">{teacherName}</p>
+          <p className="text-xs text-primary font-medium tabular-nums mt-0.5">{slot.room || '—'}</p>
         </div>
       </td>
     );
@@ -320,6 +537,7 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
 
   const renderTeacherCell = (day: WeekDay, period: number) => {
     const slot = teacherSlots.find((item) => item.day === day && item.periodNumber === period);
+
     if (!slot) {
       return (
         <td
@@ -330,22 +548,21 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
         </td>
       );
     }
-    const ta = db.teacherAssignments.find((item) => item.id === slot.teacherAssignmentId);
-    const cs = ta ? db.classSubjects.find((item) => item.id === ta.classSubjectId) : null;
-    const sub = cs ? db.subjects.find((item) => item.id === cs.subjectId) : null;
-    const sec = db.sections.find((item) => item.id === slot.sectionId);
-    const cls = sec ? db.classes.find((item) => item.id === sec.classId) : null;
+
+    const subName = resolveSubjectName(slot);
+    const clsName = slot.class?.name || (locale === 'bn' ? schoolClass?.nameBn || schoolClass?.name : schoolClass?.name) || '';
+    const secName = slot.section?.name || section?.name || '';
 
     return (
       <td key={period} className="p-2.5 align-top border-r border-border/50 last:border-r-0">
-        <div className="rounded-[var(--radius)] border border-primary/25 bg-primary/[0.04] p-2.5">
-          <p className="font-semibold text-foreground text-xs leading-snug">
-            {locale === 'bn' ? sub?.nameBn || sub?.name : sub?.name}
+        <div className="rounded-[var(--radius)] border border-primary/25 bg-primary/[0.04] p-2.5 shadow-xs">
+          <p className="font-semibold text-foreground text-xs leading-snug line-clamp-1">
+            {slot.isBreak ? pick('বিরতি', 'Break') : subName}
           </p>
-          <p className="text-xs text-primary font-medium mt-1">
-            {locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name} ({sec?.name})
+          <p className="text-xs text-primary font-medium mt-1 truncate">
+            {clsName} ({secName})
           </p>
-          <p className="text-xs text-muted-foreground tabular-nums mt-0.5">{slot.room}</p>
+          <p className="text-xs text-muted-foreground tabular-nums mt-0.5">{slot.room || '—'}</p>
         </div>
       </td>
     );
@@ -385,7 +602,10 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
           </p>
           <p className="mt-1 text-sm text-muted-foreground">
             {viewMode === 'section'
-              ? pick(`${formatNumber(uniqueTeachersInSection, 'bn')} জন বিষয় শিক্ষক যুক্ত`, `${uniqueTeachersInSection} subject teachers`)
+              ? pick(
+                  `${formatNumber(uniqueTeachersInSection, 'bn')} জন বিষয় শিক্ষক যুক্ত`,
+                  `${uniqueTeachersInSection} subject teachers`
+                )
               : selectedTeacher?.designation || '—'}
           </p>
         </Card>
@@ -425,7 +645,7 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
               className={cn(
                 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[calc(var(--radius)-2px)] text-sm font-medium transition-colors cursor-pointer',
                 viewMode === 'section'
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -438,7 +658,7 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
               className={cn(
                 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[calc(var(--radius)-2px)] text-sm font-medium transition-colors cursor-pointer',
                 viewMode === 'teacher'
-                  ? 'bg-primary text-primary-foreground'
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
@@ -454,6 +674,16 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
                 {pick('পিরিয়ড যুক্ত করুন', 'Add period')}
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={fetchingRoutines}
+              onClick={() => refetchRoutines()}
+              title={pick('রিফ্রেশ', 'Refresh')}
+            >
+              <RefreshCw className={cn('w-4 h-4', fetchingRoutines && 'animate-spin')} />
+              <span>{pick('রিফ্রেশ', 'Refresh')}</span>
+            </Button>
             <Button variant="outline" size="sm" onClick={handleExportCsv}>
               <Download className="w-4 h-4" />
               {pick('CSV', 'CSV')}
@@ -468,41 +698,48 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
         <div className="pt-3 border-t border-border flex flex-wrap items-center justify-between gap-3">
           {viewMode === 'section' ? (
             <div className="flex flex-wrap items-center gap-3">
-              <Select
-                value={schoolClass?.id ?? ''}
-                onChange={(event) => chooseClass(event.target.value)}
-                className="w-44 h-9"
-              >
-                {db.classes.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {locale === 'bn' ? item.nameBn || item.name : item.name}
-                  </option>
-                ))}
-              </Select>
-              <Select
-                value={effectiveSectionId}
-                onChange={(event) => chooseSection(event.target.value)}
-                className="w-36 h-9"
-              >
-                {sections.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {pick('শাখা:', 'Section:')} {item.name}
-                  </option>
-                ))}
-              </Select>
+              <FormField label={pick('শ্রেণি', 'Class')}>
+                <Select
+                  value={schoolClass?.id ?? ''}
+                  onChange={(event) => chooseClass(event.target.value)}
+                  className="w-44 h-9 font-semibold"
+                >
+                  {classList.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {locale === 'bn' ? item.nameBn || item.name : item.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+
+              <FormField label={pick('শাখা', 'Section')}>
+                <Select
+                  value={effectiveSectionId}
+                  onChange={(event) => chooseSection(event.target.value)}
+                  className="w-36 h-9 font-semibold"
+                >
+                  {sections.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {pick('শাখা:', 'Section:')} {item.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
             </div>
           ) : (
-            <Select
-              value={effectiveTeacherId}
-              onChange={(event) => setSelectedTeacherId(event.target.value)}
-              className="w-80 h-9"
-            >
-              {teachers.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} — {t.designation}
-                </option>
-              ))}
-            </Select>
+            <FormField label={pick('শিক্ষক নির্বাচন করুন', 'Select Teacher')}>
+              <Select
+                value={effectiveTeacherId}
+                onChange={(event) => setSelectedTeacherId(event.target.value)}
+                className="w-80 h-9 font-semibold"
+              >
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} — {t.designation || pick('শিক্ষক', 'Teacher')}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
           )}
 
           <p className="text-xs text-muted-foreground">
@@ -530,23 +767,81 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
         )}
       >
         <form onSubmit={onAdd} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField label={pick('শিক্ষক ও বিষয়', 'Teacher & Subject')} required>
-            <Select
-              value={selectedAssignment}
-              onChange={(event) => setForm({ ...form, teacherAssignmentId: event.target.value })}
-            >
-              <option value="">{pick('বিষয় ও শিক্ষক বাছাই করুন', 'Choose subject assignment')}</option>
-              {assignments.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {assignmentLabel(item.id)}
-                </option>
-              ))}
-            </Select>
+          {/* Break Toggle */}
+          <div className="sm:col-span-2 flex items-center justify-between p-3 rounded-lg bg-surface-muted/60 border border-border">
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {pick('টিফিন বা সাধারণ বিরতি?', 'Break or Tiffin Slot?')}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {pick('বিরতি নির্বাচন করলে বিষয় ও শিক্ষক নির্বাচনের প্রয়োজন নেই।', 'Break periods do not require subject or teacher.')}
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              id="isBreakToggle"
+              checked={form.isBreak}
+              onChange={(e) => setForm({ ...form, isBreak: e.target.checked })}
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+            />
+          </div>
+
+          {!form.isBreak && (
+            <>
+              {/* Subject */}
+              <FormField label={pick('বিষয়', 'Subject')} required>
+                <Select
+                  value={form.classSubjectId}
+                  onChange={(event) => {
+                    const nextCsId = event.target.value;
+                    const matchAssignment = assignments.find((a) => a.classSubjectId === nextCsId);
+                    setForm({
+                      ...form,
+                      classSubjectId: nextCsId,
+                      staffId: matchAssignment?.staffId || form.staffId,
+                    });
+                  }}
+                >
+                  <option value="">{pick('বিষয় বাছাই করুন', 'Select Subject')}</option>
+                  {classSubjects.map((cs) => {
+                    const subName = cs.subject?.name || (db?.subjects ?? []).find((s) => s.id === cs.subjectId)?.name || '—';
+                    return (
+                      <option key={cs.id} value={cs.id}>
+                        {subName} {cs.isOptional ? `(${pick('ঐচ্ছিক', 'Optional')})` : ''}
+                      </option>
+                    );
+                  })}
+                </Select>
+              </FormField>
+
+              {/* Teacher */}
+              <FormField label={pick('শিক্ষক', 'Teacher')}>
+                <Select
+                  value={form.staffId}
+                  onChange={(event) => setForm({ ...form, staffId: event.target.value })}
+                >
+                  <option value="">{pick('শিক্ষক বাছাই করুন', 'Select Teacher')}</option>
+                  {teachers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.designation || pick('শিক্ষক', 'Teacher')})
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            </>
+          )}
+
+          {/* Room */}
+          <FormField label={pick('কক্ষ নম্বর', 'Room')}>
+            <Input
+              value={form.room}
+              onChange={(event) => setForm({ ...form, room: event.target.value })}
+              placeholder={pick('রুম ২০১', 'Room 201')}
+            />
           </FormField>
-          <FormField label={pick('কক্ষ / ল্যাব', 'Classroom / Lab')}>
-            <Input value={form.room} onChange={(event) => setForm({ ...form, room: event.target.value })} />
-          </FormField>
-          <FormField label={pick('বার', 'Day')}>
+
+          {/* Day */}
+          <FormField label={pick('বার', 'Day')} required>
             <Select
               value={form.day}
               onChange={(event) => setForm({ ...form, day: event.target.value as WeekDay })}
@@ -558,7 +853,9 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
               ))}
             </Select>
           </FormField>
-          <FormField label={pick('পিরিয়ড', 'Period')}>
+
+          {/* Period */}
+          <FormField label={pick('পিরিয়ড', 'Period')} required>
             <Select
               value={form.periodNumber}
               onChange={(event) => setForm({ ...form, periodNumber: Number(event.target.value) })}
@@ -570,6 +867,7 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
               ))}
             </Select>
           </FormField>
+
           <div className="sm:col-span-2 flex justify-end gap-2 pt-2 border-t border-border">
             <Button type="button" variant="outline" onClick={() => setComposerOpen(false)}>
               {pick('বাতিল', 'Cancel')}
@@ -590,7 +888,7 @@ export function AcademicRoutine({ db, year }: { db: MockDatabase; year: Academic
             <p className="text-xs text-muted-foreground">
               {viewMode === 'section'
                 ? pick(
-                    `সাপ্তাহিক ক্লাস রুটিন ${year.name} · ${schoolClass?.nameBn ?? ''} (শাখা: ${section?.name ?? ''})`,
+                    `সাপ্তাহিক ক্লাস রুটিন ${year.name} · ${schoolClass?.nameBn ?? schoolClass?.name ?? ''} (শাখা: ${section?.name ?? ''})`,
                     `Weekly Class Routine ${year.name} · ${schoolClass?.name ?? ''} (Section: ${section?.name ?? ''})`
                   )
                 : pick(
