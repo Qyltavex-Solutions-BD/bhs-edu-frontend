@@ -36,6 +36,15 @@ export function toBnDigits(input: string | number): string {
   return String(input).replace(/\d/g, (d) => BN_DIGITS[Number(d)] ?? d);
 }
 
+export function formatYear(
+  value: number | string | null | undefined,
+  locale: 'bn' | 'en'
+): string {
+  if (value === null || value === undefined || value === '') return '—';
+  const str = String(value).replace(/,/g, '');
+  return locale === 'bn' ? toBnDigits(str) : str;
+}
+
 export function formatNumber(
   value: number | string | null | undefined,
   locale: 'bn' | 'en',
