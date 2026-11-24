@@ -54,6 +54,7 @@ import {
   AcademicFoundation,
   useAcademicYearSelection,
 } from '@/src/views/admin/AcademicFoundation';
+import { useGetAcademicYearsQuery } from '@/src/services/academic';
 import { AcademicShell } from '@/src/views/admin/AcademicShell';
 import { AcademicCalendar } from '@/src/views/admin/AcademicCalendar';
 import { AcademicCurriculum } from '@/src/views/admin/AcademicCurriculum';
@@ -179,7 +180,9 @@ export function AdminAcademicPage({
   defaultTab?: AcademicTab;
 }) {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const selectedYear = useAcademicYearSelection(db?.academicYears);
+  const { data: realAcademicYears } = useGetAcademicYearsQuery();
+  const yearList = realAcademicYears && realAcademicYears.length > 0 ? realAcademicYears : db?.academicYears;
+  const selectedYear = useAcademicYearSelection(yearList);
   const [saveSyllabusFile, { isLoading: savingSyllabusFile }] = useSaveSyllabusFileMutation();
   const [addSyllabusEntry, { isLoading: addingSyllabusEntry }] = useAddSyllabusEntryMutation();
   const [removeSyllabusEntry] = useRemoveSyllabusEntryMutation();
@@ -380,7 +383,7 @@ export function AdminAcademicPage({
     <AcademicShell
       title={pick(PAGE_COPY[tab].titleBn, PAGE_COPY[tab].titleEn)}
       description={pick(PAGE_COPY[tab].descBn, PAGE_COPY[tab].descEn)}
-      years={db.academicYears}
+      years={yearList ?? db.academicYears}
       selectedYear={selectedYear}
       showYear={PAGE_COPY[tab].year}
     >
