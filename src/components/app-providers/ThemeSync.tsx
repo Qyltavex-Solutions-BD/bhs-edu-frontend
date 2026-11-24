@@ -21,7 +21,7 @@ export function ThemeSync() {
       const storedAuth = window.localStorage.getItem(AUTH_STORAGE_KEY);
       if (storedAuth) {
         const parsed = JSON.parse(storedAuth);
-        if (parsed?.accessToken && parsed?.user && parsed?.role) {
+        if (parsed?.accessToken && parsed?.user && !parsed.user.isDemoSession && parsed?.role) {
           dispatch(
             hydrateAuth({
               accessToken: parsed.accessToken,

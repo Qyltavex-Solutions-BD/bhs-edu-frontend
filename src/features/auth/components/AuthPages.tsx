@@ -22,8 +22,8 @@ import {
   Users,
 } from 'lucide-react';
 import { loginSchema, type LoginFormValues } from '../schemas';
-import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
-import { DEMO_ACCOUNTS, loginWithDemoRole, setCredentials, type AppRole } from '@/src/store/slices/authSlice';
+import { useAppDispatch } from '@/src/store/hooks';
+import { setCredentials } from '@/src/store/slices/authSlice';
 import {
   useLoginUserMutation,
   useForgotPasswordMutation,
@@ -37,7 +37,6 @@ export function LoginPage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { locale, pick } = useI18n();
-  const enableStudentPortal = useAppSelector((s) => s.ui.enableStudentPortal);
   const [showPass, setShowPass] = useState(false);
 
   const form = useForm<LoginFormValues>({
@@ -47,73 +46,6 @@ export function LoginPage() {
 
   const [loginApi, { isLoading: isLoggingIn }] = useLoginUserMutation();
 
-  const handleDemoLogin = async (role: AppRole) => {
-    let email = 'admin@example.com';
-    let password = 'adminpassword';
-    let targetPortal = DEMO_ACCOUNTS[role].redirect;
-
-    if (role === 'TEACHER') {
-      email = 'teacher@example.com';
-      password = 'teacherpassword';
-      targetPortal = '/teacher/dashboard';
-    } else if (role === 'PARENT') {
-      email = 'parent@example.com';
-      password = 'parentpassword';
-      targetPortal = '/parent/dashboard';
-    } else if (role === 'STUDENT') {
-      email = 'student@example.com';
-      password = 'studentpassword';
-      targetPortal = '/student/dashboard';
-    }
-
-    try {
-      const res = await loginApi({ email, password }).unwrap();
-
-      const roles = res.user?.roles || [];
-      const primaryRole = roles[0] || 'ADMIN';
-      const resolvedRole: AppRole =
-        primaryRole === 'ADMIN'
-          ? role === 'PRINCIPAL' || role === 'SCHOOL_ADMIN'
-            ? role
-            : 'SUPER_ADMIN'
-          : (primaryRole as AppRole);
-
-      dispatch(
-        setCredentials({
-          accessToken: res.accessToken,
-          user: {
-            id: res.user.id,
-            name: res.user.name,
-            email: res.user.email,
-            phone: res.user.phone,
-            role: resolvedRole,
-            isDemoSession: false,
-          },
-          role: resolvedRole,
-          permissions: res.user.permissions ?? DEMO_ACCOUNTS[role].permissions,
-        })
-      );
-
-      toast.success(
-        pick(
-          `${res.user.name || DEMO_ACCOUNTS[role].user.name} হিসেবে সফলভাবে প্রবেশ করেছেন।`,
-          `Signed in as ${res.user.name || DEMO_ACCOUNTS[role].user.name}.`
-        )
-      );
-      router.push(targetPortal);
-      return;
-    } catch {
-      dispatch(loginWithDemoRole(role));
-      toast.success(
-        pick(
-          `${DEMO_ACCOUNTS[role].user.name} হিসেবে ডেমো পোর্টালে প্রবেশ সম্পন্ন হয়েছে।`,
-          `Signed in as demo ${DEMO_ACCOUNTS[role].user.name}.`
-        )
-      );
-      router.push(targetPortal);
-    }
-  };
-
   const onSubmit = async (values: LoginFormValues) => {
     try {
       const res = await loginApi({
@@ -122,17 +54,13 @@ export function LoginPage() {
       }).unwrap();
 
       const roles = res.user?.roles || [];
-      const primaryRole = roles[0] || 'ADMIN';
-      const role: AppRole =
-        primaryRole === 'ADMIN'
-          ? 'SUPER_ADMIN'
-          : primaryRole === 'TEACHER'
-            ? 'TEACHER'
-            : primaryRole === 'PARENT'
-              ? 'PARENT'
-              : primaryRole === 'STUDENT'
-                ? 'STUDENT'
-                : 'SUPER_ADMIN';
+      const role = roles.includes('ADMIN')
+        ? 'SUPER_ADMIN'
+        : (['TEACHER', 'PARENT', 'STUDENT'] as const).find((candidate) => roles.includes(candidate));
+      if (!role) {
+        toast.error('This account has no portal access.');
+        return;
+      }
 
       dispatch(
         setCredentials({
@@ -169,54 +97,6 @@ export function LoginPage() {
       toast.error(errorMsg);
     }
   };
-
-  const demoButtons: Array<{
-    role: AppRole;
-    labelBn: string;
-    labelEn: string;
-    meta: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }> = [
-    {
-      role: 'SUPER_ADMIN',
-      labelBn: 'সুপার অ্যাডমিন',
-      labelEn: 'Super Admin',
-      meta: 'admin@example.com',
-      icon: ShieldCheck,
-    },
-    {
-      role: 'PRINCIPAL',
-      labelBn: 'প্রধান শিক্ষক',
-      labelEn: 'Head Teacher',
-      meta: 'admin@example.com',
-      icon: Award,
-    },
-    {
-      role: 'TEACHER',
-      labelBn: 'শিক্ষক পোর্টাল',
-      labelEn: 'Teacher Portal',
-      meta: 'teacher@example.com',
-      icon: BookOpen,
-    },
-    {
-      role: 'PARENT',
-      labelBn: 'অভিভাবক পোর্টাল',
-      labelEn: 'Parent Portal',
-      meta: 'parent@example.com',
-      icon: Users,
-    },
-    ...(enableStudentPortal
-      ? [
-          {
-            role: 'STUDENT' as AppRole,
-            labelBn: 'শিক্ষার্থী পোর্টাল',
-            labelEn: 'Student Portal',
-            meta: 'student@example.com',
-            icon: GraduationCap,
-          },
-        ]
-      : []),
-  ];
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-background">
@@ -388,48 +268,12 @@ export function LoginPage() {
                   </Link>
                 </div>
 
-                <Button type="submit" variant="primary" className="w-full h-11 text-base font-semibold mt-1">
+                <Button type="submit" variant="primary" disabled={isLoggingIn} className="w-full h-11 text-base font-semibold mt-1">
                   <span>{pick('পোর্টালে প্রবেশ করুন', 'Sign In to Portal')}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </form>
             </Card>
-
-            <div className="space-y-3.5">
-              <div className="relative flex items-center">
-                <div className="flex-1 border-t border-border" />
-                <span className="px-3 text-xs font-medium text-muted-foreground">
-                  {pick('দ্রুত ডেমো পোর্টাল প্রবেশ', 'Quick Demo Portal Access')}
-                </span>
-                <div className="flex-1 border-t border-border" />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {demoButtons.map((b) => {
-                  const Icon = b.icon;
-                  return (
-                    <button
-                      key={b.role}
-                      type="button"
-                      onClick={() => handleDemoLogin(b.role)}
-                      className="group flex items-center gap-3 p-3 text-left bg-surface border border-border rounded-[var(--radius)] hover:border-primary hover:bg-surface-muted/40 transition-colors cursor-pointer"
-                    >
-                      <div className="w-9 h-9 rounded-[var(--radius)] bg-surface-muted text-primary group-hover:bg-primary group-hover:text-primary-foreground flex items-center justify-center shrink-0 transition-colors">
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-foreground leading-snug truncate">
-                          {pick(b.labelBn, b.labelEn)}
-                        </p>
-                        <p className="text-xs font-mono text-muted-foreground tabular-nums truncate">
-                          {b.meta}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
 
             <p className="text-center text-sm text-muted-foreground">
               {pick('অ্যাকাউন্ট সহায়তার জন্য ', 'Need help signing in? ')}

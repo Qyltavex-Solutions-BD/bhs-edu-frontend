@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
 import { useGetBootstrapQuery } from '@/src/store/api';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { NoticeDocumentModal } from '@/src/components/shared/NoticeDocumentViewer';
@@ -8,7 +9,6 @@ import type { Notice } from '@/src/types/entities';
 
 import { HomeHeroSection } from './HomeHeroSection';
 import { HomeNoticeSection } from './HomeNoticeSection';
-import { HomeWhyStudySection } from './HomeWhyStudySection';
 import { HomeAdmissionBanner } from './HomeAdmissionBanner';
 import { HomeCampusLifeSection } from './HomeCampusLifeSection';
 import { HomeFacultySection } from './HomeFacultySection';
@@ -18,6 +18,7 @@ import { HomeContactMapSection } from './HomeContactMapSection';
 
 export function HomePage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
+  const { data: noticePage, isError: noticesError, isLoading: loadingNotices, refetch: refetchNotices } = useGetPublicNoticesQuery({ limit: 20 });
   const [previewNotice, setPreviewNotice] = useState<Notice | null>(null);
 
   if (isLoading || !db) {
@@ -37,17 +38,18 @@ export function HomePage() {
 
   return (
     <div className="space-y-16 pb-10">
-      <HomeHeroSection db={db} />
+      <HomeHeroSection db={db} notices={noticePage?.items ?? []} />
 
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 space-y-20">
         <HomeNoticeSection
-          notices={db.notices}
+          notices={noticePage?.items ?? []}
+          loading={loadingNotices}
+          loadFailed={noticesError}
+          onRetry={() => void refetchNotices()}
           presidentMsg={presidentMsg}
           principalMsg={principalMsg}
           onPreviewNotice={setPreviewNotice}
         />
-
-        <HomeWhyStudySection schoolProfile={db.schoolProfile} />
 
         <HomeAdmissionBanner admissionContent={db.admissionContent} />
 

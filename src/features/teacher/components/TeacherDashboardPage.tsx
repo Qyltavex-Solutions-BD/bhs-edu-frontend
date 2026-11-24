@@ -1,5 +1,6 @@
 'use client';
 
+import { useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from '@/src/lib/navigation';
@@ -83,6 +84,7 @@ function getAssignmentSubject(db: MockDatabase, classSubjectId: string) {
 
 export function TeacherDashboardPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
+  const { data: noticePage } = useGetPublicNoticesQuery({ limit: 20 });
   const teacher = useCurrentTeacher(db);
   const { locale, pick } = useI18n();
 
@@ -319,7 +321,7 @@ export function TeacherDashboardPage() {
             </Link>
           </div>
           <div className="divide-y divide-border">
-            {db.notices.slice(0, 4).map((n) => (
+            {(noticePage?.items ?? []).slice(0, 4).map((n) => (
               <div key={n.id} className="py-2.5 flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{n.title}</p>

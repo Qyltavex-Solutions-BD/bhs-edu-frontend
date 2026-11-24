@@ -123,7 +123,7 @@ export function PortalMobileDrawer({
                         <ChevronDown className={cn('w-3.5 h-3.5 shrink-0 transition-transform opacity-75', open && 'rotate-180')} />
                       </button>
                       {open && (
-                        <div className="mt-1 ml-3 pl-2.5 border-l border-white/20 space-y-0.5">
+                        <div className="mt-1 ml-3.5 pl-3 border-l-2 border-white/80 space-y-0.5">
                           {item.children!.map((child) => {
                             const childActive = studentChildActive(pathname, child.to);
                             return (
@@ -135,7 +135,7 @@ export function PortalMobileDrawer({
                                   'block px-2.5 py-1.5 rounded-lg text-sm font-medium transition-colors',
                                   childActive
                                     ? 'bg-white text-[#1C6440] font-bold shadow-xs'
-                                    : 'text-white/85 hover:text-white hover:bg-white/10'
+                                    : 'text-white/90 hover:text-white hover:bg-white/10'
                                 )}
                               >
                                 {locale === 'bn' ? child.labelBn : child.labelEn}

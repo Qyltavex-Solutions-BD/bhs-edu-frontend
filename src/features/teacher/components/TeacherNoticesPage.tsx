@@ -1,5 +1,6 @@
 'use client';
 
+import { useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from '@/src/lib/navigation';
@@ -83,6 +84,7 @@ function getAssignmentSubject(db: MockDatabase, classSubjectId: string) {
 
 export function TeacherNoticesPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
+  const { data: noticePage } = useGetPublicNoticesQuery({ limit: 20 });
   const { locale, pick } = useI18n();
   if (isLoading || !db) return <LoadingSkeleton />;
 
@@ -93,7 +95,7 @@ export function TeacherNoticesPage() {
         description={pick('শিক্ষক ও একাডেমিক সংক্রান্ত সকল ঘোষণা', 'Official announcements and faculty circulars')}
       />
       <div className="space-y-3">
-        {db.notices.map((n) => (
+        {(noticePage?.items ?? []).map((n) => (
           <Card key={n.id} className="p-5">
             <div className="flex items-start justify-between gap-3">
               <div>

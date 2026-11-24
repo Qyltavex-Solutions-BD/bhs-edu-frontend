@@ -1,5 +1,6 @@
 'use client';
 
+import { useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
 import React, { useState } from 'react';
 import { useGetBootstrapQuery } from '@/src/store/api';
 import { useI18n } from '@/src/lib/i18n';
@@ -28,6 +29,7 @@ const TINT_CORAL = '#F4DAD5';
 
 export function AdminDashboardPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
+  const { data: noticePage } = useGetPublicNoticesQuery({ limit: 20 });
   const { locale, pick } = useI18n();
 
   const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month'>('week');
@@ -269,7 +271,7 @@ export function AdminDashboardPage() {
       <AdminDashboardWidgets
         pendingActions={pendingActions}
         onDismissAction={(id) => setDismissedActions((prev) => [...prev, id])}
-        notices={db.notices}
+        notices={(noticePage?.items ?? [])}
         auditLogs={db.auditLogs}
         locale={locale}
         pick={pick}

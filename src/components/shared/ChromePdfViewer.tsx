@@ -2,6 +2,7 @@
 
 import React from 'react';
 import type { Notice, SchoolProfile } from '@/src/types/entities';
+import { NoticeDocumentViewer, resolveNoticeFormat } from './NoticeDocumentViewer';
 
 interface ChromePdfViewerProps {
   notice: Notice;
@@ -9,11 +10,10 @@ interface ChromePdfViewerProps {
 }
 
 export function ChromePdfViewer({ notice }: ChromePdfViewerProps) {
-  const pdfUrl =
-    notice.attachmentUrl ||
-    (notice.attachment?.toLowerCase().includes('admission')
-      ? '/documents/admission-circular-2027.pdf'
-      : '/documents/official-notice-circular.pdf');
+  const pdfUrl = notice.attachmentUrl;
+  if (!pdfUrl || resolveNoticeFormat(notice) === 'IMAGE') {
+    return <NoticeDocumentViewer notice={notice} />;
+  }
 
   return (
     <div className="w-full rounded-xl overflow-hidden border border-border bg-[#525659] shadow-lg">

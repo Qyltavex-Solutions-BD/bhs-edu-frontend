@@ -12,6 +12,7 @@ export interface ApiRequest {
   url: string;
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
+  responseHandler?: (response: Response) => Promise<unknown>;
 }
 
 export interface ApiError {
@@ -37,10 +38,6 @@ const realApiQuery = fetchBaseQuery({
       }
     }
 
-    if (!token && process.env.NODE_ENV !== 'production') {
-      token = 'demo-in-memory-token-super_admin';
-    }
-
     if (token) headers.set('Authorization', `Bearer ${token}`);
     return headers;
   },
@@ -57,7 +54,9 @@ export const hybridBaseQuery: BaseQueryFn<ApiRequest, unknown, ApiError> = async
 ) => {
   const method = request.method ?? 'GET';
 
-  if (useMockApi || request.url === '/bootstrap') {
+  const requireLiveApi = /^\/(?:notices|auth)(?:[/?]|$)/.test(request.url);
+
+  if (!requireLiveApi && (useMockApi || request.url === '/bootstrap')) {
     const mockResult = await handleMockRequest(request.url, method, request.body);
     return mockResult.error
       ? { error: mockResult.error }
@@ -73,7 +72,7 @@ export const hybridBaseQuery: BaseQueryFn<ApiRequest, unknown, ApiError> = async
     api.dispatch(triggerSessionExpired());
   }
 
-  if (status === 404 || result.error.status === 'FETCH_ERROR') {
+  if (!requireLiveApi && (status === 404 || result.error.status === 'FETCH_ERROR')) {
     const fallback = await handleMockRequest(request.url, method, request.body);
     if (!fallback.error) return { data: fallback.data };
   }

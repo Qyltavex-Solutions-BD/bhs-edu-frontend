@@ -64,7 +64,6 @@ export function createAuthFixtures() {
     { id: 'aud-1', userId: 'user-admin', action: 'RESULT_PUBLISH', module: 'Results', details: 'Published Half-Yearly Examination 2026 results for Class 10 (SSC Batch).', ipAddress: '103.112.54.18', createdAt: '2026-11-18T11:30:00.000Z' },
     { id: 'aud-2', userId: 'user-teacher-1', action: 'MARKS_SUBMIT', module: 'Examinations', details: 'Submitted Mathematics marks for Class 10 Section ক.', ipAddress: '103.112.54.22', createdAt: '2026-11-17T14:15:00.000Z' },
     { id: 'aud-3', userId: 'user-admin', action: 'ATTENDANCE_CONFIG_UPDATE', module: 'Attendance', details: 'Configured Class 10 attendance method to RFID and Classes 6–9 to MANUAL.', ipAddress: '103.112.54.18', createdAt: '2026-11-16T08:40:00.000Z' },
-    { id: 'aud-4', userId: 'user-principal', action: 'NOTICE_PUBLISH', module: 'Notices', details: 'Published notice: বার্ষিক পরীক্ষা ২০২৬ এর সময়সূচি ও প্রবেশপত্র বিতরণ।', ipAddress: '103.112.54.19', createdAt: '2026-11-15T10:05:00.000Z' },
     { id: 'aud-5', userId: 'user-admin', action: 'STUDENT_ENROLL', module: 'Students', details: 'Enrolled Class 6 incoming batch for Academic Year 2026.', ipAddress: '103.112.54.18', createdAt: '2026-11-12T09:10:00.000Z' },
   ];
 

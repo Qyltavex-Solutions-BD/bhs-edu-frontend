@@ -11,6 +11,7 @@ export interface Notice {
   attachmentType?: NoticeAttachmentType | null;
   attachmentUrl?: string | null;
   attachmentSize?: string | null;
+  deletionPending?: boolean;
   publishedAt?: string | null;
   status: NoticeStatus;
   createdBy: string;

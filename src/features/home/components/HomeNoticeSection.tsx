@@ -22,10 +22,13 @@ import { cn } from '@/src/lib/utils/cn';
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
-type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
+type NoticeTab = 'all' | 'urgent';
 
 interface HomeNoticeSectionProps {
   notices: Notice[];
+  loading?: boolean;
+  loadFailed?: boolean;
+  onRetry?: () => void;
   presidentMsg?: LeadershipMessage;
   principalMsg?: LeadershipMessage;
   onPreviewNotice?: (notice: Notice) => void;
@@ -33,6 +36,9 @@ interface HomeNoticeSectionProps {
 
 export function HomeNoticeSection({
   notices,
+  loading,
+  loadFailed,
+  onRetry,
   presidentMsg,
   principalMsg,
   onPreviewNotice,
@@ -44,35 +50,16 @@ export function HomeNoticeSection({
   const noticeTabs: { key: NoticeTab; labelBn: string; labelEn: string }[] = [
     { key: 'all', labelBn: 'সব বিজ্ঞপ্তি', labelEn: 'All Notices' },
     { key: 'urgent', labelBn: 'জরুরি', labelEn: 'Urgent' },
-    { key: 'exam', labelBn: 'পরীক্ষা ও ফলাফল', labelEn: 'Exams & Results' },
-    { key: 'admission', labelBn: 'ভর্তি ও একাডেমিক', labelEn: 'Admission' },
   ];
 
   const publishedNotices = useMemo(() => {
     const all = (notices ?? []).filter((n) => n.status === NoticeStatus.PUBLISHED);
     return all.filter((n) => {
-      const text = `${n.memoNo ?? ''} ${n.title} ${n.description}`.toLowerCase();
+      const text = `${n.memoNo ?? ''} ${n.title} ${n.memoNo ?? ''}`.toLowerCase();
       if (noticeQuery.trim() && !text.includes(noticeQuery.trim().toLowerCase())) {
         return false;
       }
       if (noticeTab === 'urgent') return n.isUrgent;
-      if (noticeTab === 'exam') {
-        return (
-          text.includes('পরীক্ষা') ||
-          text.includes('ফলাফল') ||
-          text.includes('exam') ||
-          text.includes('result') ||
-          text.includes('রুটিন')
-        );
-      }
-      if (noticeTab === 'admission') {
-        return (
-          text.includes('ভর্তি') ||
-          text.includes('admission') ||
-          text.includes('ক্লাস') ||
-          text.includes('সেশন')
-        );
-      }
       return true;
     });
   }, [notices, noticeTab, noticeQuery]);
@@ -114,6 +101,7 @@ export function HomeNoticeSection({
                 return (
                   <button
                     key={tab.key}
+                    aria-pressed={active}
                     type="button"
                     onClick={() => setNoticeTab(tab.key)}
                     className={cn(
@@ -142,7 +130,12 @@ export function HomeNoticeSection({
           </div>
 
           <div className="divide-y divide-border">
-            {publishedNotices.length === 0 ? (
+            {loading || loadFailed ? (
+              <div className="flex flex-wrap items-center justify-center gap-3 p-5 text-sm text-muted-foreground" role={loadFailed ? 'alert' : 'status'}>
+                {loading ? pick('বিজ্ঞপ্তি লোড হচ্ছে…', 'Loading notices...') : pick('বিজ্ঞপ্তি লোড করা যায়নি।', 'Could not load notices.')}
+                {loadFailed && <button type="button" onClick={onRetry} className="font-medium text-primary underline">{pick('আবার চেষ্টা', 'Retry')}</button>}
+              </div>
+            ) : publishedNotices.length === 0 ? (
               <div className="p-10 text-center text-sm text-muted-foreground">
                 {pick('এই বিভাগে কোনো বিজ্ঞপ্তি পাওয়া যায়নি।', 'No notices found in this category.')}
               </div>

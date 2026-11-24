@@ -77,23 +77,15 @@ test('Critical Portal End-to-End Journeys', async (t) => {
     assert.equal(testData.refNumber, 'BHS/TEST/2026/801');
   });
 
-  await t.test('Journey 6: Institutional Notice & Notification Broadcast Flow', async () => {
-    // 1. Create a high-priority school notice
-    const noticeRes = await handleMockRequest('/notices', 'POST', {
-      title: 'পহেলা বৈশাখ উদযাপন ও ছুটির বিজ্ঞপ্তি',
-      description: 'আগামী ১৪ই এপ্রিল বাংলা নববর্ষ উপলক্ষে বিদ্যালয়ের সকল কার্যক্রম বন্ধ থাকবে।',
-      isUrgent: true,
+  await t.test('Notice creation is unavailable in the mock adapter', async () => {
+    const response = await handleMockRequest('/notices', 'POST', {
+      title: 'A notice must be saved through the backend',
       status: 'PUBLISHED',
-      audience: 'ALL',
     });
-    assert.equal(noticeRes.error, undefined);
-    assert.ok(noticeRes.data);
-    const createdNotice = noticeRes.data as { id: string; title: string; isUrgent: boolean };
-    assert.ok(createdNotice.id);
-    assert.equal(createdNotice.isUrgent, true);
-    assert.equal(createdNotice.title, 'পহেলা বৈশাখ উদযাপন ও ছুটির বিজ্ঞপ্তি');
+    assert.equal(response.error?.status, 404);
+  });
 
-    // 2. Mark system notification read
+  await t.test('Marks a notification as read', async () => {
     const notifRes = await handleMockRequest('/notifications/read', 'POST', {});
     assert.equal(notifRes.error, undefined);
     assert.ok(notifRes.data);

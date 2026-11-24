@@ -5,7 +5,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import {
   dismissSessionExpired,
-  loginWithDemoRole,
   logout,
   type AppRole,
 } from '@/src/store/slices/authSlice';
@@ -39,7 +38,6 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
   const [notifOpen, setNotifOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
-  // Auto-align demo role when navigating directly into a portal preview if unauthenticated
   const expectedRoles: Record<PortalKind, AppRole[]> = {
     admin: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'PRINCIPAL'],
     teacher: ['TEACHER'],
@@ -82,24 +80,8 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
     return <PortalStudentDisabledScreen pick={pick} />;
   }
 
-  // Auth / Role check with convenient demo switch option
   if (!auth.isAuthenticated || !auth.role || !expectedRoles[portal].includes(auth.role)) {
-    const defaultRole: AppRole =
-      portal === 'admin'
-        ? 'SUPER_ADMIN'
-        : portal === 'teacher'
-          ? 'TEACHER'
-          : portal === 'parent'
-            ? 'PARENT'
-            : 'STUDENT';
-
-    return (
-      <PortalLoginRequiredScreen
-        defaultRole={defaultRole}
-        onLoginDemo={(role) => dispatch(loginWithDemoRole(role))}
-        pick={pick}
-      />
-    );
+    return <PortalLoginRequiredScreen pick={pick} />;
   }
 
   const handleLogout = () => {

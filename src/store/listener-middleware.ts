@@ -1,7 +1,6 @@
 import { createListenerMiddleware, isAnyOf } from '@reduxjs/toolkit';
 import {
   AUTH_STORAGE_KEY,
-  loginWithDemoRole,
   logout,
   setCredentials,
   triggerSessionExpired,
@@ -45,7 +44,7 @@ function safelyRemove(key: string) {
 export const listenerMiddleware = createListenerMiddleware();
 
 listenerMiddleware.startListening({
-  matcher: isAnyOf(loginWithDemoRole, setCredentials),
+  actionCreator: setCredentials,
   effect: (_action, listenerApi) => {
     const { accessToken, user, role, permissions } =
       (listenerApi.getState() as PersistenceState).auth;

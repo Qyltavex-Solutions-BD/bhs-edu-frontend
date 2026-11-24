@@ -43,14 +43,10 @@ export function PortalStudentDisabledScreen({ pick }: PortalStudentDisabledScree
 }
 
 interface PortalLoginRequiredScreenProps {
-  defaultRole: AppRole;
-  onLoginDemo: (role: AppRole) => void;
   pick: (bn: string, en: string) => string;
 }
 
 export function PortalLoginRequiredScreen({
-  defaultRole,
-  onLoginDemo,
   pick,
 }: PortalLoginRequiredScreenProps) {
   return (
@@ -65,16 +61,10 @@ export function PortalLoginRequiredScreen({
         <p className="text-base text-muted-foreground leading-relaxed">
           {pick(
             'আপনি অনুমোদিত ভূমিকা দিয়ে সাইন ইন করে পোর্টালটি ব্যবহার করতে পারেন। ডেমো সেশন শুধুমাত্র প্রদর্শনের জন্য।',
-            'Please sign in with an authorized account for this portal. Demo login is provided strictly for preview.'
+            'Please sign in with an authorized account for this portal.'
           )}
         </p>
         <div className="flex flex-col gap-2 pt-2">
-          <Button
-            variant="primary"
-            onClick={() => onLoginDemo(defaultRole)}
-          >
-            {pick(`ডেমো ${defaultRole} হিসেবে প্রবেশ করুন`, `Continue as Demo ${defaultRole}`)}
-          </Button>
           <Link href="/login">
             <Button variant="outline" className="w-full">
               {pick('লগইন পৃষ্ঠায় যান', 'Go to Login Page')}

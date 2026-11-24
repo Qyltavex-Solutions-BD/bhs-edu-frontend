@@ -426,10 +426,14 @@ export function triggerPrint(): boolean {
     return printCertificateNode(sheetNodes[sheetNodes.length - 1]);
   }
 
-  // 3. Fallback to primary <main> content container so iframe print buttons always work cleanly
-  const mainEl = document.querySelector<HTMLElement>('main');
-  if (mainEl && isVisible(mainEl)) {
-    return printCertificateNode(mainEl);
+  // 3. Fallback to primary <main> content container so standalone document pages always print cleanly
+  // Do not fall back to <main> if an overlay dialog/modal is open, to avoid accidentally printing the background dashboard
+  const hasOpenDialog = Boolean(document.querySelector('[role="dialog"], [aria-modal="true"]'));
+  if (!hasOpenDialog) {
+    const mainEl = document.querySelector<HTMLElement>('main');
+    if (mainEl && isVisible(mainEl)) {
+      return printCertificateNode(mainEl);
+    }
   }
 
   window.print();

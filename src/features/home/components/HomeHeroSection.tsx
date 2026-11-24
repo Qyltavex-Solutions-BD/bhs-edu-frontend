@@ -52,10 +52,11 @@ const HERO_SLIDE_VARIANTS = {
 };
 
 interface HomeHeroSectionProps {
+  notices: import('@/src/types/entities').Notice[];
   db: MockDatabase;
 }
 
-export function HomeHeroSection({ db }: HomeHeroSectionProps) {
+export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
   const { locale, pick } = useI18n();
   const router = useRouter();
 
@@ -697,7 +698,7 @@ export function HomeHeroSection({ db }: HomeHeroSectionProps) {
         </div>
       </section>
       <NoticeTickerBar
-        notices={db.notices
+        notices={notices
           .filter((n) => n.status === NoticeStatus.PUBLISHED)
           .slice(0, 6)}
       />

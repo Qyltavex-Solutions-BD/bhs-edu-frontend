@@ -1,11 +1,4 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { PERMISSIONS } from '@/src/lib/permissions';
-
-/**
- * SECURITY NOTE:
- * Sensitive auth tokens are kept strictly in Redux memory (never persisted to localStorage).
- * Demo login presets exist strictly for frontend preview and are clearly labeled in the UI.
- */
 
 export type AppRole =
   | 'SUPER_ADMIN'
@@ -37,101 +30,14 @@ export interface AuthState {
   sessionExpired: boolean;
 }
 
-export const DEMO_ACCOUNTS: Record<AppRole, { user: AuthUser; permissions: string[]; redirect: string }> = {
-  SUPER_ADMIN: {
-    user: {
-      id: 'user-admin',
-      name: 'মোঃ রফিকুল ইসলাম (ডেমো অ্যাডমিন)',
-      email: 'admin@bhs.edu.bd',
-      phone: '01711000001',
-      role: 'SUPER_ADMIN',
-      designation: 'সুপার অ্যাডমিন',
-      isDemoSession: true,
-    },
-    permissions: Object.values(PERMISSIONS),
-    redirect: '/admin',
-  },
-  SCHOOL_ADMIN: {
-    user: {
-      id: 'user-admin',
-      name: 'বিদ্যালয় প্রশাসক (ডেমো)',
-      email: 'office@bhs.edu.bd',
-      phone: '01711000005',
-      role: 'SCHOOL_ADMIN',
-      designation: 'স্কুল অ্যাডমিন',
-      isDemoSession: true,
-    },
-    permissions: Object.values(PERMISSIONS).filter((p) => p !== PERMISSIONS.ROLES_MANAGE),
-    redirect: '/admin',
-  },
-  PRINCIPAL: {
-    user: {
-      id: 'user-principal',
-      name: 'মোঃ শফিকুর রহমান (ডেমো প্রধান শিক্ষক)',
-      email: 'principal@bhs.edu.bd',
-      phone: '01711000002',
-      role: 'PRINCIPAL',
-      staffId: 'staff-1',
-      designation: 'প্রধান শিক্ষক',
-      isDemoSession: true,
-    },
-    permissions: Object.values(PERMISSIONS),
-    redirect: '/admin',
-  },
-  TEACHER: {
-    user: {
-      id: 'user-teacher-1',
-      name: 'মোঃ কামরুল হাসান (ডেমো শিক্ষক)',
-      email: 'kamrul@bhs.edu.bd',
-      phone: '01711000003',
-      role: 'TEACHER',
-      staffId: 'staff-3',
-      designation: 'সিনিয়র সহকারী শিক্ষক (গণিত)',
-      isDemoSession: true,
-    },
-    permissions: [PERMISSIONS.ATTENDANCE_MARK, PERMISSIONS.MARKS_ENTER],
-    redirect: '/teacher/dashboard',
-  },
-  PARENT: {
-    user: {
-      id: 'user-parent-1',
-      name: 'মোঃ আবুল কালাম (ডেমো অভিভাবক)',
-      email: 'parent@bhs.edu.bd',
-      phone: '01711000010',
-      role: 'PARENT',
-      parentId: 'par-1',
-      designation: 'অভিভাবক (২ জন শিক্ষার্থী সংযুক্ত)',
-      isDemoSession: true,
-    },
-    permissions: [],
-    redirect: '/parent/dashboard',
-  },
-  STUDENT: {
-    user: {
-      id: 'user-student-1',
-      name: 'তানভীর আহমেদ (ডেমো শিক্ষার্থী)',
-      email: 'student@bhs.edu.bd',
-      phone: '01711000020',
-      role: 'STUDENT',
-      studentId: 'stu-10-1',
-      designation: '১০ম শ্রেণি, শাখা ক, রোল ১',
-      isDemoSession: true,
-    },
-    permissions: [],
-    redirect: '/student/dashboard',
-  },
-};
-
 export const AUTH_STORAGE_KEY = 'bhs_auth_session';
 
-const defaultAdmin = DEMO_ACCOUNTS.SUPER_ADMIN;
-
 const initialState: AuthState = {
-  isAuthenticated: true,
-  accessToken: 'demo-in-memory-token-super_admin',
-  user: defaultAdmin.user,
-  role: 'SUPER_ADMIN',
-  permissions: defaultAdmin.permissions,
+  isAuthenticated: false,
+  accessToken: null,
+  user: null,
+  role: null,
+  permissions: [],
   sessionExpired: false,
 };
 
@@ -154,17 +60,6 @@ const authSlice = createSlice({
       state.role = action.payload.role;
       state.permissions = action.payload.permissions;
       state.sessionExpired = false;
-    },
-    loginWithDemoRole(state, action: PayloadAction<AppRole>) {
-      const preset = DEMO_ACCOUNTS[action.payload];
-      const token = `demo-in-memory-token-${action.payload.toLowerCase()}`;
-      state.isAuthenticated = true;
-      state.accessToken = token;
-      state.user = preset.user;
-      state.role = action.payload;
-      state.permissions = preset.permissions;
-      state.sessionExpired = false;
-
     },
     setCredentials(
       state,
@@ -204,7 +99,6 @@ const authSlice = createSlice({
 
 export const {
   hydrateAuth,
-  loginWithDemoRole,
   setCredentials,
   logout,
   triggerSessionExpired,

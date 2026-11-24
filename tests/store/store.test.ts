@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { makeStore } from '@/src/store/store';
-import { logout } from '@/src/store/slices/authSlice';
+import { logout, setCredentials } from '@/src/store/slices/authSlice';
 import { setTheme, toggleSidebar } from '@/src/store/slices/uiSlice';
 
 describe('Redux store lifecycle', () => {
@@ -9,12 +9,12 @@ describe('Redux store lifecycle', () => {
     const firstStore = makeStore();
     const secondStore = makeStore();
 
-    firstStore.dispatch(logout());
+    firstStore.dispatch(setCredentials({ accessToken: 'test-token' }));
     firstStore.dispatch(setTheme('dark'));
 
-    assert.equal(firstStore.getState().auth.isAuthenticated, false);
+    assert.equal(firstStore.getState().auth.isAuthenticated, true);
     assert.equal(firstStore.getState().ui.theme, 'dark');
-    assert.equal(secondStore.getState().auth.isAuthenticated, true);
+    assert.equal(secondStore.getState().auth.isAuthenticated, false);
     assert.equal(secondStore.getState().ui.theme, 'light');
   });
 
