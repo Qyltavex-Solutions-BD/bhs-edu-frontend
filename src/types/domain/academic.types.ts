@@ -90,6 +90,32 @@ export interface ClassSubject {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+
+  // Joined relations from backend API
+  academicYear?: {
+    id: string;
+    name: string;
+    isActive: boolean;
+  };
+  schoolClass?: {
+    id: string;
+    name: string;
+    nameBn?: string | null;
+    numericValue: number;
+  };
+  subject?: {
+    id: string;
+    name: string;
+    nameBn?: string | null;
+    officialCode?: string | null;
+    category?: SubjectCategory | string | null;
+    displayOrder?: number;
+  };
+  group?: {
+    id: string;
+    name: string;
+    nameBn?: string | null;
+  } | null;
 }
 
 export interface AcademicDocument {
