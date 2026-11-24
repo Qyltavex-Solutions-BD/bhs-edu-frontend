@@ -1,1 +1,2 @@
-export { AdminAttendancePage } from '@/src/views/admin/AdminAttendanceOps';
+/** @deprecated Re-exported from canonical feature module. */
+export { AdminAttendancePage } from '@/src/features/attendance';

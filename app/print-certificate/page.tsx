@@ -8,7 +8,7 @@ import {
   PrintableTestimonialCertificate,
   PrintableTransferCertificate,
 } from '@/src/components/print/PrintDocuments';
-import { PrintableAdmissionFormDocument } from '@/src/features/admission/components/AdmissionFormPreviewSheet';
+import { PrintableAdmissionFormDocument } from '@/src/features/admission';
 import { Button } from '@/src/components/ui/primitives';
 import { useI18n } from '@/src/lib/i18n';
 import {

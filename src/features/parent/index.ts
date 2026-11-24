@@ -1,0 +1,12 @@
+export { ParentDashboardPage } from './components/ParentDashboardPage';
+export { ParentProfilePage } from './components/ParentProfilePage';
+export { ParentChildrenPage } from './components/ParentChildrenPage';
+export { ParentChildDetailPage } from './components/ParentChildDetailPage';
+export { ParentAttendancePage } from './components/ParentAttendancePage';
+export { ParentResultsPage } from './components/ParentResultsPage';
+export { ParentRoutinesPage } from './components/ParentRoutinesPage';
+export { ParentExaminationsPage } from './components/ParentExaminationsPage';
+export { ParentResourcesPage } from './components/ParentResourcesPage';
+export { ParentNoticesPage } from './components/ParentNoticesPage';
+export { ParentNotificationsPage } from './components/ParentNotificationsPage';
+export { ParentSmsHistoryPage } from './components/ParentSmsHistoryPage';

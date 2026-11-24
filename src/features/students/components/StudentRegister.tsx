@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { UnifiedAdmissionForm, type AdminAdmissionResult } from '@/src/features/admission/components/UnifiedAdmissionForm';
+import { UnifiedAdmissionForm, type AdminAdmissionResult } from '@/src/features/admission';
 import { AdmissionConfirmationView } from './AdmissionConfirmationView';
 import type { MockDatabase } from '@/src/mocks/seed';
 

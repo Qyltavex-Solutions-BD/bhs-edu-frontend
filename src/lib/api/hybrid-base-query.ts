@@ -6,6 +6,8 @@ import {
   triggerSessionExpired,
 } from '@/src/store/slices/authSlice';
 
+import { env } from '@/src/lib/env';
+
 export interface ApiRequest {
   url: string;
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -17,8 +19,8 @@ export interface ApiError {
   message: string;
 }
 
-const useMockApi = process.env.NEXT_PUBLIC_USE_MOCK_API !== 'false';
-const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+const useMockApi = env.NEXT_PUBLIC_USE_MOCK_API;
+const apiBaseUrl = env.NEXT_PUBLIC_API_URL;
 
 const realApiQuery = fetchBaseQuery({
   baseUrl: apiBaseUrl,

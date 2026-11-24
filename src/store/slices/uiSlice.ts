@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { env } from '@/src/lib/env';
 
 export interface UiState {
   theme: 'light' | 'dark';
@@ -13,8 +14,8 @@ const initialState: UiState = {
   theme: 'light',
   sidebarCollapsed: false,
   commandPaletteOpen: false,
-  enableStudentPortal: process.env.NEXT_PUBLIC_ENABLE_STUDENT_PORTAL === 'true',
-  enableFutureModules: process.env.NEXT_PUBLIC_ENABLE_FUTURE_MODULES === 'true',
+  enableStudentPortal: env.NEXT_PUBLIC_ENABLE_STUDENT_PORTAL,
+  enableFutureModules: env.NEXT_PUBLIC_ENABLE_FUTURE_MODULES,
   selectedAcademicYearId: null,
 };
 

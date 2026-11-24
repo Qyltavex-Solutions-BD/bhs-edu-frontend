@@ -2,6 +2,9 @@
 
 import React from 'react';
 import { ErrorState } from '@/src/components/shared/Feedback';
+import { createLogger } from '@/src/lib/logger';
+
+const logger = createLogger('ErrorBoundary');
 
 export class AppErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -14,6 +17,12 @@ export class AppErrorBoundary extends React.Component<
 
   static getDerivedStateFromError(error: Error) {
     return { hasError: true, message: error?.message ?? 'অপ্রত্যাশিত ত্রুটি হয়েছে' };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    logger.error('Unhandled React component error caught by boundary', error, {
+      componentStack: errorInfo.componentStack,
+    });
   }
 
   render() {

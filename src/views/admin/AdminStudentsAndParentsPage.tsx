@@ -1,2 +1,2 @@
-export { AdminStudentsPage } from '@/src/views/admin/AdminStudentOps';
-export { AdminParentsPage } from '@/src/views/admin/AdminParentOps';
+export { AdminStudentsPage } from '@/src/features/students';
+export { AdminParentsPage } from '@/src/features/parents';

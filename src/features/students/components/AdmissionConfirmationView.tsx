@@ -7,10 +7,12 @@ import { useI18n } from '@/src/lib/i18n';
 import { triggerPrint } from '@/src/lib/utils/cn';
 import { Button, Card } from '@/src/components/ui/primitives';
 import { PrintableAdmissionConfirmationSlip } from '@/src/components/print/PrintDocuments';
-import { getOptionalSubjectsForClassGroup } from '@/src/features/admission/rules';
-import { resolvePrimaryGuardianPhone } from '@/src/features/admission/mappers';
+import {
+  getOptionalSubjectsForClassGroup,
+  resolvePrimaryGuardianPhone,
+  type AdminAdmissionResult,
+} from '@/src/features/admission';
 import type { MockDatabase } from '@/src/mocks/seed';
-import type { AdminAdmissionResult } from '@/src/features/admission/components/UnifiedAdmissionForm';
 
 export function AdmissionConfirmationView({
   db,
