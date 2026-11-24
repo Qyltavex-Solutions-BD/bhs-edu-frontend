@@ -13,6 +13,7 @@ import {
   Phone,
   Mail,
   MapPin,
+  ExternalLink,
   LogIn,
   Megaphone,
   ArrowUpRight,
@@ -1563,11 +1564,26 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="border-t border-border">
-          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
+          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-muted-foreground">
             <p>
               © {locale === 'bn' ? '২০২৬' : '2026'} {school?.name ?? t('school.name')}।{' '}
               {pick('সর্বস্বত্ব সংরক্ষিত।', 'All rights reserved.')}
             </p>
+
+            {/* Software Developer & Maintenance Credit */}
+            <p className="inline-flex items-center gap-1.5 text-xs sm:text-sm">
+              <span>{pick('কারিগরি সহায়তা ও পরিচালনায়:', 'Developed & Maintained by:')}</span>
+              <a
+                href="https://www.qyltavex.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-primary hover:underline hover:text-primary/90 transition-colors inline-flex items-center gap-1"
+              >
+                <span>Qyltavex Solutions BD</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </p>
+
             <div className="flex items-center gap-4">
               <Link href="/privacy-policy" className="hover:text-primary">
                 {pick('গোপনীয়তা নীতি', 'Privacy Policy')}

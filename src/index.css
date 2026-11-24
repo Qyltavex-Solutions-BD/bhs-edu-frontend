@@ -39,7 +39,7 @@
   --surface: #FFFFFF;
   --surface-muted: #ECF0EC;
   --foreground: #10241A;
-  --muted-foreground: #5B6D62;
+  --muted-foreground: #3D5045;
   --border: #E0E7E2;
   --ring: #1C6440;
   --radius: 1.25rem;
@@ -106,8 +106,8 @@
   --color-border: var(--border);
   --color-ring: var(--ring);
   --radius-md: var(--radius);
-  --font-sans: 'Noto Sans Bengali', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-display: 'Noto Sans Bengali', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: 'Noto Sans Bengali', 'NotoSansBengali-Regular', 'Hind Siliguri', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Noto Sans Bengali', 'Tiro Bangla', 'Hind Siliguri', sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Calibrated Institutional Typography Scale — 12px Hard Floor, 14px Preferred Standard */
@@ -164,7 +164,9 @@
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0;
+  letter-spacing: 0.01em;
+  display: inline-block;
+  padding-left: 0.5px;
 }
 
 /* Deep Forest-Charcoal Frosted Glass Surfaces (subtle BHS heritage depth, crisp white borders) */

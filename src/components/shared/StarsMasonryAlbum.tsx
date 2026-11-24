@@ -157,15 +157,15 @@ export function StarsMasonryAlbum({ stars, locale, pick }: StarsMasonryAlbumProp
                       <p className="text-lg font-bold leading-tight drop-shadow-sm group-hover:text-primary-foreground">
                         {ach.personName}
                       </p>
-                      <p className="text-xs font-medium text-white/90 line-clamp-1 mt-0.5">
+                      <p className="text-sm font-medium text-white/95 line-clamp-1 mt-0.5">
                         {ach.title}
                       </p>
                     </div>
 
                     {/* Hover Click-to-Expand Badge */}
                     <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 backdrop-blur-[2px]">
-                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-slate-900 text-xs font-bold shadow-xl">
-                        <Maximize2 className="w-3.5 h-3.5 text-primary" />
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-slate-900 text-sm font-bold shadow-xl">
+                        <Maximize2 className="w-4 h-4 text-primary" />
                         <span>{pick('বিস্তারিত সাফল্যগাথা', 'View Story')}</span>
                       </span>
                     </div>
@@ -174,16 +174,16 @@ export function StarsMasonryAlbum({ stars, locale, pick }: StarsMasonryAlbumProp
                   {/* Card Bottom Description Block */}
                   {ach.description && (
                     <div className="p-4 bg-surface border-t border-border flex flex-col justify-between gap-2.5 flex-1">
-                      <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                         {ach.description}
                       </p>
-                      <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs font-semibold text-primary">
+                      <div className="flex items-center justify-between pt-2 border-t border-border/60 text-sm font-semibold text-primary">
                         <span className="inline-flex items-center gap-1 group-hover:underline">
                           <span>{pick('সম্পূর্ণ বিবরণী', 'Full Details')}</span>
                           <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                         </span>
                         {ach.achievedAt && (
-                          <span className="text-[11px] text-muted-foreground tabular-nums">
+                          <span className="text-xs text-muted-foreground tabular-nums">
                             {ach.achievedAt.split('-')[0]}
                           </span>
                         )}
@@ -197,40 +197,7 @@ export function StarsMasonryAlbum({ stars, locale, pick }: StarsMasonryAlbumProp
         />
       </div>
 
-      {/* Interactive Community Invitation Bar */}
-      <div className="p-4 sm:p-5 rounded-2xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-sm font-bold text-foreground">
-              {pick(
-                'আপনিও কি ভোজেশ্বর উচ্চ বিদ্যালয়ের প্রাক্তন বা বর্তমান কৃতি শিক্ষার্থী?',
-                'Are you an alumnus or distinguished achiever of Bhojeshwar High School?'
-              )}
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {pick(
-                'আমাদের অ্যালামনাই ডিরেক্টরিতে নাম অন্তর্ভুক্ত করুন অথবা আপনার মেধা ও স্বীকৃতির তথ্য বিদ্যালয় কর্তৃপক্ষের সাথে শেয়ার করুন।',
-                'Join our alumni community directory or share your academic/professional achievements with us.'
-              )}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
-          <Link href="/alumni" className="w-full sm:w-auto">
-            <Button variant="outline" size="sm" className="w-full sm:w-auto">
-              {pick('অ্যালামনাই নিবন্ধন', 'Join Alumni')}
-            </Button>
-          </Link>
-          <Link href="/achievements" className="w-full sm:w-auto">
-            <Button variant="primary" size="sm" className="w-full sm:w-auto">
-              {pick('সব কৃতি অর্জন', 'All Achievements')}
-            </Button>
-          </Link>
-        </div>
-      </div>
+
 
       {/* =========================================================================
           LIGHTBOX MODAL (On clicking any star in the masonry album)
