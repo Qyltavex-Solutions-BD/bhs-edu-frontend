@@ -7,7 +7,7 @@ import type {
   StudentTransferCertificate,
 } from '@/src/types/entities';
 import type { OnlineAdmissionApplication } from '@/src/types/proposed/future';
-import type { UnifiedAdmissionFormValues } from '@/src/features/admission/schema';
+import type { UnifiedAdmissionFormValues } from '@/src/features/admission';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

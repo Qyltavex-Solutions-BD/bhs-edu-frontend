@@ -1,5 +1,6 @@
 export * from './api/admission.api';
 export * from './schemas';
+export * from './schema';
 export * from './rules';
 export * from './mappers';
 export { AdmissionOverviewPage } from './components/AdmissionOverviewPage';
