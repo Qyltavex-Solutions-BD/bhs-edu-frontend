@@ -1,5 +1,6 @@
 export * from './api/students.api';
 export * from './api/promotions.api';
+export * from './schemas';
 export * from './components/StudentsShell';
 export * from './components/AdmissionConfirmationView';
 export * from './components/StudentRegister';

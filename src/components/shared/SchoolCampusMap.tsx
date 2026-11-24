@@ -17,8 +17,9 @@ import {
 import { Crosshair, ExternalLink, Layers, MapPin, Navigation } from 'lucide-react';
 import { useI18n } from '@/src/lib/i18n';
 import { cn } from '@/src/lib/utils/cn';
+import { env } from '@/src/lib/env';
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+const GOOGLE_MAPS_API_KEY = env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 interface LatLngPoint {
   lat: number;

@@ -8,7 +8,10 @@
     "build": "next build --webpack",
     "start": "next start --port 3000",
     "lint": "tsc --noEmit",
-    "test": "tsx --test tests/**/*.test.ts"
+    "test": "tsx --test tests/**/*.test.ts",
+    "check": "tsc --noEmit && tsx --test tests/**/*.test.ts",
+    "check-budget": "node scripts/check-bundle-budget.mjs",
+    "ci": "tsc --noEmit && tsx --test tests/**/*.test.ts && next build --webpack && node scripts/check-bundle-budget.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

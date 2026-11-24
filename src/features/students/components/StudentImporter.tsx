@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useImportStudentsMutation } from '@/src/store/api';
 import { useI18n } from '@/src/lib/i18n';
 import { Button, Card, Input } from '@/src/components/ui/primitives';
-import { errorMessage } from '@/src/views/admin/students/studentShared';
+import { errorMessage } from './admin/studentShared';
 import type { MockDatabase } from '@/src/mocks/seed';
 
 export function StudentImporter({ db, yearId }: { db: MockDatabase; yearId: string }) {

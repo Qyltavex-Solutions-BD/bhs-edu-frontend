@@ -17,13 +17,14 @@ import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Card, FormField, Input, Modal, Select } from '@/src/components/ui/primitives';
-import { UnifiedAdmissionForm, type AdminAdmissionResult } from '@/src/features/admission/components/UnifiedAdmissionForm';
 import {
+  UnifiedAdmissionForm,
+  type AdminAdmissionResult,
   ADMISSION_TYPE_META,
   getNextSuggestedRoll,
   getRequiredDocumentChecklist,
-} from '@/src/features/admission/rules';
-import { classLabel, errorMessage } from '@/src/views/admin/students/studentShared';
+} from '@/src/features/admission';
+import { classLabel, errorMessage } from './admin/studentShared';
 import { AdmissionConfirmationView } from './AdmissionConfirmationView';
 import type { MockDatabase } from '@/src/mocks/seed';
 import type { OnlineAdmissionApplication } from '@/src/types/proposed/future';
