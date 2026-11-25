@@ -129,13 +129,13 @@ export function StaffFormModal({
     <Modal open={open} onClose={onClose} title={member ? pick('প্রোফাইল সম্পাদনা', 'Edit profile') : pick('নতুন স্টাফ', 'Add staff')} maxWidth="max-w-3xl">
       <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField label={pick('পূর্ণ নাম', 'Full name')} required>
-          <Input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+          <Input required placeholder={pick('স্টাফের পূর্ণ নাম লিখুন', 'Enter the full name')} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
         </FormField>
         <FormField label={pick('স্টাফ আইডি', 'Staff ID')}>
-          <Input value={form.employeeId} onChange={(event) => setForm({ ...form, employeeId: event.target.value })} />
+          <Input placeholder={pick('খালি রাখলে আইডি তৈরি হবে', 'Leave blank to generate an ID')} value={form.employeeId} onChange={(event) => setForm({ ...form, employeeId: event.target.value })} />
         </FormField>
         <FormField label={pick('পদবি', 'Designation')} required>
-          <Input required disabled={Boolean(form.staffStructureId)} value={form.designation} onChange={(event) => setForm({ ...form, designation: event.target.value })} />
+          <Input required disabled={Boolean(form.staffStructureId)} placeholder={pick('যেমন সহকারী শিক্ষক', 'e.g. Assistant Teacher')} value={form.designation} onChange={(event) => setForm({ ...form, designation: event.target.value })} />
         </FormField>
         <FormField label={pick('ধরন', 'Type')} required>
           <Select disabled={Boolean(form.staffStructureId)} value={form.staffType} onChange={(event) => setForm({ ...form, staffType: event.target.value })}>
@@ -179,13 +179,13 @@ export function StaffFormModal({
           </Select>
         </FormField>
         <FormField label={pick('যোগ্যতা', 'Qualification')}>
-          <Input value={form.qualification} onChange={(event) => setForm({ ...form, qualification: event.target.value })} />
+          <Input placeholder={pick('যেমন স্নাতক, বিএড', 'e.g. BA, BEd')} value={form.qualification} onChange={(event) => setForm({ ...form, qualification: event.target.value })} />
         </FormField>
         <FormField label={pick('মোবাইল', 'Phone')}>
-          <Input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
+          <Input placeholder={pick('মোবাইল নম্বর লিখুন', 'Enter a mobile number')} value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
         </FormField>
         <FormField label={pick('ইমেইল', 'Email')}>
-          <Input value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+          <Input placeholder={pick('যেমন name@school.edu.bd', 'e.g. name@school.edu.bd')} value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
         </FormField>
         <FormField label={pick('যোগদান', 'Joined')}>
           <Input type="date" value={form.joiningDate} onChange={(event) => setForm({ ...form, joiningDate: event.target.value })} />
@@ -206,7 +206,7 @@ export function StaffFormModal({
               </FormField>
             )}
             <FormField label={pick('এনআইডি', 'NID')}>
-              <Input value={form.nid} onChange={(event) => setForm({ ...form, nid: event.target.value })} />
+              <Input placeholder={pick('জাতীয় পরিচয়পত্র নম্বর লিখুন', 'Enter the national ID number')} value={form.nid} onChange={(event) => setForm({ ...form, nid: event.target.value })} />
             </FormField>
             <FormField label={pick('লিঙ্গ', 'Gender')}>
               <Select value={form.gender} onChange={(event) => setForm({ ...form, gender: event.target.value })}>
@@ -227,16 +227,16 @@ export function StaffFormModal({
               </Select>
             </FormField>
             <FormField label={pick('পিতার নাম', 'Father')}>
-              <Input value={form.fatherName} onChange={(event) => setForm({ ...form, fatherName: event.target.value })} />
+              <Input placeholder={pick('বাবার পূর্ণ নাম লিখুন', 'Enter the father’s full name')} value={form.fatherName} onChange={(event) => setForm({ ...form, fatherName: event.target.value })} />
             </FormField>
             <FormField label={pick('মাতার নাম', 'Mother')}>
-              <Input value={form.motherName} onChange={(event) => setForm({ ...form, motherName: event.target.value })} />
+              <Input placeholder={pick('মায়ের পূর্ণ নাম লিখুন', 'Enter the mother’s full name')} value={form.motherName} onChange={(event) => setForm({ ...form, motherName: event.target.value })} />
             </FormField>
             <FormField label={pick('জরুরি নম্বর', 'Emergency phone')}>
-              <Input value={form.emergencyContact} onChange={(event) => setForm({ ...form, emergencyContact: event.target.value })} />
+              <Input placeholder={pick('জরুরি যোগাযোগের নম্বর লিখুন', 'Enter an emergency phone number')} value={form.emergencyContact} onChange={(event) => setForm({ ...form, emergencyContact: event.target.value })} />
             </FormField>
             <FormField label={pick('ঠিকানা', 'Address')}>
-              <Textarea value={form.presentAddress} onChange={(event) => setForm({ ...form, presentAddress: event.target.value })} />
+              <Textarea placeholder={pick('বর্তমান ঠিকানা লিখুন', 'Enter the current address')} value={form.presentAddress} onChange={(event) => setForm({ ...form, presentAddress: event.target.value })} />
             </FormField>
           </>
         )}

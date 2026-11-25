@@ -4,22 +4,18 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { useSaveDepartmentMutation, useRemoveDepartmentMutation } from '@/src/store/api';
 import { useI18n } from '@/src/lib/i18n';
-import { DataTable } from '@/src/components/shared/DataTable';
+import { StaffTable, useStaffTable } from './StaffTable';
+import { useGetDepartmentPageQuery } from '../api/staff.api';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, FormField, Input, Modal, Select, Textarea } from '@/src/components/ui/primitives';
-import { DepartmentStatus, StaffStatus } from '@/src/types/enums';
-import type { StaffWorkspace } from '../api/staff.api';
+import { DepartmentStatus } from '@/src/types/enums';
 import type { Department } from '@/src/types/entities';
-
-export function deptName(db: StaffWorkspace, id?: string | null) {
-  return db.departments.find((item) => item.id === id)?.name ?? '—';
-}
 
 function errorMessage(err: unknown, fallback: string) {
   return (err as { message?: string })?.message || fallback;
 }
 
-export function StaffDepartments({ db }: { db: StaffWorkspace }) {
+export function StaffDepartments() {
   const { pick } = useI18n();
   const [saveDepartment, { isLoading }] = useSaveDepartmentMutation();
   const [removeDepartment, { isLoading: removing }] = useRemoveDepartmentMutation();
@@ -49,23 +45,32 @@ export function StaffDepartments({ db }: { db: StaffWorkspace }) {
     }
   };
 
-  const rows = db.departments.map((department) => ({
-    ...department,
-    people: db.staff.filter((member) => member.departmentId === department.id && member.status === StaffStatus.ACTIVE).length,
-  }));
+  const [status, setStatus] = useState('');
+  const table = useStaffTable({ status: status || undefined });
+  const query = useGetDepartmentPageQuery(table.params);
 
   return (
     <>
       <div className="flex justify-end">
         <Button variant="primary" size="sm" onClick={() => start(null)}>{pick('নতুন বিভাগ', 'New department')}</Button>
       </div>
-      <DataTable
-        data={rows}
+      <StaffTable
+        table={table}
+        query={query}
+        list="departments"
+        searchPlaceholder={pick('বিভাগের নাম বা কোড দিয়ে খুঁজুন', 'Search by department name or code')}
+        toolbarExtra={
+          <Select aria-label={pick('বিভাগের অবস্থা', 'Department status')} value={status} onChange={(event) => { setStatus(event.target.value); table.setPage(1); }}>
+            <option value="">{pick('সকল অবস্থা', 'All statuses')}</option>
+            <option value={DepartmentStatus.ACTIVE}>{pick('সক্রিয়', 'Active')}</option>
+            <option value={DepartmentStatus.INACTIVE}>{pick('নিষ্ক্রিয়', 'Inactive')}</option>
+          </Select>
+        }
         exportFilename="departments.csv"
         columns={[
           { accessorKey: 'name', header: pick('নাম', 'Name') },
           { accessorKey: 'code', header: pick('কোড', 'Code'), cell: ({ row }) => <span className="font-mono">{row.original.code || '—'}</span> },
-          { accessorKey: 'people', header: pick('কর্মরত', 'Active') },
+          { accessorKey: 'activeStaffCount', header: pick('কর্মরত', 'Active') },
           { accessorKey: 'status', header: pick('অবস্থা', 'Status'), cell: ({ row }) => <StatusBadge enumName="DepartmentStatus" value={row.original.status} /> },
           {
             id: 'edit',
@@ -79,13 +84,13 @@ export function StaffDepartments({ db }: { db: StaffWorkspace }) {
       <Modal open={open} onClose={() => setOpen(false)} title={editing ? pick('বিভাগ সম্পাদনা', 'Edit department') : pick('নতুন বিভাগ', 'New department')}>
         <form onSubmit={submit} className="space-y-4">
           <FormField label={pick('নাম', 'Name')} required>
-            <Input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+            <Input required placeholder={pick('যেমন বিজ্ঞান বিভাগ', 'e.g. Science Department')} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
           </FormField>
           <FormField label={pick('কোড', 'Code')}>
-            <Input value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value })} />
+            <Input placeholder={pick('যেমন SCI', 'e.g. SCI')} value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value })} />
           </FormField>
           <FormField label={pick('বিবরণ', 'Description')}>
-            <Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
+            <Textarea placeholder={pick('বিভাগের কাজের সংক্ষিপ্ত বিবরণ লিখুন', 'Briefly describe the department')} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
           </FormField>
           <FormField label={pick('অবস্থা', 'Status')}>
             <Select value={form.status} onChange={(event) => setForm({ ...form, name: form.name.trim(), code: form.code.trim() || null, status: event.target.value })}>

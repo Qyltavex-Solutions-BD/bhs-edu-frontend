@@ -28,11 +28,11 @@ export function AdminStaffPage({
   defaultTab?: keyof typeof TAB;
 }) {
   const { id } = useParams<{ id?: string }>();
-  const { data: db, isLoading, error, refetch } = useGetStaffWorkspaceQuery();
   const { pick } = useI18n();
   const section: SectionKey = id ? 'profile' : TAB[defaultTab] ?? 'all';
+  const { data: db, isLoading, error, refetch } = useGetStaffWorkspaceQuery(undefined, { skip: section === 'departments' });
   if (isLoading) return <LoadingSkeleton />;
-  if (error || !db) return (
+  if (section !== 'departments' && (error || !db)) return (
     <div role="alert" className="space-y-2">
       <p>{pick('স্টাফের তথ্য লোড করা যায়নি', 'Could not load staff data.')} {error && 'message' in error ? error.message : ''}</p>
       <button type="button" className="underline" onClick={refetch}>{pick('আবার চেষ্টা করুন', 'Retry')}</button>
@@ -68,12 +68,12 @@ export function AdminStaffPage({
 
   return (
     <StaffShell title={copy[section].title} description={copy[section].description}>
-      {(section === 'all' || section === 'teachers' || section === 'employees') && (
+      {db && (section === 'all' || section === 'teachers' || section === 'employees') && (
         <StaffDirectory db={db} kind={section} createOpen={defaultTab === 'create'} />
       )}
-      {section === 'departments' && <StaffDepartments db={db} />}
-      {section === 'structures' && <StaffPosts db={db} />}
-      {section === 'profile' && <StaffProfile db={db} staffId={id ?? ''} />}
+      {section === 'departments' && <StaffDepartments />}
+      {db && section === 'structures' && <StaffPosts db={db} />}
+      {db && section === 'profile' && <StaffProfile db={db} staffId={id ?? ''} />}
     </StaffShell>
   );
 }

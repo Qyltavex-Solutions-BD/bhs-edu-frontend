@@ -7,61 +7,80 @@ import type {
   StudentRFIDcard,
 } from '@/src/types/entities';
 
-import type { ApiRequest, ApiError } from '@/src/lib/api/hybrid-base-query';
-
 export interface StaffProfileData extends Staff {
   department: Department | null;
   teacherAssignments: {
     isActive: boolean;
     id: string;
-    academicYear: { isActive: boolean };
     section: { name: string } | null;
     classSubject: { subject: { name: string } };
   }[];
   sectionClassTeachers: {
     id: string;
-    academicYear: { isActive: boolean };
     section: { name: string; schoolClass: { name: string } };
   }[];
 }
 
 export interface StaffWorkspace {
-  staff: Staff[];
-  departments: Department[];
-  staffStructures: StaffStructure[];
+  departments: Pick<Department, 'id' | 'name' | 'status'>[];
+  staffStructures: Pick<StaffStructure, 'id' | 'designation' | 'staffType' | 'departmentId' | 'isActive'>[];
 }
 
 type Envelope<T> = { data: T };
-type Page<T> = Envelope<T[]> & { meta: { hasNextPage: boolean } };
-type Result = { data?: unknown; error?: ApiError };
-type Request = (args: ApiRequest) => Result | PromiseLike<Result>;
-
-async function readPages<T>(request: Request, url: string) {
-  const records: T[] = [];
-  for (let page = 1; ; page++) {
-    const result = await request({ url, params: { page, limit: 100 } });
-    if (result.error) return { error: result.error };
-    const payload = result.data as Page<T>;
-    records.push(...payload.data);
-    if (!payload.meta.hasNextPage) return { data: records };
-  }
+export type StaffPage<T> = Envelope<T[]> & {
+  meta: { page: number; total: number; totalPages: number; hasNextPage: boolean; hasPreviousPage: boolean };
+};
+export interface StaffListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  hasVacancy?: boolean;
+  staffGroup?: 'teachers' | 'employees';
+  staffType?: string;
+  departmentId?: string;
 }
+export type StaffListRow = Staff & { department: Pick<Department, 'name'> | null };
+export type DepartmentListRow = Department & { activeStaffCount: number };
+export type PostListRow = StaffStructure & { department: Pick<Department, 'name'> | null };
+interface StaffStatistics {
+  activeStaff: number;
+  activeTeachers: number;
+  activeNonTeachers: number;
+  posts: { filled: number; total: number };
+}
+const listPaths = { staff: '/staff', departments: '/staff/departments', posts: '/staff/structures' };
 
 export const staffApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getStaffWorkspace: builder.query<StaffWorkspace, void>({
-      async queryFn(_arg, _api, _options, request) {
-        const [staff, departments, posts] = await Promise.all([
-          readPages<Staff>(request, '/staff'),
-          readPages<Department>(request, '/staff/departments'),
-          readPages<StaffStructure>(request, '/staff/structures'),
-        ]);
-        if (staff.error) return { error: staff.error };
-        if (departments.error) return { error: departments.error };
-        if (posts.error) return { error: posts.error };
-        return { data: { staff: staff.data, departments: departments.data, staffStructures: posts.data } };
-      },
+      query: () => ({ url: '/staff/options' }),
+      transformResponse: (response: Envelope<StaffWorkspace>) => response.data,
       providesTags: ['Staff'],
+    }),
+    getStaffPage: builder.query<StaffPage<StaffListRow>, StaffListParams>({
+      query: (params) => ({ url: listPaths.staff, params }),
+      providesTags: ['Staff'],
+    }),
+    getDepartmentPage: builder.query<StaffPage<DepartmentListRow>, StaffListParams>({
+      query: (params) => ({ url: listPaths.departments, params }),
+      providesTags: ['Staff'],
+    }),
+    getSanctionedPostPage: builder.query<StaffPage<PostListRow>, StaffListParams>({
+      query: (params) => ({ url: listPaths.posts, params }),
+      providesTags: ['Staff'],
+    }),
+    getStaffStatistics: builder.query<StaffStatistics, void>({
+      query: () => ({ url: '/staff/statistics' }),
+      transformResponse: (response: Envelope<StaffStatistics>) => response.data,
+      providesTags: ['Staff'],
+    }),
+    exportStaffTable: builder.mutation<string, { list: keyof typeof listPaths; params: StaffListParams }>({
+      query: ({ list, params }) => ({
+        url: `${listPaths[list]}/export`,
+        params,
+        responseHandler: (response) => response.ok ? response.text() : response.json(),
+      }),
     }),
     getStaffProfile: builder.query<StaffProfileData, string>({
       query: (id) => ({ url: `/staff/${id}` }),
@@ -123,6 +142,11 @@ export const staffApi = baseApi.injectEndpoints({
 
 export const {
   useGetStaffQuery,
+  useGetStaffPageQuery,
+  useGetDepartmentPageQuery,
+  useGetSanctionedPostPageQuery,
+  useGetStaffStatisticsQuery,
+  useExportStaffTableMutation,
   useGetStaffWorkspaceQuery,
   useGetStaffProfileQuery,
   useArchiveStaffStructureMutation,

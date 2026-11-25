@@ -7,7 +7,6 @@ import { useGetStaffProfileQuery } from '../api/staff.api';
 import { useI18n } from '@/src/lib/i18n';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Card } from '@/src/components/ui/primitives';
-import { deptName } from './StaffDepartments';
 import { StaffFormModal } from './StaffFormModal';
 import type { StaffWorkspace } from '../api/staff.api';
 
@@ -23,8 +22,8 @@ export function StaffProfile({ db, staffId }: { db: StaffWorkspace; staffId: str
     </div>
   );
 
-  const classDuties = member.sectionClassTeachers.filter((duty) => duty.academicYear.isActive);
-  const subjects = member.teacherAssignments.filter((duty) => duty.isActive && duty.academicYear.isActive);
+  const classDuties = member.sectionClassTeachers;
+  const subjects = member.teacherAssignments;
 
   return (
     <div className="space-y-4">
@@ -42,7 +41,7 @@ export function StaffProfile({ db, staffId }: { db: StaffWorkspace; staffId: str
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm">
         <Card className="p-4 space-y-1">
           <p className="font-semibold">{pick('চাকরি', 'Employment')}</p>
-          <p>{pick('বিভাগ', 'Department')}: {deptName(db, member.departmentId)}</p>
+          <p>{pick('বিভাগ', 'Department')}: {member.department?.name ?? '—'}</p>
           <p>{pick('যোগ্যতা', 'Qualification')}: {member.qualification || '—'}</p>
           <p>{pick('যোগদান', 'Joined')}: {member.joiningDate?.slice(0, 10) || '—'}</p>
           <p>{pick('ছাড়ার তারিখ', 'Left')}: {member.leavingDate?.slice(0, 10) || '—'}</p>
