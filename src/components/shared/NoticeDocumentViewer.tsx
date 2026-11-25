@@ -45,6 +45,11 @@ export function NoticeFormatBadge({
   className?: string;
 }) {
   const { pick } = useI18n();
+
+  if (!notice.attachment && !notice.attachmentType && !notice.attachmentUrl) {
+    return null;
+  }
+
   const format = resolveNoticeFormat(notice);
 
   if (format === 'PDF') {
@@ -75,7 +80,7 @@ export function NoticeFormatBadge({
         )}
       >
         <ImageIcon className="w-3.5 h-3.5 shrink-0" />
-        <span>{pick('স্ক্যান কপি', 'Scanned Image')}</span>
+        <span>{pick('ইমেজ', 'Image')}</span>
         {showSize && notice.attachmentSize && (
           <span className="opacity-75 font-normal tabular-nums">· {notice.attachmentSize}</span>
         )}
@@ -83,18 +88,7 @@ export function NoticeFormatBadge({
     );
   }
 
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border leading-none whitespace-nowrap',
-        'bg-primary/8 text-primary border-primary/20',
-        className
-      )}
-    >
-      <FileCheck2 className="w-3.5 h-3.5 shrink-0" />
-      <span>{pick('অফিসিয়াল প্যাড', 'Official Pad')}</span>
-    </span>
-  );
+  return null;
 }
 
 export function downloadNoticeDocument(
