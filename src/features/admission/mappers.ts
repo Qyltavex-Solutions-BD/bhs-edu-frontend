@@ -1,7 +1,7 @@
 import { Gender, Religion } from '@/src/types/enums';
-import type { MockDatabase } from '@/src/mocks/seed';
 import type { OnlineAdmissionApplication } from '@/src/types/proposed/future';
 import {
+  type AdmissionCatalogData,
   AdmissionFormMode,
   BD_PHONE_REGEX,
   formatStructuredAddress,
@@ -37,13 +37,13 @@ export function resolvePrimaryGuardianPhone(values: UnifiedAdmissionFormValues):
 }
 
 export function buildDefaultAdmissionValues(
-  db: MockDatabase,
+  db: AdmissionCatalogData,
   mode: AdmissionFormMode,
   yearId?: string,
   prefillApp?: OnlineAdmissionApplication | null
 ): UnifiedAdmissionFormValues {
   const activeYearId = yearId || db.academicYears.find((y) => y.isActive)?.id || db.academicYears[0]?.id || '';
-  const defaultClassId = prefillApp?.targetClassId || db.classes[0]?.id || 'cls-6';
+  const defaultClassId = prefillApp?.targetClassId || db.classes[0]?.id || '';
   const targetCls = db.classes.find((c) => c.id === defaultClassId);
   const rules = getClassAdmissionRules(targetCls?.numericValue ?? 6);
 
@@ -175,7 +175,7 @@ export function buildDefaultAdmissionValues(
 
 export function toPublicAdmissionPayload(
   values: UnifiedAdmissionFormValues,
-  db: MockDatabase
+  db: AdmissionCatalogData
 ): Omit<
   OnlineAdmissionApplication,
   'id' | 'applicationNumber' | 'status' | 'submittedAt' | 'admissionTestRoll' | 'admissionTestDate'
@@ -192,7 +192,7 @@ export function toPublicAdmissionPayload(
   const chosenOptional = optionals.find((o) => o.classSubjectId === values.optionalClassSubjectId);
 
   return {
-    academicSession: db.admissionContent.academicSession ?? '২০২৭',
+    academicSession: db.admissionContent?.academicSession ?? '২০২৭',
     studentNameBn: values.studentNameBn.trim(),
     studentNameEn: toBlockLetters(values.studentNameEn.trim()),
     photoPreview: values.photoPreview || null,
@@ -278,7 +278,7 @@ export function toPublicAdmissionPayload(
 
 export function toAdminCreateStudentPayload(
   values: UnifiedAdmissionFormValues,
-  db: MockDatabase,
+  db: AdmissionCatalogData,
   sourceApplicationId?: string
 ): Record<string, unknown> {
   const cls = db.classes.find((c) => c.id === values.targetClassId);
@@ -287,89 +287,109 @@ export function toAdminCreateStudentPayload(
   const presentParts = values.sameAsPermanent ? values.permanentAddressParts : values.presentAddressParts;
   const presentFormatted = formatStructuredAddress(presentParts);
 
+  const resolvedGuardianName =
+    values.primaryGuardianType === 'LEGAL_GUARDIAN'
+      ? values.legalGuardianNameEn.trim()
+        ? toBlockLetters(values.legalGuardianNameEn.trim())
+        : values.legalGuardianNameBn.trim() || undefined
+      : undefined;
+
   return {
-    sourceApplicationId: sourceApplicationId || undefined,
+    ...(sourceApplicationId ? { sourceApplicationId } : {}),
     nameBn: values.studentNameBn.trim(),
     nameEn: toBlockLetters(values.studentNameEn.trim()),
-    photo: values.photoPreview || null,
-    dateOfBirth: values.dateOfBirth,
+    photo: values.photoPreview || undefined,
+    dateOfBirth: values.dateOfBirth || undefined,
     gender: values.gender,
-    bloodGroup: values.bloodGroup || null,
+    bloodGroup: values.bloodGroup || undefined,
     religion: values.religion,
     nationality: values.nationality.trim() || 'বাংলাদেশি',
-    studentPhone: values.studentPhone.trim() ? normalizeDigits(values.studentPhone.trim()) : null,
-    birthCertificateNo: normalizeDigits(values.birthCertificateNo.trim()),
+    studentPhone: values.studentPhone.trim() ? normalizeDigits(values.studentPhone.trim()) : undefined,
+    birthCertificateNo: normalizeDigits(values.birthCertificateNo.trim()) || undefined,
     boardRegistrationNo: values.boardRegistrationNo.trim()
       ? normalizeDigits(values.boardRegistrationNo.trim())
-      : null,
-    presentAddress: presentFormatted,
-    permanentAddress: permanentFormatted,
+      : undefined,
+    boardRegistrationSession: values.boardRegistrationSession.trim() || undefined,
+    presentAddress: presentFormatted || undefined,
+    permanentAddress: permanentFormatted || undefined,
 
     fatherAlive: values.fatherAlive,
-    fatherNameBn: values.fatherNameBn.trim(),
-    fatherNameEn: toBlockLetters(values.fatherNameEn.trim()),
-    fatherOccupation: values.fatherAlive ? values.fatherOccupation.trim() : 'মৃত',
-    fatherNid: values.fatherNid.trim() ? normalizeDigits(values.fatherNid.trim()) : '',
-    fatherPhone: values.fatherAlive && values.fatherPhone.trim() ? normalizeDigits(values.fatherPhone.trim()) : '',
+    fatherNameBn: values.fatherNameBn.trim() || undefined,
+    fatherNameEn: values.fatherNameEn.trim() ? toBlockLetters(values.fatherNameEn.trim()) : undefined,
+    fatherOccupation: values.fatherAlive ? values.fatherOccupation.trim() || undefined : 'মৃত',
+    fatherNid: values.fatherNid.trim() ? normalizeDigits(values.fatherNid.trim()) : undefined,
+    fatherPhone:
+      values.fatherAlive && values.fatherPhone.trim()
+        ? normalizeDigits(values.fatherPhone.trim())
+        : undefined,
 
     motherAlive: values.motherAlive,
-    motherNameBn: values.motherNameBn.trim(),
-    motherNameEn: toBlockLetters(values.motherNameEn.trim()),
-    motherOccupation: values.motherAlive ? values.motherOccupation.trim() : 'মৃত',
-    motherNid: values.motherNid.trim() ? normalizeDigits(values.motherNid.trim()) : '',
-    motherPhone: values.motherAlive && values.motherPhone.trim() ? normalizeDigits(values.motherPhone.trim()) : '',
+    motherNameBn: values.motherNameBn.trim() || undefined,
+    motherNameEn: values.motherNameEn.trim() ? toBlockLetters(values.motherNameEn.trim()) : undefined,
+    motherOccupation: values.motherAlive ? values.motherOccupation.trim() || undefined : 'মৃত',
+    motherNid: values.motherNid.trim() ? normalizeDigits(values.motherNid.trim()) : undefined,
+    motherPhone:
+      values.motherAlive && values.motherPhone.trim()
+        ? normalizeDigits(values.motherPhone.trim())
+        : undefined,
 
     primaryGuardianType: values.primaryGuardianType,
-    guardianPhone: resolvePrimaryGuardianPhone(values),
+    guardianName: resolvedGuardianName,
+    guardianPhone: resolvePrimaryGuardianPhone(values) || undefined,
+    guardianRelationship: values.legalGuardianRelation.trim() || undefined,
     guardianMonthlyIncome: values.guardianMonthlyIncome.trim()
       ? Number(normalizeDigits(values.guardianMonthlyIncome))
-      : null,
-    legalGuardianNameBn: values.legalGuardianNameBn.trim() || null,
+      : undefined,
+    legalGuardianNameBn: values.legalGuardianNameBn.trim() || undefined,
     legalGuardianNameEn: values.legalGuardianNameEn.trim()
       ? toBlockLetters(values.legalGuardianNameEn.trim())
-      : null,
-    legalGuardianRelation: values.legalGuardianRelation.trim() || null,
+      : undefined,
+    legalGuardianRelation: values.legalGuardianRelation.trim() || undefined,
     legalGuardianPhone: values.legalGuardianPhone.trim()
       ? normalizeDigits(values.legalGuardianPhone.trim())
-      : null,
+      : undefined,
     legalGuardianNid: values.legalGuardianNid.trim()
       ? normalizeDigits(values.legalGuardianNid.trim())
-      : null,
-    legalGuardianAddress: values.legalGuardianAddress.trim() || null,
+      : undefined,
+    legalGuardianAddress: values.legalGuardianAddress.trim() || undefined,
 
-    previousSchoolName: values.previousSchoolName.trim() || null,
-    previousSchoolEiin: values.previousSchoolEiin.trim() ? normalizeDigits(values.previousSchoolEiin.trim()) : null,
-    previousSchoolAddress: values.previousSchoolAddress.trim() || null,
+    previousSchoolName: values.previousSchoolName.trim() || undefined,
+    previousSchoolEiin: values.previousSchoolEiin.trim()
+      ? normalizeDigits(values.previousSchoolEiin.trim())
+      : undefined,
+    previousSchoolAddress: values.previousSchoolAddress.trim() || undefined,
+    previousClass: values.previousClass.trim() || rules.defaultPreviousClassBn || undefined,
     previousGrade: rules.showPreviousGpa
-      ? gpaToLetterGrade(values.prevExamGpa) || values.previousGrade.trim() || null
-      : null,
+      ? gpaToLetterGrade(values.prevExamGpa) || values.previousGrade.trim() || undefined
+      : undefined,
     prevExamPassingYear: values.prevExamPassingYear.trim()
       ? Number(normalizeDigits(values.prevExamPassingYear))
-      : null,
-    prevExamRoll: values.prevExamRoll.trim() || null,
+      : undefined,
+    prevExamRoll: values.prevExamRoll.trim() || undefined,
     prevExamGpa:
       rules.showPreviousGpa && values.prevExamGpa.trim()
         ? Number(normalizeDigits(values.prevExamGpa))
-        : null,
-    transferCertificateNo: values.transferCertificateNo.trim() || null,
-    transferCertificateDate: values.transferCertificateDate.trim() || null,
+        : undefined,
+    transferCertificateNo: values.transferCertificateNo.trim() || undefined,
+    transferCertificateDate: values.transferCertificateDate.trim() || undefined,
 
     admissionType: values.admissionType,
     isReadmission: values.admissionType === 'READMISSION',
-    academicYearId: values.academicYearId,
+    academicYearId: values.academicYearId || undefined,
     classId: values.targetClassId,
     sectionId: values.sectionId,
-    groupId: rules.requiresGroup ? values.targetGroupId || null : null,
-    optionalClassSubjectId: rules.requiresOptionalSubject ? values.optionalClassSubjectId || null : null,
+    groupId: rules.requiresGroup && values.targetGroupId ? values.targetGroupId : undefined,
+    optionalClassSubjectId:
+      rules.requiresOptionalSubject && values.optionalClassSubjectId
+        ? values.optionalClassSubjectId
+        : undefined,
     roll: Number(normalizeDigits(values.roll)),
-    formSerialNo: values.formSerialNo.trim() || null,
+    formSerialNo: values.formSerialNo.trim() || undefined,
+    admissionFeePaid: values.admissionFeePaid.trim()
+      ? Number(normalizeDigits(values.admissionFeePaid.trim()))
+      : undefined,
+    receiptNo: values.receiptNo.trim() || undefined,
     verifiedDocuments: values.verifiedDocuments ?? {},
-    remarks: [
-      values.receiptNo.trim() ? `রসিদ নং: ${values.receiptNo.trim()}` : '',
-      values.admissionFeePaid.trim() ? `ভর্তি ফি: ৳${normalizeDigits(values.admissionFeePaid.trim())}` : '',
-      values.remarks.trim(),
-    ]
-      .filter(Boolean)
-      .join(' · ') || null,
+    remarks: values.remarks.trim() || undefined,
   };
 }
