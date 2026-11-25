@@ -936,11 +936,11 @@ export function AcademicRoutine({
         >
           <div
             onClick={() => openEditModal(cellSlots[0])}
-            className="rounded-[var(--radius)] border border-border/70 bg-background p-2.5 transition-colors shadow-xs cursor-pointer hover:border-primary/50"
+            className="rounded-[var(--radius)] border border-border/70 bg-background p-1.5 transition-colors shadow-xs cursor-pointer hover:border-primary/50"
             title={pick('পিরিয়ড সম্পাদনা করতে ক্লিক করুন', 'Click to edit period')}
           >
-            <div className="space-y-1.5 divide-y divide-border/40">
-              {cellSlots.map((slot, idx) => {
+            <div className="divide-y divide-border/40">
+              {cellSlots.map((slot) => {
                 const subjectName = resolveSubjectName(slot);
                 const teacherName = resolveTeacherName(slot);
                 const roomDisplay = cleanRoom(slot.room);
@@ -952,48 +952,37 @@ export function AcademicRoutine({
                       e.stopPropagation();
                       openEditModal(slot);
                     }}
-                    className={`group/item p-1.5 -mx-1 rounded-md cursor-pointer hover:bg-primary/10 transition-colors ${idx > 0 ? 'pt-2' : ''}`}
+                    className="group/item flex items-center justify-between gap-1 py-1 px-1 rounded-sm cursor-pointer hover:bg-primary/10 transition-colors"
                     title={pick(
                       `${subjectName} — শিক্ষক: ${teacherName}${roomDisplay ? ` (${roomDisplay})` : ''} [ক্লিক করে সম্পাদনা করুন]`,
                       `${subjectName} — Teacher: ${teacherName}${roomDisplay ? ` (${roomDisplay})` : ''} [Click to edit]`
                     )}
                   >
-                    {/* Line 1: Group Tag + Subject Name + Clean Short Room Number */}
-                    <div className="flex items-center justify-between gap-1">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        {getGroupShortTag(slot)}
+                    {/* Left: Group Tag + Subject Name + (Teacher Name) beside it */}
+                    <div className="flex items-center gap-1 min-w-0">
+                      {getGroupShortTag(slot)}
+                      <span
+                        className="font-semibold text-foreground text-xs leading-none truncate group-hover/item:text-primary transition-colors"
+                        title={subjectName}
+                      >
+                        {subjectName}
+                      </span>
+                      {teacherName && teacherName !== '—' && (
                         <span
-                          className="font-semibold text-foreground text-xs leading-snug truncate group-hover/item:text-primary transition-colors"
-                          title={subjectName}
+                          className="text-[11px] text-muted-foreground leading-none truncate shrink-0 max-w-[100px]"
+                          title={teacherName}
                         >
-                          {subjectName}
-                        </span>
-                      </div>
-                      {roomDisplay && (
-                        <span className="text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">
-                          {roomDisplay}
+                          ({teacherName})
                         </span>
                       )}
                     </div>
 
-                    {/* Line 2: Assigned Teacher Name + Edit Pencil */}
-                    <div className="flex items-center justify-between gap-1 mt-0.5 text-[11px] text-muted-foreground pl-5">
-                      <span className="truncate" title={teacherName}>
-                        {teacherName}
+                    {/* Right: Clean Short Room Number */}
+                    {roomDisplay && (
+                      <span className="text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">
+                        {roomDisplay}
                       </span>
-                      <button
-                        type="button"
-                        className="opacity-0 group-hover/item:opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary cursor-pointer shrink-0 transition-colors no-print"
-                        aria-label={pick('পিরিয়ড সম্পাদনা করুন', 'Edit period')}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEditModal(slot);
-                        }}
-                        title={pick('সম্পাদনা / পরিবর্তন', 'Edit')}
-                      >
-                        <Pencil className="w-2.5 h-2.5" />
-                      </button>
-                    </div>
+                    )}
                   </div>
                 );
               })}
@@ -1007,7 +996,7 @@ export function AcademicRoutine({
                   e.stopPropagation();
                   openQuickAdd(day, period);
                 }}
-                className="mt-2 w-full py-0.5 text-[10px] text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1 border-t border-dashed border-border/50 cursor-pointer no-print"
+                className="mt-1 w-full py-0.5 text-[9px] text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1 border-t border-dashed border-border/40 cursor-pointer no-print"
                 title={pick('অন্য বিভাগ যুক্ত করুন', 'Add another department')}
               >
                 <Plus className="w-2.5 h-2.5" />

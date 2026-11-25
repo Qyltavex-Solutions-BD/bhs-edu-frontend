@@ -1,13 +1,5 @@
-import {
-  AdminDigitalEducationPage,
-  AdminLibraryPage,
-  AdminNoticesAndEventsPage,
-  AdminReportsPage,
-  AdminSettingsPage,
-} from '@/src/views/admin/AdminContentAndOpsPage';
+import { AdminNoticesAndEventsPage } from '@/src/views/admin/AdminContentAndOpsPage';
 
 export default function Page() {
-  return (
-    <AdminNoticesAndEventsPage defaultTab="notices" />
-  );
+  return <AdminNoticesAndEventsPage openComposer />;
 }

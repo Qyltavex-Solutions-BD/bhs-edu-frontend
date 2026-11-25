@@ -31,7 +31,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { MasonryPhotoAlbum } from 'react-photo-album';
 
-import { useGetBootstrapQuery } from '@/src/store/api';
+import { useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
@@ -56,10 +56,9 @@ import { AchievementType, MediaType, NoticeStatus, PublicationType } from '@/src
 import type { Achievement, Notice } from '@/src/types/entities';
 import { cn } from '@/src/lib/utils/cn';
 
-type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
+type NoticeTab = 'all' | 'urgent';
 
 export function PublicNoticesListPage() {
-  const { data: db, isLoading } = useGetBootstrapQuery();
   const { locale, pick } = useI18n();
   const [searchParams] = useSearchParams();
 
@@ -73,53 +72,23 @@ export function PublicNoticesListPage() {
   const noticeTabs: { key: NoticeTab; labelBn: string; labelEn: string }[] = [
     { key: 'all', labelBn: 'সব বিজ্ঞপ্তি', labelEn: 'All Notices' },
     { key: 'urgent', labelBn: 'জরুরি', labelEn: 'Urgent' },
-    { key: 'exam', labelBn: 'পরীক্ষা ও ফলাফল', labelEn: 'Exams & Results' },
-    { key: 'admission', labelBn: 'ভর্তি ও একাডেমিক', labelEn: 'Admission' },
   ];
 
-  if (isLoading || !db) {
-    return (
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-8">
-        <LoadingSkeleton />
-      </div>
-    );
-  }
-
-  const allPublished = (db.notices ?? []).filter((n) => n.status === NoticeStatus.PUBLISHED);
-
-  const filteredNotices = allPublished.filter((n) => {
-    const text = `${n.memoNo ?? ''} ${n.title} ${n.description}`.toLowerCase();
-    if (noticeQuery.trim() && !text.includes(noticeQuery.trim().toLowerCase())) {
-      return false;
-    }
-    if (noticeTab === 'urgent') return n.isUrgent;
-    if (noticeTab === 'exam') {
-      return (
-        text.includes('পরীক্ষা') ||
-        text.includes('routine') ||
-        text.includes('exam') ||
-        text.includes('ফলাফল') ||
-        text.includes('প্রবেশপত্র') ||
-        text.includes('নম্বরপত্র')
-      );
-    }
-    if (noticeTab === 'admission') {
-      return (
-        text.includes('ভর্তি') ||
-        text.includes('admission') ||
-        text.includes('একাডেমিক') ||
-        text.includes('ক্যালেন্ডার') ||
-        text.includes('ক্লাস')
-      );
-    }
-    return true;
+  const { currentData: notices, isFetching, isError, refetch } = useGetPublicNoticesQuery({
+    page: pageIndex + 1,
+    limit: pageSize,
+    search: noticeQuery.trim() || undefined,
+    urgent: noticeTab === 'urgent' ? true : undefined,
   });
 
-  const totalFiltered = filteredNotices.length;
-  const pageCount = Math.max(1, Math.ceil(totalFiltered / pageSize));
-  const safePageIndex = Math.min(pageIndex, pageCount - 1);
+  const { data: totals } = useGetPublicNoticesQuery({ limit: 1 });
+  const { data: urgentTotals } = useGetPublicNoticesQuery({ limit: 1, urgent: true });
+
+  const totalFiltered = notices?.meta.total ?? 0;
+  const pageCount = Math.max(1, notices?.meta.totalPages ?? 1);
+  const safePageIndex = pageIndex;
   const startIndex = safePageIndex * pageSize;
-  const pagedRows = filteredNotices.slice(startIndex, startIndex + pageSize);
+  const pagedRows = notices?.items ?? [];
 
   // Pagination page numbers (same format with ellipsis support)
   const getPageNumbers = () => {
@@ -164,10 +133,6 @@ export function PublicNoticesListPage() {
               <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
               <span>{pick('অফিসিয়াল নোটিশ পোর্টাল', 'Official Circular Portal')}</span>
               <span className="text-muted-foreground/40" aria-hidden="true">·</span>
-              <span className="tabular-nums">
-                {pick(`EIIN: ${db.schoolProfile?.eiin || '১১৩৫৮৭'}`, `EIIN: ${db.schoolProfile?.eiin || '113587'}`)}
-              </span>
-              <span className="text-muted-foreground/40" aria-hidden="true">·</span>
               <span>{pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
@@ -189,7 +154,7 @@ export function PublicNoticesListPage() {
                 {pick('মোট বিজ্ঞপ্তি', 'Total Notices')}
               </span>
               <span className="text-xl font-bold text-[#0c5936] dark:text-emerald-400 tabular-nums">
-                {formatNumber(allPublished.length, locale)}
+                {totals ? formatNumber(totals.meta.total, locale) : '?'}
               </span>
             </div>
             <div className="px-5 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-center min-w-[110px]">
@@ -197,7 +162,7 @@ export function PublicNoticesListPage() {
                 {pick('জরুরি বিজ্ঞপ্তি', 'Urgent Notices')}
               </span>
               <span className="text-xl font-bold text-destructive tabular-nums">
-                {formatNumber(allPublished.filter((n) => n.isUrgent).length, locale)}
+                {urgentTotals ? formatNumber(urgentTotals.meta.total, locale) : '?'}
               </span>
             </div>
           </div>
@@ -214,6 +179,7 @@ export function PublicNoticesListPage() {
               return (
                 <button
                   key={tab.key}
+                    aria-pressed={active}
                   type="button"
                   onClick={() => {
                     setNoticeTab(tab.key);
@@ -267,14 +233,7 @@ export function PublicNoticesListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {pagedRows.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-16 text-center text-base text-muted-foreground">
-                    {pick('এই বিভাগে কোনো বিজ্ঞপ্তি পাওয়া যায়নি।', 'No notices found in this category.')}
-                  </td>
-                </tr>
-              ) : (
-                pagedRows.map((n, idx) => {
+              {!isFetching && !isError && pagedRows.map((n, idx) => {
                   const serial = startIndex + idx + 1;
                   const pubDate = new Date(n.publishedAt ?? n.createdAt);
                   const isRecent = Date.now() - pubDate.getTime() < 14 * 24 * 60 * 60 * 1000;
@@ -349,7 +308,7 @@ export function PublicNoticesListPage() {
                           <span className="text-muted-foreground/30">|</span>
                           <button
                             type="button"
-                            onClick={() => downloadNoticeDocument(n, db.schoolProfile, locale, false)}
+                            onClick={() => downloadNoticeDocument(n, undefined, locale, false)}
                             title={pick('ডাউনলোড করুন', 'Download')}
                             className="inline-flex items-center gap-1 text-base font-semibold text-primary hover:underline cursor-pointer transition-colors"
                           >
@@ -360,11 +319,23 @@ export function PublicNoticesListPage() {
                       </td>
                     </tr>
                   );
-                })
-              )}
+                })}
             </tbody>
           </table>
         </div>
+
+        {(isFetching || isError || pagedRows.length === 0) && (
+          <div className="border-t border-border px-4 py-16 text-center text-base text-muted-foreground">
+            {isFetching ? <LoadingSkeleton /> : isError ? (
+              <div role="alert" className="flex flex-wrap items-center justify-center gap-3">
+                <span>{pick('বিজ্ঞপ্তি লোড করা যায়নি।', 'Could not load notices.')}</span>
+                <Button type="button" variant="outline" size="sm" onClick={() => void refetch()}>
+                  {pick('আবার চেষ্টা', 'Retry')}
+                </Button>
+              </div>
+            ) : pick('কোনো বিজ্ঞপ্তি পাওয়া যায়নি।', 'No notices found.')}
+          </div>
+        )}
 
         {/* 4. Pagination Bar */}
         <div className="p-4 sm:p-5 bg-surface-muted/30 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-sm text-muted-foreground">

@@ -31,7 +31,7 @@ import {
 import { AnimatePresence, motion } from 'motion/react';
 import { MasonryPhotoAlbum } from 'react-photo-album';
 
-import { useGetBootstrapQuery } from '@/src/store/api';
+import { useGetPublicNoticeQuery, useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
@@ -60,14 +60,15 @@ type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
 
 export function PublicNoticeDetailPage() {
   const { id } = useParams();
-  const { data: db, isLoading } = useGetBootstrapQuery();
+  const { currentData: notice, isLoading, isError, error } = useGetPublicNoticeQuery(typeof id === 'string' ? id : '', { skip: typeof id !== 'string' });
+  const { data: latest } = useGetPublicNoticesQuery({ limit: 5 });
   const { locale, pick } = useI18n();
-  if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
+  if (isLoading) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
 
-  const notice = db.notices.find((n) => n.id === id && n.status === NoticeStatus.PUBLISHED);
+  if (isError && (error as { status?: number })?.status !== 404) return <p role="alert" className="p-6">Could not load the notice.</p>;
   if (!notice) return <div className="max-w-[1440px] mx-auto p-6"><EmptyState /></div>;
 
-  const recentOthers = db.notices
+  const recentOthers = (latest?.items ?? [])
     .filter((n) => n.status === NoticeStatus.PUBLISHED && n.id !== notice.id)
     .slice(0, 4);
 
@@ -128,7 +129,7 @@ export function PublicNoticeDetailPage() {
       </div>
 
       {/* Full Chrome-Like PDF Document Viewer (Embedded - matches Image 2 from bteb.gov.bd) */}
-      <ChromePdfViewer notice={notice} school={db.schoolProfile} />
+      <ChromePdfViewer notice={notice} />
 
       {/* Other Recent Notices (matches bteb.gov.bd bottom list) */}
       {recentOthers.length > 0 && (

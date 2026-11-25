@@ -6,26 +6,24 @@ import { toast } from 'sonner';
 import {
   ArrowDown,
   ArrowUp,
-  Bold,
   Download,
   ExternalLink,
   Eye,
   FileText,
   GripVertical,
-  Heading2,
   Image as ImageIcon,
-  Italic,
-  List,
+  Search,
+  Upload,
   Pencil,
   Plus,
   Printer,
+  RotateCcw,
   Save,
+  SearchX,
   Trash2,
-  Upload,
   X,
 } from 'lucide-react';
 import {
-  useCreateNoticeMutation,
   useDeleteCmsItemMutation,
   useGetBootstrapQuery,
   useReorderCmsItemsMutation,
@@ -33,6 +31,8 @@ import {
   useUpdateAdmissionContentMutation,
   useUpsertCmsItemMutation,
 } from '@/src/store/api';
+import { useCreateNoticeMutation, useGetAdminNoticesQuery, useGetAdminNoticeDocumentMutation, useUpdateNoticeMutation, useDeleteNoticeMutation } from '@/src/features/notices/api/notices.api';
+import { noticeSchema } from '@/src/features/notices/schemas';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
@@ -55,23 +55,25 @@ import {
   Textarea,
 } from '@/src/components/ui/primitives';
 import { LibraryDistributionType, NoticeStatus, ResourceType } from '@/src/types/enums';
-import type { Notice, NoticeAttachmentType } from '@/src/types/entities';
+import type { Notice } from '@/src/types/entities';
 
 // 7.11 Library
 export function AdminNoticesAndEventsPage({
   defaultTab = 'notices',
+  openComposer = false,
 }: {
   defaultTab?: 'notices' | 'news' | 'events' | 'careers';
+  openComposer?: boolean;
 }) {
-  const { data: db, isLoading } = useGetBootstrapQuery();
+
   const [createNotice, { isLoading: saving }] = useCreateNoticeMutation();
   const [toggleCms] = useToggleCmsItemMutation();
   const [upsertCms, { isLoading: savingCms }] = useUpsertCmsItemMutation();
   const [deleteCms] = useDeleteCmsItemMutation();
   const { locale, pick } = useI18n();
   const [tab, setTab] = useState(defaultTab);
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
+  const { data: db, isLoading } = useGetBootstrapQuery(undefined, { skip: tab === 'notices' });
+  const [composerOpen, setComposerOpen] = useState(openComposer);
   const [viewerNotice, setViewerNotice] = useState<Notice | null>(null);
 
   // News / Event / Career CRUD modal state
@@ -82,88 +84,112 @@ export function AdminNoticesAndEventsPage({
   const [careerModalOpen, setCareerModalOpen] = useState(false);
   const [careerForm, setCareerForm] = useState({ id: '', title: '', description: '', deadline: '2026-12-31', isPublished: true });
 
-  const [form, setForm] = useState({
-    memoNo: 'ভউবি/নোটিশ/২০২৬/০৮৬',
-    title: '',
-    description: '',
-    attachment: null as string | null,
-    attachmentType: 'OFFICIAL_PAD' as NoticeAttachmentType,
-    attachmentUrl: null as string | null,
-    attachmentSize: null as string | null,
-    status: NoticeStatus.PUBLISHED,
-    isUrgent: false,
-    audience: 'ALL' as 'ALL' | 'PARENTS' | 'TEACHERS' | 'STUDENTS',
-  });
+  const [statusFilter, setStatusFilter] = useState<NoticeStatus | ''>('');
+  const [noticeSearch, setNoticeSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [noticePage, setNoticePage] = useState(1);
 
-  const appendFormat = (snippet: string) => {
-    setForm((prev) => ({
-      ...prev,
-      description: prev.description ? `${prev.description}\n${snippet}` : snippet,
-    }));
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(noticeSearch.trim());
+      setNoticePage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [noticeSearch]);
 
-  const handleNoticeFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    const isImage = file.type.startsWith('image/');
-    if (!isPdf && !isImage) {
-      toast.error(pick('শুধুমাত্র PDF অথবা ছবি (JPG/PNG/WEBP) আপলোড করা যাবে।', 'Only PDF or Image files are supported.'));
-      return;
-    }
-    const sizeText =
-      file.size >= 1024 * 1024
-        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-        : `${Math.max(1, Math.round(file.size / 1024))} KB`;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setForm((prev) => ({
-        ...prev,
-        attachment: file.name,
-        attachmentType: isPdf ? 'PDF' : 'IMAGE',
-        attachmentUrl: typeof reader.result === 'string' ? reader.result : null,
-        attachmentSize: sizeText,
-      }));
-      toast.success(pick(`${file.name} সংযুক্ত হয়েছে।`, `${file.name} attached.`));
+  const { currentData: noticeList, isFetching: loadingNotices, isError: noticesError } =
+    useGetAdminNoticesQuery(
+      {
+        status: statusFilter || undefined,
+        page: noticePage,
+        search: debouncedSearch || undefined,
+      },
+      { skip: tab !== 'notices' }
+    );
+  const [getDocument] = useGetAdminNoticeDocumentMutation({ selectFromResult: () => ({}) });
+  useEffect(() => {
+    const url = viewerNotice?.attachmentUrl;
+    return () => {
+      if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
     };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
+  }, [viewerNotice]);
 
-  if (isLoading || !db) return <LoadingSkeleton />;
-
-  const handlePublishNotice = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.title.trim()) return;
-    if (!form.description.trim() && !form.attachmentUrl) {
-      toast.error(pick('বিজ্ঞপ্তির বিবরণ লিখুন অথবা PDF/ছবি আপলোড করুন।', 'Enter notice text or upload a PDF/Image circular.'));
+  const openPreview = async (notice: Notice) => {
+    if (notice.status === NoticeStatus.PUBLISHED || !notice.attachmentSize) {
+      setViewerNotice(notice);
       return;
     }
-    await createNotice({
-      ...form,
-      description:
-        form.description.trim() ||
-        pick(
-          'সংযুক্ত মূল বিজ্ঞপ্তিটি (PDF/স্ক্যান কপি) দেখুন অথবা ডাউনলোড করুন।',
-          'Please view or download the attached official circular document.'
-        ),
-    }).unwrap();
-    toast.success(pick('নোটিশ সফলভাবে সংরক্ষিত হয়েছে।', 'Notice saved successfully.'));
-    setComposerOpen(false);
-    setForm({
-      memoNo: `ভউবি/নোটিশ/২০২৬/${String(db.notices.length + 87).padStart(3, '0')}`,
-      title: '',
-      description: '',
-      attachment: null,
-      attachmentType: 'OFFICIAL_PAD',
-      attachmentUrl: null,
-      attachmentSize: null,
-      status: NoticeStatus.PUBLISHED,
-      isUrgent: false,
-      audience: 'ALL',
-    });
+    try {
+      const attachmentUrl = await getDocument(notice.id).unwrap();
+      setViewerNotice({ ...notice, attachmentUrl });
+    } catch (error) {
+      toast.error((error as { message?: string }).message ?? 'Could not open the document.');
+    }
   };
+
+  const [deleteNotice, { isLoading: deletingNotice }] = useDeleteNoticeMutation();
+  const [updateNotice, { isLoading: updatingNotice }] = useUpdateNoticeMutation();
+  const [editingNotice, setEditingNotice] = useState<Notice | null>(null);
+  const editingNoticeId = editingNotice?.id;
+  const [form, setForm] = useState({ memoNo: '', title: '', status: NoticeStatus.DRAFT, isUrgent: false });
+  const [document, setDocument] = useState<File | null>(null);
+
+  const closeComposer = () => {
+    setComposerOpen(false);
+    setEditingNotice(null);
+    setDocument(null);
+    setForm({ memoNo: '', title: '', status: NoticeStatus.DRAFT, isUrgent: false });
+  };
+
+  const openEdit = (notice: Notice) => {
+    setEditingNotice(notice);
+    setForm({ title: notice.title, memoNo: notice.memoNo ?? '', status: notice.status, isUrgent: notice.isUrgent ?? false });
+    setComposerOpen(true);
+  };
+
+  const handleSaveNotice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const fields = noticeSchema.safeParse(form);
+    if (!fields.success) {
+      toast.error('Enter a valid notice title and memo number.');
+      return;
+    }
+
+    if (document && document.size > 10 * 1024 * 1024) {
+      toast.error('Select a file up to 10 MB.');
+      return;
+    }
+    try {
+      if (editingNoticeId) {
+        await updateNotice({
+          id: editingNoticeId,
+          title: fields.data.title,
+          memoNo: fields.data.memoNo ?? '',
+          status: fields.data.status,
+          isUrgent: fields.data.isUrgent ?? false,
+          file: document ?? undefined,
+        }).unwrap();
+      } else {
+        if (!document) return;
+        const body = new FormData();
+        body.set('title', fields.data.title);
+        if (fields.data.memoNo) body.set('memoNo', fields.data.memoNo);
+        body.set('status', fields.data.status);
+        body.set('isUrgent', String(fields.data.isUrgent ?? false));
+        body.set('file', document);
+        await createNotice(body).unwrap();
+        setStatusFilter('');
+        setNoticeSearch('');
+        setNoticePage(1);
+      }
+      toast.success(editingNoticeId ? 'Notice updated.' : 'Notice saved.');
+      closeComposer();
+    } catch (error) {
+      toast.error((error as { message?: string }).message ?? 'Could not save the notice.');
+    }
+  };
+
+  if (tab !== 'notices' && (isLoading || !db)) return <LoadingSkeleton />;
 
   return (
     <div className="space-y-6">
@@ -209,7 +235,7 @@ export function AdminNoticesAndEventsPage({
                     title: '',
                     description: '',
                     startDate: '2026-12-16',
-                    categoryId: db.eventCategories[0]?.id ?? 'ec-1',
+                    categoryId: db?.eventCategories[0]?.id ?? 'ec-1',
                     isPublished: true,
                   });
                   setEventModalOpen(true);
@@ -240,40 +266,193 @@ export function AdminNoticesAndEventsPage({
         value={tab}
         onChange={setTab}
         items={[
-          { value: 'notices', label: pick('নোটিশ', 'Notices'), count: db.notices.length },
-          { value: 'news', label: pick('সংবাদ', 'News'), count: db.news.length },
-          { value: 'events', label: pick('অনুষ্ঠান', 'Events'), count: db.events.length },
-          { value: 'careers', label: pick('নিয়োগ', 'Careers'), count: db.careers.length },
+          { value: 'notices', label: pick('নোটিশ', 'Notices'), count: noticeList?.meta.total },
+          { value: 'news', label: pick('সংবাদ', 'News'), count: db?.news?.length },
+          { value: 'events', label: pick('অনুষ্ঠান', 'Events'), count: db?.events?.length },
+          { value: 'careers', label: pick('নিয়োগ', 'Careers'), count: db?.careers?.length },
         ]}
       />
 
       {tab === 'notices' && (
         <Card className="divide-y divide-border">
-          {db.notices.map((n) => (
-            <div key={n.id} className="p-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="space-y-1 max-w-2xl">
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadge enumName="NoticeStatus" value={n.status} />
-                  <NoticeFormatBadge notice={n} showSize />
-                  {n.memoNo && <span className="text-xs font-mono text-muted-foreground">{n.memoNo}</span>}
-                  <span className="text-xs text-muted-foreground tabular-nums">{formatDateShort(n.createdAt, locale)}</span>
-                  {n.isUrgent && <span className="text-xs text-destructive font-semibold">· {pick('জরুরি', 'Urgent')}</span>}
-                </div>
-                <p className="text-base font-bold text-foreground">{n.title}</p>
-                <p className="text-sm text-muted-foreground line-clamp-1">{n.description}</p>
+          <div className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
+            <FormField label={pick('বিজ্ঞপ্তি খুঁজুন', 'Search notices')}>
+              <div className="relative">
+                <Search aria-hidden="true" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input type="search" value={noticeSearch} className="pl-9"
+                  placeholder={pick('শিরোনাম বা স্মারক নম্বর', 'Title or memo number')}
+                  onChange={(event) => { setNoticeSearch(event.target.value); setNoticePage(1); }} />
               </div>
-              <Button variant="outline" size="sm" onClick={() => setViewerNotice(n)}>
-                <Eye className="w-3.5 h-3.5" />
-                {pick('ডকুমেন্ট দেখুন', 'Preview')}
-              </Button>
+            </FormField>
+            <FormField label={pick('\u0985\u09ac\u09b8\u09cd\u09a5\u09be', 'Filter by status')}>
+              <Select aria-label={pick('অবস্থা', 'Filter by status')} value={statusFilter} onChange={(e) => {
+                setStatusFilter(e.target.value as NoticeStatus | '');
+                setNoticePage(1);
+              }}>
+                <option value="">All statuses</option>
+                {Object.values(NoticeStatus).map((status) => <option key={status} value={status}>{status}</option>)}
+              </Select>
+            </FormField>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-surface-muted text-muted-foreground">
+                <tr>
+                  <th scope="col" className="p-3 text-left">{pick('বিষয়', 'Notice')}</th>
+                  <th scope="col" className="p-3 text-left">{pick('স্মারক নং', 'Memo No.')}</th>
+                  <th scope="col" className="p-3 text-left">{pick('তারিখ', 'Date')}</th>
+                  <th scope="col" className="p-3 text-left">{pick('অবস্থা', 'Status')}</th>
+                  <th scope="col" className="p-3 text-right">{pick('ব্যবস্থাপনা', 'Actions')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {loadingNotices &&
+                  Array.from({ length: 6 }).map((_, idx) => (
+                    <tr key={`notice-skeleton-${idx}`} className="animate-pulse">
+                      <td className="p-3">
+                        <div className="h-4 w-3/4 max-w-sm rounded bg-surface-muted" />
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="h-4 w-14 rounded bg-surface-muted" />
+                          <div className="h-3 w-12 rounded bg-surface-muted" />
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="h-4 w-24 rounded bg-surface-muted" />
+                      </td>
+                      <td className="p-3">
+                        <div className="h-4 w-20 rounded bg-surface-muted" />
+                      </td>
+                      <td className="p-3">
+                        <div className="h-6 w-20 rounded-full bg-surface-muted" />
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="inline-flex items-center gap-2">
+                          <div className="h-7 w-14 rounded bg-surface-muted" />
+                          <div className="h-7 w-14 rounded bg-surface-muted" />
+                          <div className="h-7 w-14 rounded bg-surface-muted" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                {!loadingNotices && noticesError && (
+                  <tr>
+                    <td colSpan={5} className="py-12 px-4 text-center">
+                      <div className="mx-auto max-w-sm space-y-2">
+                        <p role="alert" className="text-base font-semibold text-destructive">
+                          {pick('নোটিশ লোড করা যায়নি', 'Could not load notices')}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {pick(
+                            'সার্ভারের সাথে সংযোগে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
+                            'There was a problem connecting to the server. Please try again.'
+                          )}
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {!loadingNotices && !noticesError && !noticeList?.items.length && (
+                  <tr>
+                    <td colSpan={5} className="py-14 px-4 text-center">
+                      <div className="mx-auto max-w-md flex flex-col items-center space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-surface-muted flex items-center justify-center text-muted-foreground">
+                          <SearchX className="w-6 h-6" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-base font-semibold text-foreground">
+                            {pick('কোনো নোটিশ পাওয়া যায়নি', 'No matching notices found')}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {noticeSearch || statusFilter
+                              ? pick(
+                                  'আপনার অনুসন্ধান বা নির্বাচিত ফিল্টারের সাথে কোনো নোটিশ মেলেনি।',
+                                  'No notices match your current search or status filter.'
+                                )
+                              : pick(
+                                  'এখনো কোনো নোটিশ প্রকাশ বা সংরক্ষণ করা হয়নি।',
+                                  'No notices have been published or saved yet.'
+                                )}
+                          </p>
+                        </div>
+                        {(noticeSearch || statusFilter) && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setNoticeSearch('');
+                              setDebouncedSearch('');
+                              setStatusFilter('');
+                              setNoticePage(1);
+                            }}
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            {pick('ফিল্টার রিসেট করুন', 'Reset Filters')}
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {!loadingNotices && !noticesError && noticeList?.items.map((n) => (
+                  <tr key={n.id}>
+                    <td className="p-3">
+                      <span className="block font-semibold text-foreground">{n.title}</span>
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <NoticeFormatBadge notice={n} showSize />
+                        {n.isUrgent && <span className="text-xs font-semibold text-destructive">{pick('জরুরি', 'Urgent')}</span>}
+                      </div>
+                    </td>
+                    <td className="p-3 text-muted-foreground">{n.memoNo || '?'}</td>
+                    <td className="whitespace-nowrap p-3 text-muted-foreground">{formatDateShort(n.createdAt, locale)}</td>
+                    <td className="whitespace-nowrap p-3">
+                      {n.deletionPending
+                        ? <span className="text-sm font-medium text-destructive">{pick('মুছে ফেলা হচ্ছে', 'Deletion pending')}</span>
+                        : <StatusBadge enumName="NoticeStatus" value={n.status} />}
+                    </td>
+                    <td className="p-3 text-right">
+                      <div className="inline-flex items-center gap-1 whitespace-nowrap">
+                        <Button type="button" variant="ghost" size="sm" disabled={n.deletionPending} onClick={() => void openPreview(n)}>
+                          <Eye className="h-3.5 w-3.5" />
+                          {pick('দেখুন', 'View')}
+                        </Button>
+                        <Button type="button" variant="ghost" size="sm" disabled={n.deletionPending} onClick={() => openEdit(n)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                          {pick('সম্পাদনা', 'Edit')}
+                        </Button>
+                          <Button type="button" variant="ghost" size="sm" disabled={deletingNotice}
+                            onClick={async () => {
+                              if (!n.deletionPending && !window.confirm(pick('নোটিস ও সংযুক্ত ফাইল মুছে ফেলবেন?', 'Delete this notice and its document?'))) return;
+                              try {
+                                await deleteNotice(n.id).unwrap();
+                                toast.success(pick('নোটিস মুছে ফেলা হয়েছে।', 'Notice deleted.'));
+                              } catch (error) {
+                                toast.error((error as { message?: string }).message ?? 'Could not delete the notice.');
+                              }
+                            }}>
+                            <Trash2 className="h-4 w-4" />
+                            {n.deletionPending ? pick('আবার চেষ্টা করুন', 'Retry deletion') : pick('মুছুন', 'Delete')}
+                          </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {noticeList && (noticePage > 1 || noticeList.meta.totalPages > 1) && (
+            <div className="flex gap-2 p-4">
+              <Button type="button" disabled={noticePage === 1} onClick={() => setNoticePage(noticePage - 1)}>Previous</Button>
+              <span>{noticePage} / {Math.max(1, noticeList.meta.totalPages)}</span>
+              <Button type="button" disabled={noticePage >= noticeList.meta.totalPages} onClick={() => setNoticePage(noticePage + 1)}>Next</Button>
             </div>
-          ))}
+          )}
         </Card>
       )}
 
       {tab === 'news' && (
         <Card className="divide-y divide-border">
-          {db.news.map((item) => (
+          {db?.news?.map((item) => (
             <div key={item.id} className="p-4 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3.5 min-w-0 flex-1">
                 {item.image && (
@@ -329,7 +508,7 @@ export function AdminNoticesAndEventsPage({
 
       {tab === 'events' && (
         <Card className="divide-y divide-border">
-          {db.events.map((ev) => (
+          {db?.events?.map((ev) => (
             <div key={ev.id} className="p-4 flex flex-wrap items-center justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <p className="text-base font-bold text-foreground">{ev.title}</p>
@@ -377,7 +556,7 @@ export function AdminNoticesAndEventsPage({
 
       {tab === 'careers' && (
         <Card className="divide-y divide-border">
-          {db.careers.map((car) => (
+          {db?.careers?.map((car) => (
             <div key={car.id} className="p-4 flex flex-wrap items-center justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <p className="text-base font-bold text-foreground">{car.title}</p>
@@ -497,7 +676,7 @@ export function AdminNoticesAndEventsPage({
                 title: eventForm.title.trim(),
                 description: eventForm.description.trim(),
                 startDate: eventForm.startDate,
-                categoryId: eventForm.categoryId || db.eventCategories[0]?.id || 'ec-1',
+                categoryId: eventForm.categoryId || db?.eventCategories[0]?.id || 'ec-1',
                 isPublished: eventForm.isPublished,
               },
             }).unwrap();
@@ -515,7 +694,7 @@ export function AdminNoticesAndEventsPage({
             </FormField>
             <FormField label={pick('ক্যাটাগরি', 'Category')}>
               <Select value={eventForm.categoryId} onChange={(e) => setEventForm({ ...eventForm, categoryId: e.target.value })}>
-                {db.eventCategories.map((ec) => (
+                {db?.eventCategories?.map((ec) => (
                   <option key={ec.id} value={ec.id}>{ec.name}</option>
                 ))}
               </Select>
@@ -574,12 +753,14 @@ export function AdminNoticesAndEventsPage({
         </form>
       </Modal>
 
-      <Modal open={composerOpen} onClose={() => setComposerOpen(false)} title={pick('নতুন নোটিশ / সার্কুলার প্রকাশ', 'Publish Notice / Circular')} maxWidth="max-w-2xl">
-        <form onSubmit={handlePublishNotice} className="space-y-4">
+      <Modal open={composerOpen} onClose={closeComposer} title={editingNoticeId ? pick('নোটিস সম্পাদনা', 'Edit Notice') : pick('নতুন নোটিশ / সার্কুলার প্রকাশ', 'Publish Notice / Circular')} maxWidth="max-w-2xl">
+        <form onSubmit={handleSaveNotice} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
               <FormField label={pick('বিজ্ঞপ্তির শিরোনাম', 'Notice Title')} required>
                 <Input
+                  required
+                  maxLength={200}
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder={pick('যেমন: অর্ধবার্ষিক পরীক্ষার সময়সূচি সংক্রান্ত বিজ্ঞপ্তি', 'e.g., Half-Yearly Exam Schedule Circular')}
@@ -590,43 +771,39 @@ export function AdminNoticesAndEventsPage({
               <Input
                 value={form.memoNo}
                 onChange={(e) => setForm({ ...form, memoNo: e.target.value })}
-                placeholder="ভউবি/নোটিশ/২০২৬/০৮৬"
+                maxLength={100}
               />
             </FormField>
           </div>
 
-          {/* Real PDF / Scanned Notice Image Upload */}
           <FormField
             label={pick('মূল বিজ্ঞপ্তি ফাইল আপলোড (PDF অথবা স্ক্যান করা ছবি)', 'Upload Official Circular (PDF or Scanned Image)')}
           >
-            {form.attachment ? (
+            {editingNotice?.attachment && (
+              <p className="mb-2 break-all text-sm text-muted-foreground">
+                {pick('বর্তমান ফাইল', 'Current file')} {editingNotice.attachment}
+              </p>
+            )}
+            {document ? (
               <div className="p-3 rounded-lg bg-surface-muted/70 border border-border flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="h-9 w-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    {form.attachmentType === 'PDF' ? (
+                    {document.name.toLowerCase().endsWith('.pdf') ? (
                       <FileText className="w-4 h-4" />
                     ) : (
                       <ImageIcon className="w-4 h-4" />
                     )}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{form.attachment}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{document.name}</p>
                     <p className="text-xs text-muted-foreground tabular-nums">
-                      {form.attachmentType} {form.attachmentSize ? `· ${form.attachmentSize}` : ''}
+                      {Math.ceil(document.size / 1024)} KB
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      attachment: null,
-                      attachmentType: 'OFFICIAL_PAD',
-                      attachmentUrl: null,
-                      attachmentSize: null,
-                    }))
-                  }
+                  onClick={() => setDocument(null)}
                   className="h-7 w-7 rounded inline-flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-surface cursor-pointer shrink-0"
                   aria-label={pick('ফাইল সরান', 'Remove file')}
                 >
@@ -637,88 +814,24 @@ export function AdminNoticesAndEventsPage({
               <label className="flex flex-col items-center justify-center gap-1.5 px-4 py-5 border border-dashed border-border hover:border-primary/55 rounded-lg bg-surface-muted/30 hover:bg-surface-muted/60 transition-colors cursor-pointer text-center">
                 <Upload className="w-5 h-5 text-primary" />
                 <span className="text-sm font-semibold text-foreground">
-                  {pick('PDF ডকুমেন্ট বা স্ক্যান করা নোটিশ ছবি নির্বাচন করুন', 'Select Official PDF or Scanned Notice Image')}
+                  {editingNoticeId
+                    ? pick('নতুন ফাইল বাছুন (ঐচ্ছিক)', 'Select a replacement file (optional)')
+                    : pick('PDF ডকুমেন্ট বা স্ক্যান করা নোটিশ ছবি নির্বাচন করুন', 'Select Official PDF or Scanned Notice Image')}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {pick('সাপোর্টেড ফরম্যাট: .PDF, .JPG, .PNG, .WEBP (ঐচ্ছিক — না দিলে অফিসিয়াল ডিজিটাল প্যাড তৈরি হবে)', 'Supported: PDF, JPG, PNG, WEBP (Optional — generates official letterhead pad if empty)')}
+                  {pick('PDF / JPG / PNG / WebP ? 10 MB', 'PDF / JPG / PNG / WebP ? 10 MB')}
                 </span>
                 <input
                   type="file"
                   accept=".pdf,image/png,image/jpeg,image/webp"
-                  onChange={handleNoticeFileUpload}
+                  required={!editingNoticeId}
+                  onChange={(event) => setDocument(event.target.files?.[0] ?? null)}
                   className="sr-only"
                 />
               </label>
             )}
           </FormField>
 
-          <FormField label={pick('বিস্তারিত বিবরণ / সংক্ষিপ্ত সারসংক্ষেপ', 'Notice Content / Summary')}>
-            <div className="border border-border rounded-[var(--radius)] overflow-hidden bg-surface">
-              <div className="flex flex-wrap items-center justify-between gap-1 px-2 py-1.5 bg-surface-muted/70 border-b border-border">
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    title={pick('বোল্ড', 'Bold')}
-                    onClick={() => appendFormat('**গুরুত্বপূর্ণ নির্দেশনা:** ')}
-                    className="h-7 w-7 rounded hover:bg-surface inline-flex items-center justify-center text-foreground cursor-pointer"
-                  >
-                    <Bold className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    title={pick('ইটালিক', 'Italic')}
-                    onClick={() => appendFormat('*বিশেষ দ্রষ্টব্য:* ')}
-                    className="h-7 w-7 rounded hover:bg-surface inline-flex items-center justify-center text-foreground cursor-pointer"
-                  >
-                    <Italic className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    title={pick('উপ-শিরোনাম', 'Heading')}
-                    onClick={() => appendFormat('## বিজ্ঞপ্তির মূল অংশ')}
-                    className="h-7 w-7 rounded hover:bg-surface inline-flex items-center justify-center text-foreground cursor-pointer"
-                  >
-                    <Heading2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    title={pick('তালিকা', 'Bullet list')}
-                    onClick={() => appendFormat('• নির্দেশনা ১\n• নির্দেশনা ২')}
-                    className="h-7 w-7 rounded hover:bg-surface inline-flex items-center justify-center text-foreground cursor-pointer"
-                  >
-                    <List className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => appendFormat('\nআদেশক্রমে,\nপ্রধান শিক্ষক\nভোজেশ্বর উচ্চ বিদ্যালয়')}
-                    className="px-2 h-7 rounded hover:bg-surface text-xs font-medium text-primary cursor-pointer"
-                  >
-                    {pick('+ স্বাক্ষর যুক্ত', '+ Official Sign-off')}
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPreviewMode((p) => !p)}
-                  className="px-2 h-7 rounded hover:bg-surface text-xs font-medium inline-flex items-center gap-1 text-muted-foreground hover:text-foreground cursor-pointer"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  {previewMode ? pick('সম্পাদনা', 'Edit') : pick('প্রিভিউ', 'Preview')}
-                </button>
-              </div>
-              {previewMode ? (
-                <div className="p-3 min-h-[100px] text-sm whitespace-pre-line text-foreground">
-                  {form.description || pick('কোনো বিবরণ লেখা হয়নি।', 'No content written yet.')}
-                </div>
-              ) : (
-                <Textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  rows={4}
-                  className="border-none rounded-none focus:ring-0"
-                />
-              )}
-            </div>
-          </FormField>
           <div className="grid grid-cols-2 gap-4">
             <FormField label={pick('অবস্থা', 'Status')}>
               <Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as NoticeStatus })}>
@@ -727,25 +840,17 @@ export function AdminNoticesAndEventsPage({
                 <option value={NoticeStatus.ARCHIVED}>{pick('আর্কাইভ', 'Archived')}</option>
               </Select>
             </FormField>
-            <FormField label={pick('দর্শক শ্রেণি', 'Target Audience')}>
-              <Select value={form.audience} onChange={(e) => setForm({ ...form, audience: e.target.value as typeof form.audience })}>
-                <option value="ALL">{pick('সকলের জন্য', 'Everyone')}</option>
-                <option value="PARENTS">{pick('অভিভাবক', 'Parents')}</option>
-                <option value="TEACHERS">{pick('শিক্ষক', 'Teachers')}</option>
-              </Select>
-            </FormField>
           </div>
           <Switch checked={form.isUrgent} onChange={(v) => setForm({ ...form, isUrgent: v })} label={pick('জরুরি নোটিশ হিসেবে চিহ্নিত করুন', 'Mark as urgent notice')} />
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setComposerOpen(false)}>{pick('বাতিল', 'Cancel')}</Button>
-            <Button type="submit" variant="primary" disabled={saving}>{pick('প্রকাশ করুন', 'Save Notice')}</Button>
+            <Button type="button" variant="outline" onClick={closeComposer}>{pick('বাতিল', 'Cancel')}</Button>
+            <Button type="submit" variant="primary" disabled={saving || updatingNotice}>{editingNoticeId ? pick('পরিবর্তন সংরক্ষণ', 'Save changes') : pick('প্রকাশ করুন', 'Save Notice')}</Button>
           </div>
         </form>
       </Modal>
 
       <NoticeDocumentModal
         notice={viewerNotice}
-        school={db.schoolProfile}
         onClose={() => setViewerNotice(null)}
       />
     </div>

@@ -1,16 +1,16 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import {
   dismissSessionExpired,
-  loginWithDemoRole,
   logout,
   type AppRole,
 } from '@/src/store/slices/authSlice';
 import { setCommandPaletteOpen, toggleSidebar, toggleTheme } from '@/src/store/slices/uiSlice';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
+import { useLogoutUserMutation } from '@/src/features/auth/api/auth.api';
 import { useI18n } from '@/src/lib/i18n';
 import { Button, Modal } from '@/src/components/ui/primitives';
 import {
@@ -18,7 +18,6 @@ import {
   getPortalNavGroups,
   getCurrentNavContext,
   PortalStudentDisabledScreen,
-  PortalLoginRequiredScreen,
   PortalSidebar,
   PortalMobileDrawer,
   PortalHeader,
@@ -35,11 +34,11 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
   const { sidebarCollapsed, theme, enableFutureModules, enableStudentPortal } = useAppSelector((s) => s.ui);
   const { data: db } = useGetBootstrapQuery();
   const [markRead] = useMarkNotificationReadMutation();
+  const [logoutApi] = useLogoutUserMutation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
-  // Auto-align demo role when navigating directly into a portal preview if unauthenticated
   const expectedRoles: Record<PortalKind, AppRole[]> = {
     admin: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'PRINCIPAL'],
     teacher: ['TEACHER'],
@@ -77,34 +76,44 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
     [portal, pathname, locale, pick]
   );
 
+  const isAllowedRole = Boolean(auth.role && expectedRoles[portal].includes(auth.role));
+  const isAuthorized = auth.isHydrated && auth.isAuthenticated && isAllowedRole;
+
+  useEffect(() => {
+    if (!auth.isHydrated) return;
+    if (portal === 'student' && !enableStudentPortal) return;
+
+    if (!auth.isAuthenticated || !auth.role) {
+      router.replace('/login');
+      return;
+    }
+
+    if (!isAllowedRole) {
+      router.replace('/unauthorized');
+    }
+  }, [auth.isHydrated, auth.isAuthenticated, auth.role, isAllowedRole, portal, enableStudentPortal, router]);
+
   // Student Portal Feature Flag Gate
   if (portal === 'student' && !enableStudentPortal) {
     return <PortalStudentDisabledScreen pick={pick} />;
   }
 
-  // Auth / Role check with convenient demo switch option
-  if (!auth.isAuthenticated || !auth.role || !expectedRoles[portal].includes(auth.role)) {
-    const defaultRole: AppRole =
-      portal === 'admin'
-        ? 'SUPER_ADMIN'
-        : portal === 'teacher'
-          ? 'TEACHER'
-          : portal === 'parent'
-            ? 'PARENT'
-            : 'STUDENT';
-
+  if (!isAuthorized) {
     return (
-      <PortalLoginRequiredScreen
-        defaultRole={defaultRole}
-        onLoginDemo={(role) => dispatch(loginWithDemoRole(role))}
-        pick={pick}
-      />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-7 h-7 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+      </div>
     );
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await logoutApi().unwrap();
+    } catch {
+      // Clear local session even if backend is unreachable
+    }
     dispatch(logout());
-    router.push('/login');
+    router.replace('/login');
   };
 
   const handleToggleMenu = (to: string) => {
@@ -141,7 +150,7 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 lg:h-screen lg:overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 lg:h-screen lg:overflow-y-auto [scrollbar-gutter:stable]">
         {/* Top Bar Header */}
         <PortalHeader
           onOpenMobileNav={() => setMobileOpen(true)}

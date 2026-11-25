@@ -1,5 +1,6 @@
 'use client';
 
+import { useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
 import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { useParams } from '@/src/lib/navigation';
@@ -56,13 +57,14 @@ function useCurrentStudent(db: MockDatabase | undefined) {
 
 export function StudentNoticesPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
+  const { data: noticePage } = useGetPublicNoticesQuery({ limit: 20 });
   const { locale, pick } = useI18n();
   if (isLoading || !db) return <LoadingSkeleton />;
   return (
     <div className="space-y-6">
       <PageHeader title={pick('নোটিশ', 'Notices')} />
       <div className="space-y-3">
-        {db.notices.map((n) => (
+        {(noticePage?.items ?? []).map((n) => (
           <Card key={n.id} className="p-5">
             <h3 className="text-base font-semibold">{n.title}</h3>
             <p className="text-xs text-muted-foreground tabular-nums mt-0.5">

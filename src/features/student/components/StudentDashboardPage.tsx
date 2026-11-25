@@ -1,5 +1,6 @@
 'use client';
 
+import { useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
 import React, { useMemo } from 'react';
 import Link from 'next/link';
 import { useParams } from '@/src/lib/navigation';
@@ -56,6 +57,7 @@ function useCurrentStudent(db: MockDatabase | undefined) {
 
 export function StudentDashboardPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
+  const { data: noticePage } = useGetPublicNoticesQuery({ limit: 20 });
   const me = useCurrentStudent(db);
   const { locale, pick } = useI18n();
 
@@ -144,7 +146,7 @@ export function StudentDashboardPage() {
               {pick('সব নোটিশ', 'All Notices')}
             </Link>
           </div>
-          {db.notices.slice(0, 4).map((n) => (
+          {(noticePage?.items ?? []).slice(0, 4).map((n) => (
             <div key={n.id} className="py-2 border-b last:border-0 border-border">
               <p className="text-sm font-medium">{n.title}</p>
               <p className="text-xs text-muted-foreground tabular-nums">

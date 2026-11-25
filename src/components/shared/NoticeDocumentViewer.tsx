@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'motion/react';
 import {
@@ -103,10 +103,14 @@ export function downloadNoticeDocument(
   locale: 'bn' | 'en' = 'bn',
   showToast: boolean = true
 ) {
+  const effectiveUrl = notice.attachmentUrl;
+
   // 1. If an actual uploaded PDF or Image data URL exists, download the exact uploaded binary file
-  if (notice.attachmentUrl) {
+  if (effectiveUrl) {
     const a = document.createElement('a');
-    a.href = notice.attachmentUrl;
+    a.href = effectiveUrl.endsWith(`/notices/${notice.id}/document`)
+      ? `${effectiveUrl}?download=true`
+      : effectiveUrl;
     a.download = notice.attachment || `BHS-Notice-${notice.id}`;
     document.body.appendChild(a);
     a.click();
@@ -118,6 +122,11 @@ export function downloadNoticeDocument(
           : `Downloading ${notice.attachment || 'notice document'}.`
       );
     }
+    return;
+  }
+
+  if (!notice.description?.trim()) {
+    toast.error(locale === 'bn' ? '\u09a8\u09a5\u09bf \u09aa\u09be\u0993\u09af\u09bc\u09be \u09af\u09be\u09af\u09bc\u09a8\u09bf\u0964' : 'The document is unavailable.');
     return;
   }
 
@@ -404,9 +413,11 @@ export function NoticeDocumentViewer({
 }) {
   const { locale, pick } = useI18n();
   const [zoom, setZoom] = useState(100);
+  const pdfIframeRef = useRef<HTMLIFrameElement>(null);
 
   const format = resolveNoticeFormat(notice);
-  const hasRealPdf = format === 'PDF' && Boolean(notice.attachmentUrl);
+  const pdfUrl = notice.attachmentUrl;
+  const hasRealPdf = format === 'PDF' && Boolean(pdfUrl);
   const hasRealImage = format === 'IMAGE' && Boolean(notice.attachmentUrl);
 
   // Reset zoom whenever a new notice is opened
@@ -415,6 +426,50 @@ export function NoticeDocumentViewer({
   }, [notice.id]);
 
   const handlePrint = () => {
+    if (hasRealPdf && pdfUrl) {
+      // 1. Try to invoke print on the embedded PDF iframe contentWindow (prints ONLY the PDF in Chrome)
+      const iframe = pdfIframeRef.current;
+      if (iframe?.contentWindow) {
+        try {
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+          return;
+        } catch {
+          // If browser PDF plugin or cross-origin sandbox prevents direct access, proceed to fallback
+        }
+      }
+
+      // 2. Off-screen print iframe approach
+      try {
+        const printFrame = document.createElement('iframe');
+        printFrame.style.position = 'fixed';
+        printFrame.style.left = '-9999px';
+        printFrame.style.top = '-9999px';
+        printFrame.style.width = '1000px';
+        printFrame.style.height = '1000px';
+        printFrame.style.opacity = '0';
+        printFrame.style.pointerEvents = 'none';
+        printFrame.src = pdfUrl;
+        document.body.appendChild(printFrame);
+
+        printFrame.onload = () => {
+          setTimeout(() => {
+            try {
+              printFrame.contentWindow?.focus();
+              printFrame.contentWindow?.print();
+            } catch {
+              window.open(pdfUrl, '_blank');
+            }
+            setTimeout(() => printFrame.remove(), 60000);
+          }, 350);
+        };
+        return;
+      } catch {
+        window.open(pdfUrl, '_blank');
+        return;
+      }
+    }
+
     triggerPrint();
   };
 
@@ -503,13 +558,37 @@ export function NoticeDocumentViewer({
 
       {/* Direct Submitted Document Viewport */}
       <div className="bg-[#E5EAE7] dark:bg-[#131B17] p-3 sm:p-6 overflow-auto max-h-[70vh] min-h-[420px]">
-        {hasRealPdf && notice.attachmentUrl ? (
-          <div className="w-full max-w-4xl mx-auto">
-            <iframe
-              src={notice.attachmentUrl}
-              title={notice.title}
-              className="w-full h-[600px] rounded-lg bg-white border border-black/10 shadow-xl"
-            />
+        {hasRealPdf && pdfUrl ? (
+          <div className="w-full max-w-4xl mx-auto rounded-xl overflow-hidden border border-border bg-[#525659] shadow-lg">
+            <object
+              data={`${pdfUrl}#toolbar=1&navpanes=0&scrollbar=1`}
+              type="application/pdf"
+              className="w-full h-[650px] sm:h-[750px] block"
+            >
+              <iframe
+                ref={pdfIframeRef}
+                src={`${pdfUrl}#toolbar=1&navpanes=0&scrollbar=1`}
+                title={notice.title}
+                className="w-full h-[650px] sm:h-[750px] border-0"
+              >
+                <div className="p-8 text-center text-white bg-[#525659]">
+                  <p className="mb-4">
+                    {pick(
+                      'ব্রাউজারে সরাসরি পিডিএফ দেখতে নিচের বাটনে ক্লিক করুন:',
+                      'Click below to view the PDF directly in browser:'
+                    )}
+                  </p>
+                  <a
+                    href={pdfUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block px-5 py-2.5 rounded-lg bg-[#0c5936] text-white font-medium"
+                  >
+                    {pick('পিডিএফ ফাইল ডাউনলোড / ওপেন করুন', 'Download / Open PDF File')}
+                  </a>
+                </div>
+              </iframe>
+            </object>
           </div>
         ) : hasRealImage && notice.attachmentUrl ? (
           <div className="flex justify-center">
@@ -537,7 +616,7 @@ export function NoticeDocumentViewer({
               }}
               className="w-full transition-transform duration-200"
             >
-              <OfficialCircularSheet notice={notice} school={school} />
+              {notice.description?.trim() ? <OfficialCircularSheet notice={notice} school={school} /> : <p role="status">{pick('\u09a8\u09a5\u09bf \u09aa\u09be\u0993\u09af\u09bc\u09be \u09af\u09be\u09af\u09bc\u09a8\u09bf\u0964', 'The document is unavailable.')}</p>}
             </div>
           </div>
         )}

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useGetBootstrapQuery } from '@/src/store/api';
+import { useGetAdminNoticesQuery } from '@/src/features/notices/api/notices.api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
@@ -28,6 +29,7 @@ const TINT_CORAL = '#F4DAD5';
 
 export function AdminDashboardPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
+  const { data: recentNoticePage, isLoading: loadingRecentNotices } = useGetAdminNoticesQuery({ limit: 5 });
   const { locale, pick } = useI18n();
 
   const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month'>('week');
@@ -269,7 +271,8 @@ export function AdminDashboardPage() {
       <AdminDashboardWidgets
         pendingActions={pendingActions}
         onDismissAction={(id) => setDismissedActions((prev) => [...prev, id])}
-        notices={db.notices}
+        notices={recentNoticePage?.items ?? []}
+        noticesLoading={loadingRecentNotices}
         auditLogs={db.auditLogs}
         locale={locale}
         pick={pick}

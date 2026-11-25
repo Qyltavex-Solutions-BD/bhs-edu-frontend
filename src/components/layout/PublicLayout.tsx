@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useI18n } from '@/src/lib/i18n';
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import { toggleTheme } from '@/src/store/slices/uiSlice';
+import { useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
 import { useGetBootstrapQuery } from '@/src/store/api';
 import { NoticeStatus, StaffStatus } from '@/src/types/enums';
 import {
@@ -122,6 +123,8 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
     setMobileOpen(true);
   };
 
+  const { data: noticePage } = useGetPublicNoticesQuery({ limit: 20 });
+  const publicNotices = noticePage?.items;
   const school = db?.schoolProfile;
   const portalUrl = auth.isAuthenticated
     ? auth.role === 'TEACHER'
@@ -135,10 +138,10 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
 
   const tickerNotices = useMemo(
     () =>
-      (db?.notices ?? [])
+      (publicNotices ?? [])
         .filter((n) => n.status === NoticeStatus.PUBLISHED)
         .slice(0, 6),
-    [db?.notices]
+    [publicNotices]
   );
 
   const latestNotice = tickerNotices[0];
@@ -163,11 +166,11 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         item.descEn.toLowerCase().includes(q)
     );
 
-    const notices = (db?.notices ?? [])
+    const notices = (publicNotices ?? [])
       .filter(
         (n) =>
           n.status === NoticeStatus.PUBLISHED &&
-          (n.title.toLowerCase().includes(q) || n.description.toLowerCase().includes(q))
+          (n.title.toLowerCase().includes(q) || n.memoNo?.toLowerCase().includes(q))
       )
       .slice(0, 4);
 
@@ -224,7 +227,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       staff,
       academics: [...matchedClasses, ...matchedSubjects],
     };
-  }, [searchQuery, db?.notices, db?.staff, db?.classes, db?.subjects, tickerNotices, locale, pick]);
+  }, [searchQuery, publicNotices, db?.staff, db?.classes, db?.subjects, tickerNotices, locale, pick]);
 
   const hasAnySearchResult =
     searchResults.shortcuts.length > 0 ||

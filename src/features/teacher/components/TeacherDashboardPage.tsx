@@ -319,7 +319,7 @@ export function TeacherDashboardPage() {
             </Link>
           </div>
           <div className="divide-y divide-border">
-            {db.notices.slice(0, 4).map((n) => (
+            {([] as Array<{ id: string; title: string; publishedAt?: string; createdAt: string; status: string }>).map((n) => (
               <div key={n.id} className="py-2.5 flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{n.title}</p>

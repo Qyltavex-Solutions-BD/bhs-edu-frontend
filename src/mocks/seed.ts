@@ -38,7 +38,6 @@ import type {
   ManagingCommitteeMember,
   Mark,
   News,
-  Notice,
   Parent,
   ParentStudent,
   Permission,
@@ -151,7 +150,6 @@ export interface MockDatabase {
   libraryDistributions: LibraryDistributionInfo[];
   digitalClassrooms: DigitalClassroom[];
   digitalResources: DigitalResource[];
-  notices: Notice[];
   news: News[];
   eventCategories: EventCategory[];
   events: Event[];

@@ -1,7 +1,6 @@
 import { createListenerMiddleware, isAnyOf } from '@reduxjs/toolkit';
 import {
   AUTH_STORAGE_KEY,
-  loginWithDemoRole,
   logout,
   setCredentials,
   triggerSessionExpired,
@@ -45,15 +44,17 @@ function safelyRemove(key: string) {
 export const listenerMiddleware = createListenerMiddleware();
 
 listenerMiddleware.startListening({
-  matcher: isAnyOf(loginWithDemoRole, setCredentials),
+  actionCreator: setCredentials,
   effect: (_action, listenerApi) => {
     const { accessToken, user, role, permissions } =
       (listenerApi.getState() as PersistenceState).auth;
     if (!accessToken || !user || !role) return;
 
+    // Never persist accessToken or refreshToken in localStorage (XSS protection).
+    // Refresh token lives in an HttpOnly cookie; accessToken lives in Redux memory only.
     safelyWrite(
       AUTH_STORAGE_KEY,
-      JSON.stringify({ accessToken, user, role, permissions })
+      JSON.stringify({ user, role, permissions })
     );
   },
 });

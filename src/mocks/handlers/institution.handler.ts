@@ -200,7 +200,6 @@ export function handleInstitutionMock(
         collection:
           | 'banners'
           | 'quickLinks'
-          | 'notices'
           | 'news'
           | 'events'
           | 'careers'

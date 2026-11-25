@@ -281,7 +281,6 @@ export function handleAttendanceMock(
       return { data: clone({ ...scan, recorded: true, message: late ? 'দেরিতে প্রবেশ নথিভুক্ত হয়েছে। / Late entry recorded.' : 'প্রবেশ নথিভুক্ত হয়েছে। / Entry recorded.' }) };
     }
 
-    // 12. Create Notice / Update Notice Status
 
   return null;
 }
