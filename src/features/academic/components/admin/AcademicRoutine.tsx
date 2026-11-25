@@ -211,6 +211,7 @@ export function AcademicRoutine({
   // Drag and Drop & Form State
   const [dragRoutineId, setDragRoutineId] = useState<string | null>(null);
   const [editingRoutineId, setEditingRoutineId] = useState<string | null>(null);
+  const [editingSlot, setEditingSlot] = useState<any | null>(null);
   const [routineStatus, setRoutineStatus] = useState<'DRAFT' | 'PUBLISHED'>('PUBLISHED');
   const [routineType, setRoutineType] = useState<'single' | 'group'>('single');
   const [form, setForm] = useState({
@@ -283,21 +284,44 @@ export function AcademicRoutine({
   }, [classSubjects, usesGroup]);
 
   const selectableSubjects = useMemo(() => {
-    if (!usesGroup) return classSubjects;
-    if (editingRoutineId) {
+    let list: any[] = classSubjects;
+    if (!usesGroup) {
+      list = classSubjects;
+    } else if (editingRoutineId) {
       if (form.groupId) {
-        const filtered = classSubjects.filter((cs) => cs.groupId === form.groupId);
-        // Ensure currently selected classSubjectId is always included even if group match is loose
-        if (form.classSubjectId && !filtered.some((cs) => cs.id === form.classSubjectId)) {
-          const currentCs = classSubjects.find((cs) => cs.id === form.classSubjectId);
-          if (currentCs) return [currentCs, ...filtered];
-        }
-        return filtered;
+        list = classSubjects.filter((cs) => cs.groupId === form.groupId);
+      } else {
+        list = classSubjects;
       }
-      return classSubjects;
+    } else {
+      list = commonSubjects;
     }
-    return commonSubjects;
-  }, [classSubjects, usesGroup, editingRoutineId, form.groupId, form.classSubjectId, commonSubjects]);
+
+    // CRITICAL: Ensure currently selected classSubjectId is ALWAYS present in the options list
+    if (form.classSubjectId && !list.some((cs) => cs.id === form.classSubjectId)) {
+      const matchInAll = classSubjects.find((cs) => cs.id === form.classSubjectId);
+      if (matchInAll) {
+        list = [matchInAll, ...list];
+      } else {
+        const subName =
+          editingSlot?.subject?.name ||
+          (db?.subjects ?? []).find((s) => s.id === form.classSubjectId)?.name ||
+          resolveSubjectName(editingSlot) ||
+          pick('নির্বাচিত বিষয়', 'Selected Subject');
+        const fallbackCs = {
+          id: form.classSubjectId,
+          subjectId: editingSlot?.subject?.id || form.classSubjectId,
+          subject: {
+            id: editingSlot?.subject?.id || form.classSubjectId,
+            name: subName,
+          },
+          groupId: form.groupId || null,
+        };
+        list = [fallbackCs, ...list];
+      }
+    }
+    return list;
+  }, [classSubjects, usesGroup, editingRoutineId, form.groupId, form.classSubjectId, commonSubjects, editingSlot]);
 
   // Smart subject-wise teacher matcher & sorter
   const getTeachersForSubject = (classSubjectId: string) => {
@@ -366,26 +390,107 @@ export function AcademicRoutine({
 
   const openEditModal = (slot: any) => {
     if (!slot) return;
-    setEditingRoutineId(slot.id);
+    const routineId = slot.id || slot.routineId || '';
+    setEditingRoutineId(routineId);
+    setEditingSlot(slot);
     setRoutineType('single');
-    const csId = slot.classSubjectId || slot.classSubject?.id || '';
-    const targetGroupId = slot.groupId || slot.group?.id || slot.classSubject?.groupId || '';
-    const matchedAssignment = assignments.find((a) => a.classSubjectId === csId);
+
+    // 1. Resolve ClassSubject ID:
+    let csId =
+      slot.classSubjectId ||
+      slot.classSubject?.id ||
+      slot.subject?.classSubjectId ||
+      '';
+
+    if (!csId && slot.subject) {
+      const match = classSubjects.find(
+        (cs) =>
+          cs.id === slot.subject?.id ||
+          cs.subjectId === slot.subject?.id ||
+          cs.subject?.id === slot.subject?.id ||
+          (cs.subject?.name &&
+            slot.subject?.name &&
+            cs.subject.name.trim().toLowerCase() === slot.subject.name.trim().toLowerCase())
+      );
+      if (match) csId = match.id;
+    }
+
+    if (!csId && slot.teacherAssignmentId) {
+      const ta = assignments.find((a) => a.id === slot.teacherAssignmentId);
+      if (ta?.classSubjectId) csId = ta.classSubjectId;
+    }
+
+    if (!csId && slot.subject?.id) {
+      csId = slot.subject.id;
+    }
+
+    // 2. Resolve Group ID:
+    let targetGroupId =
+      slot.groupId ||
+      slot.group?.id ||
+      slot.classSubject?.groupId ||
+      '';
+
+    if (!targetGroupId && csId) {
+      const cs = classSubjects.find((x) => x.id === csId);
+      if (cs?.groupId) targetGroupId = cs.groupId;
+    }
+    if (!targetGroupId && slot.group?.name) {
+      const matchedGroup = groupList.find(
+        (g) =>
+          g.name.trim().toLowerCase() === slot.group.name.trim().toLowerCase() ||
+          (g.nameBn && slot.group.name && g.nameBn.trim() === slot.group.name.trim())
+      );
+      if (matchedGroup) targetGroupId = matchedGroup.id;
+    }
+
+    // 3. Resolve Staff / Teacher ID:
+    const matchedAssignment = csId ? assignments.find((a) => a.classSubjectId === csId) : undefined;
+    let staffId =
+      slot.staffId ||
+      slot.teacher?.id ||
+      slot.staff?.id ||
+      slot.teacherId ||
+      '';
+
+    if (!staffId && slot.teacher?.name) {
+      const matchedTeacher = teachers.find(
+        (t) =>
+          t.name.trim().toLowerCase() === slot.teacher.name.trim().toLowerCase() ||
+          (t.nameBn && slot.teacher.name && t.nameBn.trim() === slot.teacher.name.trim())
+      );
+      if (matchedTeacher) staffId = matchedTeacher.id;
+    }
+
+    if (!staffId && matchedAssignment?.staffId) {
+      staffId = matchedAssignment.staffId;
+    }
+
+    // 4. Resolve Room:
+    const room = slot.room || 'রুম ২০১';
+
+    // 5. Resolve Day, Period, Break:
+    const day = slot.day || WeekDay.SUNDAY;
+    const periodNumber = slot.periodNumber || 1;
+    const isBreak = Boolean(slot.isBreak);
+
     setForm({
       groupId: targetGroupId,
       classSubjectId: csId,
-      staffId: slot.staffId || slot.teacher?.id || slot.staff?.id || matchedAssignment?.staffId || '',
+      staffId,
       teacherAssignmentId: slot.teacherAssignmentId || matchedAssignment?.id || '',
-      day: slot.day,
-      periodNumber: slot.periodNumber,
-      room: slot.room || 'রুম ২০১',
-      isBreak: Boolean(slot.isBreak),
+      day,
+      periodNumber,
+      room,
+      isBreak,
     });
+
     setComposerOpen(true);
   };
 
   const openQuickAdd = (day: WeekDay, periodNumber: number, targetGroupId?: string) => {
     setEditingRoutineId(null);
+    setEditingSlot(null);
     const defaultRoom = slots[0]?.room || 'রুম ২০১';
     const initCsId = commonSubjects[0]?.id || classSubjects[0]?.id || '';
     const assignedStaff = assignments.find((a) => a.classSubjectId === initCsId)?.staffId;
@@ -471,10 +576,18 @@ export function AcademicRoutine({
   // Helper to resolve Teacher name
   const resolveTeacherName = (slot: any) => {
     if (slot.teacher?.name) return slot.teacher.name;
-    const stId = slot.staffId || slot.teacher?.id;
+    const stId = slot.staffId || slot.teacher?.id || slot.staff?.id;
     if (stId) {
       const t = teachers.find((x) => x.id === stId);
       if (t) return t.name;
+    }
+    const csId = slot.classSubjectId || slot.classSubject?.id || slot.subject?.classSubjectId;
+    if (csId) {
+      const assigned = assignments.find((a) => a.classSubjectId === csId);
+      if (assigned?.staffId) {
+        const t = teachers.find((x) => x.id === assigned.staffId);
+        if (t) return t.name;
+      }
     }
     return '—';
   };
@@ -561,8 +674,8 @@ export function AcademicRoutine({
         await updateRoutine({
           id: editingRoutineId,
           academicYearId: year.id,
-          classId: schoolClass.id,
-          sectionId: effectiveSectionId,
+          classId: editingSlot?.class?.id || editingSlot?.classId || schoolClass.id,
+          sectionId: editingSlot?.section?.id || editingSlot?.sectionId || effectiveSectionId,
           groupId: usesGroup && form.groupId ? form.groupId : undefined,
           classSubjectId: form.isBreak ? undefined : form.classSubjectId || undefined,
           staffId: form.isBreak ? undefined : form.staffId || undefined,
@@ -585,6 +698,7 @@ export function AcademicRoutine({
         );
         setComposerOpen(false);
         setEditingRoutineId(null);
+        setEditingSlot(null);
       } catch (err: any) {
         const msg =
           err?.data?.message ||
@@ -758,8 +872,6 @@ export function AcademicRoutine({
           className="p-2 align-top border-r border-border/50 last:border-r-0"
         >
           <div
-            draggable
-            onDragStart={() => setDragRoutineId(slot.id)}
             onClick={() => openEditModal(slot)}
             className="rounded-[var(--radius)] border border-amber-500/30 bg-amber-500/10 p-2.5 cursor-pointer hover:border-amber-500/70 hover:shadow-xs transition-all"
             title={pick('বিরতি / টিফিন সম্পাদনা করতে ক্লিক করুন', 'Click to edit break / tiffin')}
@@ -768,18 +880,31 @@ export function AcademicRoutine({
               <p className="font-semibold text-amber-700 dark:text-amber-300 text-xs leading-snug">
                 {slot.periodName || pick('বিরতি / টিফিন', 'Break / Tiffin')}
               </p>
-              <button
-                type="button"
-                className="p-1 rounded text-muted-foreground hover:text-primary cursor-pointer transition-colors no-print"
-                aria-label={pick('পিরিয়ড সম্পাদনা করুন', 'Edit period')}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openEditModal(slot);
-                }}
-                title={pick('সম্পাদনা / পরিবর্তন', 'Edit period')}
-              >
-                <Pencil className="w-3 h-3" />
-              </button>
+              <div className="inline-flex items-center gap-0.5 shrink-0 no-print">
+                <button
+                  type="button"
+                  className="p-1 rounded text-muted-foreground hover:text-primary cursor-pointer transition-colors"
+                  aria-label={pick('পিরিয়ড সম্পাদনা করুন', 'Edit period')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openEditModal(slot);
+                  }}
+                  title={pick('সম্পাদনা / পরিবর্তন', 'Edit period')}
+                >
+                  <Pencil className="w-3 h-3" />
+                </button>
+                <span
+                  draggable
+                  onDragStart={(e) => {
+                    e.stopPropagation();
+                    setDragRoutineId(slot.id);
+                  }}
+                  className="cursor-grab active:cursor-grabbing p-0.5 rounded text-amber-700/60 dark:text-amber-300/60 hover:bg-amber-500/20"
+                  title={pick('স্থান পরিবর্তন করতে ড্র্যাগ করুন', 'Drag to reschedule')}
+                >
+                  <GripVertical className="w-3 h-3" />
+                </span>
+              </div>
             </div>
             <p className="text-xs text-muted-foreground mt-1 tabular-nums">
               {periodClock(slot.periodNumber).timeBn}
@@ -803,39 +928,66 @@ export function AcademicRoutine({
           }}
           className="p-2 align-top border-r border-border/50 last:border-r-0"
         >
-          <div className="rounded-[var(--radius)] border border-border/70 bg-background p-2.5 transition-colors shadow-xs">
-            <div className="space-y-1 divide-y divide-border/40">
+          <div
+            onClick={() => openEditModal(cellSlots[0])}
+            className="rounded-[var(--radius)] border border-border/70 bg-background p-2.5 transition-colors shadow-xs cursor-pointer hover:border-primary/50"
+            title={pick('পিরিয়ড সম্পাদনা করতে ক্লিক করুন', 'Click to edit period')}
+          >
+            <div className="space-y-1.5 divide-y divide-border/40">
               {cellSlots.map((slot, idx) => {
                 const subjectName = resolveSubjectName(slot);
+                const teacherName = resolveTeacherName(slot);
+                const roomName = slot.room?.trim() || '';
 
                 return (
                   <div
                     key={slot.id}
-                    onClick={() => openEditModal(slot)}
-                    className={`flex items-center justify-between gap-1 group/item p-1.5 -mx-1 rounded-md cursor-pointer hover:bg-primary/10 transition-colors ${idx > 0 ? 'pt-1.5' : ''}`}
-                    title={pick('এই বিভাগ সম্পাদনা করতে ক্লিক করুন', 'Click to edit this department')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditModal(slot);
+                    }}
+                    className={`group/item p-1.5 -mx-1 rounded-md cursor-pointer hover:bg-primary/10 transition-colors ${idx > 0 ? 'pt-2' : ''}`}
+                    title={pick(
+                      `${subjectName} — শিক্ষক: ${teacherName}${roomName ? ` (${roomName})` : ''} [ক্লিক করে সম্পাদনা করুন]`,
+                      `${subjectName} — Teacher: ${teacherName}${roomName ? ` (${roomName})` : ''} [Click to edit]`
+                    )}
                   >
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      {getGroupShortTag(slot)}
-                      <span
-                        className="font-semibold text-foreground text-xs leading-snug truncate group-hover/item:text-primary transition-colors"
-                        title={subjectName}
-                      >
-                        {subjectName}
-                      </span>
+                    {/* Line 1: Group Badge + Subject Name + Room Badge */}
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {getGroupShortTag(slot)}
+                        <span
+                          className="font-semibold text-foreground text-xs leading-snug truncate group-hover/item:text-primary transition-colors"
+                          title={subjectName}
+                        >
+                          {subjectName}
+                        </span>
+                      </div>
+                      {roomName && (
+                        <span className="text-[10px] font-semibold text-primary/90 bg-primary/10 border border-primary/20 px-1.5 py-0.2 rounded shrink-0 tabular-nums">
+                          {roomName}
+                        </span>
+                      )}
                     </div>
-                    <button
-                      type="button"
-                      className="opacity-70 group-hover/item:opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary cursor-pointer shrink-0 transition-colors no-print"
-                      aria-label={pick('পিরিয়ড সম্পাদনা করুন', 'Edit period')}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditModal(slot);
-                      }}
-                      title={pick('সম্পাদনা / পরিবর্তন', 'Edit')}
-                    >
-                      <Pencil className="w-2.5 h-2.5" />
-                    </button>
+
+                    {/* Line 2: Assigned Teacher Name + Edit Pencil */}
+                    <div className="flex items-center justify-between gap-1 mt-0.5 text-[11px] text-muted-foreground pl-5">
+                      <span className="truncate" title={teacherName}>
+                        {teacherName}
+                      </span>
+                      <button
+                        type="button"
+                        className="opacity-0 group-hover/item:opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary cursor-pointer shrink-0 transition-colors no-print"
+                        aria-label={pick('পিরিয়ড সম্পাদনা করুন', 'Edit period')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditModal(slot);
+                        }}
+                        title={pick('সম্পাদনা / পরিবর্তন', 'Edit')}
+                      >
+                        <Pencil className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -845,7 +997,10 @@ export function AcademicRoutine({
             {usesGroup && cellSlots.length < 3 && (
               <button
                 type="button"
-                onClick={() => openQuickAdd(day, period)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openQuickAdd(day, period);
+                }}
                 className="mt-2 w-full py-0.5 text-[10px] text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1 border-t border-dashed border-border/50 cursor-pointer no-print"
                 title={pick('অন্য বিভাগ যুক্ত করুন', 'Add another department')}
               >
@@ -874,8 +1029,6 @@ export function AcademicRoutine({
         className="p-2 align-top border-r border-border/50 last:border-r-0"
       >
         <div
-          draggable
-          onDragStart={() => setDragRoutineId(slot.id)}
           onClick={() => openEditModal(slot)}
           className="rounded-[var(--radius)] border border-border/70 bg-background p-2.5 cursor-pointer hover:border-primary hover:bg-primary/[0.03] hover:shadow-xs transition-all group"
           title={pick('রুটিন পিরিয়ড সম্পাদনা করতে ক্লিক করুন', 'Click to edit routine period')}
@@ -897,7 +1050,17 @@ export function AcademicRoutine({
               >
                 <Pencil className="w-3 h-3" />
               </button>
-              <GripVertical className="w-3 h-3 text-muted-foreground" />
+              <span
+                draggable
+                onDragStart={(e) => {
+                  e.stopPropagation();
+                  setDragRoutineId(slot.id);
+                }}
+                className="cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-surface-muted"
+                title={pick('স্থান পরিবর্তন করতে ড্র্যাগ করুন', 'Drag to reschedule')}
+              >
+                <GripVertical className="w-3 h-3 text-muted-foreground" />
+              </span>
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1 truncate">{teacherName}</p>
@@ -1104,6 +1267,7 @@ export function AcademicRoutine({
         onClose={() => {
           setComposerOpen(false);
           setEditingRoutineId(null);
+          setEditingSlot(null);
         }}
         title={
           editingRoutineId
@@ -1290,7 +1454,18 @@ export function AcademicRoutine({
                       onChange={(event) => setForm({ ...form, staffId: event.target.value })}
                     >
                       <option value="">{pick('শিক্ষক বাছাই করুন', 'Select Teacher')}</option>
-                      {getTeachersForSubject(form.classSubjectId).map((t) => {
+                      {(() => {
+                        const list = getTeachersForSubject(form.classSubjectId);
+                        if (form.staffId && !list.some((t) => t.id === form.staffId)) {
+                          const matchedTeacher = teachers.find((t) => t.id === form.staffId) || {
+                            id: form.staffId,
+                            name: editingSlot?.teacher?.name || 'নির্ধারিত শিক্ষক',
+                            designation: editingSlot?.teacher?.designation || pick('শিক্ষক', 'Teacher'),
+                          };
+                          return [matchedTeacher as any, ...list];
+                        }
+                        return list;
+                      })().map((t) => {
                         const isAssigned = assignments.some(
                           (a) => a.classSubjectId === form.classSubjectId && a.staffId === t.id
                         );
@@ -1565,6 +1740,7 @@ export function AcademicRoutine({
                     void onRemove(editingRoutineId);
                     setComposerOpen(false);
                     setEditingRoutineId(null);
+                    setEditingSlot(null);
                   }
                 }}
               >
@@ -1581,6 +1757,7 @@ export function AcademicRoutine({
                 onClick={() => {
                   setComposerOpen(false);
                   setEditingRoutineId(null);
+                  setEditingSlot(null);
                 }}
               >
                 {pick('বাতিল', 'Cancel')}
