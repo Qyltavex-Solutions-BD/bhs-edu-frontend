@@ -3,9 +3,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   AlertTriangle,
-  Calendar,
-  Clock,
-  Download,
   Edit3,
   Plus,
   Printer,
@@ -13,91 +10,155 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  useDeleteCmsItemMutation,
-  useGetBootstrapQuery,
-  useUpsertCmsItemMutation,
-} from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
+  useCreateExamRoutineMutation,
+  useCreateExamSubjectMutation,
+  useGetExamRoutinesByExamQuery,
+  useGetExamRoutinesQuery,
+  useGetExamsQuery,
+  useGetExamSubjectsQuery,
+  useRemoveExamRoutineMutation,
+  useUpdateExamRoutineMutation,
+  type ExamRoutineSlotResponse,
+} from '@/src/features/examinations/api/examinations.api';
+import {
+  useGetAcademicGroupsQuery,
+  useGetAcademicYearsQuery,
+  useGetClassSubjectsQuery,
+  useGetSchoolClassesQuery,
+  useGetSubjectsQuery,
+} from '@/src/services/academic';
 import {
   ConfirmDialog,
   EmptyState,
   LoadingSkeleton,
   PageHeader,
 } from '@/src/components/shared/Feedback';
-import { StatusBadge } from '@/src/components/shared/StatusBadge';
+import { DataTable } from '@/src/components/shared/DataTable';
 import { PrintableExamRoutine } from '@/src/components/print/PrintDocuments';
-import { Button, Card, Input, Modal, Select, Textarea } from '@/src/components/ui/primitives';
+import { Button, Card, Input, Modal, Select } from '@/src/components/ui/primitives';
 import { formatDateShort, formatNumber, formatTime } from '@/src/lib/formatters';
-import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
+import { cn, triggerPrint } from '@/src/lib/utils/cn';
 import { ExamRoutineStatus } from '@/src/types/enums';
-import type { ExamRoutine } from '@/src/types/entities';
-import { getEnumMeta } from '@/src/lib/constants/enums';
 
 function timesOverlap(startA: string, endA: string, startB: string, endB: string) {
   return startA < endB && startB < endA;
 }
 
 export function ExamRoutinesView() {
-  const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
-  const [upsertCmsItem, { isLoading: saving }] = useUpsertCmsItemMutation();
-  const [deleteCmsItem] = useDeleteCmsItemMutation();
+  const { data: examsData, isLoading: examsLoading } = useGetExamsQuery({ limit: 100 });
+  const { data: classesList = [], isLoading: classesLoading } = useGetSchoolClassesQuery();
+  const { data: yearsList = [] } = useGetAcademicYearsQuery();
+  const { data: subjectsList = [] } = useGetSubjectsQuery();
+  const { data: groupsList = [] } = useGetAcademicGroupsQuery();
 
-  const [selectedExamId, setSelectedExamId] = useState('exam-ann-10');
-  const [sectionFilter, setSectionFilter] = useState('ALL');
+  const [createExamRoutine, { isLoading: creating }] = useCreateExamRoutineMutation();
+  const [createExamSubject, { isLoading: creatingSubject }] = useCreateExamSubjectMutation();
+  const [updateExamRoutine, { isLoading: updating }] = useUpdateExamRoutineMutation();
+  const [removeExamRoutine] = useRemoveExamRoutineMutation();
+  const saving = creating || updating || creatingSubject;
+
+  const [selectedClassId, setSelectedClassId] = useState('');
+  const [selectedExamId, setSelectedExamId] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingRoutine, setEditingRoutine] = useState<ExamRoutine | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<ExamRoutine | null>(null);
+  const [editingRoutine, setEditingRoutine] = useState<ExamRoutineSlotResponse | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ExamRoutineSlotResponse | null>(null);
   const [printOpen, setPrintOpen] = useState(false);
 
   const [form, setForm] = useState({
     examSubjectId: '',
-    sectionId: '',
-    examDate: '2026-11-22',
+    examDate: '',
     startTime: '10:00',
     endTime: '13:00',
     roomNo: 'হল রুম ১০১',
-    status: ExamRoutineStatus.SCHEDULED as ExamRoutineStatus,
-    instructions: '',
   });
 
   const activeExams = useMemo(
-    () => (db ? db.exams.filter((e) => !e.isDeleted) : []),
-    [db]
+    () => (examsData?.items ?? []).filter((e) => !e.isDeleted),
+    [examsData]
+  );
+
+  const sortedClasses = useMemo(
+    () => [...classesList].sort((a, b) => a.numericValue - b.numericValue),
+    [classesList]
+  );
+
+  const resolvedClassId =
+    selectedClassId ||
+    activeExams[0]?.classId ||
+    sortedClasses[0]?.id ||
+    '';
+
+  const filteredExams = useMemo(
+    () =>
+      resolvedClassId
+        ? activeExams.filter((e) => e.classId === resolvedClassId)
+        : activeExams,
+    [activeExams, resolvedClassId]
   );
 
   const resolvedExamId =
-    selectedExamId && activeExams.some((e) => e.id === selectedExamId)
+    selectedExamId && filteredExams.some((e) => e.id === selectedExamId)
       ? selectedExamId
-      : activeExams[0]?.id ?? '';
+      : filteredExams[0]?.id ?? '';
 
-  const activeExam = activeExams.find((e) => e.id === resolvedExamId) ?? null;
+  const activeExam = filteredExams.find((e) => e.id === resolvedExamId) ?? null;
 
-  const examSubjects = useMemo(() => {
-    if (!db || !activeExam) return [];
-    return db.examSubjects
-      .filter((es) => es.examId === activeExam.id)
-      .sort((a, b) => a.displayOrder - b.displayOrder);
-  }, [db, activeExam]);
+  const { data: examSubjectsRaw = [], isLoading: subjectsLoading } = useGetExamSubjectsQuery(
+    activeExam?.id ?? '',
+    { skip: !activeExam?.id }
+  );
 
-  const classSections = useMemo(() => {
-    if (!db || !activeExam) return [];
-    return db.sections.filter((s) => s.classId === activeExam.classId);
-  }, [db, activeExam]);
+  const { data: classSubjectsByYear = [] } = useGetClassSubjectsQuery(
+    {
+      classId: activeExam?.classId || resolvedClassId || undefined,
+      academicYearId: activeExam?.academicYearId || undefined,
+    },
+    { skip: !(activeExam?.classId || resolvedClassId) }
+  );
 
-  const routines = useMemo(() => {
-    if (!db || !activeExam) return [];
-    return db.examRoutines
-      .filter((r) => !r.isDeleted && r.examId === activeExam.id)
-      .filter((r) => sectionFilter === 'ALL' || !r.sectionId || r.sectionId === sectionFilter)
-      .sort((a, b) => a.examDate.localeCompare(b.examDate) || a.startTime.localeCompare(b.startTime));
-  }, [db, activeExam, sectionFilter]);
+  const { data: classSubjectsAnyYear = [] } = useGetClassSubjectsQuery(
+    {
+      classId: activeExam?.classId || resolvedClassId || undefined,
+    },
+    { skip: !(activeExam?.classId || resolvedClassId) || classSubjectsByYear.length > 0 }
+  );
 
-  // Live Schedule Conflict Detection (Same Date + Overlapping Time in same Room OR same Exam/Section)
+  const classSubjects = useMemo(() => {
+    const raw = classSubjectsByYear.length > 0 ? classSubjectsByYear : classSubjectsAnyYear;
+    return raw
+      .filter((cs) => cs.isActive !== false)
+      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [classSubjectsByYear, classSubjectsAnyYear]);
+
+  const examSubjects = useMemo(
+    () => [...examSubjectsRaw].sort((a, b) => a.displayOrder - b.displayOrder),
+    [examSubjectsRaw]
+  );
+
+  const { data: examRoutineRes, isLoading: routinesLoading } = useGetExamRoutinesByExamQuery(
+    { examId: activeExam?.id ?? '' },
+    { skip: !activeExam?.id }
+  );
+
+  const { data: yearRoutinesRes } = useGetExamRoutinesQuery(
+    { academicYearId: activeExam?.academicYearId },
+    { skip: !activeExam?.academicYearId }
+  );
+
+  const routines = useMemo(
+    () =>
+      [...(examRoutineRes?.schedule ?? [])].sort(
+        (a, b) => a.examDate.localeCompare(b.examDate) || a.startTime.localeCompare(b.startTime)
+      ),
+    [examRoutineRes]
+  );
+
+  // Live Schedule Conflict Detection across same Academic Year
   const conflicts = useMemo(() => {
-    if (!db) return [];
-    const allRoutines = db.examRoutines.filter((r) => !r.isDeleted && r.status !== ExamRoutineStatus.CANCELLED);
-    const issues: Array<{ idA: string; idB: string; reasonBn: string; reasonEn: string }> = [];
+    const allRoutines = (yearRoutinesRes?.routines ?? []).filter(
+      (r) => r.status !== ExamRoutineStatus.CANCELLED
+    );
+    const issues: Array<{ idA: string; idB: string; reasonBn: string }> = [];
 
     for (let i = 0; i < routines.length; i++) {
       const a = routines[i];
@@ -108,7 +169,9 @@ export function ExamRoutinesView() {
         if (a.examDate !== b.examDate) continue;
         if (!timesOverlap(a.startTime, a.endTime, b.startTime, b.endTime)) continue;
 
-        const sameRoom = Boolean(a.roomNo?.trim() && b.roomNo?.trim() && a.roomNo.trim() === b.roomNo.trim());
+        const roomA = a.roomNo && a.roomNo !== 'Not Assigned' ? a.roomNo.trim() : '';
+        const roomB = b.roomNo && b.roomNo !== 'Not Assigned' ? b.roomNo.trim() : '';
+        const sameRoom = Boolean(roomA && roomB && roomA === roomB);
         const sameExamSameSection =
           a.examId === b.examId && (!a.sectionId || !b.sectionId || a.sectionId === b.sectionId);
 
@@ -116,169 +179,257 @@ export function ExamRoutinesView() {
           issues.push({
             idA: a.id,
             idB: b.id,
-            reasonBn: `${formatDateShort(a.examDate, 'bn')} তারিখে "${a.roomNo}" কক্ষে একাধিক পরীক্ষার সময় সাংঘর্ষিক।`,
-            reasonEn: `Room "${a.roomNo}" has overlapping exams on ${formatDateShort(a.examDate, 'en')}.`,
+            reasonBn: `${formatDateShort(a.examDate, 'bn')} তারিখে "${roomA}" কক্ষে একাধিক পরীক্ষার সময় সাংঘর্ষিক।`,
           });
         } else if (sameExamSameSection) {
-          const esA = db.examSubjects.find((x) => x.id === a.examSubjectId);
-          const esB = db.examSubjects.find((x) => x.id === b.examSubjectId);
-          // Different groups on the same slot (e.g., Physics vs History) are valid in NCTB!
-          const differentGroups = esA?.groupId && esB?.groupId && esA.groupId !== esB.groupId;
+          const differentGroups =
+            a.subject?.group && b.subject?.group && a.subject.group !== b.subject.group;
           if (!differentGroups) {
             issues.push({
               idA: a.id,
               idB: b.id,
               reasonBn: `${formatDateShort(a.examDate, 'bn')} তারিখে একই শ্রেণিতে একাধিক বিষয়ের সময়সূচি সাংঘর্ষিক (${a.startTime}–${a.endTime})।`,
-              reasonEn: `Overlapping subjects for the same class on ${formatDateShort(a.examDate, 'en')} (${a.startTime}–${a.endTime}).`,
             });
           }
         }
       }
     }
     return issues;
-  }, [db, routines]);
+  }, [yearRoutinesRes, routines]);
 
-  const uniqueDates = useMemo(() => new Set(routines.map((r) => r.examDate)).size, [routines]);
-  const coveredSubjectIds = useMemo(() => new Set(routines.map((r) => r.examSubjectId)).size, [routines]);
+  const examSpanDays = useMemo(() => {
+    if (routines.length === 0) return 0;
+    const parseUtc = (iso: string) => {
+      const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+      return Date.UTC(y, (m || 1) - 1, d || 1);
+    };
+    const startMs = parseUtc(routines[0].examDate);
+    const endMs = parseUtc(routines[routines.length - 1].examDate);
+    return Math.max(1, Math.round((endMs - startMs) / 86400000) + 1);
+  }, [routines]);
+  const coveredSubjectIds = useMemo(
+    () => new Set(routines.map((r) => r.subject?.id).filter(Boolean)).size,
+    [routines]
+  );
   const uniqueRooms = useMemo(
-    () => new Set(routines.map((r) => r.roomNo?.trim()).filter(Boolean)).size,
+    () =>
+      new Set(
+        routines
+          .map((r) => (r.roomNo && r.roomNo !== 'Not Assigned' ? r.roomNo.trim() : ''))
+          .filter(Boolean)
+      ).size,
     [routines]
   );
 
-  if (isLoading || !db) return <LoadingSkeleton rows={6} />;
-
-  const activeClass = activeExam ? db.classes.find((c) => c.id === activeExam.classId) : null;
-  const activeYear = activeExam ? db.academicYears.find((y) => y.id === activeExam.academicYearId) : null;
+  const activeClass = activeExam
+    ? activeExam.schoolClass ?? classesList.find((c) => c.id === activeExam.classId) ?? null
+    : classesList.find((c) => c.id === resolvedClassId) ?? null;
+  const activeYear = activeExam
+    ? activeExam.academicYear ?? yearsList.find((y) => y.id === activeExam.academicYearId) ?? null
+    : null;
+  const isClassNineTen = (activeClass?.numericValue ?? 0) >= 9;
   const hasConflict = conflicts.length > 0;
 
+  const modalSubjectOptions = useMemo(() => {
+    const scheduledSubjectIds = new Set(routines.map((r) => r.subject?.id).filter(Boolean));
+    const options: Array<{
+      value: string;
+      examSubjectId?: string;
+      subjectId: string;
+      groupId?: string | null;
+      isOptional?: boolean;
+      label: string;
+      isScheduled: boolean;
+    }> = [];
+    const seenSubjectIds = new Set<string>();
+
+    for (const es of examSubjects) {
+      seenSubjectIds.add(es.subjectId);
+      const sub = es.subject ?? subjectsList.find((s) => s.id === es.subjectId);
+      const grp = es.group ?? (es.groupId ? groupsList.find((g) => g.id === es.groupId) : null);
+      const codePart = isClassNineTen && sub?.officialCode ? ` (${sub.officialCode})` : '';
+      const grpPart = isClassNineTen && grp ? ` — ${grp.nameBn || grp.name}` : '';
+      const isScheduled = scheduledSubjectIds.has(es.subjectId);
+      options.push({
+        value: `es:${es.id}`,
+        examSubjectId: es.id,
+        subjectId: es.subjectId,
+        label: `${sub?.nameBn || sub?.name || '—'}${codePart}${grpPart}${isScheduled ? ' (রুটিনে যুক্ত)' : ''}`,
+        isScheduled,
+      });
+    }
+
+    for (const cs of classSubjects) {
+      if (seenSubjectIds.has(cs.subjectId)) continue;
+      seenSubjectIds.add(cs.subjectId);
+      const sub = cs.subject ?? subjectsList.find((s) => s.id === cs.subjectId);
+      const grp = cs.group ?? (cs.groupId ? groupsList.find((g) => g.id === cs.groupId) : null);
+      const codePart = isClassNineTen && sub?.officialCode ? ` (${sub.officialCode})` : '';
+      const grpPart = isClassNineTen && grp ? ` — ${grp.nameBn || grp.name}` : '';
+      const isScheduled = scheduledSubjectIds.has(cs.subjectId);
+      options.push({
+        value: `cs:${cs.subjectId}`,
+        subjectId: cs.subjectId,
+        groupId: cs.groupId,
+        isOptional: cs.isOptional,
+        label: `${sub?.nameBn || sub?.name || '—'}${codePart}${grpPart}${isScheduled ? ' (রুটিনে যুক্ত)' : ''}`,
+        isScheduled,
+      });
+    }
+
+    return options;
+  }, [examSubjects, classSubjects, subjectsList, groupsList, routines, isClassNineTen]);
+
+  if (examsLoading || classesLoading || (activeExam && (subjectsLoading || routinesLoading))) {
+    return <LoadingSkeleton rows={6} />;
+  }
+
   const openCreate = () => {
+    const nextOpt =
+      modalSubjectOptions.find((opt) => !opt.isScheduled) ?? modalSubjectOptions[0];
+
     setEditingRoutine(null);
     setForm({
-      examSubjectId: examSubjects[0]?.id ?? '',
-      sectionId: '',
-      examDate: activeExam?.startDate.slice(0, 10) ?? '2026-11-22',
+      examSubjectId: nextOpt?.value ?? '',
+      examDate: activeExam?.startDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
       startTime: '10:00',
       endTime: '13:00',
       roomNo: 'হল রুম ১০১',
-      status: ExamRoutineStatus.SCHEDULED,
-      instructions: '',
     });
     setModalOpen(true);
   };
 
-  const openEdit = (rt: ExamRoutine) => {
+  const openEdit = (rt: ExamRoutineSlotResponse) => {
+    const matchedEs = examSubjects.find((es) => es.subjectId === rt.subject?.id);
     setEditingRoutine(rt);
     setForm({
-      examSubjectId: rt.examSubjectId,
-      sectionId: rt.sectionId ?? '',
+      examSubjectId: matchedEs ? `es:${matchedEs.id}` : '',
       examDate: rt.examDate.slice(0, 10),
       startTime: rt.startTime,
       endTime: rt.endTime,
-      roomNo: rt.roomNo ?? '',
-      status: rt.status,
-      instructions: rt.instructions ?? '',
+      roomNo: rt.roomNo && rt.roomNo !== 'Not Assigned' ? rt.roomNo : '',
     });
     setModalOpen(true);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeExam || !form.examSubjectId) {
-      toast.error(pick('বিষয় নির্বাচন করুন।', 'Select a subject.'));
+    if (!activeExam || (!editingRoutine && !form.examSubjectId)) {
+      toast.error('বিষয় নির্বাচন করুন।');
       return;
     }
     if (form.endTime <= form.startTime) {
-      toast.error(pick('শেষের সময় শুরুর সময়ের পরে হতে হবে।', 'End time must be after start time.'));
+      toast.error('শেষের সময় শুরুর সময়ের পরে হতে হবে।');
       return;
     }
 
-    await upsertCmsItem({
-      collection: 'examRoutines',
-      item: {
-        id: editingRoutine?.id,
-        examId: activeExam.id,
-        examSubjectId: form.examSubjectId,
-        sectionId: form.sectionId || null,
-        examDate: form.examDate,
-        startTime: form.startTime,
-        endTime: form.endTime,
-        roomNo: form.roomNo.trim() || null,
-        status: form.status,
-        instructions: form.instructions.trim() || null,
-        isDeleted: false,
-      },
-    });
-    toast.success(pick('পরীক্ষার রুটিন সংরক্ষিত হয়েছে।', 'Exam routine saved.'));
-    setModalOpen(false);
+    try {
+      if (editingRoutine) {
+        await updateExamRoutine({
+          routineId: editingRoutine.id,
+          examId: activeExam.id,
+          body: {
+            examDate: form.examDate,
+            startTime: form.startTime,
+            endTime: form.endTime,
+            roomNo: form.roomNo.trim() || undefined,
+          },
+        }).unwrap();
+        toast.success('পরীক্ষার রুটিন হালনাগাদ হয়েছে।');
+      } else {
+        const selectedOpt = modalSubjectOptions.find((o) => o.value === form.examSubjectId);
+        let resolvedExamSubjectId = selectedOpt?.examSubjectId;
+
+        if (!resolvedExamSubjectId && selectedOpt) {
+          const createdEs = await createExamSubject({
+            examId: activeExam.id,
+            body: {
+              subjectId: selectedOpt.subjectId,
+              groupId: isClassNineTen && selectedOpt.groupId ? selectedOpt.groupId : undefined,
+              fullMarks: 0,
+              passMarks: 0,
+              hasWritten: false,
+              writtenFullMarks: 0,
+              writtenPassMarks: 0,
+              hasMcq: false,
+              mcqFullMarks: 0,
+              mcqPassMarks: 0,
+              hasPractical: false,
+              practicalFullMarks: 0,
+              practicalPassMarks: 0,
+              hasContinuousAssessment: false,
+              continuousAssessmentFullMarks: 0,
+              continuousAssessmentPassMarks: 0,
+              isOptional: Boolean(selectedOpt.isOptional),
+            },
+          }).unwrap();
+          resolvedExamSubjectId = createdEs.id;
+        }
+
+        if (!resolvedExamSubjectId) {
+          toast.error('বিষয় নির্বাচন করা যায়নি।');
+          return;
+        }
+
+        await createExamRoutine({
+          examId: activeExam.id,
+          body: {
+            examSubjectId: resolvedExamSubjectId,
+            examDate: form.examDate,
+            startTime: form.startTime,
+            endTime: form.endTime,
+            roomNo: form.roomNo.trim() || undefined,
+          },
+        }).unwrap();
+        toast.success('পরীক্ষার রুটিন সংরক্ষিত হয়েছে।');
+      }
+      setModalOpen(false);
+    } catch (err: any) {
+      const msg = err?.data?.message || err?.message;
+      toast.error(Array.isArray(msg) ? msg.join(', ') : msg || 'রুটিন সংরক্ষণ ব্যর্থ হয়েছে।');
+    }
   };
 
   const handleDelete = async () => {
-    if (!deleteTarget) return;
-    await deleteCmsItem({ collection: 'examRoutines', id: deleteTarget.id });
-    toast.success(pick('রুটিন এন্ট্রি মুছে ফেলা হয়েছে।', 'Routine entry deleted.'));
+    if (!deleteTarget || !activeExam) return;
+    try {
+      await removeExamRoutine({
+        routineId: deleteTarget.id,
+        examId: activeExam.id,
+      }).unwrap();
+      toast.success('রুটিন এন্ট্রি মুছে ফেলা হয়েছে।');
+    } catch (err: any) {
+      const msg = err?.data?.message || err?.message;
+      toast.error(Array.isArray(msg) ? msg.join(', ') : msg || 'মুছা সম্ভব হয়নি।');
+    }
     setDeleteTarget(null);
   };
 
-  const printableRows = routines.map((rt) => {
-    const es = db.examSubjects.find((x) => x.id === rt.examSubjectId);
-    const sub = es ? db.subjects.find((s) => s.id === es.subjectId) : null;
-    const sec = rt.sectionId ? db.sections.find((s) => s.id === rt.sectionId) : null;
-    return {
-      id: rt.id,
-      examDate: rt.examDate,
-      startTime: rt.startTime,
-      endTime: rt.endTime,
-      subjectCode: sub?.officialCode ?? '—',
-      subjectName: locale === 'bn' ? sub?.nameBn || sub?.name || '—' : sub?.name || '—',
-      fullMarks: es?.fullMarks ?? 100,
-      roomNo: rt.roomNo,
-      sectionName: sec?.name ?? null,
-      instructions: rt.instructions,
-    };
-  });
-
-  const handleExportCsv = () => {
-    exportToCsv(
-      printableRows.map((r, i) => ({
-        sl: i + 1,
-        date: r.examDate,
-        code: r.subjectCode,
-        subject: r.subjectName,
-        fullMarks: r.fullMarks,
-        time: `${r.startTime} - ${r.endTime}`,
-        room: r.roomNo ?? '',
-      })),
-      `exam-routine-${activeExam?.id ?? 'sheet'}.csv`,
-      [
-        { key: 'sl', label: 'Sl' },
-        { key: 'date', label: 'Exam Date' },
-        { key: 'code', label: 'Subject Code' },
-        { key: 'subject', label: 'Subject' },
-        { key: 'fullMarks', label: 'Full Marks' },
-        { key: 'time', label: 'Time' },
-        { key: 'room', label: 'Room / Hall' },
-      ]
-    );
+  const resolveSubjectNameBn = (rt: ExamRoutineSlotResponse) => {
+    const sub = subjectsList.find((s) => s.id === rt.subject?.id);
+    return sub?.nameBn || rt.subject?.nameBn || rt.subject?.name || '—';
   };
+
+  const printableRows = routines.map((rt) => ({
+    id: rt.id,
+    examDate: rt.examDate,
+    startTime: rt.startTime,
+    endTime: rt.endTime,
+    subjectCode: isClassNineTen ? rt.subject?.code ?? '—' : '—',
+    subjectName: resolveSubjectNameBn(rt),
+    fullMarks: rt.marksDistribution?.fullMarks ?? 100,
+    roomNo: rt.roomNo === 'Not Assigned' ? null : rt.roomNo,
+    sectionName: null,
+    instructions: rt.instructions,
+  }));
 
   return (
     <div className="space-y-6">
       <PageHeader
         titleBn="পরীক্ষার রুটিন ও সময়সূচি"
-        titleEn="Examination Routine & Schedule"
         subtitleBn="বিষয়ভিত্তিক তারিখ, সময় ও কক্ষ নির্ধারণ করুন। স্বয়ংক্রিয়ভাবে কক্ষ ও সময় সংঘর্ষ শনাক্ত হবে এবং প্রাতিষ্ঠানিক রুটিন প্রিন্ট করা যাবে।"
-        subtitleEn="Schedule subject exam dates, rooms, and instructions with automatic clash detection and official A4 routine printing."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleExportCsv}
-              disabled={routines.length === 0}
-              className="whitespace-nowrap shrink-0"
-            >
-              <Download className="w-4 h-4" />
-              CSV
-            </Button>
             <Button
               variant="outline"
               onClick={() => setPrintOpen(true)}
@@ -286,120 +437,121 @@ export function ExamRoutinesView() {
               className="whitespace-nowrap shrink-0"
             >
               <Printer className="w-4 h-4" />
-              {pick('অফিশিয়াল রুটিন প্রিন্ট', 'Print Official Routine')}
+              {'অফিশিয়াল রুটিন প্রিন্ট'}
             </Button>
-            <Button onClick={openCreate} disabled={!activeExam || examSubjects.length === 0} className="whitespace-nowrap shrink-0">
+            <Button
+              onClick={openCreate}
+              disabled={!activeExam || modalSubjectOptions.length === 0 || activeExam.isLocked}
+              className="whitespace-nowrap shrink-0"
+            >
               <Plus className="w-4 h-4" />
-              {pick('নতুন সময়সূচি যুক্ত করুন', 'Add Schedule')}
+              {'রুটিন তৈরি করুন'}
             </Button>
           </div>
         }
       />
 
-      {/* Filter Bar */}
-      <Card className="p-4 flex flex-wrap items-center gap-3">
-        <div className="flex-1 min-w-[240px]">
-          <label className="block text-xs text-muted-foreground mb-1">{pick('পরীক্ষা নির্বাচন করুন', 'Select Examination')}</label>
-          <Select value={resolvedExamId} onChange={(e) => { setSelectedExamId(e.target.value); setSectionFilter('ALL'); }}>
-            {activeExams.map((ex) => (
-              <option key={ex.id} value={ex.id}>
-                {ex.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-        <div className="w-48">
-          <label className="block text-xs text-muted-foreground mb-1">{pick('শাখা ফিল্টার', 'Section Filter')}</label>
-          <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
-            <option value="ALL">{pick('সকল শাখা', 'All Sections')}</option>
-            {classSections.map((sec) => (
-              <option key={sec.id} value={sec.id}>
-                {pick('শাখা', 'Section')} {sec.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-      </Card>
-
       {/* 4-Column KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {pick('নির্ধারিত পরীক্ষার দিন', 'Scheduled Exam Days')}
-          </p>
+          <p className="text-base font-bold text-foreground">{'মোট বিষয়'}</p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
-            {formatNumber(uniqueDates, locale)}
+            {formatNumber(examSubjects.length, 'bn')}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
+            {`${activeClass?.nameBn || activeClass?.name || ''} · পরীক্ষায় নির্ধারিত`}
+          </p>
+        </Card>
+
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{'রুটিন সম্পন্ন'}</p>
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-success">
+            {formatNumber(coveredSubjectIds, 'bn')}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
+            {'এই বিষয়গুলোর সময়সূচি তৈরি হয়েছে'}
+          </p>
+        </Card>
+
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{'রুটিন বাকি'}</p>
+          <p
+            className={cn(
+              'mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums',
+              examSubjects.length - coveredSubjectIds > 0 ? 'text-warning' : 'text-success'
+            )}
+          >
+            {formatNumber(Math.max(0, examSubjects.length - coveredSubjectIds), 'bn')}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
+            {examSubjects.length - coveredSubjectIds > 0
+              ? 'এই বিষয়গুলোর রুটিন এখনো বাকি'
+              : 'সব বিষয়ের রুটিন সম্পন্ন হয়েছে'}
+          </p>
+        </Card>
+
+        <Card className="p-5 flex flex-col justify-between gap-2">
+          <p className="text-base font-bold text-foreground">{'পরীক্ষার সময়কাল'}</p>
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
+            {`${formatNumber(examSpanDays, 'bn')} দিন`}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {routines.length > 0
-              ? pick(
-                  `প্রথম পরীক্ষা ${formatDateShort(routines[0].examDate, 'bn')}`,
-                  `First exam ${formatDateShort(routines[0].examDate, 'en')}`
-                )
-              : pick('রুটিন এন্ট্রি নেই', 'No routines entered')}
-          </p>
-        </Card>
-
-        <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {pick('বিষয় কভারেজ', 'Subject Coverage')}
-          </p>
-          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
-            {formatNumber(coveredSubjectIds, locale)} / {formatNumber(examSubjects.length, locale)}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `রুটিনভুক্ত ${formatNumber(coveredSubjectIds, 'bn')} · বাকি ${formatNumber(Math.max(0, examSubjects.length - coveredSubjectIds), 'bn')}`,
-              `Scheduled ${coveredSubjectIds} · Remaining ${Math.max(0, examSubjects.length - coveredSubjectIds)}`
-            )}
-          </p>
-        </Card>
-
-        <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {pick('ব্যবহৃত হল ও কক্ষ', 'Assigned Rooms & Halls')}
-          </p>
-          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
-            {formatNumber(uniqueRooms, locale)}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `মোট রুম সংখ্যা · শাখা ${sectionFilter === 'ALL' ? 'সকল শাখা' : 'শাখা ভিত্তিক'}`,
-              `Total rooms · Section: ${sectionFilter}`
-            )}
-          </p>
-        </Card>
-
-        <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {pick('সময়সূচি ও কনফ্লিক্ট স্থিতি', 'Schedule Conflict Status')}
-          </p>
-          <p className={cn('mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums', hasConflict ? 'text-destructive' : 'text-success')}>
-            {hasConflict ? pick('সংঘর্ষ আছে', 'Clash Detected') : pick('কনফ্লিক্ট-মুক্ত', 'Clash-Free')}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {hasConflict
-              ? pick(`${formatNumber(conflicts.length, 'bn')}টি সময়/কক্ষ সংঘর্ষ চিহ্নিত`, `${conflicts.length} schedule conflict(s)`)
-              : pick('সব রুম ও সময় ওভারল্যাপ-মুক্ত', 'All slots verified clash-free')}
+              ? `${formatDateShort(routines[0].examDate, 'bn')} – ${formatDateShort(routines[routines.length - 1].examDate, 'bn')}`
+              : 'রুটিন এন্ট্রি নেই'}
           </p>
         </Card>
       </div>
+
+      {/* Filter Bar */}
+      <Card className="p-4 flex flex-wrap items-end gap-3">
+        <div className="w-44">
+          <label className="block text-xs text-muted-foreground mb-1">{'শ্রেণি নির্বাচন করুন'}</label>
+          <Select
+            value={resolvedClassId}
+            onChange={(e) => {
+              setSelectedClassId(e.target.value);
+              setSelectedExamId('');
+            }}
+          >
+            {sortedClasses.map((cls) => (
+              <option key={cls.id} value={cls.id}>
+                {cls.nameBn || cls.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="w-full sm:w-72">
+          <label className="block text-xs text-muted-foreground mb-1">{'পরীক্ষা নির্বাচন করুন'}</label>
+          <Select
+            value={resolvedExamId}
+            onChange={(e) => setSelectedExamId(e.target.value)}
+            disabled={filteredExams.length === 0}
+          >
+            {filteredExams.length === 0 ? (
+              <option value="">{'এই শ্রেণির কোনো পরীক্ষা নেই'}</option>
+            ) : (
+              filteredExams.map((ex) => (
+                <option key={ex.id} value={ex.id}>
+                  {ex.name}
+                </option>
+              ))
+            )}
+          </Select>
+        </div>
+      </Card>
 
       {/* Live Conflict Detection Alert */}
       {conflicts.length > 0 && (
         <div className="p-4 rounded-[var(--radius)] border border-destructive/40 bg-destructive/10 text-sm space-y-1.5">
           <div className="flex items-center gap-2 font-semibold text-destructive">
             <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>
-              {pick(
-                `${formatNumber(conflicts.length, locale)}টি সময় বা কক্ষ সংঘর্ষ শনাক্ত হয়েছে`,
-                `${conflicts.length} schedule or room conflict(s) detected`
-              )}
-            </span>
+            <span>{`${formatNumber(conflicts.length, 'bn')}টি সময় বা কক্ষ সংঘর্ষ শনাক্ত হয়েছে`}</span>
           </div>
           <ul className="list-disc list-inside text-xs text-foreground space-y-0.5">
             {conflicts.map((c, idx) => (
-              <li key={idx}>{locale === 'bn' ? c.reasonBn : c.reasonEn}</li>
+              <li key={idx}>{c.reasonBn}</li>
             ))}
           </ul>
         </div>
@@ -408,152 +560,151 @@ export function ExamRoutinesView() {
       {/* Routine Table */}
       {routines.length === 0 ? (
         <EmptyState
-          title={pick('কোনো রুটিন যুক্ত করা হয়নি', 'No exam routine scheduled yet')}
-          description={pick(
-            'এই পরীক্ষার বিষয়গুলোর তারিখ ও সময় নির্ধারণ করতে "নতুন সময়সূচি যুক্ত করুন" বাটনে ক্লিক করুন।',
-            'Add subject dates and times to publish the official exam timetable.'
-          )}
-          action={
-            <Button onClick={openCreate} disabled={!activeExam || examSubjects.length === 0}>
-              <Plus className="w-4 h-4" />
-              {pick('প্রথম সময়সূচি যুক্ত করুন', 'Add First Schedule')}
-            </Button>
+          title={'কোনো রুটিন যুক্ত করা হয়নি'}
+          description={
+            modalSubjectOptions.length === 0
+              ? 'এই শ্রেণির কোনো বিষয় পাওয়া যায়নি। আগে "শ্রেণি ও বিষয়" অংশে বিষয় নির্ধারণ করুন।'
+              : 'ওপরের "রুটিন তৈরি করুন" বাটনে ক্লিক করে বিষয়ভিত্তিক তারিখ ও সময় নির্ধারণ করুন।'
           }
         />
       ) : (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-base">
-              <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-sm font-semibold uppercase tracking-wider">
-                <tr>
-                  <th className="px-4 py-3 text-left">{pick('তারিখ ও সময়', 'Date & Time')}</th>
-                  <th className="px-4 py-3 text-left">{pick('বিষয় ও কোড', 'Subject & Code')}</th>
-                  <th className="px-4 py-3 text-left">{pick('কক্ষ ও শাখা', 'Room & Section')}</th>
-                  <th className="px-4 py-3 text-left">{pick('নির্দেশনা', 'Instructions')}</th>
-                  <th className="px-4 py-3 text-center">{pick('অবস্থা', 'Status')}</th>
-                  <th className="px-4 py-3 text-right">{pick('অ্যাকশন', 'Actions')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border tabular-nums">
-                {routines.map((rt) => {
-                  const es = db.examSubjects.find((x) => x.id === rt.examSubjectId);
-                  const sub = es ? db.subjects.find((s) => s.id === es.subjectId) : null;
-                  const grp = es?.groupId ? db.academicGroups.find((g) => g.id === es.groupId) : null;
-                  const sec = rt.sectionId ? db.sections.find((s) => s.id === rt.sectionId) : null;
-                  const hasConflict = conflicts.some((c) => c.idA === rt.id || c.idB === rt.id);
-
-                  return (
-                    <tr
-                      key={rt.id}
-                      className={`hover:bg-surface-muted/40 ${hasConflict ? 'bg-destructive/5' : ''}`}
-                    >
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <div className="font-semibold text-foreground flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                          {formatDateShort(rt.examDate, locale)}
-                        </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                          <Clock className="w-3 h-3" />
-                          {formatTime(rt.startTime, locale)} – {formatTime(rt.endTime, locale)}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-semibold text-foreground">
-                          {locale === 'bn' ? sub?.nameBn || sub?.name : sub?.name}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {pick('কোড:', 'Code:')} {sub?.officialCode ?? '—'} · {pick('পূর্ণমান:', 'Full:')}{' '}
-                          {formatNumber(es?.fullMarks ?? 100, locale)}
-                          {grp ? ` · ${locale === 'bn' ? grp.nameBn : grp.name}` : ''}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-xs">
-                        <div className="font-medium text-foreground">{rt.roomNo || '—'}</div>
-                        <div className="text-muted-foreground">
-                          {sec ? `${pick('শাখা', 'Section')} ${sec.name}` : pick('সকল শাখা', 'All Sections')}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground max-w-[260px] truncate">
-                        {rt.instructions || '—'}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <StatusBadge enumName="ExamRoutineStatus" value={rt.status} />
-                      </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(rt)}>
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(rt)}>
-                            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        <DataTable
+          data={routines.map((rt) => ({
+            rt,
+            id: rt.id,
+            examDate: rt.examDate,
+            subjectName: resolveSubjectNameBn(rt),
+            roomNo: rt.roomNo && rt.roomNo !== 'Not Assigned' ? rt.roomNo : '—',
+            timeRange: `${formatTime(rt.startTime, 'bn')} – ${formatTime(rt.endTime, 'bn')}`,
+          }))}
+          pageSize={20}
+          searchPlaceholder={'বিষয় বা রুম খুঁজুন...'}
+          emptyTitle={'কোনো রুটিন যুক্ত করা হয়নি'}
+          columns={[
+            {
+              accessorKey: 'examDate',
+              header: 'তারিখ',
+              cell: ({ row }) => (
+                <span className="font-semibold text-foreground whitespace-nowrap tabular-nums">
+                  {formatDateShort(row.original.examDate, 'bn')}
+                </span>
+              ),
+            },
+            {
+              accessorKey: 'subjectName',
+              header: 'বিষয়',
+              cell: ({ row }) => (
+                <span className="font-semibold text-foreground">
+                  {row.original.subjectName}
+                  {isClassNineTen && row.original.rt.subject?.code && (
+                    <span className="ml-1.5 text-xs font-mono text-muted-foreground">
+                      ({row.original.rt.subject.code})
+                    </span>
+                  )}
+                </span>
+              ),
+            },
+            {
+              accessorKey: 'roomNo',
+              header: 'রুম নম্বর',
+              cell: ({ row }) => (
+                <span className="text-sm font-medium text-foreground whitespace-nowrap">
+                  {row.original.roomNo}
+                </span>
+              ),
+            },
+            {
+              accessorKey: 'timeRange',
+              header: 'সময়',
+              enableSorting: false,
+              cell: ({ row }) => (
+                <span className="text-sm text-foreground whitespace-nowrap tabular-nums">
+                  {row.original.timeRange}
+                </span>
+              ),
+            },
+            {
+              id: 'actions',
+              header: () => <div className="text-right">{'অ্যাকশন'}</div>,
+              enableSorting: false,
+              cell: ({ row }) => (
+                <div className="flex items-center justify-end gap-1 whitespace-nowrap">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={activeExam?.isLocked}
+                    onClick={() => openEdit(row.original.rt)}
+                    aria-label="সম্পাদনা"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={activeExam?.isLocked}
+                    onClick={() => setDeleteTarget(row.original.rt)}
+                    aria-label="মুছে ফেলুন"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  </Button>
+                </div>
+              ),
+            },
+          ]}
+        />
       )}
 
-      {/* Upsert Routine Modal */}
+      {/* Create / Edit Routine Modal */}
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         title={
           editingRoutine
-            ? pick('রুটিন সম্পাদনা করুন', 'Edit Exam Routine Entry')
-            : pick('নতুন পরীক্ষার সময়সূচি যুক্ত করুন', 'Add Exam Schedule')
+            ? 'পরীক্ষার রুটিন সম্পাদনা করুন'
+            : 'রুটিন তৈরি করুন'
         }
         size="lg"
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium mb-1">{pick('বিষয় *', 'Exam Subject *')}</label>
+              <label className="block text-sm font-medium mb-1">{'বিষয় *'}</label>
               <Select
                 value={form.examSubjectId}
+                disabled={Boolean(editingRoutine)}
                 onChange={(e) => setForm({ ...form, examSubjectId: e.target.value })}
               >
-                {examSubjects.map((es) => {
-                  const sub = db.subjects.find((s) => s.id === es.subjectId);
-                  const grp = es.groupId ? db.academicGroups.find((g) => g.id === es.groupId) : null;
-                  return (
-                    <option key={es.id} value={es.id}>
-                      {locale === 'bn' ? sub?.nameBn || sub?.name : sub?.name} ({sub?.officialCode})
-                      {grp ? ` — ${locale === 'bn' ? grp.nameBn : grp.name}` : ''}
-                    </option>
-                  );
-                })}
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">{pick('পরীক্ষার তারিখ *', 'Exam Date *')}</label>
-              <Input
-                type="date"
-                required
-                value={form.examDate}
-                onChange={(e) => setForm({ ...form, examDate: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">{pick('শাখা (ঐচ্ছিক)', 'Section (Optional)')}</label>
-              <Select value={form.sectionId} onChange={(e) => setForm({ ...form, sectionId: e.target.value })}>
-                <option value="">{pick('সকল শাখার জন্য প্রযোজ্য', 'All Sections')}</option>
-                {classSections.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {pick('শাখা', 'Section')} {s.name}
+                {modalSubjectOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
                   </option>
                 ))}
               </Select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">{pick('শুরুর সময় *', 'Start Time *')}</label>
+              <label className="block text-sm font-medium mb-1">{'পরীক্ষার তারিখ *'}</label>
+              <Input
+                type="date"
+                required
+                min={activeExam?.startDate?.slice(0, 10)}
+                max={activeExam?.endDate?.slice(0, 10)}
+                value={form.examDate}
+                onChange={(e) => setForm({ ...form, examDate: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">{'পরীক্ষার কক্ষ / হল'}</label>
+              <Input
+                value={form.roomNo}
+                onChange={(e) => setForm({ ...form, roomNo: e.target.value })}
+                placeholder={'যেমন: হল রুম ১০১'}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">{'শুরুর সময় *'}</label>
               <Input
                 type="time"
                 required
@@ -563,7 +714,7 @@ export function ExamRoutinesView() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">{pick('শেষের সময় *', 'End Time *')}</label>
+              <label className="block text-sm font-medium mb-1">{'শেষের সময় *'}</label>
               <Input
                 type="time"
                 required
@@ -571,50 +722,14 @@ export function ExamRoutinesView() {
                 onChange={(e) => setForm({ ...form, endTime: e.target.value })}
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">{pick('পরীক্ষার কক্ষ / হল', 'Room / Hall No.')}</label>
-              <Input
-                value={form.roomNo}
-                onChange={(e) => setForm({ ...form, roomNo: e.target.value })}
-                placeholder={pick('যেমন: হল রুম ১০১', 'e.g. Hall Room 101')}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">{pick('অবস্থা', 'Status')}</label>
-              <Select
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value as ExamRoutineStatus })}
-              >
-                {Object.values(ExamRoutineStatus).map((st) => {
-                  const meta = getEnumMeta('ExamRoutineStatus', st);
-                  return (
-                    <option key={st} value={st}>
-                      {locale === 'bn' ? meta.bn : meta.en}
-                    </option>
-                  );
-                })}
-              </Select>
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium mb-1">{pick('বিশেষ নির্দেশনা', 'Instructions')}</label>
-              <Textarea
-                rows={2}
-                value={form.instructions}
-                onChange={(e) => setForm({ ...form, instructions: e.target.value })}
-                placeholder={pick('যেমন: নন-প্রোগ্রামেবল ক্যালকুলেটর অনুমোদিত।', 'e.g. Non-programmable calculators permitted.')}
-              />
-            </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={() => setModalOpen(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button type="submit" disabled={saving}>
-              {pick('রুটিন সংরক্ষণ করুন', 'Save Routine')}
+              {saving ? 'সংরক্ষণ হচ্ছে...' : 'রুটিন সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -624,21 +739,21 @@ export function ExamRoutinesView() {
       <Modal
         open={printOpen}
         onClose={() => setPrintOpen(false)}
-        title={pick('অফিশিয়াল পরীক্ষার রুটিন প্রিভিউ', 'Official Examination Routine Preview')}
+        title={'অফিশিয়াল পরীক্ষার রুটিন প্রিভিউ'}
         size="xl"
       >
         <div className="space-y-4">
           <div className="flex justify-end no-print">
             <Button onClick={() => triggerPrint()}>
               <Printer className="w-4 h-4" />
-              {pick('A4 প্রিন্ট করুন', 'Print A4 Sheet')}
+              {'A4 প্রিন্ট করুন'}
             </Button>
           </div>
           {activeExam && (
             <PrintableExamRoutine
-              school={db.schoolProfile}
+              school={{ name: 'ভোজেশ্বর উচ্চ বিদ্যালয়', nameEn: 'Vojesshor High School' } as any}
               examName={activeExam.name}
-              className={locale === 'bn' ? activeClass?.nameBn || '' : activeClass?.name || ''}
+              className={activeClass?.nameBn || activeClass?.name || ''}
               academicYear={activeYear?.name ?? '2026'}
               routines={printableRows}
             />
@@ -650,9 +765,9 @@ export function ExamRoutinesView() {
         open={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
-        title={pick('রুটিন এন্ট্রি মুছুন', 'Delete Routine Entry')}
-        description={pick('আপনি কি নিশ্চিত যে এই সময়সূচিটি মুছে ফেলতে চান?', 'Are you sure you want to delete this schedule entry?')}
-        confirmLabel={pick('মুছে ফেলুন', 'Delete')}
+        title={'রুটিন এন্ট্রি মুছুন'}
+        description={'আপনি কি নিশ্চিত যে এই সময়সূচিটি মুছে ফেলতে চান?'}
+        confirmLabel={'মুছে ফেলুন'}
         destructive
       />
     </div>

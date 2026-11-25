@@ -31,6 +31,7 @@ import {
   useDeleteClassRoutineMutation,
   useGetTeacherAssignmentsQuery,
   useGetAcademicGroupsQuery,
+  useGetSubjectsQuery,
   useGetClassTeachersQuery,
   type ClassRoutineSlot,
 } from '@/src/services/academic';
@@ -42,7 +43,7 @@ import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { getTodayWeekDay, PERIOD_META, periodClock, SCHOOL_DAYS } from '@/src/lib/classRoutine';
 import { cn, triggerPrint } from '@/src/lib/utils/cn';
-import { SchoolEmblem } from '@/src/components/shared/Feedback';
+import { LoadingSkeleton, SchoolEmblem } from '@/src/components/shared/Feedback';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Card, FormField, Input, Modal, Select } from '@/src/components/ui/primitives';
 import type { AcademicGroup, AcademicYear, SchoolClass, Section } from '@/src/types/entities';
@@ -79,11 +80,11 @@ export function AcademicRoutine({
   const [selectedTeacherId, setSelectedTeacherId] = useState('');
 
   // 1. Fetch real Classes
-  const { data: realClasses } = useGetSchoolClassesQuery();
-  const classList: SchoolClass[] = useMemo(() => {
-    if (realClasses && realClasses.length > 0) return realClasses;
-    return db?.classes ?? [];
-  }, [realClasses, db?.classes]);
+  const { data: realClasses, isLoading: classesLoading } = useGetSchoolClassesQuery();
+  const classList: SchoolClass[] = useMemo(
+    () => [...(realClasses ?? [])].sort((a, b) => a.numericValue - b.numericValue),
+    [realClasses]
+  );
 
   // Keep classId synchronized with real classes
   useEffect(() => {
@@ -95,24 +96,20 @@ export function AcademicRoutine({
   const schoolClass = classList.find((item) => item.id === classId) ?? classList[0];
   const usesGroup = Boolean(schoolClass && schoolClass.numericValue >= 9);
 
-  // 2. Fetch Groups (Science, Humanities, Business Studies)
+  // 2. Fetch Groups (Science, Humanities, Business Studies) & Subjects
   const { data: realGroups } = useGetAcademicGroupsQuery();
-  const groupList: AcademicGroup[] = useMemo(() => {
-    if (realGroups && realGroups.length > 0) return realGroups;
-    return db?.academicGroups ?? [];
-  }, [realGroups, db?.academicGroups]);
+  const groupList: AcademicGroup[] = realGroups ?? [];
+  const { data: subjectsList = [] } = useGetSubjectsQuery();
 
   // 3. Fetch real Sections for selected class
   const { data: realSections } = useGetSectionsQuery(
     schoolClass?.id ? { classId: schoolClass.id } : undefined,
     { skip: !schoolClass?.id }
   );
-  const sections: Section[] = useMemo(() => {
-    if (realSections && realSections.length > 0) {
-      return realSections.filter((s) => s.isActive);
-    }
-    return (db?.sections ?? []).filter((s) => s.isActive && s.classId === schoolClass?.id);
-  }, [realSections, db?.sections, schoolClass?.id]);
+  const sections: Section[] = useMemo(
+    () => (realSections ?? []).filter((s) => s.isActive),
+    [realSections]
+  );
 
   // Keep sectionId synchronized
   useEffect(() => {
@@ -132,12 +129,7 @@ export function AcademicRoutine({
     status: StaffStatus.ACTIVE,
     limit: 100,
   });
-  const teachers = useMemo(() => {
-    if (realStaff && realStaff.length > 0) return realStaff;
-    return (db?.staff ?? []).filter(
-      (s) => s.staffType === StaffType.TEACHER && s.status === StaffStatus.ACTIVE
-    );
-  }, [realStaff, db?.staff]);
+  const teachers = realStaff ?? [];
 
   // Keep selected teacher synchronized
   useEffect(() => {
@@ -156,12 +148,7 @@ export function AcademicRoutine({
     schoolClass?.id && isUuid(year?.id) ? { academicYearId: year.id, classId: schoolClass.id } : undefined,
     { skip: !schoolClass?.id || !isUuid(year?.id) }
   );
-  const classSubjects = useMemo(() => {
-    if (realClassSubjects && realClassSubjects.length > 0) return realClassSubjects;
-    return (db?.classSubjects ?? []).filter(
-      (cs) => cs.academicYearId === year.id && cs.classId === schoolClass?.id
-    );
-  }, [realClassSubjects, db?.classSubjects, year.id, schoolClass?.id]);
+  const classSubjects = realClassSubjects ?? [];
 
   // 6. Fetch real Teacher Assignments
   const { data: realAssignments } = useGetTeacherAssignmentsQuery(
@@ -170,35 +157,26 @@ export function AcademicRoutine({
       : undefined,
     { skip: !effectiveSectionId || !isUuid(year?.id) }
   );
-  const assignments = useMemo(() => {
-    if (realAssignments && realAssignments.length > 0) return realAssignments;
-    return (db?.teacherAssignments ?? []).filter(
-      (item) => item.isActive && item.academicYearId === year.id && item.sectionId === effectiveSectionId
-    );
-  }, [realAssignments, db?.teacherAssignments, year.id, effectiveSectionId]);
+  const assignments = realAssignments ?? [];
 
   // 7. Fetch real Class Routines for academic year
-  const { data: realRoutines } = useGetClassRoutinesQuery(
+  const { data: realRoutines, isLoading: routinesLoading } = useGetClassRoutinesQuery(
     isUuid(year?.id) ? { academicYearId: year.id } : undefined,
     { skip: !isUuid(year?.id) }
   );
+  const yearRoutines = realRoutines ?? [];
 
   // 8. Fetch real Class Teachers for academic year
-  const { data: realClassTeachers } = useGetClassTeachersQuery(
+  const { data: classTeachersList = [] } = useGetClassTeachersQuery(
     isUuid(year?.id) ? { academicYearId: year.id } : undefined,
     { skip: !isUuid(year?.id) }
   );
-
-  const yearRoutines = useMemo(() => {
-    if (realRoutines && realRoutines.length > 0) return realRoutines;
-    return (db?.classRoutines ?? []).filter((slot) => slot.academicYearId === year.id) as any[];
-  }, [realRoutines, db?.classRoutines, year.id]);
 
   // Slots for the active section
   const slots = useMemo(
     () =>
       yearRoutines.filter((slot) => {
-        const secId = slot.section?.id || slot.sectionId;
+        const secId = slot.section?.id;
         return secId === effectiveSectionId;
       }),
     [yearRoutines, effectiveSectionId]
@@ -208,24 +186,26 @@ export function AcademicRoutine({
   const teacherSlots = useMemo(
     () =>
       yearRoutines.filter((slot) => {
-        const stId = slot.teacher?.id || slot.staffId;
+        const stId = slot.teacher?.id;
         return stId === effectiveTeacherId;
       }),
     [yearRoutines, effectiveTeacherId]
   );
 
   // Class Teacher
-  const realClassTeacherEntry = (realClassTeachers ?? []).find(
+  const realClassTeacherEntry = classTeachersList.find(
     (row) => row.sectionId === effectiveSectionId && row.academicYearId === year.id
   );
-  const classTeacherRow = (db?.sectionClassTeachers ?? []).find(
+  const dbClassTeacherRow = (db?.sectionClassTeachers ?? []).find(
     (row) => row.sectionId === effectiveSectionId && row.academicYearId === year.id
   );
   const classTeacher = realClassTeacherEntry?.staff
     ? realClassTeacherEntry.staff
-    : classTeacherRow
-      ? teachers.find((member) => member.id === classTeacherRow.staffId)
-      : null;
+    : realClassTeacherEntry
+    ? teachers.find((member) => member.id === realClassTeacherEntry.staffId) ?? null
+    : dbClassTeacherRow
+    ? teachers.find((member) => member.id === dbClassTeacherRow.staffId) ?? null
+    : null;
 
   const today = getTodayWeekDay();
 
@@ -233,7 +213,6 @@ export function AcademicRoutine({
   const [dragRoutineId, setDragRoutineId] = useState<string | null>(null);
   const [editingRoutineId, setEditingRoutineId] = useState<string | null>(null);
   const [editingSlot, setEditingSlot] = useState<any | null>(null);
-  const [routineStatus, setRoutineStatus] = useState<'DRAFT' | 'PUBLISHED'>('PUBLISHED');
   const [routineType, setRoutineType] = useState<'single' | 'group'>('single');
   const [form, setForm] = useState({
     groupId: '',
@@ -273,7 +252,7 @@ export function AcademicRoutine({
 
   // Metrics
   const uniqueTeachersInSection = new Set(
-    slots.map((s) => s.teacher?.id || s.staffId).filter(Boolean)
+    slots.map((s) => s.teacher?.id).filter(Boolean)
   ).size;
   const maxWeeklySlots = SCHOOL_DAYS.length * PERIOD_META.length; // 5 * 5 = 25
   const teacherFreeSlots = Math.max(0, maxWeeklySlots - teacherSlots.length);
@@ -326,7 +305,7 @@ export function AcademicRoutine({
       } else {
         const subName =
           editingSlot?.subject?.name ||
-          (db?.subjects ?? []).find((s) => s.id === form.classSubjectId)?.name ||
+          subjectsList.find((s) => s.id === form.classSubjectId)?.name ||
           resolveSubjectName(editingSlot) ||
           pick('নির্বাচিত বিষয়', 'Selected Subject');
         const fallbackCs = {
@@ -350,7 +329,7 @@ export function AcademicRoutine({
     const targetCs = classSubjects.find((cs) => cs.id === classSubjectId);
     const subName =
       targetCs?.subject?.name ||
-      (db?.subjects ?? []).find((s) => s.id === targetCs?.subjectId)?.name ||
+      subjectsList.find((s) => s.id === targetCs?.subjectId)?.name ||
       '';
 
     const assigned = assignments.find((a) => a.classSubjectId === classSubjectId);
@@ -398,15 +377,9 @@ export function AcademicRoutine({
     setForm((prev) => ({ ...prev, teacherAssignmentId: '' }));
   };
 
-  const handleToggleStatus = (newStatus: 'DRAFT' | 'PUBLISHED') => {
-    setRoutineStatus(newStatus);
-    if (newStatus === 'PUBLISHED') {
-      toast.success(
-        pick('রুটিন সফলভাবে প্রকাশিত হয়েছে। শিক্ষক ও শিক্ষার্থীরা দেখতে পাবেন।', 'Routine published successfully.')
-      );
-    } else {
-      toast.info(pick('রুটিন ড্রাফট মোডে রাখা হয়েছে।', 'Routine set to draft mode.'));
-    }
+  const formatApiError = (err: any, fallback: string) => {
+    const msg = err?.data?.message || err?.message;
+    return Array.isArray(msg) ? msg.join(', ') : msg || fallback;
   };
 
   // Helper to get clean, short room number without section/group brackets
@@ -581,7 +554,7 @@ export function AcademicRoutine({
       if (cs) {
         return (
           cs.subject?.name ||
-          (db?.subjects ?? []).find((s) => s.id === cs.subjectId)?.name ||
+          subjectsList.find((s) => s.id === cs.subjectId)?.name ||
           '—'
         );
       }
@@ -592,7 +565,7 @@ export function AcademicRoutine({
         const cs = classSubjects.find((x) => x.id === ta.classSubjectId);
         return (
           cs?.subject?.name ||
-          (db?.subjects ?? []).find((s) => s.id === (cs?.subjectId || cs?.subject?.id))?.name ||
+          subjectsList.find((s) => s.id === (cs?.subjectId || cs?.subject?.id))?.name ||
           '—'
         );
       }
@@ -675,11 +648,12 @@ export function AcademicRoutine({
         );
         setComposerOpen(false);
       } catch (err: any) {
-        const msg =
-          err?.data?.message ||
-          err?.message ||
-          pick('পিরিয়ড বসানো যায়নি। শিক্ষক বা রুম কনফ্লিক্ট হতে পারে।', 'Could not add departmental periods due to conflict.');
-        toast.error(msg);
+        toast.error(
+          formatApiError(
+            err,
+            pick('পিরিয়ড বসানো যায়নি। শিক্ষক বা রুম কনফ্লিক্ট হতে পারে।', 'Could not add departmental periods due to conflict.')
+          )
+        );
       }
       return;
     }
@@ -727,11 +701,7 @@ export function AcademicRoutine({
         setEditingRoutineId(null);
         setEditingSlot(null);
       } catch (err: any) {
-        const msg =
-          err?.data?.message ||
-          err?.message ||
-          pick('রুটিন আপডেট করা যায়নি।', 'Could not update the period.');
-        toast.error(msg);
+        toast.error(formatApiError(err, pick('রুটিন আপডেট করা যায়নি।', 'Could not update the period.')));
       }
       return;
     }
@@ -753,7 +723,7 @@ export function AcademicRoutine({
         academicYearId: year.id,
         classId: schoolClass.id,
         sectionId: effectiveSectionId,
-        groupId: undefined,
+        groupId: usesGroup && form.groupId ? form.groupId : undefined,
         classSubjectId: form.isBreak ? undefined : form.classSubjectId || undefined,
         staffId: form.isBreak ? undefined : form.staffId || undefined,
         teacherAssignmentId: form.isBreak
@@ -775,11 +745,7 @@ export function AcademicRoutine({
       );
       setComposerOpen(false);
     } catch (err: any) {
-      const msg =
-        err?.data?.message ||
-        err?.message ||
-        pick('পিরিয়ড বসানো যায়নি।', 'Could not add the period.');
-      toast.error(msg);
+      toast.error(formatApiError(err, pick('পিরিয়ড বসানো যায়নি।', 'Could not add the period.')));
     }
   };
 
@@ -788,11 +754,7 @@ export function AcademicRoutine({
       await deleteRoutine(id).unwrap();
       toast.success(pick('পিরিয়ড মুছে ফেলা হয়েছে।', 'Period removed.'));
     } catch (err: any) {
-      const msg =
-        err?.data?.message ||
-        err?.message ||
-        pick('পিরিয়ড মোছা যায়নি।', 'Could not remove the period.');
-      toast.error(msg);
+      toast.error(formatApiError(err, pick('পিরিয়ড মোছা যায়নি।', 'Could not remove the period.')));
     }
   };
 
@@ -811,11 +773,7 @@ export function AcademicRoutine({
         pick('রুটিন পিরিয়ড সফলভাবে স্থানান্তরিত হয়েছে।', 'Period moved successfully.')
       );
     } catch (err: any) {
-      const msg =
-        err?.data?.message ||
-        err?.message ||
-        pick('এই ঘরে পিরিয়ড সরানো যায়নি।', 'Could not move the period.');
-      toast.error(msg);
+      toast.error(formatApiError(err, pick('এই ঘরে পিরিয়ড সরানো যায়নি।', 'Could not move the period.')));
     } finally {
       setDragRoutineId(null);
     }
@@ -942,7 +900,7 @@ export function AcademicRoutine({
     }
 
     // MULTI-GROUP PARALLEL SLOTS OR SINGLE GROUP SLOT
-    const hasGroup = cellSlots.some((s) => s.group || s.groupId);
+    const hasGroup = cellSlots.some((s) => Boolean(s.group));
 
     if (hasGroup || cellSlots.length > 1) {
       return (
@@ -1103,8 +1061,12 @@ export function AcademicRoutine({
     const subName = resolveSubjectName(slot);
     const clsName = slot.class?.name || (locale === 'bn' ? schoolClass?.nameBn || schoolClass?.name : schoolClass?.name) || '';
     const secName = slot.section?.name || section?.name || '';
-    const grp = slot.group || (slot.groupId ? groupList.find((g) => g.id === slot.groupId) : null);
-    const grpLabel = grp ? (locale === 'bn' ? grp.nameBn || grp.name : grp.name) : null;
+    const grp = slot.group ? groupList.find((g) => g.id === slot.group?.id) ?? slot.group : null;
+    const grpLabel = grp
+      ? locale === 'bn'
+        ? (grp as AcademicGroup).nameBn || grp.name
+        : grp.name
+      : null;
 
     return (
       <td key={period} className="p-2.5 align-top border-r border-border/50 last:border-r-0">
@@ -1131,6 +1093,10 @@ export function AcademicRoutine({
       </td>
     );
   };
+
+  if (classesLoading || routinesLoading) {
+    return <LoadingSkeleton rows={6} />;
+  }
 
   return (
     <div className="space-y-5">
@@ -1167,38 +1133,6 @@ export function AcademicRoutine({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Draft / Publish Toggle Pill (matching user design with primary green active color) */}
-            <div className="inline-flex items-center p-0.5 rounded-full border border-border bg-surface-muted/80 shadow-xs no-print">
-              <button
-                type="button"
-                onClick={() => handleToggleStatus('DRAFT')}
-                className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer',
-                  routineStatus === 'DRAFT'
-                    ? 'bg-primary text-primary-foreground shadow-xs font-bold'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-                title={pick('ড্রাফট মোডে রাখুন', 'Set routine to draft mode')}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>{pick('ড্রাফট', 'Draft')}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleToggleStatus('PUBLISHED')}
-                className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer',
-                  routineStatus === 'PUBLISHED'
-                    ? 'bg-primary text-primary-foreground shadow-xs font-bold'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
-                title={pick('সবার জন্য প্রকাশ করুন', 'Publish routine for everyone')}
-              >
-                <CheckCircle className="w-3.5 h-3.5" />
-                <span>{pick('প্রকাশিত', 'Publish')}</span>
-              </button>
-            </div>
-
             {viewMode === 'section' && (
               <Button variant="primary" size="sm" onClick={() => openQuickAdd(WeekDay.SUNDAY, 1)}>
                 <Plus className="w-4 h-4" />
@@ -1505,7 +1439,7 @@ export function AcademicRoutine({
                     >
                       <option value="">{pick('বিষয় বাছাই করুন', 'Select Subject')}</option>
                       {selectableSubjects.map((cs) => {
-                        const subName = cs.subject?.name || (db?.subjects ?? []).find((s) => s.id === cs.subjectId)?.name || '—';
+                        const subName = cs.subject?.name || subjectsList.find((s) => s.id === cs.subjectId)?.name || '—';
                         const grp = cs.group || (cs.groupId ? groupList.find((g) => g.id === cs.groupId) : null);
                         const grpTag = grp ? ` [${locale === 'bn' ? grp.nameBn || grp.name : grp.name}]` : '';
 
@@ -1606,7 +1540,7 @@ export function AcademicRoutine({
                     >
                       <option value="">{pick('বিষয় নির্বাচন করুন', 'Select Subject')}</option>
                       {scienceSubjects.map((cs) => {
-                        const subName = cs.subject?.name || (db?.subjects ?? []).find((s) => s.id === cs.subjectId)?.name || '—';
+                        const subName = cs.subject?.name || subjectsList.find((s) => s.id === cs.subjectId)?.name || '—';
                         return (
                           <option key={cs.id} value={cs.id}>
                             {subName} {cs.isOptional ? `(${pick('ঐচ্ছিক', 'Optional')})` : ''}
@@ -1680,7 +1614,7 @@ export function AcademicRoutine({
                     >
                       <option value="">{pick('বিষয় নির্বাচন করুন', 'Select Subject')}</option>
                       {humanitiesSubjects.map((cs) => {
-                        const subName = cs.subject?.name || (db?.subjects ?? []).find((s) => s.id === cs.subjectId)?.name || '—';
+                        const subName = cs.subject?.name || subjectsList.find((s) => s.id === cs.subjectId)?.name || '—';
                         return (
                           <option key={cs.id} value={cs.id}>
                             {subName} {cs.isOptional ? `(${pick('ঐচ্ছিক', 'Optional')})` : ''}
@@ -1754,7 +1688,7 @@ export function AcademicRoutine({
                     >
                       <option value="">{pick('বিষয় নির্বাচন করুন', 'Select Subject')}</option>
                       {businessSubjects.map((cs) => {
-                        const subName = cs.subject?.name || (db?.subjects ?? []).find((s) => s.id === cs.subjectId)?.name || '—';
+                        const subName = cs.subject?.name || subjectsList.find((s) => s.id === cs.subjectId)?.name || '—';
                         return (
                           <option key={cs.id} value={cs.id}>
                             {subName} {cs.isOptional ? `(${pick('ঐচ্ছিক', 'Optional')})` : ''}

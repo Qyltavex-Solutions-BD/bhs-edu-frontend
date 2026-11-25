@@ -2,10 +2,11 @@
 
 import React from 'react';
 import { Button, Input, Modal, Select } from '@/src/components/ui/primitives';
-import { getEnumMeta } from '@/src/lib/constants/enums';
+import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { ExamStatus, ExamType } from '@/src/types/enums';
 import type { AcademicYear, Exam, GradingScale, SchoolClass } from '@/src/types/entities';
 import { ALLOWED_EXAM_TYPES } from '../../schemas';
+import { resolveDynamicExamStatus } from './ExamsTable';
 
 const BN_DIGITS = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
 const toBnYearText = (val?: string) =>
@@ -275,19 +276,18 @@ export function ExamFormModal({
           {editingExam && (
             <div>
               <label className="block text-sm font-medium mb-1">পরীক্ষার অবস্থা</label>
-              <Select
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value as ExamStatus })}
-              >
-                {Object.values(ExamStatus).map((st) => {
-                  const meta = getEnumMeta('ExamStatus', st);
-                  return (
-                    <option key={st} value={st}>
-                      {meta.bn}
-                    </option>
-                  );
-                })}
-              </Select>
+              <div className="flex items-center justify-between gap-2 h-10 px-3 rounded-[var(--radius)] border border-border bg-surface-muted/60">
+                <StatusBadge
+                  enumName="ExamStatus"
+                  value={resolveDynamicExamStatus({
+                    startDate: form.startDate || editingExam.startDate,
+                    endDate: form.endDate || editingExam.endDate,
+                  })}
+                />
+                <span className="text-[11px] text-muted-foreground">
+                  সময়সূচি অনুযায়ী স্বয়ংক্রিয়
+                </span>
+              </div>
             </div>
           )}
 

@@ -93,7 +93,7 @@ export function ClassSubjectsPanel({
   const [fromYearId, setFromYearId] = useState<string>('');
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [rolloverModalOpen, setRolloverModalOpen] = useState(false);
-  const [removeTarget, setRemoveTarget] = useState<ClassSubject | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<ClassSubject[] | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -321,6 +321,19 @@ export function ClassSubjectsPanel({
     return paginatedItems;
   }, [paginatedItems, usesGroup, groupFilter]);
 
+  const groupedSubjects = useMemo(() => {
+    const map = new Map<string, { primary: ClassSubject; entries: ClassSubject[] }>();
+    for (const item of filteredSubjects) {
+      const existing = map.get(item.subjectId);
+      if (existing) {
+        existing.entries.push(item);
+      } else {
+        map.set(item.subjectId, { primary: item, entries: [item] });
+      }
+    }
+    return Array.from(map.values());
+  }, [filteredSubjects]);
+
   const hasActiveFilters =
     groupFilter !== 'all' ||
     typeFilter !== 'all' ||
@@ -353,38 +366,48 @@ export function ClassSubjectsPanel({
     }
   };
 
-  const handleToggleOptional = async (item: ClassSubject) => {
+  const handleToggleOptional = async (entries: ClassSubject[]) => {
+    const nextOptional = !entries[0]?.isOptional;
     try {
-      await updateSubject({
-        id: item.id,
-        isOptional: !item.isOptional,
-      }).unwrap();
+      await Promise.all(
+        entries.map((entry) =>
+          updateSubject({
+            id: entry.id,
+            isOptional: nextOptional,
+          }).unwrap()
+        )
+      );
       toast.success(t(dict.classSubjects.updateSuccess));
     } catch (err) {
       toast.error(errorMessage(err, t(dict.classSubjects.updateFailed)));
     }
   };
 
-  const handleToggleActive = async (item: ClassSubject) => {
+  const handleToggleActive = async (entries: ClassSubject[]) => {
+    const nextActive = !entries[0]?.isActive;
     try {
-      await toggleActive({
-        id: item.id,
-        isActive: !item.isActive,
-      }).unwrap();
+      await Promise.all(
+        entries.map((entry) =>
+          toggleActive({
+            id: entry.id,
+            isActive: nextActive,
+          }).unwrap()
+        )
+      );
       toast.success(t(dict.classSubjects.updateSuccess));
     } catch (err) {
       toast.error(errorMessage(err, t(dict.classSubjects.updateFailed)));
     }
   };
 
-  const handleRemove = (item: ClassSubject) => {
-    setRemoveTarget(item);
+  const handleRemove = (entries: ClassSubject[]) => {
+    setRemoveTarget(entries);
   };
 
   const confirmRemove = async () => {
-    if (!removeTarget) return;
+    if (!removeTarget || removeTarget.length === 0) return;
     try {
-      await deleteSubject(removeTarget.id).unwrap();
+      await Promise.all(removeTarget.map((entry) => deleteSubject(entry.id).unwrap()));
       toast.success(t(dict.classSubjects.removeSuccess));
       setRemoveTarget(null);
     } catch (err) {
@@ -598,7 +621,7 @@ export function ClassSubjectsPanel({
                   </td>
                 </tr>
               ))
-            ) : filteredSubjects.length === 0 ? (
+            ) : groupedSubjects.length === 0 ? (
               <tr>
                 <td className="p-10 text-center" colSpan={7}>
                   <div className="flex flex-col items-center justify-center max-w-md mx-auto space-y-3">
@@ -628,21 +651,24 @@ export function ClassSubjectsPanel({
                 </td>
               </tr>
             ) : (
-              filteredSubjects.map((item, index) => {
+              groupedSubjects.map(({ primary: item, entries }, index) => {
                 const resolved = resolveSubject(item);
                 const categoryObj = resolved.category
                   ? CATEGORY_LABELS[resolved.category]
                   : undefined;
                 const categoryLabel = categoryObj ? t(categoryObj) : undefined;
+                const uniqueGroupIds = Array.from(
+                  new Set(entries.map((e) => e.groupId).filter((g): g is string => Boolean(g)))
+                );
 
                 return (
                   <tr
-                    key={item.id}
+                    key={item.subjectId}
                     className="hover:bg-surface-muted/40 transition-colors group"
                   >
                     <td className="p-3.5 text-center text-sm font-semibold text-muted-foreground">
                       <span className="tabular-nums">
-                        {formatNumber(item.displayOrder || index + 1, locale)}
+                        {formatNumber(index + 1, locale)}
                       </span>
                     </td>
 
@@ -678,11 +704,18 @@ export function ClassSubjectsPanel({
 
                     <td className="p-3.5 text-sm text-muted-foreground">
                       {usesGroup ? (
-                        item.groupId ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-medium bg-surface-muted border border-border text-foreground">
-                            <Layers className="w-3.5 h-3.5 text-primary" />
-                            <span>{groupLabel(item.groupId)}</span>
-                          </span>
+                        uniqueGroupIds.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5">
+                            {uniqueGroupIds.map((gid) => (
+                              <span
+                                key={gid}
+                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-medium bg-surface-muted border border-border text-foreground"
+                              >
+                                <Layers className="w-3.5 h-3.5 text-primary" />
+                                <span>{groupLabel(gid)}</span>
+                              </span>
+                            ))}
+                          </div>
                         ) : (
                           <span className="text-sm font-medium text-muted-foreground">
                             {t(dict.classSubjects.commonGroup)}
@@ -697,7 +730,7 @@ export function ClassSubjectsPanel({
                       <button
                         type="button"
                         className="cursor-pointer transition-transform active:scale-95"
-                        onClick={() => handleToggleOptional(item)}
+                        onClick={() => handleToggleOptional(entries)}
                         title={
                           isBn
                             ? 'ক্লিক করে আবশ্যিক/ঐচ্ছিক পরিবর্তন করুন'
@@ -720,7 +753,7 @@ export function ClassSubjectsPanel({
                       <button
                         type="button"
                         className="cursor-pointer transition-transform active:scale-95"
-                        onClick={() => handleToggleActive(item)}
+                        onClick={() => handleToggleActive(entries)}
                         title={
                           isBn
                             ? 'ক্লিক করে সক্রিয়/নিষ্ক্রিয় পরিবর্তন করুন'
@@ -743,7 +776,7 @@ export function ClassSubjectsPanel({
                         variant="outline"
                         size="sm"
                         disabled={removing}
-                        onClick={() => handleRemove(item)}
+                        onClick={() => handleRemove(entries)}
                         className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-900/40 gap-1"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -921,10 +954,10 @@ export function ClassSubjectsPanel({
         onConfirm={confirmRemove}
         title={isBn ? 'বিষয় সরিয়ে ফেলুন' : 'Remove Subject'}
         description={
-          removeTarget
+          removeTarget && removeTarget.length > 0
             ? isBn
-              ? `আপনি কি নিশ্চিতভাবে '${resolveSubject(removeTarget).displayTitle}' বিষয়টিকে পাঠ্যক্রম থেকে সরাতে চান?`
-              : `Are you sure you want to remove '${resolveSubject(removeTarget).displayTitle}' from this curriculum?`
+              ? `আপনি কি নিশ্চিতভাবে '${resolveSubject(removeTarget[0]).displayTitle}' বিষয়টিকে পাঠ্যক্রম থেকে সরাতে চান?`
+              : `Are you sure you want to remove '${resolveSubject(removeTarget[0]).displayTitle}' from this curriculum?`
             : ''
         }
         confirmLabel={isBn ? 'সরিয়ে ফেলুন' : 'Remove'}

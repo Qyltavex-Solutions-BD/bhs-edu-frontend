@@ -3,7 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import {
-  ClipboardList,
   Edit3,
   Lock,
   Plus,
@@ -17,6 +16,19 @@ import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { getEnumMeta } from '@/src/lib/constants/enums';
 import { ExamStatus } from '@/src/types/enums';
 import type { AcademicYear, Exam, SchoolClass } from '@/src/types/entities';
+
+export function resolveDynamicExamStatus(
+  exam: Pick<Exam, 'startDate' | 'endDate'>
+): ExamStatus {
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const startKey = exam.startDate.slice(0, 10);
+  const endKey = exam.endDate.slice(0, 10);
+
+  if (todayKey < startKey) return ExamStatus.UPCOMING;
+  if (todayKey <= endKey) return ExamStatus.ONGOING;
+  return ExamStatus.COMPLETED;
+}
 
 const BN_DIGITS = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
 const toBnYearText = (val?: string) =>
@@ -53,19 +65,11 @@ export function ExamsTable({
         const cls = exam.schoolClass || classesList.find((c) => c.id === exam.classId);
         const year = exam.academicYear || academicYearsList.find((y) => y.id === exam.academicYearId);
         const typeMeta = getEnumMeta('ExamType', exam.examType);
-        const subjectCount =
-          exam._count?.examSubjects ??
-          (exam.examSubjects ? exam.examSubjects.length : 0);
-        const progressPct =
-          exam.status === ExamStatus.COMPLETED
-            ? 100
-            : subjectCount > 0
-              ? 50
-              : 0;
+        const effectiveStatus = resolveDynamicExamStatus(exam);
         const deadlineExpired =
           Boolean(exam.marksEntryDeadline) &&
           new Date(exam.marksEntryDeadline!) < new Date() &&
-          exam.status !== ExamStatus.COMPLETED;
+          effectiveStatus !== ExamStatus.COMPLETED;
 
         return {
           exam,
@@ -76,14 +80,11 @@ export function ExamsTable({
           typeLabel: typeMeta.bn,
           startDate: exam.startDate,
           endDate: exam.endDate,
-          subjectCount,
-          progressPct,
           deadlineExpired,
-          status: exam.status,
+          status: effectiveStatus,
         };
       })}
       searchPlaceholder="পরীক্ষার নাম, শ্রেণি বা ধরন খুঁজুন..."
-      exportFilename="examinations-directory.csv"
       emptyTitle="কোনো পরীক্ষা পাওয়া যায়নি"
       emptyAction={
         <Button onClick={onCreateClick}>
@@ -114,7 +115,7 @@ export function ExamsTable({
               aria-label="পরীক্ষার অবস্থা ফিল্টার"
             >
               <option value="ALL">সকল অবস্থা</option>
-              {Object.values(ExamStatus).map((st) => {
+              {[ExamStatus.UPCOMING, ExamStatus.ONGOING, ExamStatus.COMPLETED].map((st) => {
                 const meta = getEnumMeta('ExamStatus', st);
                 return (
                   <option key={st} value={st}>
@@ -151,9 +152,8 @@ export function ExamsTable({
           accessorKey: 'classLabel',
           header: 'শ্রেণি',
           cell: ({ row }) => (
-            <div className="whitespace-nowrap tabular-nums">
-              <div className="font-medium text-foreground">{row.original.classLabel}</div>
-              <div className="text-xs text-muted-foreground">{row.original.yearLabel}</div>
+            <div className="whitespace-nowrap font-medium text-foreground">
+              {row.original.classLabel}
             </div>
           ),
         },
@@ -180,34 +180,6 @@ export function ExamsTable({
           },
         },
         {
-          accessorKey: 'progressPct',
-          header: 'অগ্রগতি',
-          cell: ({ row }) => (
-            <div className="min-w-[100px] tabular-nums">
-              <div className="flex items-center justify-between gap-2 text-xs">
-                <span className="font-semibold text-foreground">
-                  {formatNumber(row.original.subjectCount, 'bn')} বিষয়
-                </span>
-                <span className="text-muted-foreground font-medium">
-                  {formatNumber(row.original.progressPct, 'bn')}%
-                </span>
-              </div>
-              <div className="w-full h-1.5 rounded-full bg-surface-muted overflow-hidden mt-1.5">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    row.original.progressPct >= 100
-                      ? 'bg-success'
-                      : row.original.progressPct > 0
-                        ? 'bg-primary'
-                        : 'bg-border'
-                  }`}
-                  style={{ width: `${Math.min(100, row.original.progressPct)}%` }}
-                />
-              </div>
-            </div>
-          ),
-        },
-        {
           accessorKey: 'status',
           header: 'অবস্থা',
           cell: ({ row }) => (
@@ -229,14 +201,6 @@ export function ExamsTable({
                 >
                   <Settings2 className="w-3.5 h-3.5 text-primary" />
                   <span>বিষয়</span>
-                </Link>
-                <Link
-                  href={`/admin/examinations/marks-entry?examId=${exam.id}`}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                  title="নম্বর এন্ট্রি"
-                  aria-label="নম্বর এন্ট্রি"
-                >
-                  <ClipboardList className="w-4 h-4" />
                 </Link>
                 <button
                   type="button"
@@ -262,7 +226,7 @@ export function ExamsTable({
         },
       ]}
       renderMobileCard={(row) => {
-        const { exam, classLabel, yearLabel, typeLabel, subjectCount, progressPct, deadlineExpired } = row;
+        const { exam, classLabel, typeLabel, deadlineExpired, status } = row;
         return (
           <div className={`space-y-3 ${exam.isDeleted ? 'opacity-65' : ''}`}>
             <div className="flex items-start justify-between gap-2">
@@ -272,34 +236,26 @@ export function ExamsTable({
                   {exam.isLocked && <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {classLabel} · {yearLabel} · {typeLabel}
+                  {classLabel} · {typeLabel}
                 </p>
               </div>
-              <StatusBadge enumName="ExamStatus" value={exam.status} />
+              <StatusBadge enumName="ExamStatus" value={status} />
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs tabular-nums bg-surface-muted/50 rounded-md p-2.5">
-              <div>
-                <span className="text-muted-foreground block">সময়সূচি</span>
-                <span className="font-medium text-foreground">
-                  {formatDateShort(exam.startDate, 'bn')} – {formatDateShort(exam.endDate, 'bn')}
+            <div className="text-xs tabular-nums bg-surface-muted/50 rounded-md p-2.5">
+              <span className="text-muted-foreground block">সময়সূচি</span>
+              <span className="font-medium text-foreground">
+                শুরু: {formatDateShort(exam.startDate, 'bn')} · শেষ: {formatDateShort(exam.endDate, 'bn')}
+              </span>
+              {exam.marksEntryDeadline && (
+                <span
+                  className={`block mt-0.5 ${
+                    deadlineExpired ? 'text-destructive font-semibold' : 'text-muted-foreground'
+                  }`}
+                >
+                  নম্বর জমা: {formatDateShort(exam.marksEntryDeadline, 'bn')}
                 </span>
-                {exam.marksEntryDeadline && (
-                  <span
-                    className={`block mt-0.5 ${
-                      deadlineExpired ? 'text-destructive font-semibold' : 'text-muted-foreground'
-                    }`}
-                  >
-                    নম্বর জমা: {formatDateShort(exam.marksEntryDeadline, 'bn')}
-                  </span>
-                )}
-              </div>
-              <div>
-                <span className="text-muted-foreground block">বিষয় ও নম্বর অগ্রগতি</span>
-                <span className="font-semibold text-foreground">
-                  {formatNumber(subjectCount, 'bn')} বিষয় · {formatNumber(progressPct, 'bn')}%
-                </span>
-              </div>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border">
@@ -308,12 +264,6 @@ export function ExamsTable({
                   <Button variant="outline" size="sm">
                     <Settings2 className="w-3.5 h-3.5" />
                     বিষয় ও মান
-                  </Button>
-                </Link>
-                <Link href={`/admin/examinations/marks-entry?examId=${exam.id}`}>
-                  <Button variant="ghost" size="sm">
-                    <ClipboardList className="w-3.5 h-3.5" />
-                    নম্বর
                   </Button>
                 </Link>
               </div>

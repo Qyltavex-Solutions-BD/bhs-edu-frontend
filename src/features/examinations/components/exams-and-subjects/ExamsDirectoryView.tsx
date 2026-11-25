@@ -20,7 +20,7 @@ import { Button } from '@/src/components/ui/primitives';
 import { ExamStatus, ExamType } from '@/src/types/enums';
 import type { Exam } from '@/src/types/entities';
 import { ExamFormModal, buildExamOptionName, type ExamFormState } from './ExamFormModal';
-import { ExamsTable } from './ExamsTable';
+import { ExamsTable, resolveDynamicExamStatus } from './ExamsTable';
 
 export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOnMount?: boolean }) {
   const [createExam, { isLoading: creating }] = useCreateExamMutation();
@@ -91,7 +91,7 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
       .filter((e) => {
         if (e.isDeleted) return false;
         if (classFilter !== 'ALL' && e.classId !== classFilter) return false;
-        if (statusFilter !== 'ALL' && e.status !== statusFilter) return false;
+        if (statusFilter !== 'ALL' && resolveDynamicExamStatus(e) !== statusFilter) return false;
         return true;
       })
       .sort((a, b) => {
@@ -175,7 +175,6 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
           startDate: form.startDate,
           endDate: form.endDate,
           marksEntryDeadline: deadlineIso,
-          status: form.status,
           allowCombinedPass: form.allowCombinedPass,
         }).unwrap();
 
