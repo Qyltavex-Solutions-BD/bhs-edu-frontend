@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { CheckCircle2, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { Button } from '@/src/components/ui/primitives';
 import { useI18n } from '@/src/lib/i18n';
-import type { MockDatabase } from '@/src/mocks/seed';
+import { useGetNextSuggestedRollQuery } from '@/src/features/students/api/students.api';
 import {
+  type AdmissionCatalogData,
   cleanNumericInput,
   getNextSuggestedRoll,
   getRequiredDocumentChecklist,
@@ -22,7 +23,7 @@ import { AdmissionFormPreviewSheet } from './AdmissionFormPreviewSheet';
 
 interface StepFinalAdminProps {
   form: UseFormReturn<UnifiedAdmissionFormValues>;
-  db: MockDatabase;
+  db: AdmissionCatalogData;
   onJumpToStep?: (step: 1 | 2 | 3) => void;
 }
 
@@ -57,24 +58,36 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
     hasDeceasedParent
   );
 
-  const suggestedRoll = getNextSuggestedRoll(db, academicYearId, sectionId);
+  const { data: nextRollData } = useGetNextSuggestedRollQuery(
+    { academicYearId, sectionId },
+    { skip: !academicYearId || !sectionId }
+  );
+
+  const suggestedRoll =
+    nextRollData?.nextRoll ?? getNextSuggestedRoll(db, academicYearId, sectionId);
   const rollNumber = Number(roll);
   const rollConflict =
     Boolean(sectionId && academicYearId && rollNumber > 0) &&
-    db.enrollments.some(
-      (e) =>
-        e.academicYearId === academicYearId &&
-        e.sectionId === sectionId &&
-        e.roll === rollNumber
-    );
+    (nextRollData
+      ? nextRollData.usedRolls.includes(rollNumber)
+      : (db.enrollments ?? []).some(
+          (e) =>
+            e.academicYearId === academicYearId &&
+            e.sectionId === sectionId &&
+            e.roll === rollNumber
+        ));
+
+  useEffect(() => {
+    if (nextRollData?.nextRoll && !roll) {
+      setValue('roll', String(nextRollData.nextRoll), { shouldValidate: true });
+    }
+  }, [nextRollData?.nextRoll, roll, setValue]);
 
   const handleYearOrSectionChange = (nextYearId: string, nextSectionId: string) => {
     setValue('academicYearId', nextYearId, { shouldValidate: true });
     setValue('sectionId', nextSectionId, { shouldValidate: true });
     if (nextYearId && nextSectionId) {
-      setValue('roll', String(getNextSuggestedRoll(db, nextYearId, nextSectionId)), {
-        shouldValidate: true,
-      });
+      setValue('roll', '', { shouldValidate: false });
     }
   };
 

@@ -7,8 +7,8 @@ import { getEnumMeta } from '@/src/lib/constants/enums';
 import { formatDateLong, formatNumber } from '@/src/lib/formatters';
 import { SCHOOL_LOGO_SRC, SchoolEmblem } from '@/src/components/shared/Feedback';
 import type { AdmissionFormPrintData } from '@/src/lib/utils/cn';
-import type { MockDatabase } from '@/src/mocks/seed';
 import {
+  type AdmissionCatalogData,
   ADMISSION_TYPE_META,
   BLOOD_GROUP_OPTIONS,
   calculateAgeYears,
@@ -29,7 +29,7 @@ export interface SubmittedSheetMeta {
 
 interface AdmissionFormPreviewSheetProps {
   values: UnifiedAdmissionFormValues;
-  db: MockDatabase;
+  db: AdmissionCatalogData;
   mode: 'public' | 'admin';
   onJumpToStep?: (step: 1 | 2 | 3) => void;
   submittedMeta?: SubmittedSheetMeta;
@@ -41,7 +41,7 @@ interface AdmissionFormPreviewSheetProps {
  */
 export function buildAdmissionFormPrintData(
   values: UnifiedAdmissionFormValues,
-  db: MockDatabase,
+  db: AdmissionCatalogData,
   mode: 'public' | 'admin',
   submittedMeta: SubmittedSheetMeta
 ): AdmissionFormPrintData {
@@ -58,10 +58,19 @@ export function buildAdmissionFormPrintData(
   const sessionLabel =
     mode === 'admin'
       ? db.academicYears.find((y) => y.id === values.academicYearId)?.name || '২০২৬'
-      : db.admissionContent.academicSession || '২০২৭';
+      : db.admissionContent?.academicSession || '২০২৭';
 
   return {
-    school: db.schoolProfile,
+    school: db.schoolProfile ?? ({
+      id: 'default',
+      name: 'Bojeshwar High School',
+      nameBn: 'বজেশ্বর উচ্চ বিদ্যালয়',
+      nameEn: 'Bojeshwar High School',
+      eiin: '113587',
+      address: 'নড়িয়া, শরীয়তপুর',
+      createdAt: '',
+      updatedAt: '',
+    } as NonNullable<AdmissionCatalogData['schoolProfile']>),
     values,
     targetClassNameBn: selectedClass?.nameBn ?? '৬ষ্ঠ শ্রেণি',
     targetClassNameEn: selectedClass?.name ?? 'Class 6',
@@ -72,7 +81,7 @@ export function buildAdmissionFormPrintData(
       ? `${chosenOptional.nameBn}${chosenOptional.officialCode ? ` (${chosenOptional.officialCode})` : ''}`
       : null,
     sessionLabel,
-    declarationText: db.admissionContent.declarationText ?? null,
+    declarationText: db.admissionContent?.declarationText ?? null,
     submittedMeta,
   };
 }

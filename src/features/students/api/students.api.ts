@@ -10,8 +10,55 @@ import type {
 
 export const studentsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    getStudents: builder.query<
+      { items: Student[]; meta?: { total: number; page: number; limit: number } },
+      { academicYearId?: string; classId?: string; sectionId?: string; search?: string; page?: number; limit?: number } | void
+    >({
+      query: (params) => ({
+        url: '/academic/students',
+        method: 'GET',
+        params: params || undefined,
+      }),
+      transformResponse: (response: any) => {
+        const raw = response?.data ?? response;
+        if (raw && Array.isArray(raw.items)) return raw;
+        if (Array.isArray(raw)) return { items: raw };
+        return { items: [] };
+      },
+      providesTags: ['Students'],
+    }),
+    getNextSuggestedRoll: builder.query<
+      { nextRoll: number; usedRolls: number[] },
+      { academicYearId: string; sectionId: string }
+    >({
+      query: ({ academicYearId, sectionId }) => ({
+        url: '/academic/students/next-roll',
+        method: 'GET',
+        params: { academicYearId, sectionId },
+      }),
+      transformResponse: (response: any) => {
+        const raw = response?.data ?? response;
+        return {
+          nextRoll: typeof raw?.nextRoll === 'number' ? raw.nextRoll : 1,
+          usedRolls: Array.isArray(raw?.usedRolls) ? raw.usedRolls : [],
+        };
+      },
+      providesTags: ['Students'],
+    }),
+    checkStudentDuplicate: builder.query<
+      { birthCertConflict?: string; boardRegConflict?: string },
+      { birthCertificateNo?: string; boardRegistrationNo?: string }
+    >({
+      query: (params) => ({
+        url: '/academic/students/check-duplicate',
+        method: 'GET',
+        params,
+      }),
+      transformResponse: (response: any) => response?.data ?? response ?? {},
+    }),
     createStudent: builder.mutation<unknown, Record<string, unknown>>({
-      query: (body) => ({ url: '/students', method: 'POST', body }),
+      query: (body) => ({ url: '/academic/students', method: 'POST', body }),
+      transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ['Students', 'Admissions', 'Audit'],
     }),
     updateStudent: builder.mutation<Student, Partial<Student> & { id: string }>({
@@ -100,6 +147,9 @@ export const studentsApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetStudentsQuery,
+  useGetNextSuggestedRollQuery,
+  useCheckStudentDuplicateQuery,
   useCreateStudentMutation,
   useUpdateStudentMutation,
   useUpdateEnrollmentMutation,

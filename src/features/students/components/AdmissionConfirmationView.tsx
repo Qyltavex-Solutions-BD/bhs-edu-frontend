@@ -8,31 +8,62 @@ import { triggerPrint } from '@/src/lib/utils/cn';
 import { Button, Card } from '@/src/components/ui/primitives';
 import { PrintableAdmissionConfirmationSlip } from '@/src/components/print/PrintDocuments';
 import {
+  type AdmissionCatalogData,
   getOptionalSubjectsForClassGroup,
   resolvePrimaryGuardianPhone,
   type AdminAdmissionResult,
 } from '@/src/features/admission';
-import type { MockDatabase } from '@/src/mocks/seed';
+import type { SchoolProfile } from '@/src/types/entities';
 
 export function AdmissionConfirmationView({
   db,
   result,
   onAdmitAnother,
 }: {
-  db: MockDatabase;
+  db: AdmissionCatalogData;
   result: AdminAdmissionResult;
   onAdmitAnother: () => void;
 }) {
   const { locale, pick } = useI18n();
   const { student, enrollment, formValues } = result;
-  const cls = db.classes.find((c) => c.id === enrollment.classId);
-  const sec = db.sections.find((s) => s.id === enrollment.sectionId);
-  const grp = db.academicGroups.find((g) => g.id === enrollment.groupId);
-  const yr = db.academicYears.find((y) => y.id === enrollment.academicYearId);
+  const enrolledAny = enrollment as unknown as {
+    schoolClass?: { name: string; nameBn?: string };
+    section?: { name: string };
+    group?: { name: string; nameBn?: string } | null;
+    academicYear?: { name: string };
+    optionalClassSubject?: {
+      subject?: { name: string; nameBn?: string; officialCode?: string | null };
+    } | null;
+  };
+  const cls = db.classes.find((c) => c.id === enrollment.classId) ?? enrolledAny.schoolClass;
+  const sec = db.sections.find((s) => s.id === enrollment.sectionId) ?? enrolledAny.section;
+  const grp = db.academicGroups.find((g) => g.id === enrollment.groupId) ?? enrolledAny.group;
+  const yr = db.academicYears.find((y) => y.id === enrollment.academicYearId) ?? enrolledAny.academicYear;
   const optionals = enrollment.optionalClassSubjectId
     ? getOptionalSubjectsForClassGroup(db, enrollment.classId, enrollment.groupId, enrollment.academicYearId)
     : [];
   const chosenOpt = optionals.find((o) => o.classSubjectId === enrollment.optionalClassSubjectId);
+  const optionalSubjectName = chosenOpt
+    ? locale === 'bn'
+      ? chosenOpt.nameBn
+      : chosenOpt.nameEn
+    : enrolledAny.optionalClassSubject?.subject
+    ? locale === 'bn'
+      ? enrolledAny.optionalClassSubject.subject.nameBn || enrolledAny.optionalClassSubject.subject.name
+      : enrolledAny.optionalClassSubject.subject.name
+    : null;
+  const school: SchoolProfile =
+    db.schoolProfile ??
+    ({
+      id: 'default',
+      name: 'Bojeshwar High School',
+      nameBn: 'বজেশ্বর উচ্চ বিদ্যালয়',
+      nameEn: 'Bojeshwar High School',
+      eiin: '113587',
+      address: 'নড়িয়া, শরীয়তপুর',
+      createdAt: '',
+      updatedAt: '',
+    } as SchoolProfile);
 
   return (
     <div className="space-y-5">
@@ -70,7 +101,7 @@ export function AdmissionConfirmationView({
       </Card>
 
       <PrintableAdmissionConfirmationSlip
-        school={db.schoolProfile}
+        school={school}
         student={student}
         enrollment={enrollment}
         classNameLabel={cls ? (locale === 'bn' ? cls.nameBn || cls.name : cls.name) : ''}
@@ -80,7 +111,7 @@ export function AdmissionConfirmationView({
         fatherName={formValues.fatherNameBn}
         motherName={formValues.motherNameBn}
         guardianPhone={resolvePrimaryGuardianPhone(formValues)}
-        optionalSubjectName={chosenOpt ? (locale === 'bn' ? chosenOpt.nameBn : chosenOpt.nameEn) : null}
+        optionalSubjectName={optionalSubjectName}
       />
     </div>
   );

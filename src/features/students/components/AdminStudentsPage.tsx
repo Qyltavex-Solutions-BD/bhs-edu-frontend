@@ -53,12 +53,15 @@ export function AdminStudentsPage({
 }) {
   const { id } = useParams<{ id?: string }>();
   const pathname = usePathname();
-  const { data: db, isLoading } = useGetBootstrapQuery();
+  const section: SectionKey = id ? 'profile' : TAB_SECTION[defaultTab] ?? 'directory';
+  const isCreateSection = section === 'create';
+  const { data: db, isLoading } = useGetBootstrapQuery(undefined, {
+    skip: isCreateSection,
+  });
   const { pick } = useI18n();
   const year = useAcademicYearSelection(db?.academicYears);
-  const section: SectionKey = id ? 'profile' : TAB_SECTION[defaultTab] ?? 'directory';
 
-  if (isLoading || !db || !year) return <LoadingSkeleton />;
+  if (!isCreateSection && (isLoading || !db || !year)) return <LoadingSkeleton />;
 
   const copy: Record<SectionKey, { title: string; description: string; year: boolean }> = {
     directory: {
@@ -162,20 +165,24 @@ export function AdminStudentsPage({
       title={page.title}
       description={page.description}
       actions={headerActions}
-      years={db.academicYears}
-      selectedYear={year}
+      years={db?.academicYears ?? []}
+      selectedYear={year ?? { id: '', name: '', startDate: '', endDate: '', isActive: true, createdAt: '', updatedAt: '' }}
       showYear={page.year}
     >
-      {section === 'directory' && <StudentDirectory db={db} yearId={year.id} />}
-      {section === 'create' && <StudentRegister db={db} yearId={year.id} />}
-      {section === 'admissions' && <StudentAdmissionInbox db={db} yearId={year.id} />}
-      {section === 'enrollments' && <StudentEnrollments db={db} yearId={year.id} />}
-      {section === 'promotions' && <StudentPromotions db={db} yearId={year.id} />}
-      {section === 'transfers' && <StudentTransfers db={db} />}
-      {section === 'testimonials' && <StudentTestimonials db={db} />}
-      {section === 'cards' && <StudentRfidCards db={db} />}
-      {section === 'import' && <StudentImporter db={db} yearId={year.id} />}
-      {section === 'profile' && <StudentProfile db={db} studentId={id ?? ''} yearId={year.id} startEditing={pathname.endsWith('/edit')} />}
+      {section === 'create' && <StudentRegister yearId={year?.id} />}
+      {db && year && (
+        <>
+          {section === 'directory' && <StudentDirectory db={db} yearId={year.id} />}
+          {section === 'admissions' && <StudentAdmissionInbox db={db} yearId={year.id} />}
+          {section === 'enrollments' && <StudentEnrollments db={db} yearId={year.id} />}
+          {section === 'promotions' && <StudentPromotions db={db} yearId={year.id} />}
+          {section === 'transfers' && <StudentTransfers db={db} />}
+          {section === 'testimonials' && <StudentTestimonials db={db} />}
+          {section === 'cards' && <StudentRfidCards db={db} />}
+          {section === 'import' && <StudentImporter db={db} yearId={year.id} />}
+          {section === 'profile' && <StudentProfile db={db} studentId={id ?? ''} yearId={year.id} startEditing={pathname.endsWith('/edit')} />}
+        </>
+      )}
     </StudentsShell>
   );
 }
