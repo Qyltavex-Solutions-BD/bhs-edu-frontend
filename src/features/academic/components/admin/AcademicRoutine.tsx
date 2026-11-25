@@ -388,6 +388,12 @@ export function AcademicRoutine({
     }
   };
 
+  // Helper to get clean, short room number without section/group brackets
+  const cleanRoom = (roomStr?: string | null) => {
+    if (!roomStr) return '';
+    return roomStr.replace(/\s*\([^)]*\)/gi, '').trim();
+  };
+
   const openEditModal = (slot: any) => {
     if (!slot) return;
     const routineId = slot.id || slot.routineId || '';
@@ -467,7 +473,7 @@ export function AcademicRoutine({
     }
 
     // 4. Resolve Room:
-    const room = slot.room || 'রুম ২০১';
+    const room = cleanRoom(slot.room) || 'রুম ২০১';
 
     // 5. Resolve Day, Period, Break:
     const day = slot.day || WeekDay.SUNDAY;
@@ -491,7 +497,7 @@ export function AcademicRoutine({
   const openQuickAdd = (day: WeekDay, periodNumber: number, targetGroupId?: string) => {
     setEditingRoutineId(null);
     setEditingSlot(null);
-    const defaultRoom = slots[0]?.room || 'রুম ২০১';
+    const defaultRoom = cleanRoom(slots[0]?.room) || 'রুম ২০১';
     const initCsId = commonSubjects[0]?.id || classSubjects[0]?.id || '';
     const assignedStaff = assignments.find((a) => a.classSubjectId === initCsId)?.staffId;
     const initStaff = assignedStaff || getTeachersForSubject(initCsId)[0]?.id || teachers[0]?.id || '';
@@ -524,17 +530,17 @@ export function AcademicRoutine({
         science: {
           classSubjectId: sciCs,
           staffId: sciStaff,
-          room: 'রুম ২০৫ (ল্যাব)',
+          room: 'রুম ২০৫',
         },
         humanities: {
           classSubjectId: humCs,
           staffId: humStaff,
-          room: 'রুম ২০৮',
+          room: 'রুম ২০৬',
         },
         business: {
           classSubjectId: busCs,
           staffId: busStaff,
-          room: 'রুম ২০৯',
+          room: 'রুম ২০৭',
         },
       });
 
@@ -937,7 +943,7 @@ export function AcademicRoutine({
               {cellSlots.map((slot, idx) => {
                 const subjectName = resolveSubjectName(slot);
                 const teacherName = resolveTeacherName(slot);
-                const roomName = slot.room?.trim() || '';
+                const roomDisplay = cleanRoom(slot.room);
 
                 return (
                   <div
@@ -948,11 +954,11 @@ export function AcademicRoutine({
                     }}
                     className={`group/item p-1.5 -mx-1 rounded-md cursor-pointer hover:bg-primary/10 transition-colors ${idx > 0 ? 'pt-2' : ''}`}
                     title={pick(
-                      `${subjectName} — শিক্ষক: ${teacherName}${roomName ? ` (${roomName})` : ''} [ক্লিক করে সম্পাদনা করুন]`,
-                      `${subjectName} — Teacher: ${teacherName}${roomName ? ` (${roomName})` : ''} [Click to edit]`
+                      `${subjectName} — শিক্ষক: ${teacherName}${roomDisplay ? ` (${roomDisplay})` : ''} [ক্লিক করে সম্পাদনা করুন]`,
+                      `${subjectName} — Teacher: ${teacherName}${roomDisplay ? ` (${roomDisplay})` : ''} [Click to edit]`
                     )}
                   >
-                    {/* Line 1: Group Badge + Subject Name + Room Badge */}
+                    {/* Line 1: Group Tag + Subject Name + Clean Short Room Number */}
                     <div className="flex items-center justify-between gap-1">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {getGroupShortTag(slot)}
@@ -963,9 +969,9 @@ export function AcademicRoutine({
                           {subjectName}
                         </span>
                       </div>
-                      {roomName && (
-                        <span className="text-[10px] font-semibold text-primary/90 bg-primary/10 border border-primary/20 px-1.5 py-0.2 rounded shrink-0 tabular-nums">
-                          {roomName}
+                      {roomDisplay && (
+                        <span className="text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">
+                          {roomDisplay}
                         </span>
                       )}
                     </div>
@@ -1064,7 +1070,7 @@ export function AcademicRoutine({
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1 truncate">{teacherName}</p>
-          <p className="text-xs text-primary font-medium tabular-nums mt-0.5">{slot.room || '—'}</p>
+          <p className="text-xs text-primary font-medium tabular-nums mt-0.5">{cleanRoom(slot.room) || '—'}</p>
         </div>
       </td>
     );
@@ -1110,7 +1116,7 @@ export function AcademicRoutine({
           <p className="text-xs text-primary font-medium truncate">
             {clsName} ({secName})
           </p>
-          <p className="text-xs text-muted-foreground tabular-nums mt-0.5">{slot.room || '—'}</p>
+          <p className="text-xs text-muted-foreground tabular-nums mt-0.5">{cleanRoom(slot.room) || '—'}</p>
         </div>
       </td>
     );
@@ -1308,7 +1314,7 @@ export function AcademicRoutine({
                 {pick('ডিফল্ট কক্ষ', 'Default Room')}
               </p>
               <p className="text-xs font-semibold text-foreground">
-                {form.room || 'রুম ২০১'}
+                {cleanRoom(form.room) || 'রুম ২০১'}
               </p>
             </div>
           </div>
