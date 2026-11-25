@@ -8,7 +8,13 @@ export const examCreationApi = baseApi.injectEndpoints({
       {
         name: string;
         academicYearId: string;
-        classId: string;
+        classId?: string;
+        classIds?: string[];
+        classSchedules?: Array<{
+          classId: string;
+          startDate?: string;
+          endDate?: string;
+        }>;
         examType: string;
         gradingScaleId?: string;
         startDate: string;
@@ -22,7 +28,7 @@ export const examCreationApi = baseApi.injectEndpoints({
     >({
       query: (body) => ({ url: '/examination/exams', method: 'POST', body }),
       transformResponse: (res: any) => (res && res.data ? res.data : res),
-      invalidatesTags: ['Exams', 'Audit'],
+      invalidatesTags: [{ type: 'Exams', id: 'LIST' }, 'Exams', 'Audit'],
     }),
   }),
 });
