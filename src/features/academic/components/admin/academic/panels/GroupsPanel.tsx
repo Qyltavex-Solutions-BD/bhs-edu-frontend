@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Pencil } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -10,7 +10,7 @@ import {
   useGetAcademicGroupsQuery,
   useUpdateAcademicGroupMutation,
 } from '@/src/services/academic';
-import { Button, Card, FormField, Input, Switch, Textarea } from '@/src/components/ui';
+import { Button, Card, FormField, Input, Modal, Switch, Textarea } from '@/src/components/ui';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import type { AcademicGroup } from '@/src/types/entities';
 import { errorMessage } from './shared';
@@ -34,6 +34,7 @@ export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
   const [updateGroup, { isLoading: updating }] = useUpdateAcademicGroupMutation();
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const {
     register,
@@ -53,6 +54,7 @@ export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
   const startCreate = () => {
     setEditingId(null);
     reset(defaultValues);
+    setModalOpen(true);
   };
 
   const startEdit = (group: AcademicGroup) => {
@@ -63,6 +65,13 @@ export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
       description: group.description ?? '',
       isActive: group.isActive,
     });
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setEditingId(null);
+    reset(defaultValues);
+    setModalOpen(false);
   };
 
   const onSubmit = async (values: GroupFormValues) => {
@@ -85,71 +94,34 @@ export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
         }).unwrap();
         toast.success(t(dict.groups.createSuccess));
       }
-      startCreate();
+      closeModal();
     } catch (err) {
       toast.error(errorMessage(err, t(dict.groups.saveFailed)));
     }
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="p-5 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-bold">
-            {editingId ? t(dict.groups.editTitle) : t(dict.groups.newTitle)}
-          </h3>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-foreground">
+            {isBn ? 'বিভাগ ব্যবস্থাপনা' : 'Academic Groups'}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {isBn
+              ? '৯ম ও ১০ম শ্রেণির বিভাগসমূহ (বিজ্ঞান, মানবিক, ব্যবসায় শিক্ষা) পরিচালনা করুন।'
+              : 'Manage streams for classes 9 and 10 (Science, Humanities, Business Studies).'}
+          </p>
         </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-          <FormField label={t(dict.groups.nameEnLabel)} error={errors.name?.message}>
-            <Input
-              {...register('name')}
-              placeholder={t(dict.groups.nameEnPlaceholder)}
-            />
-          </FormField>
-
-          <FormField label={t(dict.groups.nameBnLabel)} error={errors.nameBn?.message}>
-            <Input
-              {...register('nameBn')}
-              placeholder={t(dict.groups.nameBnPlaceholder)}
-            />
-          </FormField>
-
-          <FormField label={t(dict.groups.descLabel)} error={errors.description?.message}>
-            <Textarea
-              {...register('description')}
-              placeholder={t(dict.groups.descPlaceholder)}
-            />
-          </FormField>
-
-          <div className="flex items-center justify-between pt-2">
-            <Switch
-              checked={isActive}
-              onChange={(checked) => setValue('isActive', checked)}
-              label={t(dict.common.active)}
-            />
-
-            <div className="flex items-center gap-2">
-              {editingId && (
-                <Button type="button" variant="outline" onClick={startCreate}>
-                  {t(dict.common.cancel)}
-                </Button>
-              )}
-              <Button type="submit" variant="primary" disabled={saving}>
-                {saving
-                  ? t(dict.common.saving)
-                  : editingId
-                    ? t(dict.common.update)
-                    : t(dict.common.save)}
-              </Button>
-            </div>
-          </div>
-        </form>
-      </Card>
+        <Button type="button" variant="primary" onClick={startCreate}>
+          <Plus className="w-4 h-4" />
+          {t(dict.groups.newTitle)}
+        </Button>
+      </div>
 
       <Card className="divide-y divide-border">
         {groupList.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">
+          <div className="p-8 text-center text-base text-muted-foreground">
             {t(dict.groups.noGroups)}
           </div>
         ) : (
@@ -163,9 +135,12 @@ export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
                   : '';
 
             return (
-              <div key={group.id} className="p-4 flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold">
+              <div
+                key={group.id}
+                className="p-4 flex flex-wrap items-center justify-between gap-3 hover:bg-surface-muted/40 transition-colors"
+              >
+                <div className="space-y-1">
+                  <p className="text-base font-semibold text-foreground">
                     {displayName}
                     {secondaryName && (
                       <span className="text-sm font-normal text-muted-foreground ml-1.5">
@@ -199,6 +174,62 @@ export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
           })
         )}
       </Card>
+
+      <Modal
+        open={modalOpen}
+        onClose={closeModal}
+        title={editingId ? t(dict.groups.editTitle) : t(dict.groups.newTitle)}
+        description={
+          isBn
+            ? 'বিভাগের ইংরেজি ও বাংলা নাম এবং সংক্ষিপ্ত বিবরণ লিখুন।'
+            : 'Enter the English and Bengali group names and description.'
+        }
+        size="md"
+      >
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <FormField label={t(dict.groups.nameEnLabel)} required error={errors.name?.message}>
+            <Input
+              {...register('name')}
+              placeholder={t(dict.groups.nameEnPlaceholder)}
+            />
+          </FormField>
+
+          <FormField label={t(dict.groups.nameBnLabel)} error={errors.nameBn?.message}>
+            <Input
+              {...register('nameBn')}
+              placeholder={t(dict.groups.nameBnPlaceholder)}
+            />
+          </FormField>
+
+          <FormField label={t(dict.groups.descLabel)} error={errors.description?.message}>
+            <Textarea
+              {...register('description')}
+              placeholder={t(dict.groups.descPlaceholder)}
+            />
+          </FormField>
+
+          <div className="pt-1">
+            <Switch
+              checked={isActive}
+              onChange={(checked) => setValue('isActive', checked)}
+              label={t(dict.common.active)}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-border">
+            <Button type="button" variant="outline" onClick={closeModal}>
+              {t(dict.common.cancel)}
+            </Button>
+            <Button type="submit" variant="primary" disabled={saving}>
+              {saving
+                ? t(dict.common.saving)
+                : editingId
+                  ? t(dict.common.update)
+                  : t(dict.common.save)}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
