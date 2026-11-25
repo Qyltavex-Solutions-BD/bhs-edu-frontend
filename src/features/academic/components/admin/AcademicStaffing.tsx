@@ -303,7 +303,7 @@ function SubjectTeachers({
   );
   const { data: realGroups } = useGetAcademicGroupsQuery();
   const { data: realAssignments, isLoading: loadingAssignments } = useGetTeacherAssignmentsQuery(
-    isUuid(year?.id) ? { academicYearId: year.id, isActive: true, limit: 200 } : undefined,
+    isUuid(year?.id) ? { academicYearId: year.id, isActive: true, limit: 500 } : undefined,
     { skip: !isUuid(year?.id) }
   );
 

@@ -356,8 +356,8 @@ export function BooksPanel({
         </div>
 
         {/* Class Selection Tabs */}
-        <div className="mt-4 pt-3 border-t border-border flex items-center gap-1.5 overflow-x-auto pb-1">
-          <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap mr-2">
+        <div className="mt-4 pt-3 border-t border-border flex flex-wrap items-center gap-2">
+          <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap mr-1">
             {t(dict.books.classLabel)}:
           </span>
           {classList.map((cls) => {
@@ -368,9 +368,9 @@ export function BooksPanel({
                 key={cls.id}
                 type="button"
                 onClick={() => setSelectedClassId(cls.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                className={`px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap cursor-pointer ${
                   isSelected
-                    ? 'bg-primary text-primary-foreground shadow-sm font-semibold'
+                    ? 'bg-primary text-primary-foreground shadow-xs font-semibold'
                     : 'bg-surface-muted hover:bg-surface text-foreground border border-border'
                 }`}
               >
@@ -382,50 +382,50 @@ export function BooksPanel({
       </Card>
 
       {/* Live Stats Counters */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="p-3 bg-surface border-border flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10 text-primary">
-            <Layers className="w-4 h-4" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="p-3.5 bg-surface border-border flex items-center gap-3">
+          <div className="p-2.5 rounded-lg bg-primary/10 text-primary">
+            <Layers className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">{t(dict.books.statsTotal)}</p>
-            <p className="text-lg font-bold text-foreground tabular-nums">
+            <p className="text-sm text-muted-foreground">{t(dict.books.statsTotal)}</p>
+            <p className="text-xl font-bold text-foreground tabular-nums">
               {formatNumber(stats.total, locale)}
             </p>
           </div>
         </Card>
 
-        <Card className="p-3 bg-surface border-border flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-            <BookOpen className="w-4 h-4" />
+        <Card className="p-3.5 bg-surface border-border flex items-center gap-3">
+          <div className="p-2.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+            <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">{t(dict.books.statsTextbook)}</p>
-            <p className="text-lg font-bold text-foreground tabular-nums">
+            <p className="text-sm text-muted-foreground">{t(dict.books.statsTextbook)}</p>
+            <p className="text-xl font-bold text-foreground tabular-nums">
               {formatNumber(stats.textbooks, locale)}
             </p>
           </div>
         </Card>
 
-        <Card className="p-3 bg-surface border-border flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
-            <Sparkles className="w-4 h-4" />
+        <Card className="p-3.5 bg-surface border-border flex items-center gap-3">
+          <div className="p-2.5 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400">
+            <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">{t(dict.books.statsSupplementary)}</p>
-            <p className="text-lg font-bold text-foreground tabular-nums">
+            <p className="text-sm text-muted-foreground">{t(dict.books.statsSupplementary)}</p>
+            <p className="text-xl font-bold text-foreground tabular-nums">
               {formatNumber(stats.supplementary, locale)}
             </p>
           </div>
         </Card>
 
-        <Card className="p-3 bg-surface border-border flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-            <BookOpen className="w-4 h-4" />
+        <Card className="p-3.5 bg-surface border-border flex items-center gap-3">
+          <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">{t(dict.books.statsGrammar)}</p>
-            <p className="text-lg font-bold text-foreground tabular-nums">
+            <p className="text-sm text-muted-foreground">{t(dict.books.statsGrammar)}</p>
+            <p className="text-xl font-bold text-foreground tabular-nums">
               {formatNumber(stats.grammar, locale)}
             </p>
           </div>
@@ -434,14 +434,14 @@ export function BooksPanel({
 
       {/* Filter Bar */}
       <Card className="p-4 space-y-3">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t(dict.books.searchPlaceholder)}
-              className="pl-9"
+              className="pl-10"
             />
             {searchQuery && (
               <button
@@ -454,12 +454,12 @@ export function BooksPanel({
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex lg:flex-wrap items-center gap-2">
             {/* Subject Filter */}
             <Select
               value={subjectFilter}
               onChange={(e) => setSubjectFilter(e.target.value)}
-              className="w-full sm:w-auto min-w-40 text-xs"
+              className="w-full lg:w-44"
             >
               <option value="all">{t(dict.books.allSubjects)}</option>
               {subjectList.map((sub) => (
@@ -473,7 +473,7 @@ export function BooksPanel({
             <Select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full sm:w-auto min-w-36 text-xs"
+              className="w-full lg:w-40"
             >
               <option value="all">{t(dict.books.allTypes)}</option>
               {Object.values(BookType).map((bt) => (
@@ -487,7 +487,7 @@ export function BooksPanel({
             <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="w-full sm:w-auto min-w-32 text-xs"
+              className="w-full lg:w-36"
             >
               <option value="all">{t(dict.classSubjects.allStatuses)}</option>
               <option value="active">{t(dict.classSubjects.activeOnly)}</option>
@@ -495,8 +495,8 @@ export function BooksPanel({
             </Select>
 
             {hasActiveFilters && (
-              <Button type="button" variant="ghost" size="sm" onClick={handleResetFilters} className="text-xs">
-                <X className="w-3.5 h-3.5 mr-1" />
+              <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
+                <X className="w-4 h-4 mr-1" />
                 {t(dict.classSubjects.resetFilters)}
               </Button>
             )}
@@ -506,28 +506,28 @@ export function BooksPanel({
 
       {/* Books Table */}
       <Card className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-surface-muted text-muted-foreground border-b border-border">
+        <table className="w-full text-base">
+          <thead className="bg-surface-muted text-sm text-muted-foreground border-b border-border">
             <tr>
-              <th className="p-3 text-left w-16">{t(dict.books.orderLabel)}</th>
-              <th className="p-3 text-left">{t(dict.books.nameLabel)}</th>
-              <th className="p-3 text-left">{t(dict.books.subjectLabel)}</th>
-              <th className="p-3 text-left">{t(dict.books.codeLabel)}</th>
-              <th className="p-3 text-left">{t(dict.books.typeLabel)}</th>
-              <th className="p-3 text-left">{t(dict.common.status)}</th>
-              <th className="p-3 text-right">{t(dict.common.actions)}</th>
+              <th className="p-3.5 text-left w-16">{t(dict.books.orderLabel)}</th>
+              <th className="p-3.5 text-left">{t(dict.books.nameLabel)}</th>
+              <th className="p-3.5 text-left">{t(dict.books.subjectLabel)}</th>
+              <th className="p-3.5 text-left">{t(dict.books.codeLabel)}</th>
+              <th className="p-3.5 text-left">{t(dict.books.typeLabel)}</th>
+              <th className="p-3.5 text-left">{t(dict.common.status)}</th>
+              <th className="p-3.5 text-right">{t(dict.common.actions)}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {loadingBooks ? (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                <td colSpan={7} className="p-8 text-center text-base text-muted-foreground">
                   {t(dict.common.loading)}
                 </td>
               </tr>
             ) : filteredBooks.length === 0 ? (
               <tr>
-                <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                <td colSpan={7} className="p-8 text-center text-base text-muted-foreground">
                   <p className="font-medium">{t(dict.books.emptyBooks)}</p>
                   {hasActiveFilters && (
                     <Button
@@ -557,28 +557,30 @@ export function BooksPanel({
 
                 return (
                   <tr key={book.id} className="hover:bg-surface-muted/40 transition-colors">
-                    <td className="p-3 tabular-nums text-muted-foreground text-xs font-semibold">
-                      {formatNumber(book.displayOrder ?? index + 1, locale)}
+                    <td className="p-3.5 text-sm text-muted-foreground font-semibold">
+                      <span className="tabular-nums">
+                        {formatNumber(book.displayOrder ?? index + 1, locale)}
+                      </span>
                     </td>
 
-                    <td className="p-3 font-semibold text-foreground">
+                    <td className="p-3.5 font-semibold text-foreground">
                       <div className="flex items-center gap-2">
                         <BookOpen className="w-4 h-4 text-primary shrink-0" />
                         <span>{book.name}</span>
                       </div>
                     </td>
 
-                    <td className="p-3">
+                    <td className="p-3.5">
                       <span className="font-medium text-foreground">{sub.displayTitle}</span>
                     </td>
 
-                    <td className="p-3 font-mono text-xs text-muted-foreground">
+                    <td className="p-3.5 font-mono text-sm text-muted-foreground">
                       {!isJuniorClass && (book.bookCode || sub.code) ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold font-mono bg-surface-muted text-foreground border border-border">
                           {book.bookCode || sub.code}
                         </span>
                       ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
+                        <span className="text-muted-foreground text-sm">—</span>
                       )}
                     </td>
 
