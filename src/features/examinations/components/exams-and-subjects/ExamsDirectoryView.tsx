@@ -8,7 +8,6 @@ import {
   useDeleteExamMutation,
   useGetExamsQuery,
   useGetGradingScalesQuery,
-  useToggleArchiveMutation,
   useUpdateExamMutation,
 } from '@/src/store/api';
 import {
@@ -16,7 +15,7 @@ import {
   useGetSchoolClassesQuery,
 } from '@/src/services/academic';
 import { examCreateSchema, examUpdateSchema } from '../../schemas';
-import { LoadingSkeleton, PageHeader } from '@/src/components/shared/Feedback';
+import { ConfirmDialog, LoadingSkeleton, PageHeader } from '@/src/components/shared/Feedback';
 import { Button } from '@/src/components/ui/primitives';
 import { ExamStatus, ExamType } from '@/src/types/enums';
 import type { Exam } from '@/src/types/entities';
@@ -26,12 +25,11 @@ import { ExamsTable } from './ExamsTable';
 export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOnMount?: boolean }) {
   const [createExam, { isLoading: creating }] = useCreateExamMutation();
   const [updateExam, { isLoading: updating }] = useUpdateExamMutation();
-  const [deleteExam] = useDeleteExamMutation();
-  const [toggleArchive] = useToggleArchiveMutation();
+  const [deleteExam, { isLoading: deleting }] = useDeleteExamMutation();
 
   const [classFilter, setClassFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [showArchived, setShowArchived] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Exam | null>(null);
 
   const {
     data: liveExamsData,
@@ -39,15 +37,17 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
     refetch: refetchExams,
   } = useGetExamsQuery({
     classId: classFilter !== 'ALL' ? classFilter : undefined,
-    resultStatus: statusFilter !== 'ALL' ? statusFilter : undefined,
-    isDeleted: showArchived ? true : undefined,
+    status: statusFilter !== 'ALL' ? statusFilter : undefined,
   });
 
   const { data: classesData, isLoading: classesLoading } = useGetSchoolClassesQuery();
   const { data: yearsData, isLoading: yearsLoading } = useGetAcademicYearsQuery();
   const { data: liveScalesData, isLoading: scalesLoading } = useGetGradingScalesQuery();
 
-  const classesList = useMemo(() => classesData ?? [], [classesData]);
+  const classesList = useMemo(
+    () => [...(classesData ?? [])].sort((a, b) => a.numericValue - b.numericValue),
+    [classesData]
+  );
   const academicYearsList = useMemo(() => yearsData ?? [], [yearsData]);
   const gradingScalesList = useMemo(() => liveScalesData?.items ?? [], [liveScalesData]);
   const rawExams = useMemo(() => liveExamsData?.items ?? [], [liveExamsData]);
@@ -86,13 +86,21 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
   }, [createOpen, editingExam, classesList, activeYearObj, gradingScalesList]);
 
   const filteredExams = useMemo(() => {
-    return rawExams.filter((e) => {
-      if (!showArchived && e.isDeleted) return false;
-      if (classFilter !== 'ALL' && e.classId !== classFilter) return false;
-      if (statusFilter !== 'ALL' && e.resultStatus !== statusFilter) return false;
-      return true;
-    });
-  }, [rawExams, classFilter, statusFilter, showArchived]);
+    const classOrder = new Map(classesList.map((c) => [c.id, c.numericValue]));
+    return rawExams
+      .filter((e) => {
+        if (e.isDeleted) return false;
+        if (classFilter !== 'ALL' && e.classId !== classFilter) return false;
+        if (statusFilter !== 'ALL' && e.status !== statusFilter) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const numA = a.schoolClass?.numericValue ?? classOrder.get(a.classId) ?? 999;
+        const numB = b.schoolClass?.numericValue ?? classOrder.get(b.classId) ?? 999;
+        if (numA !== numB) return numA - numB;
+        return a.name.localeCompare(b.name);
+      });
+  }, [rawExams, classesList, classFilter, statusFilter]);
 
   if (examsLoading || classesLoading || yearsLoading || scalesLoading) {
     return <LoadingSkeleton rows={6} />;
@@ -236,15 +244,12 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
     }
   };
 
-  const handleArchiveToggle = async (exam: Exam) => {
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      if (!exam.isDeleted) {
-        await deleteExam(exam.id).unwrap();
-        toast.success('পরীক্ষাটি সফলভাবে ডিলিট/আর্কাইভ করা হয়েছে।');
-      } else {
-        await toggleArchive({ collection: 'exams', id: exam.id });
-        toast.success('পরীক্ষাটি পুনরুদ্ধার করা হয়েছে।');
-      }
+      await deleteExam(deleteTarget.id).unwrap();
+      toast.success('পরীক্ষাটি সফলভাবে মুছে ফেলা হয়েছে।');
+      setDeleteTarget(null);
       refetchExams?.();
     } catch (err: any) {
       const errMsg = err?.data?.message || err?.message || 'অপারেশন ব্যর্থ হয়েছে।';
@@ -273,11 +278,9 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
         setClassFilter={setClassFilter}
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
-        showArchived={showArchived}
-        setShowArchived={setShowArchived}
         onCreateClick={openCreateModal}
         onEditClick={openEditModal}
-        onArchiveToggle={handleArchiveToggle}
+        onDeleteClick={(exam) => setDeleteTarget(exam)}
       />
 
       <ExamFormModal
@@ -291,6 +294,21 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
         classesList={classesList}
         gradingScalesList={gradingScalesList}
         activeYearObj={activeYearObj}
+      />
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        loading={deleting}
+        title="পরীক্ষা মুছে ফেলুন"
+        description={
+          deleteTarget
+            ? `আপনি কি নিশ্চিত যে "${deleteTarget.name}" পরীক্ষাটি মুছে ফেলতে চান?`
+            : ''
+        }
+        confirmLabel="হ্যাঁ, মুছে ফেলুন"
+        destructive
       />
     </div>
   );

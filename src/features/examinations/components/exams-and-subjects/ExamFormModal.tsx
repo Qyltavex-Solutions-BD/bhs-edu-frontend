@@ -2,11 +2,14 @@
 
 import React from 'react';
 import { Button, Input, Modal, Select } from '@/src/components/ui/primitives';
-import { formatNumber } from '@/src/lib/formatters';
 import { getEnumMeta } from '@/src/lib/constants/enums';
 import { ExamStatus, ExamType } from '@/src/types/enums';
 import type { AcademicYear, Exam, GradingScale, SchoolClass } from '@/src/types/entities';
 import { ALLOWED_EXAM_TYPES } from '../../schemas';
+
+const BN_DIGITS = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+const toBnYearText = (val?: string) =>
+  val ? val.replace(/[0-9]/g, (d) => BN_DIGITS[Number(d)]) : '';
 
 export interface ExamFormState {
   name: string;
@@ -42,8 +45,8 @@ export function buildExamOptionName(examType: ExamType, activeYear?: AcademicYea
       : examType === ExamType.ANNUAL
         ? 'বার্ষিক পরীক্ষা'
         : 'নির্বাচনী পরীক্ষা';
-  const yearMatch = activeYear?.name?.match(/\d{4}/)?.[0];
-  return yearMatch ? `${base} ${formatNumber(yearMatch, 'bn')}` : base;
+  const yearText = toBnYearText(activeYear?.name?.trim());
+  return yearText ? `${base} ${yearText}` : base;
 }
 
 export function ExamFormModal({
@@ -190,7 +193,7 @@ export function ExamFormModal({
                   disabled
                   value={
                     activeYearObj
-                      ? `${formatNumber(activeYearObj.name, 'bn')} (চলতি)`
+                      ? `${toBnYearText(activeYearObj.name)} (চলতি)`
                       : 'কোনো চলতি শিক্ষাবর্ষ নেই'
                   }
                   className="bg-surface-muted/70 text-foreground font-medium cursor-not-allowed opacity-90"
