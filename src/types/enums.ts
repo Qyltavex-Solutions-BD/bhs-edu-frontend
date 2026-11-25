@@ -161,6 +161,14 @@ export enum NoticeStatus {
   ARCHIVED = 'ARCHIVED',
 }
 
+export enum NoticeAudience {
+  PUBLIC = 'PUBLIC',
+  ADMIN = 'ADMIN',
+  TEACHER = 'TEACHER',
+  PARENT = 'PARENT',
+  ACCOUNTANT = 'ACCOUNTANT',
+}
+
 export enum PromotionType {
   PROMOTED = 'PROMOTED',
   RETAINED = 'RETAINED',

@@ -1,10 +1,18 @@
 import { baseApi } from '@/src/lib/api/base-api';
 import { env } from '@/src/lib/env';
-import type { NoticeStatus } from '@/src/types/enums';
+import type { NoticeAudience, NoticeStatus } from '@/src/types/enums';
 import type { Notice } from '@/src/types/entities';
 
 type NoticeRecord = Notice & { attachmentMime?: string | null; attachmentLength?: number | null };
-type NoticeFilters = { page?: number; limit?: number; search?: string; status?: NoticeStatus; urgent?: boolean; category?: 'exam' | 'admission' };
+type NoticeFilters = {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: NoticeStatus;
+  audience?: NoticeAudience;
+  urgent?: boolean;
+  category?: 'exam' | 'admission';
+};
 type NoticePage = { items: NoticeRecord[]; meta: { total: number; page: number; totalPages: number } };
 type Response<T> = { data: T };
 
@@ -46,6 +54,21 @@ export const noticesApi = baseApi.injectEndpoints({
       transformResponse: ({ data }: Response<NoticeRecord>) => documentMetadata(data),
       providesTags: ['Notices'],
     }),
+    getPortalNotices: builder.query<ReturnType<typeof transformList>, NoticeFilters | void>({
+      query: (filters) => ({ url: listUrl('/notices/portal', filters || {}) }),
+      transformResponse: transformList,
+      providesTags: ['Notices'],
+    }),
+    getPortalNoticeDocument: builder.mutation<string, string>({
+      async queryFn(id, _api, _options, baseQuery) {
+        const result = await baseQuery({
+          url: `/notices/portal/${encodeURIComponent(id)}/document`,
+          responseHandler: (response) => (response.ok ? response.blob() : response.json()),
+        });
+        if (result.error) return { error: result.error };
+        return { data: URL.createObjectURL(result.data as Blob) };
+      },
+    }),
     getAdminNotices: builder.query<ReturnType<typeof transformList>, NoticeFilters>({
       query: (filters) => ({ url: listUrl('/notices/admin', filters) }),
       transformResponse: transformList,
@@ -69,7 +92,18 @@ export const noticesApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `/notices/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Notices'],
     }),
-    updateNotice: builder.mutation<unknown, { id: string; title: string; memoNo: string; status: NoticeStatus; isUrgent: boolean; file?: File }>({
+    updateNotice: builder.mutation<
+      unknown,
+      {
+        id: string;
+        title: string;
+        memoNo: string;
+        status: NoticeStatus;
+        isUrgent: boolean;
+        audiences?: NoticeAudience[];
+        file?: File;
+      }
+    >({
       query: ({ id, file, ...fields }) => {
         if (!file) return { url: `/notices/${id}`, method: 'PATCH', body: fields };
         const body = new FormData();
@@ -77,6 +111,9 @@ export const noticesApi = baseApi.injectEndpoints({
         body.set('memoNo', fields.memoNo);
         body.set('status', fields.status);
         body.set('isUrgent', String(fields.isUrgent));
+        if (fields.audiences?.length) {
+          body.set('audiences', JSON.stringify(fields.audiences));
+        }
         body.set('file', file);
         return { url: `/notices/${id}`, method: 'PATCH', body };
       },
@@ -85,4 +122,14 @@ export const noticesApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useCreateNoticeMutation, useGetPublicNoticesQuery, useGetPublicNoticeQuery, useGetAdminNoticesQuery, useGetAdminNoticeDocumentMutation, useUpdateNoticeMutation, useDeleteNoticeMutation } = noticesApi;
+export const {
+  useCreateNoticeMutation,
+  useGetPublicNoticesQuery,
+  useGetPublicNoticeQuery,
+  useGetPortalNoticesQuery,
+  useGetPortalNoticeDocumentMutation,
+  useGetAdminNoticesQuery,
+  useGetAdminNoticeDocumentMutation,
+  useUpdateNoticeMutation,
+  useDeleteNoticeMutation,
+} = noticesApi;

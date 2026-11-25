@@ -1,6 +1,6 @@
 'use client';
 
-import { useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
+import { PortalNoticesView } from '@/src/components/shared/PortalNoticesView';
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from '@/src/lib/navigation';
@@ -83,34 +83,13 @@ function getAssignmentSubject(db: MockDatabase, classSubjectId: string) {
 }
 
 export function TeacherNoticesPage() {
-  const { data: db, isLoading } = useGetBootstrapQuery();
-  const { data: noticePage } = useGetPublicNoticesQuery({ limit: 20 });
-  const { locale, pick } = useI18n();
-  if (isLoading || !db) return <LoadingSkeleton />;
-
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={pick('বিদ্যালয় নোটিশ বোর্ড', 'School Notice Board')}
-        description={pick('শিক্ষক ও একাডেমিক সংক্রান্ত সকল ঘোষণা', 'Official announcements and faculty circulars')}
-      />
-      <div className="space-y-3">
-        {(noticePage?.items ?? []).map((n) => (
-          <Card key={n.id} className="p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-base font-semibold">{n.title}</h3>
-                <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
-                  {formatDateLong(n.publishedAt ?? n.createdAt, locale)}
-                </p>
-              </div>
-              <StatusBadge enumName="NoticeStatus" value={n.status} />
-            </div>
-            <p className="text-base text-foreground/85 mt-3 leading-relaxed">{n.description}</p>
-          </Card>
-        ))}
-      </div>
-    </div>
+    <PortalNoticesView
+      titleBn="শিক্ষক নোটিশ বোর্ড"
+      titleEn="Faculty & School Notice Board"
+      descriptionBn="শিক্ষক ও একাডেমিক কার্যক্রম সংক্রান্ত সকল অভ্যন্তরীণ ও পাবলিক বিজ্ঞপ্তি।"
+      descriptionEn="Official faculty circulars and public school announcements."
+    />
   );
 }
 
