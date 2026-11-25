@@ -12,6 +12,104 @@ import type {
 
 export const examinationsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    getExams: builder.query<
+      { items: Exam[]; meta?: any },
+      {
+        academicYearId?: string;
+        classId?: string;
+        status?: string;
+        examType?: string;
+        resultStatus?: string;
+        search?: string;
+        isDeleted?: boolean;
+        page?: number;
+        limit?: number;
+      } | void
+    >({
+      query: (params) => ({
+        url: '/examination/exams',
+        method: 'GET',
+        params: params || undefined,
+      }),
+      transformResponse: (res: any) => {
+        if (res && res.data && Array.isArray(res.data)) {
+          return { items: res.data, meta: res.meta };
+        }
+        if (Array.isArray(res)) {
+          return { items: res };
+        }
+        return { items: [] };
+      },
+      providesTags: (result) =>
+        result?.items
+          ? [
+              ...result.items.map(({ id }) => ({ type: 'Exams' as const, id })),
+              { type: 'Exams', id: 'LIST' },
+            ]
+          : [{ type: 'Exams', id: 'LIST' }],
+    }),
+
+    getExamById: builder.query<Exam, string>({
+      query: (id) => ({
+        url: `/examination/exams/${id}`,
+        method: 'GET',
+      }),
+      transformResponse: (res: any) => (res && res.data ? res.data : res),
+      providesTags: (_result, _error, id) => [{ type: 'Exams', id }],
+    }),
+
+    updateExam: builder.mutation<
+      Exam,
+      {
+        id: string;
+        name?: string;
+        examType?: string;
+        gradingScaleId?: string;
+        startDate?: string;
+        endDate?: string;
+        status?: string;
+        marksEntryDeadline?: string | null;
+        allowCombinedPass?: boolean;
+        weightagePercentage?: number | null;
+        isLocked?: boolean;
+      }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/examination/exams/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (res: any) => (res && res.data ? res.data : res),
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Exams', id },
+        { type: 'Exams', id: 'LIST' },
+        'Audit',
+      ],
+    }),
+
+    deleteExam: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `/examination/exams/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Exams', id: 'LIST' }, 'Audit'],
+    }),
+
+    getGradingScales: builder.query<{ items: GradingScale[]; meta?: any }, void>({
+      query: () => ({
+        url: '/examination/grading-scales',
+        method: 'GET',
+        params: { limit: 100 },
+      }),
+      transformResponse: (res: any) => {
+        if (res && res.data && Array.isArray(res.data)) {
+          return { items: res.data, meta: res.meta };
+        }
+        if (Array.isArray(res)) return { items: res };
+        return { items: [] };
+      },
+      providesTags: ['Exams'],
+    }),
     saveMarksBatch: builder.mutation<
       { savedCount: number },
       {
@@ -42,10 +140,6 @@ export const examinationsApi = baseApi.injectEndpoints({
     >({
       query: (body) => ({ url: '/exams/process-results', method: 'POST', body }),
       invalidatesTags: ['Exams', 'Results', 'Attendance', 'Notifications', 'Audit'],
-    }),
-    updateExam: builder.mutation<Exam, Partial<Exam> & { id: string }>({
-      query: (body) => ({ url: '/exams/update', method: 'POST', body }),
-      invalidatesTags: ['Exams', 'Results', 'Audit'],
     }),
     upsertExamSubject: builder.mutation<
       ExamSubject,
@@ -116,9 +210,13 @@ export const examinationsApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetExamsQuery,
+  useGetExamByIdQuery,
+  useUpdateExamMutation,
+  useDeleteExamMutation,
+  useGetGradingScalesQuery,
   useSaveMarksBatchMutation,
   useProcessExamResultsMutation,
-  useUpdateExamMutation,
   useUpsertExamSubjectMutation,
   useDeleteExamSubjectMutation,
   useUpsertGradingScaleMutation,

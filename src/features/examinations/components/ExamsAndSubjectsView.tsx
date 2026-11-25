@@ -20,12 +20,16 @@ import {
 import { toast } from 'sonner';
 import {
   useCreateExamMutation,
+  useDeleteExamMutation,
   useDeleteExamSubjectMutation,
   useGetBootstrapQuery,
+  useGetExamsQuery,
+  useGetGradingScalesQuery,
   useToggleArchiveMutation,
   useUpdateExamMutation,
   useUpsertExamSubjectMutation,
 } from '@/src/store/api';
+import { examCreateSchema, examUpdateSchema } from '../schemas';
 import { useI18n } from '@/src/lib/i18n';
 import {
   ConfirmDialog,
@@ -47,15 +51,42 @@ import { buildExamCompleteness } from './ExamShared';
 // ============================================================================
 
 export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOnMount?: boolean }) {
-  const { data: db, isLoading } = useGetBootstrapQuery();
+  const { data: db, isLoading: bootstrapLoading } = useGetBootstrapQuery();
   const { locale, pick } = useI18n();
   const [createExam, { isLoading: creating }] = useCreateExamMutation();
   const [updateExam, { isLoading: updating }] = useUpdateExamMutation();
+  const [deleteExam] = useDeleteExamMutation();
   const [toggleArchive] = useToggleArchiveMutation();
 
   const [classFilter, setClassFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [showArchived, setShowArchived] = useState(false);
+
+  const {
+    data: liveExamsData,
+    isLoading: examsLoading,
+    refetch: refetchExams,
+  } = useGetExamsQuery({
+    classId: classFilter !== 'ALL' ? classFilter : undefined,
+    status: statusFilter !== 'ALL' ? statusFilter : undefined,
+    isDeleted: showArchived ? undefined : false,
+  });
+
+  const { data: liveScalesData } = useGetGradingScalesQuery();
+
+  const gradingScalesList = useMemo(() => {
+    if (liveScalesData?.items && liveScalesData.items.length > 0) {
+      return liveScalesData.items;
+    }
+    return db?.gradingScales || [];
+  }, [liveScalesData, db]);
+
+  const rawExams = useMemo(() => {
+    if (liveExamsData?.items && liveExamsData.items.length > 0) {
+      return liveExamsData.items;
+    }
+    return db?.exams || [];
+  }, [liveExamsData, db]);
 
   const [createOpen, setCreateOpen] = useState(openCreateOnMount);
   const [editingExam, setEditingExam] = useState<Exam | null>(null);
@@ -74,21 +105,20 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
   });
 
   const filteredExams = useMemo(() => {
-    if (!db) return [];
-    return db.exams.filter((e) => {
+    return rawExams.filter((e) => {
       if (!showArchived && e.isDeleted) return false;
       if (classFilter !== 'ALL' && e.classId !== classFilter) return false;
       if (statusFilter !== 'ALL' && e.resultStatus !== statusFilter) return false;
       return true;
     });
-  }, [db, classFilter, statusFilter, showArchived]);
+  }, [rawExams, classFilter, statusFilter, showArchived]);
 
-  if (isLoading || !db) return <LoadingSkeleton rows={6} />;
+  if ((bootstrapLoading && examsLoading) || (!db && !liveExamsData)) return <LoadingSkeleton rows={6} />;
 
-  const activeExams = db.exams.filter((e) => !e.isDeleted);
+  const activeExams = rawExams.filter((e) => !e.isDeleted);
   const publishedCount = activeExams.filter((e) => e.resultStatus === ResultPublicationStatus.PUBLISHED).length;
   const draftCount = activeExams.filter((e) => e.resultStatus === ResultPublicationStatus.DRAFT).length;
-  const archivedCount = db.exams.filter((e) => e.isDeleted).length;
+  const archivedCount = rawExams.filter((e) => e.isDeleted).length;
   const expiredDeadlinesCount = activeExams.filter(
     (e) =>
       Boolean(e.marksEntryDeadline) &&
@@ -97,18 +127,19 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
   ).length;
 
   const openCreateModal = () => {
-    const activeYear = db.academicYears.find((y) => y.isActive) ?? db.academicYears[0];
-    const defaultScale = db.gradingScales.find((g) => g.isDefault && !g.isDeleted) ?? db.gradingScales[0];
+    const activeYear = db?.academicYears.find((y) => y.isActive) ?? db?.academicYears[0];
+    const defaultScale = gradingScalesList.find((g) => g.isDefault && !g.isDeleted) ?? gradingScalesList[0];
+    const defaultClass = db?.classes[db.classes.length - 1] ?? db?.classes[0];
     setEditingExam(null);
     setForm({
       name: '',
-      classId: db.classes[db.classes.length - 1]?.id ?? 'cls-10',
-      academicYearId: activeYear?.id ?? 'ay-2026',
+      classId: defaultClass?.id ?? '',
+      academicYearId: activeYear?.id ?? '',
       examType: ExamType.HALF_YEARLY,
-      gradingScaleId: defaultScale?.id ?? 'gs-nctb-5',
-      startDate: '2026-12-01',
-      endDate: '2026-12-12',
-      marksEntryDeadline: '2026-12-20',
+      gradingScaleId: defaultScale?.id ?? '',
+      startDate: new Date().toISOString().slice(0, 10),
+      endDate: new Date(Date.now() + 15 * 86400000).toISOString().slice(0, 10),
+      marksEntryDeadline: new Date(Date.now() + 25 * 86400000).toISOString().slice(0, 10),
       status: ExamStatus.UPCOMING,
       allowCombinedPass: true,
     });
@@ -134,68 +165,102 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
 
   const handleSaveExam = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) {
-      toast.error(pick('পরীক্ষার নাম লিখুন।', 'Please enter an examination name.'));
-      return;
-    }
-    if (form.endDate < form.startDate) {
-      toast.error(pick('শেষের তারিখ শুরুর তারিখের আগে হতে পারে না।', 'End date cannot be earlier than start date.'));
-      return;
-    }
     const deadlineIso = form.marksEntryDeadline
       ? `${form.marksEntryDeadline}T23:59:00.000Z`
       : null;
 
-    if (editingExam) {
-      const res = await updateExam({
-        id: editingExam.id,
-        name: form.name.trim(),
-        examType: form.examType,
-        gradingScaleId: form.gradingScaleId,
-        startDate: form.startDate,
-        endDate: form.endDate,
-        marksEntryDeadline: deadlineIso,
-        status: form.status,
-        allowCombinedPass: form.allowCombinedPass,
-      });
-      if ('error' in res) {
-        toast.error(pick('পরীক্ষা আপডেট ব্যর্থ হয়েছে।', 'Failed to update exam.'));
-        return;
+    try {
+      if (editingExam) {
+        const validation = examUpdateSchema.safeParse({
+          name: form.name.trim(),
+          examType: form.examType,
+          gradingScaleId: form.gradingScaleId,
+          startDate: form.startDate,
+          endDate: form.endDate,
+          marksEntryDeadline: deadlineIso,
+          status: form.status,
+          allowCombinedPass: form.allowCombinedPass,
+        });
+
+        if (!validation.success) {
+          toast.error(validation.error.issues[0]?.message || pick('তথ্য সঠিক নয়।', 'Validation failed.'));
+          return;
+        }
+
+        await updateExam({
+          id: editingExam.id,
+          name: form.name.trim(),
+          examType: form.examType,
+          gradingScaleId: form.gradingScaleId,
+          startDate: form.startDate,
+          endDate: form.endDate,
+          marksEntryDeadline: deadlineIso,
+          status: form.status,
+          allowCombinedPass: form.allowCombinedPass,
+        }).unwrap();
+
+        toast.success(pick('পরীক্ষার তথ্য সফলভাবে হালনাগাদ হয়েছে।', 'Examination updated successfully.'));
+      } else {
+        const validation = examCreateSchema.safeParse({
+          name: form.name.trim(),
+          classId: form.classId,
+          academicYearId: form.academicYearId,
+          examType: form.examType,
+          gradingScaleId: form.gradingScaleId,
+          startDate: form.startDate,
+          endDate: form.endDate,
+          marksEntryDeadline: deadlineIso,
+          allowCombinedPass: form.allowCombinedPass,
+          autoAttachSubjects: true,
+        });
+
+        if (!validation.success) {
+          toast.error(validation.error.issues[0]?.message || pick('তথ্য সঠিক নয়।', 'Validation failed.'));
+          return;
+        }
+
+        await createExam({
+          name: form.name.trim(),
+          classId: form.classId,
+          academicYearId: form.academicYearId,
+          examType: form.examType,
+          gradingScaleId: form.gradingScaleId,
+          startDate: form.startDate,
+          endDate: form.endDate,
+          marksEntryDeadline: deadlineIso,
+          allowCombinedPass: form.allowCombinedPass,
+          autoAttachSubjects: true,
+        }).unwrap();
+
+        toast.success(
+          pick(
+            'নতুন পরীক্ষা তৈরি হয়েছে এবং শ্রেণির এনসিটিবি বিষয়সমূহ স্বয়ংক্রিয়ভাবে যুক্ত হয়েছে।',
+            'Exam created and class NCTB subjects attached automatically.'
+          )
+        );
       }
-      toast.success(pick('পরীক্ষার তথ্য হালনাগাদ হয়েছে।', 'Examination updated successfully.'));
-    } else {
-      const res = await createExam({
-        name: form.name.trim(),
-        classId: form.classId,
-        academicYearId: form.academicYearId,
-        examType: form.examType,
-        gradingScaleId: form.gradingScaleId,
-        startDate: form.startDate,
-        endDate: form.endDate,
-        marksEntryDeadline: deadlineIso,
-        allowCombinedPass: form.allowCombinedPass,
-      });
-      if ('error' in res) {
-        toast.error(pick('পরীক্ষা তৈরি ব্যর্থ হয়েছে।', 'Failed to create exam.'));
-        return;
-      }
-      toast.success(
-        pick(
-          'নতুন পরীক্ষা তৈরি হয়েছে এবং শ্রেণির এনসিটিবি বিষয়সমূহ স্বয়ংক্রিয়ভাবে যুক্ত হয়েছে।',
-          'Exam created and class NCTB subjects attached automatically.'
-        )
-      );
+      setCreateOpen(false);
+      refetchExams?.();
+    } catch (err: any) {
+      const errMsg = err?.data?.message || err?.message || pick('অপারেশন ব্যর্থ হয়েছে।', 'Operation failed.');
+      toast.error(Array.isArray(errMsg) ? errMsg.join(', ') : errMsg);
     }
-    setCreateOpen(false);
   };
 
   const handleArchiveToggle = async (exam: Exam) => {
-    await toggleArchive({ collection: 'exams', id: exam.id });
-    toast.success(
-      exam.isDeleted
-        ? pick('পরীক্ষাটি পুনরুদ্ধার করা হয়েছে।', 'Exam restored from archive.')
-        : pick('পরীক্ষাটি আর্কাইভ করা হয়েছে।', 'Exam moved to archive.')
-    );
+    try {
+      if (!exam.isDeleted) {
+        await deleteExam(exam.id).unwrap();
+        toast.success(pick('পরীক্ষাটি সফলভাবে ডিলিট/আর্কাইভ করা হয়েছে।', 'Exam deleted/archived successfully.'));
+      } else {
+        await toggleArchive({ collection: 'exams', id: exam.id });
+        toast.success(pick('পরীক্ষাটি পুনরুদ্ধার করা হয়েছে।', 'Exam restored from archive.'));
+      }
+      refetchExams?.();
+    } catch (err: any) {
+      const errMsg = err?.data?.message || err?.message || pick('অপারেশন ব্যর্থ হয়েছে।', 'Operation failed.');
+      toast.error(Array.isArray(errMsg) ? errMsg.join(', ') : errMsg);
+    }
   };
 
   return (
@@ -279,11 +344,15 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
       {/* Responsive Examinations DataTable (Desktop Table + Mobile Cards, matching portal standard) */}
       <DataTable
         data={filteredExams.map((exam) => {
-          const cls = db.classes.find((c) => c.id === exam.classId);
-          const year = db.academicYears.find((y) => y.id === exam.academicYearId);
+          const cls = exam.schoolClass || (db ? db.classes.find((c) => c.id === exam.classId) : undefined);
+          const year = exam.academicYear || (db ? db.academicYears.find((y) => y.id === exam.academicYearId) : undefined);
           const typeMeta = getEnumMeta('ExamType', exam.examType);
-          const subjectCount = db.examSubjects.filter((es) => es.examId === exam.id).length;
-          const comp = buildExamCompleteness(db, exam);
+          const subjectCount =
+            exam._count?.examSubjects ??
+            (exam.examSubjects
+              ? exam.examSubjects.length
+              : (db?.examSubjects.filter((es) => es.examId === exam.id).length ?? 0));
+          const comp = db ? buildExamCompleteness(db, exam) : { overallPct: 100 };
           const deadlineExpired =
             Boolean(exam.marksEntryDeadline) &&
             new Date(exam.marksEntryDeadline!) < new Date() &&
@@ -649,7 +718,7 @@ export function ExamsDirectoryView({ openCreateOnMount = false }: { openCreateOn
                 value={form.gradingScaleId}
                 onChange={(e) => setForm({ ...form, gradingScaleId: e.target.value })}
               >
-                {db.gradingScales
+                {gradingScalesList
                   .filter((g) => !g.isDeleted)
                   .map((gs) => (
                     <option key={gs.id} value={gs.id}>
