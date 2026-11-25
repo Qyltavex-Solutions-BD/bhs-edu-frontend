@@ -1,13 +1,21 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
+  useAssignClassTeacherMutation,
+  useAssignTeacherMutation,
+  useDeleteTeacherAssignmentMutation,
+  useGetAcademicGroupsQuery,
+  useGetClassSubjectsQuery,
+  useGetClassTeachersQuery,
+  useGetSchoolClassesQuery,
+  useGetSectionsQuery,
+  useGetTeacherAssignmentsQuery,
   useRemoveClassTeacherMutation,
-  useRemoveTeacherAssignmentMutation,
-  useSaveClassTeacherMutation,
-  useSaveTeacherAssignmentMutation,
-} from '@/src/store/api';
+  type TeacherAssignmentItem,
+} from '@/src/services/academic';
+import { useGetStaffQuery } from '@/src/features/staff/api/staff.api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { Button, Card, FormField, Input, Modal, Select } from '@/src/components/ui/primitives';
@@ -33,15 +41,37 @@ export function AcademicStaffing({
   year: AcademicYear;
 }) {
   const { locale, pick } = useI18n();
-  const teachers = db.staff.filter(
-    (member) => member.staffType === StaffType.TEACHER && member.status === StaffStatus.ACTIVE
+  const { data: realStaff } = useGetStaffQuery({
+    staffType: StaffType.TEACHER,
+    status: StaffStatus.ACTIVE,
+    limit: 100,
+  });
+  const { data: realClasses } = useGetSchoolClassesQuery();
+  const { data: realSections } = useGetSectionsQuery();
+
+  const teachers = useMemo(() => {
+    if (realStaff && realStaff.length > 0) return realStaff;
+    return db.staff.filter(
+      (member) => member.staffType === StaffType.TEACHER && member.status === StaffStatus.ACTIVE
+    );
+  }, [realStaff, db.staff]);
+
+  const classes = useMemo(
+    () => (realClasses && realClasses.length > 0 ? realClasses : db.classes),
+    [realClasses, db.classes]
   );
-  const sections = db.sections.filter((section) => section.isActive);
+
+  const sections = useMemo(() => {
+    const source = realSections && realSections.length > 0 ? realSections : db.sections;
+    return source.filter((section) => section.isActive);
+  }, [realSections, db.sections]);
+
   const classLabel = (classId: string) => {
-    const schoolClass = db.classes.find((item) => item.id === classId);
+    const schoolClass = classes.find((item) => item.id === classId);
     return locale === 'bn' ? schoolClass?.nameBn || schoolClass?.name : schoolClass?.name;
   };
-  const teacherName = (staffId: string) => db.staff.find((member) => member.id === staffId)?.name ?? '—';
+  const teacherName = (staffId: string) =>
+    teachers.find((member) => member.id === staffId)?.name ?? '—';
 
   if (mode === 'class-teachers') {
     return (
@@ -61,12 +91,16 @@ export function AcademicStaffing({
       db={db}
       year={year}
       teachers={teachers}
+      classes={classes}
       sections={sections}
       classLabel={classLabel}
       teacherName={teacherName}
     />
   );
 }
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const isUuid = (val?: string) => Boolean(val && UUID_REGEX.test(val));
 
 function ClassTeachers({
   db,
@@ -84,27 +118,50 @@ function ClassTeachers({
   teacherName: (staffId: string) => string;
 }) {
   const { pick } = useI18n();
-  const [saveTeacher, { isLoading: saving }] = useSaveClassTeacherMutation();
-  const [removeTeacher, { isLoading: removing }] = useRemoveClassTeacherMutation();
+  const { data: realClassTeachers, isLoading: loadingClassTeachers } =
+    useGetClassTeachersQuery(isUuid(year?.id) ? { academicYearId: year.id } : undefined, {
+      skip: !isUuid(year?.id),
+    });
+  const [assignClassTeacher, { isLoading: saving }] = useAssignClassTeacherMutation();
+  const [removeClassTeacher, { isLoading: removing }] = useRemoveClassTeacherMutation();
   const [sectionId, setSectionId] = useState(sections[0]?.id ?? '');
   const [staffId, setStaffId] = useState(teachers[0]?.id ?? '');
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (sections.length > 0 && (!sectionId || !sections.some((s) => s.id === sectionId))) {
+      setSectionId(sections[0].id);
+    }
+  }, [sections, sectionId]);
+
+  useEffect(() => {
+    if (teachers.length > 0 && (!staffId || !teachers.some((t) => t.id === staffId))) {
+      setStaffId(teachers[0].id);
+    }
+  }, [teachers, staffId]);
+
+  const assignmentsList = useMemo(() => {
+    if (realClassTeachers !== undefined) return realClassTeachers;
+    return db.sectionClassTeachers.filter((item) => item.academicYearId === year.id);
+  }, [realClassTeachers, db.sectionClassTeachers, year.id]);
 
   const rows = useMemo(
     () =>
       sections.map((section) => ({
         section,
-        assignment: db.sectionClassTeachers.find(
-          (item) => item.academicYearId === year.id && item.sectionId === section.id
-        ),
+        assignment: assignmentsList.find((item) => item.sectionId === section.id),
       })),
-    [sections, db.sectionClassTeachers, year.id]
+    [sections, assignmentsList]
   );
 
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      await saveTeacher({ academicYearId: year.id, sectionId, staffId }).unwrap();
+      await assignClassTeacher({
+        academicYearId: year.id,
+        sectionId,
+        staffId,
+      }).unwrap();
       toast.success(pick('শ্রেণি শিক্ষক বসানো হয়েছে।', 'Class teacher saved.'));
       setOpen(false);
     } catch (err) {
@@ -114,7 +171,7 @@ function ClassTeachers({
 
   const handleRemove = async (id: string) => {
     try {
-      await removeTeacher({ id }).unwrap();
+      await removeClassTeacher(id).unwrap();
       toast.success(pick('শ্রেণি শিক্ষক সরানো হয়েছে।', 'Class teacher removed.'));
     } catch (err) {
       toast.error(errorMessage(err, pick('সরানো যায়নি।', 'Could not remove the class teacher.')));
@@ -169,30 +226,49 @@ function ClassTeachers({
         </form>
       </Modal>
       <Card className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-surface-muted text-muted-foreground">
+        <table className="w-full text-base">
+          <thead className="bg-surface-muted text-sm text-muted-foreground">
             <tr>
-              <th className="p-3 text-left">{pick('শ্রেণি', 'Class')}</th>
-              <th className="p-3 text-left">{pick('শাখা', 'Section')}</th>
-              <th className="p-3 text-left">{pick('শ্রেণি শিক্ষক', 'Class teacher')}</th>
-              <th className="p-3 text-right">{pick('কাজ', 'Action')}</th>
+              <th className="p-3.5 text-left font-semibold">{pick('শ্রেণি', 'Class')}</th>
+              <th className="p-3.5 text-left font-semibold">{pick('শাখা', 'Section')}</th>
+              <th className="p-3.5 text-left font-semibold">{pick('শ্রেণি শিক্ষক', 'Class teacher')}</th>
+              <th className="p-3.5 text-right font-semibold">{pick('কাজ', 'Action')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {rows.map(({ section, assignment }) => (
-              <tr key={section.id}>
-                <td className="p-3">{classLabel(section.classId)}</td>
-                <td className="p-3 font-medium">{section.name}</td>
-                <td className="p-3">{assignment ? teacherName(assignment.staffId) : '—'}</td>
-                <td className="p-3 text-right">
-                  {assignment && (
-                    <Button type="button" variant="outline" size="sm" disabled={removing} onClick={() => handleRemove(assignment.id)}>
-                      {pick('সরান', 'Remove')}
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {loadingClassTeachers ? (
+              Array.from({ length: 4 }).map((_, idx) => (
+                <tr key={`ct-skel-${idx}`} className="animate-pulse">
+                  <td className="p-3.5"><div className="h-5 w-28 rounded bg-surface-muted" /></td>
+                  <td className="p-3.5"><div className="h-5 w-16 rounded bg-surface-muted" /></td>
+                  <td className="p-3.5"><div className="h-5 w-44 rounded bg-surface-muted" /></td>
+                  <td className="p-3.5 text-right"><div className="inline-block h-8 w-16 rounded bg-surface-muted" /></td>
+                </tr>
+              ))
+            ) : (
+              rows.map(({ section, assignment }) => {
+                const assignedName =
+                  assignment && 'staff' in assignment && assignment.staff?.name
+                    ? assignment.staff.name
+                    : assignment
+                      ? teacherName(assignment.staffId)
+                      : '—';
+                return (
+                  <tr key={section.id}>
+                    <td className="p-3.5">{classLabel(section.classId)}</td>
+                    <td className="p-3.5 font-medium">{section.name}</td>
+                    <td className="p-3.5 font-medium text-foreground">{assignedName}</td>
+                    <td className="p-3.5 text-right">
+                      {assignment && (
+                        <Button type="button" variant="outline" size="sm" disabled={removing} onClick={() => handleRemove(assignment.id)}>
+                          {pick('সরান', 'Remove')}
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </Card>
@@ -204,6 +280,7 @@ function SubjectTeachers({
   db,
   year,
   teachers,
+  classes,
   sections,
   classLabel,
   teacherName,
@@ -211,20 +288,57 @@ function SubjectTeachers({
   db: MockDatabase;
   year: AcademicYear;
   teachers: MockDatabase['staff'];
+  classes: MockDatabase['classes'];
   sections: MockDatabase['sections'];
   classLabel: (classId: string) => string | undefined;
   teacherName: (staffId: string) => string;
 }) {
   const { locale, pick } = useI18n();
-  const [saveAssignment, { isLoading: saving }] = useSaveTeacherAssignmentMutation();
-  const [removeAssignment, { isLoading: removing }] = useRemoveTeacherAssignmentMutation();
+  const [assignTeacher, { isLoading: saving }] = useAssignTeacherMutation();
+  const [deleteAssignment, { isLoading: removing }] = useDeleteTeacherAssignmentMutation();
+
+  const { data: realClassSubjects } = useGetClassSubjectsQuery(
+    isUuid(year?.id) ? { academicYearId: year.id } : undefined,
+    { skip: !isUuid(year?.id) }
+  );
+  const { data: realGroups } = useGetAcademicGroupsQuery();
+  const { data: realAssignments, isLoading: loadingAssignments } = useGetTeacherAssignmentsQuery(
+    isUuid(year?.id) ? { academicYearId: year.id, isActive: true, limit: 200 } : undefined,
+    { skip: !isUuid(year?.id) }
+  );
+
+  const classSubjectsList = useMemo(
+    () =>
+      realClassSubjects !== undefined
+        ? realClassSubjects
+        : db.classSubjects.filter((item) => item.academicYearId === year.id),
+    [realClassSubjects, db.classSubjects, year.id]
+  );
+
+  const groupsList = useMemo(
+    () => (realGroups && realGroups.length > 0 ? realGroups : db.academicGroups),
+    [realGroups, db.academicGroups]
+  );
+
   const [sectionId, setSectionId] = useState(sections[0]?.id ?? '');
+  useEffect(() => {
+    if (sections.length > 0 && (!sectionId || !sections.some((s) => s.id === sectionId))) {
+      setSectionId(sections[0].id);
+    }
+  }, [sections, sectionId]);
+
   const section = sections.find((item) => item.id === sectionId);
-  const subjects = db.classSubjects.filter(
+  const subjects = classSubjectsList.filter(
     (item) => item.academicYearId === year.id && item.classId === section?.classId && item.isActive
   );
   const [classSubjectId, setClassSubjectId] = useState(subjects[0]?.id ?? '');
   const [staffId, setStaffId] = useState(teachers[0]?.id ?? '');
+  useEffect(() => {
+    if (teachers.length > 0 && (!staffId || !teachers.some((t) => t.id === staffId))) {
+      setStaffId(teachers[0].id);
+    }
+  }, [teachers, staffId]);
+
   const [canEnterMarks, setCanEnterMarks] = useState(true);
   const [open, setOpen] = useState(false);
   const selectedSubjectId = subjects.some((item) => item.id === classSubjectId) ? classSubjectId : subjects[0]?.id ?? '';
@@ -233,34 +347,49 @@ function SubjectTeachers({
   const [classFilter, setClassFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const subjectLabel = (classSubjectIdValue: string) => {
-    const classSubject = db.classSubjects.find((item) => item.id === classSubjectIdValue);
-    const subject = classSubject ? db.subjects.find((item) => item.id === classSubject.subjectId) : undefined;
-    const group = classSubject?.groupId ? db.academicGroups.find((item) => item.id === classSubject.groupId) : undefined;
+  const subjectLabel = (classSubjectIdValue: string, row?: TeacherAssignmentItem) => {
+    if (row?.classSubject?.subject) {
+      const sub = row.classSubject.subject;
+      return locale === 'bn' ? sub.nameBn || sub.name : sub.name;
+    }
+    const classSubject = classSubjectsList.find((item) => item.id === classSubjectIdValue);
+    const subject = classSubject?.subject ?? db.subjects.find((item) => item.id === classSubject?.subjectId);
+    const group = classSubject?.groupId
+      ? groupsList.find((item) => item.id === classSubject.groupId)
+      : undefined;
     const name = locale === 'bn' ? subject?.nameBn || subject?.name : subject?.name;
     const groupName = group ? (locale === 'bn' ? group.nameBn || group.name : group.name) : '';
     return groupName ? `${name} · ${groupName}` : name ?? '—';
   };
 
-  const allAssignments = useMemo(
-    () => db.teacherAssignments.filter((item) => item.academicYearId === year.id && item.isActive),
-    [db.teacherAssignments, year.id]
-  );
+  const allAssignments = useMemo<TeacherAssignmentItem[]>(() => {
+    if (realAssignments !== undefined) {
+      return realAssignments.filter((item) => item.isActive);
+    }
+    return db.teacherAssignments
+      .filter((item) => item.academicYearId === year.id && item.isActive)
+      .map((item) => ({
+        ...item,
+        assignedDate: item.assignedDate || new Date().toISOString(),
+        createdAt: item.createdAt || new Date().toISOString(),
+        updatedAt: item.updatedAt || new Date().toISOString(),
+      }));
+  }, [realAssignments, db.teacherAssignments, year.id]);
 
   const activeClasses = useMemo(
-    () => [...db.classes].filter((c) => c.isActive).sort((a, b) => a.numericValue - b.numericValue),
-    [db.classes]
+    () => [...classes].filter((c) => c.isActive).sort((a, b) => a.numericValue - b.numericValue),
+    [classes]
   );
 
   // Dynamic statistics based on classFilter
   const relevantClassSubjects = useMemo(() => {
-    return db.classSubjects.filter(
+    return classSubjectsList.filter(
       (cs) =>
         cs.academicYearId === year.id &&
         cs.isActive &&
         (classFilter === 'ALL' ? true : cs.classId === classFilter)
     );
-  }, [db.classSubjects, year.id, classFilter]);
+  }, [classSubjectsList, year.id, classFilter]);
 
   const relevantAssignments = useMemo(() => {
     return allAssignments.filter((a) =>
@@ -299,13 +428,16 @@ function SubjectTeachers({
 
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!section?.classId) return;
     try {
-      await saveAssignment({
+      await assignTeacher({
         academicYearId: year.id,
+        classId: section.classId,
         sectionId,
         classSubjectId: selectedSubjectId,
         staffId,
         canEnterMarks,
+        replaceExisting: true,
       }).unwrap();
       toast.success(pick('বিষয় শিক্ষক বণ্টন সম্পন্ন হয়েছে।', 'Subject teacher assigned.'));
       setOpen(false);
@@ -316,7 +448,7 @@ function SubjectTeachers({
 
   const handleRemove = async (id: string) => {
     try {
-      await removeAssignment({ id }).unwrap();
+      await deleteAssignment(id).unwrap();
       toast.success(pick('বণ্টন সরানো হয়েছে।', 'Assignment removed.'));
     } catch (err) {
       toast.error(errorMessage(err, pick('বণ্টন সরানো যায়নি।', 'Could not remove the assignment.')));
@@ -509,7 +641,17 @@ function SubjectTeachers({
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filteredRows.length === 0 ? (
+            {loadingAssignments ? (
+              Array.from({ length: 5 }).map((_, idx) => (
+                <tr key={`ta-skel-${idx}`} className="animate-pulse">
+                  <td className="p-3.5"><div className="h-5 w-36 rounded bg-surface-muted" /></td>
+                  <td className="p-3.5"><div className="h-5 w-40 rounded bg-surface-muted" /></td>
+                  <td className="p-3.5"><div className="h-5 w-44 rounded bg-surface-muted" /></td>
+                  <td className="p-3.5 text-center"><div className="inline-block h-6 w-24 rounded-full bg-surface-muted" /></td>
+                  <td className="p-3.5 text-right"><div className="inline-block h-8 w-18 rounded bg-surface-muted" /></td>
+                </tr>
+              ))
+            ) : filteredRows.length === 0 ? (
               <tr>
                 <td className="p-8 text-center text-muted-foreground" colSpan={5}>
                   <BookOpen className="w-9 h-9 mx-auto mb-2 opacity-40 text-muted-foreground" />
@@ -523,32 +665,36 @@ function SubjectTeachers({
               </tr>
             ) : (
               filteredRows.map((row) => {
-                const sectionRow = db.sections.find((item) => item.id === row.sectionId);
-                const teacher = db.staff.find((item) => item.id === row.staffId);
-                const clsTitle = classLabel(row.classId) || '—';
+                const sectionRow = sections.find((item) => item.id === row.sectionId);
+                const teacher = teachers.find((item) => item.id === row.staffId);
+                const clsTitle = row.schoolClass?.name || classLabel(row.classId) || '—';
+                const sectionTitle = row.section?.name || sectionRow?.name || '';
+                const teacherDisplay =
+                  teacher?.nameBn || teacher?.name || row.staff?.name || teacherName(row.staffId);
+                const teacherDesig = teacher?.designation || row.staff?.designation;
 
                 return (
                   <tr key={row.id} className="hover:bg-surface-muted/40 transition-colors">
                     <td className="p-3.5">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground text-sm sm:text-base">{clsTitle}</span>
-                        <span className="px-2.5 py-0.5 rounded-full bg-surface-muted text-xs sm:text-[13px] font-medium text-muted-foreground border border-border">
-                          {sectionRow?.name} শাখা
+                        <span className="font-semibold text-foreground text-base">{clsTitle}</span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-surface-muted text-xs font-medium text-muted-foreground border border-border">
+                          {sectionTitle} {pick('শাখা', 'Sec')}
                         </span>
                       </div>
                     </td>
                     <td className="p-3.5">
-                      <div className="font-medium text-foreground text-sm sm:text-base">
-                        {subjectLabel(row.classSubjectId)}
+                      <div className="font-medium text-foreground text-base">
+                        {subjectLabel(row.classSubjectId, row)}
                       </div>
                     </td>
                     <td className="p-3.5">
                       <div>
-                        <p className="font-semibold text-primary hover:underline cursor-pointer text-sm sm:text-base">
-                          {teacher?.nameBn || teacher?.name || teacherName(row.staffId)}
+                        <p className="font-semibold text-primary text-base">
+                          {teacherDisplay}
                         </p>
-                        {teacher?.designation && (
-                          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{teacher.designation}</p>
+                        {teacherDesig && (
+                          <p className="text-sm text-muted-foreground mt-0.5">{teacherDesig}</p>
                         )}
                       </div>
                     </td>

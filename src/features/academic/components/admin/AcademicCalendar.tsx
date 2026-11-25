@@ -3,7 +3,12 @@
 import React, { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Pencil, Trash2 } from 'lucide-react';
-import { useRemoveAcademicEventMutation, useSaveAcademicEventMutation } from '@/src/store/api';
+import {
+  useCreateAcademicEventMutation,
+  useDeleteAcademicEventMutation,
+  useGetAcademicEventsQuery,
+  useUpdateAcademicEventMutation,
+} from '@/src/services/academic';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort } from '@/src/lib/formatters';
 import { Button, Card, FormField, Input, Modal, Select, Textarea } from '@/src/components/ui/primitives';
@@ -28,21 +33,35 @@ const EMPTY = {
   endDate: '',
 };
 
-export function AcademicCalendar({ db, year }: { db: MockDatabase; year: AcademicYear }) {
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const isUuid = (val?: string) => Boolean(val && UUID_REGEX.test(val));
+
+export function AcademicCalendar({ db, year }: { db?: MockDatabase; year: AcademicYear }) {
   const { locale, pick } = useI18n();
-  const [saveEvent, { isLoading: saving }] = useSaveAcademicEventMutation();
-  const [removeEvent, { isLoading: removing }] = useRemoveAcademicEventMutation();
+  const { data: realEvents } = useGetAcademicEventsQuery(
+    isUuid(year?.id) ? { academicYearId: year.id } : undefined,
+    { skip: !isUuid(year?.id) }
+  );
+  const [createEvent, { isLoading: creating }] = useCreateAcademicEventMutation();
+  const [updateEvent, { isLoading: updating }] = useUpdateAcademicEventMutation();
+  const [deleteEvent, { isLoading: removing }] = useDeleteAcademicEventMutation();
+  const saving = creating || updating;
   const [form, setForm] = useState(EMPTY);
   const [open, setOpen] = useState(false);
 
-  const events = useMemo(
-    () =>
-      db.academicEvents
-        .filter((item) => item.academicYearId === year.id)
-        .slice()
-        .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.title.localeCompare(b.title)),
-    [db.academicEvents, year.id]
-  );
+  const events = useMemo(() => {
+    const source =
+      realEvents !== undefined
+        ? realEvents
+        : (db?.academicEvents ?? []).filter((item) => item.academicYearId === year.id);
+    return source
+      .slice()
+      .sort(
+        (a, b) =>
+          String(a.startDate).localeCompare(String(b.startDate)) ||
+          a.title.localeCompare(b.title)
+      );
+  }, [realEvents, db?.academicEvents, year.id]);
 
   const fill = (event: AcademicEvent) => {
     setForm({
@@ -50,8 +69,8 @@ export function AcademicCalendar({ db, year }: { db: MockDatabase; year: Academi
       title: event.title,
       description: event.description ?? '',
       eventType: event.eventType,
-      startDate: event.startDate,
-      endDate: event.endDate,
+      startDate: String(event.startDate).slice(0, 10),
+      endDate: String(event.endDate).slice(0, 10),
     });
     setOpen(true);
   };
@@ -59,15 +78,26 @@ export function AcademicCalendar({ db, year }: { db: MockDatabase; year: Academi
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await saveEvent({
-        id: form.id || undefined,
-        academicYearId: year.id,
-        title: form.title.trim(),
-        description: form.description.trim() || null,
-        eventType: form.eventType,
-        startDate: form.startDate,
-        endDate: form.endDate || form.startDate,
-      }).unwrap();
+      if (form.id) {
+        await updateEvent({
+          id: form.id,
+          academicYearId: year.id,
+          title: form.title.trim(),
+          description: form.description.trim() || null,
+          eventType: form.eventType,
+          startDate: form.startDate,
+          endDate: form.endDate || form.startDate,
+        }).unwrap();
+      } else {
+        await createEvent({
+          academicYearId: year.id,
+          title: form.title.trim(),
+          description: form.description.trim() || null,
+          eventType: form.eventType,
+          startDate: form.startDate,
+          endDate: form.endDate || form.startDate,
+        }).unwrap();
+      }
       toast.success(
         form.id
           ? pick('ইভেন্ট আপডেট হয়েছে।', 'Event updated.')
@@ -82,7 +112,7 @@ export function AcademicCalendar({ db, year }: { db: MockDatabase; year: Academi
 
   const onRemove = async (id: string) => {
     try {
-      await removeEvent({ id }).unwrap();
+      await deleteEvent(id).unwrap();
       if (form.id === id) setForm(EMPTY);
       toast.success(pick('ইভেন্ট মুছে ফেলা হয়েছে।', 'Event removed.'));
     } catch (err) {

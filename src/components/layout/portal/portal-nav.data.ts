@@ -115,7 +115,7 @@ export const ADMIN_NAV_GROUPS: NavGroup[] = [
           { to: '/admin/academic/class-subjects', labelBn: 'বিষয় ও পাঠ্যবই', labelEn: 'Subjects & books' },
           { to: '/admin/academic/teacher-assignments', labelBn: 'শিক্ষক বণ্টন', labelEn: 'Teacher allocation' },
           { to: '/admin/academic/class-routines', labelBn: 'ক্লাস রুটিন', labelEn: 'Class timetable' },
-          { to: '/admin/academic/documents', labelBn: 'সিলেবাস ও নীতিমালা', labelEn: 'Syllabus & policies' },
+          { to: '/admin/academic/documents', labelBn: 'সিলেবাস', labelEn: 'Syllabus' },
           { to: '/admin/academic/events', labelBn: 'একাডেমিক ক্যালেন্ডার', labelEn: 'Calendar' },
         ],
       },
