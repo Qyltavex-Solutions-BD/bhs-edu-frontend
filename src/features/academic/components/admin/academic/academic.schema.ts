@@ -48,8 +48,7 @@ export const yearSchema = z
     name: z
       .string()
       .trim()
-      .min(1, 'শিক্ষাবর্ষের নাম আবশ্যক')
-      .max(20, 'শিক্ষাবর্ষের নাম সর্বোচ্চ ২০ অক্ষরের হতে পারে'),
+      .regex(/^২০[০-৯]{2}$/, 'শিক্ষাবর্ষ অবশ্যই ৪ অঙ্কের বাংলা সাল হতে হবে (যেমন: ২০২৬)'),
     startDate: z.string().min(1, 'শুরুর তারিখ আবশ্যক'),
     endDate: z.string().min(1, 'শেষ তারিখ আবশ্যক'),
     isActive: z.boolean(),
