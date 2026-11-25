@@ -11,6 +11,7 @@ import {
 import { toast } from 'sonner';
 import {
   useCreateExamRoutineMutation,
+  useCreateExamSubjectMutation,
   useGetExamRoutinesByExamQuery,
   useGetExamRoutinesQuery,
   useGetExamsQuery,
@@ -22,6 +23,7 @@ import {
 import {
   useGetAcademicGroupsQuery,
   useGetAcademicYearsQuery,
+  useGetClassSubjectsQuery,
   useGetSchoolClassesQuery,
   useGetSubjectsQuery,
 } from '@/src/services/academic';
@@ -50,9 +52,10 @@ export function ExamRoutinesView() {
   const { data: groupsList = [] } = useGetAcademicGroupsQuery();
 
   const [createExamRoutine, { isLoading: creating }] = useCreateExamRoutineMutation();
+  const [createExamSubject, { isLoading: creatingSubject }] = useCreateExamSubjectMutation();
   const [updateExamRoutine, { isLoading: updating }] = useUpdateExamRoutineMutation();
   const [removeExamRoutine] = useRemoveExamRoutineMutation();
-  const saving = creating || updating;
+  const saving = creating || updating || creatingSubject;
 
   const [selectedClassId, setSelectedClassId] = useState('');
   const [selectedExamId, setSelectedExamId] = useState('');
@@ -104,6 +107,28 @@ export function ExamRoutinesView() {
     activeExam?.id ?? '',
     { skip: !activeExam?.id }
   );
+
+  const { data: classSubjectsByYear = [] } = useGetClassSubjectsQuery(
+    {
+      classId: activeExam?.classId || resolvedClassId || undefined,
+      academicYearId: activeExam?.academicYearId || undefined,
+    },
+    { skip: !(activeExam?.classId || resolvedClassId) }
+  );
+
+  const { data: classSubjectsAnyYear = [] } = useGetClassSubjectsQuery(
+    {
+      classId: activeExam?.classId || resolvedClassId || undefined,
+    },
+    { skip: !(activeExam?.classId || resolvedClassId) || classSubjectsByYear.length > 0 }
+  );
+
+  const classSubjects = useMemo(() => {
+    const raw = classSubjectsByYear.length > 0 ? classSubjectsByYear : classSubjectsAnyYear;
+    return raw
+      .filter((cs) => cs.isActive !== false)
+      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+  }, [classSubjectsByYear, classSubjectsAnyYear]);
 
   const examSubjects = useMemo(
     () => [...examSubjectsRaw].sort((a, b) => a.displayOrder - b.displayOrder),
@@ -196,10 +221,6 @@ export function ExamRoutinesView() {
     [routines]
   );
 
-  if (examsLoading || classesLoading || (activeExam && (subjectsLoading || routinesLoading))) {
-    return <LoadingSkeleton rows={6} />;
-  }
-
   const activeClass = activeExam
     ? activeExam.schoolClass ?? classesList.find((c) => c.id === activeExam.classId) ?? null
     : classesList.find((c) => c.id === resolvedClassId) ?? null;
@@ -209,14 +230,67 @@ export function ExamRoutinesView() {
   const isClassNineTen = (activeClass?.numericValue ?? 0) >= 9;
   const hasConflict = conflicts.length > 0;
 
-  const openCreate = () => {
+  const modalSubjectOptions = useMemo(() => {
     const scheduledSubjectIds = new Set(routines.map((r) => r.subject?.id).filter(Boolean));
-    const nextSubject =
-      examSubjects.find((es) => !scheduledSubjectIds.has(es.subjectId)) ?? examSubjects[0];
+    const options: Array<{
+      value: string;
+      examSubjectId?: string;
+      subjectId: string;
+      groupId?: string | null;
+      isOptional?: boolean;
+      label: string;
+      isScheduled: boolean;
+    }> = [];
+    const seenSubjectIds = new Set<string>();
+
+    for (const es of examSubjects) {
+      seenSubjectIds.add(es.subjectId);
+      const sub = es.subject ?? subjectsList.find((s) => s.id === es.subjectId);
+      const grp = es.group ?? (es.groupId ? groupsList.find((g) => g.id === es.groupId) : null);
+      const codePart = isClassNineTen && sub?.officialCode ? ` (${sub.officialCode})` : '';
+      const grpPart = isClassNineTen && grp ? ` — ${grp.nameBn || grp.name}` : '';
+      const isScheduled = scheduledSubjectIds.has(es.subjectId);
+      options.push({
+        value: `es:${es.id}`,
+        examSubjectId: es.id,
+        subjectId: es.subjectId,
+        label: `${sub?.nameBn || sub?.name || '—'}${codePart}${grpPart}${isScheduled ? ' (রুটিনে যুক্ত)' : ''}`,
+        isScheduled,
+      });
+    }
+
+    for (const cs of classSubjects) {
+      if (seenSubjectIds.has(cs.subjectId)) continue;
+      seenSubjectIds.add(cs.subjectId);
+      const sub = cs.subject ?? subjectsList.find((s) => s.id === cs.subjectId);
+      const grp = cs.group ?? (cs.groupId ? groupsList.find((g) => g.id === cs.groupId) : null);
+      const codePart = isClassNineTen && sub?.officialCode ? ` (${sub.officialCode})` : '';
+      const grpPart = isClassNineTen && grp ? ` — ${grp.nameBn || grp.name}` : '';
+      const isScheduled = scheduledSubjectIds.has(cs.subjectId);
+      options.push({
+        value: `cs:${cs.subjectId}`,
+        subjectId: cs.subjectId,
+        groupId: cs.groupId,
+        isOptional: cs.isOptional,
+        label: `${sub?.nameBn || sub?.name || '—'}${codePart}${grpPart}${isScheduled ? ' (রুটিনে যুক্ত)' : ''}`,
+        isScheduled,
+      });
+    }
+
+    return options;
+  }, [examSubjects, classSubjects, subjectsList, groupsList, routines, isClassNineTen]);
+
+  if (examsLoading || classesLoading || (activeExam && (subjectsLoading || routinesLoading))) {
+    return <LoadingSkeleton rows={6} />;
+  }
+
+  const openCreate = () => {
+    const nextOpt =
+      modalSubjectOptions.find((opt) => !opt.isScheduled) ?? modalSubjectOptions[0];
 
     setEditingRoutine(null);
     setForm({
-      examSubjectId: nextSubject?.id ?? '',
+      examSubjectId: nextOpt?.value ?? '',
       examDate: activeExam?.startDate?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
       startTime: '10:00',
       endTime: '13:00',
@@ -229,7 +303,7 @@ export function ExamRoutinesView() {
     const matchedEs = examSubjects.find((es) => es.subjectId === rt.subject?.id);
     setEditingRoutine(rt);
     setForm({
-      examSubjectId: matchedEs?.id ?? '',
+      examSubjectId: matchedEs ? `es:${matchedEs.id}` : '',
       examDate: rt.examDate.slice(0, 10),
       startTime: rt.startTime,
       endTime: rt.endTime,
@@ -263,10 +337,44 @@ export function ExamRoutinesView() {
         }).unwrap();
         toast.success('পরীক্ষার রুটিন হালনাগাদ হয়েছে।');
       } else {
+        const selectedOpt = modalSubjectOptions.find((o) => o.value === form.examSubjectId);
+        let resolvedExamSubjectId = selectedOpt?.examSubjectId;
+
+        if (!resolvedExamSubjectId && selectedOpt) {
+          const createdEs = await createExamSubject({
+            examId: activeExam.id,
+            body: {
+              subjectId: selectedOpt.subjectId,
+              groupId: isClassNineTen && selectedOpt.groupId ? selectedOpt.groupId : undefined,
+              fullMarks: 0,
+              passMarks: 0,
+              hasWritten: false,
+              writtenFullMarks: 0,
+              writtenPassMarks: 0,
+              hasMcq: false,
+              mcqFullMarks: 0,
+              mcqPassMarks: 0,
+              hasPractical: false,
+              practicalFullMarks: 0,
+              practicalPassMarks: 0,
+              hasContinuousAssessment: false,
+              continuousAssessmentFullMarks: 0,
+              continuousAssessmentPassMarks: 0,
+              isOptional: Boolean(selectedOpt.isOptional),
+            },
+          }).unwrap();
+          resolvedExamSubjectId = createdEs.id;
+        }
+
+        if (!resolvedExamSubjectId) {
+          toast.error('বিষয় নির্বাচন করা যায়নি।');
+          return;
+        }
+
         await createExamRoutine({
           examId: activeExam.id,
           body: {
-            examSubjectId: form.examSubjectId,
+            examSubjectId: resolvedExamSubjectId,
             examDate: form.examDate,
             startTime: form.startTime,
             endTime: form.endTime,
@@ -333,11 +441,11 @@ export function ExamRoutinesView() {
             </Button>
             <Button
               onClick={openCreate}
-              disabled={!activeExam || examSubjects.length === 0 || activeExam.isLocked}
+              disabled={!activeExam || modalSubjectOptions.length === 0 || activeExam.isLocked}
               className="whitespace-nowrap shrink-0"
             >
               <Plus className="w-4 h-4" />
-              {'নতুন সময়সূচি যুক্ত করুন'}
+              {'রুটিন তৈরি করুন'}
             </Button>
           </div>
         }
@@ -454,18 +562,9 @@ export function ExamRoutinesView() {
         <EmptyState
           title={'কোনো রুটিন যুক্ত করা হয়নি'}
           description={
-            examSubjects.length === 0
-              ? 'এই পরীক্ষায় এখনো কোনো বিষয় যুক্ত নেই। আগে "বিষয় ও নম্বর বণ্টন" পেজ থেকে বিষয় যুক্ত করুন।'
-              : 'এই পরীক্ষার বিষয়গুলোর তারিখ ও সময় নির্ধারণ করতে "নতুন সময়সূচি যুক্ত করুন" বাটনে ক্লিক করুন।'
-          }
-          action={
-            <Button
-              onClick={openCreate}
-              disabled={!activeExam || examSubjects.length === 0 || activeExam.isLocked}
-            >
-              <Plus className="w-4 h-4" />
-              {'প্রথম সময়সূচি যুক্ত করুন'}
-            </Button>
+            modalSubjectOptions.length === 0
+              ? 'এই শ্রেণির কোনো বিষয় পাওয়া যায়নি। আগে "শ্রেণি ও বিষয়" অংশে বিষয় নির্ধারণ করুন।'
+              : 'ওপরের "রুটিন তৈরি করুন" বাটনে ক্লিক করে বিষয়ভিত্তিক তারিখ ও সময় নির্ধারণ করুন।'
           }
         />
       ) : (
@@ -495,7 +594,14 @@ export function ExamRoutinesView() {
               accessorKey: 'subjectName',
               header: 'বিষয়',
               cell: ({ row }) => (
-                <span className="font-semibold text-foreground">{row.original.subjectName}</span>
+                <span className="font-semibold text-foreground">
+                  {row.original.subjectName}
+                  {isClassNineTen && row.original.rt.subject?.code && (
+                    <span className="ml-1.5 text-xs font-mono text-muted-foreground">
+                      ({row.original.rt.subject.code})
+                    </span>
+                  )}
+                </span>
               ),
             },
             {
@@ -554,8 +660,8 @@ export function ExamRoutinesView() {
         onClose={() => setModalOpen(false)}
         title={
           editingRoutine
-            ? 'পরীক্ষার সময়সূচি সম্পাদনা করুন'
-            : 'নতুন পরীক্ষার সময়সূচি যুক্ত করুন'
+            ? 'পরীক্ষার রুটিন সম্পাদনা করুন'
+            : 'রুটিন তৈরি করুন'
         }
         size="lg"
       >
@@ -568,18 +674,11 @@ export function ExamRoutinesView() {
                 disabled={Boolean(editingRoutine)}
                 onChange={(e) => setForm({ ...form, examSubjectId: e.target.value })}
               >
-                {examSubjects.map((es) => {
-                  const sub = es.subject ?? subjectsList.find((s) => s.id === es.subjectId);
-                  const grp =
-                    es.group ?? (es.groupId ? groupsList.find((g) => g.id === es.groupId) : null);
-                  return (
-                    <option key={es.id} value={es.id}>
-                      {sub?.nameBn || sub?.name || '—'}
-                      {isClassNineTen && sub?.officialCode ? ` (${sub.officialCode})` : ''}
-                      {grp ? ` — ${grp.nameBn || grp.name}` : ''}
-                    </option>
-                  );
-                })}
+                {modalSubjectOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
               </Select>
             </div>
 
