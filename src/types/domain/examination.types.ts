@@ -55,6 +55,34 @@ export interface Exam {
   deletedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  academicYear?: {
+    id: string;
+    name: string;
+    startDate?: string;
+    endDate?: string;
+    isActive?: boolean;
+  };
+  schoolClass?: {
+    id: string;
+    name: string;
+    nameBn?: string | null;
+    numericValue?: number;
+    isActive?: boolean;
+  };
+  gradingScale?: {
+    id: string;
+    name: string;
+    maxGpa?: number | string;
+    isDefault?: boolean;
+    gradeRanges?: GradeRange[];
+  };
+  _count?: {
+    examSubjects?: number;
+    examRoutines?: number;
+    subjectResults?: number;
+  };
+  examSubjects?: ExamSubject[];
+  examRoutines?: any[];
 }
 
 export interface ExamSubject {

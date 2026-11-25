@@ -91,6 +91,10 @@ export {
 } from '@/src/features/attendance/api/attendance.api';
 
 export {
+  useGetExamsQuery,
+  useGetExamByIdQuery,
+  useDeleteExamMutation,
+  useGetGradingScalesQuery,
   useSaveMarksBatchMutation,
   useProcessExamResultsMutation,
   useUpdateExamMutation,
