@@ -1,4 +1,4 @@
-import { NoticeStatus, EventCategoryType } from '../enums';
+import { NoticeAudience, NoticeStatus, EventCategoryType } from '../enums';
 
 export type NoticeAttachmentType = 'PDF' | 'IMAGE' | 'OFFICIAL_PAD';
 
@@ -16,6 +16,7 @@ export interface Notice {
   status: NoticeStatus;
   createdBy: string;
   isUrgent?: boolean;
+  audiences?: NoticeAudience[];
   audience?: 'ALL' | 'PARENTS' | 'TEACHERS' | 'STUDENTS';
   createdAt: string;
   updatedAt: string;

@@ -12,6 +12,7 @@ import {
   FileText,
   GripVertical,
   Image as ImageIcon,
+  Loader2,
   Search,
   Upload,
   Pencil,
@@ -54,7 +55,7 @@ import {
   Switch,
   Textarea,
 } from '@/src/components/ui/primitives';
-import { LibraryDistributionType, NoticeStatus, ResourceType } from '@/src/types/enums';
+import { LibraryDistributionType, NoticeAudience, NoticeStatus, ResourceType } from '@/src/types/enums';
 import type { Notice } from '@/src/types/entities';
 
 // 7.11 Library
@@ -85,6 +86,7 @@ export function AdminNoticesAndEventsPage({
   const [careerForm, setCareerForm] = useState({ id: '', title: '', description: '', deadline: '2026-12-31', isPublished: true });
 
   const [statusFilter, setStatusFilter] = useState<NoticeStatus | ''>('');
+  const [audienceFilter, setAudienceFilter] = useState<NoticeAudience | ''>('');
   const [noticeSearch, setNoticeSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [noticePage, setNoticePage] = useState(1);
@@ -101,6 +103,7 @@ export function AdminNoticesAndEventsPage({
     useGetAdminNoticesQuery(
       {
         status: statusFilter || undefined,
+        audience: audienceFilter || undefined,
         page: noticePage,
         search: debouncedSearch || undefined,
       },
@@ -131,19 +134,65 @@ export function AdminNoticesAndEventsPage({
   const [updateNotice, { isLoading: updatingNotice }] = useUpdateNoticeMutation();
   const [editingNotice, setEditingNotice] = useState<Notice | null>(null);
   const editingNoticeId = editingNotice?.id;
-  const [form, setForm] = useState({ memoNo: '', title: '', status: NoticeStatus.DRAFT, isUrgent: false });
+  const [form, setForm] = useState<{
+    memoNo: string;
+    title: string;
+    status: NoticeStatus;
+    isUrgent: boolean;
+    audiences: NoticeAudience[];
+  }>({
+    memoNo: '',
+    title: '',
+    status: NoticeStatus.DRAFT,
+    isUrgent: false,
+    audiences: [NoticeAudience.PUBLIC],
+  });
   const [document, setDocument] = useState<File | null>(null);
+
+  const AUDIENCE_OPTIONS: Array<{
+    value: NoticeAudience;
+    labelBn: string;
+    labelEn: string;
+  }> = [
+    { value: NoticeAudience.PUBLIC, labelBn: 'সবার জন্য (পাবলিক)', labelEn: 'Public (All)' },
+    { value: NoticeAudience.TEACHER, labelBn: 'শিক্ষক', labelEn: 'Teacher' },
+    { value: NoticeAudience.PARENT, labelBn: 'অভিভাবক', labelEn: 'Parent' },
+    { value: NoticeAudience.ACCOUNTANT, labelBn: 'অ্যাকাউন্ট্যান্ট', labelEn: 'Accountant' },
+  ];
+
+  const toggleFormAudience = (target: NoticeAudience) => {
+    setForm((prev) => {
+      const exists = prev.audiences.includes(target);
+      if (exists && prev.audiences.length === 1) return prev;
+      const next = exists
+        ? prev.audiences.filter((a) => a !== target)
+        : [...prev.audiences, target];
+      return { ...prev, audiences: next };
+    });
+  };
 
   const closeComposer = () => {
     setComposerOpen(false);
     setEditingNotice(null);
     setDocument(null);
-    setForm({ memoNo: '', title: '', status: NoticeStatus.DRAFT, isUrgent: false });
+    setForm({
+      memoNo: '',
+      title: '',
+      status: NoticeStatus.DRAFT,
+      isUrgent: false,
+      audiences: [NoticeAudience.PUBLIC],
+    });
   };
 
   const openEdit = (notice: Notice) => {
     setEditingNotice(notice);
-    setForm({ title: notice.title, memoNo: notice.memoNo ?? '', status: notice.status, isUrgent: notice.isUrgent ?? false });
+    setForm({
+      title: notice.title,
+      memoNo: notice.memoNo ?? '',
+      status: notice.status,
+      isUrgent: notice.isUrgent ?? false,
+      audiences: notice.audiences?.length ? notice.audiences : [NoticeAudience.PUBLIC],
+    });
     setComposerOpen(true);
   };
 
@@ -155,10 +204,12 @@ export function AdminNoticesAndEventsPage({
       return;
     }
 
-    if (document && document.size > 10 * 1024 * 1024) {
-      toast.error('Select a file up to 10 MB.');
+    if (document && document.size > 25 * 1024 * 1024) {
+      toast.error(pick('সর্বোচ্চ ২৫ MB পর্যন্ত ফাইল নির্বাচন করুন।', 'Select a file up to 25 MB.'));
       return;
     }
+    const targetAudiences = fields.data.audiences ?? [NoticeAudience.PUBLIC];
+
     try {
       if (editingNoticeId) {
         await updateNotice({
@@ -167,6 +218,7 @@ export function AdminNoticesAndEventsPage({
           memoNo: fields.data.memoNo ?? '',
           status: fields.data.status,
           isUrgent: fields.data.isUrgent ?? false,
+          audiences: targetAudiences,
           file: document ?? undefined,
         }).unwrap();
       } else {
@@ -176,9 +228,11 @@ export function AdminNoticesAndEventsPage({
         if (fields.data.memoNo) body.set('memoNo', fields.data.memoNo);
         body.set('status', fields.data.status);
         body.set('isUrgent', String(fields.data.isUrgent ?? false));
+        body.set('audiences', JSON.stringify(targetAudiences));
         body.set('file', document);
         await createNotice(body).unwrap();
         setStatusFilter('');
+        setAudienceFilter('');
         setNoticeSearch('');
         setNoticePage(1);
       }
@@ -275,7 +329,7 @@ export function AdminNoticesAndEventsPage({
 
       {tab === 'notices' && (
         <Card className="divide-y divide-border">
-          <div className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_14rem]">
+          <div className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_12rem_13rem]">
             <FormField label={pick('বিজ্ঞপ্তি খুঁজুন', 'Search notices')}>
               <div className="relative">
                 <Search aria-hidden="true" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -284,25 +338,42 @@ export function AdminNoticesAndEventsPage({
                   onChange={(event) => { setNoticeSearch(event.target.value); setNoticePage(1); }} />
               </div>
             </FormField>
+            <FormField label={pick('প্রাপক / অডিয়েন্স', 'Audience')}>
+              <Select
+                aria-label={pick('প্রাপক', 'Filter by audience')}
+                value={audienceFilter}
+                onChange={(e) => {
+                  setAudienceFilter(e.target.value as NoticeAudience | '');
+                  setNoticePage(1);
+                }}
+              >
+                <option value="">{pick('সকল প্রাপক', 'All audiences')}</option>
+                {AUDIENCE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {pick(opt.labelBn, opt.labelEn)}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
             <FormField label={pick('\u0985\u09ac\u09b8\u09cd\u09a5\u09be', 'Filter by status')}>
               <Select aria-label={pick('অবস্থা', 'Filter by status')} value={statusFilter} onChange={(e) => {
                 setStatusFilter(e.target.value as NoticeStatus | '');
                 setNoticePage(1);
               }}>
-                <option value="">All statuses</option>
+                <option value="">{pick('সকল অবস্থা', 'All statuses')}</option>
                 {Object.values(NoticeStatus).map((status) => <option key={status} value={status}>{status}</option>)}
               </Select>
             </FormField>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-surface-muted text-muted-foreground">
+            <table className="w-full text-base">
+              <thead className="bg-surface-muted text-sm text-muted-foreground">
                 <tr>
-                  <th scope="col" className="p-3 text-left">{pick('বিষয়', 'Notice')}</th>
-                  <th scope="col" className="p-3 text-left">{pick('স্মারক নং', 'Memo No.')}</th>
-                  <th scope="col" className="p-3 text-left">{pick('তারিখ', 'Date')}</th>
-                  <th scope="col" className="p-3 text-left">{pick('অবস্থা', 'Status')}</th>
-                  <th scope="col" className="p-3 text-right">{pick('ব্যবস্থাপনা', 'Actions')}</th>
+                  <th scope="col" className="p-3.5 text-left font-semibold">{pick('বিষয়', 'Notice')}</th>
+                  <th scope="col" className="p-3.5 text-left font-semibold">{pick('স্মারক নং', 'Memo No.')}</th>
+                  <th scope="col" className="p-3.5 text-left font-semibold">{pick('তারিখ', 'Date')}</th>
+                  <th scope="col" className="p-3.5 text-left font-semibold">{pick('অবস্থা', 'Status')}</th>
+                  <th scope="col" className="p-3.5 text-right font-semibold">{pick('ব্যবস্থাপনা', 'Actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -374,7 +445,7 @@ export function AdminNoticesAndEventsPage({
                                 )}
                           </p>
                         </div>
-                        {(noticeSearch || statusFilter) && (
+                        {(noticeSearch || statusFilter || audienceFilter) && (
                           <Button
                             type="button"
                             variant="outline"
@@ -383,6 +454,7 @@ export function AdminNoticesAndEventsPage({
                               setNoticeSearch('');
                               setDebouncedSearch('');
                               setStatusFilter('');
+                              setAudienceFilter('');
                               setNoticePage(1);
                             }}
                           >
@@ -396,16 +468,27 @@ export function AdminNoticesAndEventsPage({
                 )}
                 {!loadingNotices && !noticesError && noticeList?.items.map((n) => (
                   <tr key={n.id}>
-                    <td className="p-3">
-                      <span className="block font-semibold text-foreground">{n.title}</span>
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <td className="p-3.5">
+                      <span className="block text-base font-semibold text-foreground">{n.title}</span>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
                         <NoticeFormatBadge notice={n} showSize />
+                        {(n.audiences?.length ? n.audiences : [NoticeAudience.PUBLIC]).map((aud) => {
+                          const opt = AUDIENCE_OPTIONS.find((o) => o.value === aud);
+                          return (
+                            <span
+                              key={aud}
+                              className="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-muted text-muted-foreground border border-border"
+                            >
+                              {opt ? pick(opt.labelBn, opt.labelEn) : aud}
+                            </span>
+                          );
+                        })}
                         {n.isUrgent && <span className="text-xs font-semibold text-destructive">{pick('জরুরি', 'Urgent')}</span>}
                       </div>
                     </td>
-                    <td className="p-3 text-muted-foreground">{n.memoNo || '?'}</td>
-                    <td className="whitespace-nowrap p-3 text-muted-foreground">{formatDateShort(n.createdAt, locale)}</td>
-                    <td className="whitespace-nowrap p-3">
+                    <td className="p-3.5 text-sm text-muted-foreground tabular-nums">{n.memoNo || '—'}</td>
+                    <td className="whitespace-nowrap p-3.5 text-sm text-muted-foreground tabular-nums">{formatDateShort(n.createdAt, locale)}</td>
+                    <td className="whitespace-nowrap p-3.5">
                       {n.deletionPending
                         ? <span className="text-sm font-medium text-destructive">{pick('মুছে ফেলা হচ্ছে', 'Deletion pending')}</span>
                         : <StatusBadge enumName="NoticeStatus" value={n.status} />}
@@ -771,6 +854,7 @@ export function AdminNoticesAndEventsPage({
               <Input
                 value={form.memoNo}
                 onChange={(e) => setForm({ ...form, memoNo: e.target.value })}
+                placeholder={pick('যেমন: BHS/২০২৬/০৪২', 'e.g. BHS/2026/042')}
                 maxLength={100}
               />
             </FormField>
@@ -819,7 +903,7 @@ export function AdminNoticesAndEventsPage({
                     : pick('PDF ডকুমেন্ট বা স্ক্যান করা নোটিশ ছবি নির্বাচন করুন', 'Select Official PDF or Scanned Notice Image')}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {pick('PDF / JPG / PNG / WebP ? 10 MB', 'PDF / JPG / PNG / WebP ? 10 MB')}
+                  {pick('PDF / JPG / PNG / WebP · সর্বোচ্চ ২৫ MB', 'PDF / JPG / PNG / WebP · Max 25 MB')}
                 </span>
                 <input
                   type="file"
@@ -832,7 +916,7 @@ export function AdminNoticesAndEventsPage({
             )}
           </FormField>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label={pick('অবস্থা', 'Status')}>
               <Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as NoticeStatus })}>
                 <option value={NoticeStatus.PUBLISHED}>{pick('প্রকাশিত', 'Published')}</option>
@@ -840,11 +924,43 @@ export function AdminNoticesAndEventsPage({
                 <option value={NoticeStatus.ARCHIVED}>{pick('আর্কাইভ', 'Archived')}</option>
               </Select>
             </FormField>
+            <FormField label={pick('প্রাপক / কাদের জন্য', 'Target Audience')} required>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {AUDIENCE_OPTIONS.map((opt) => {
+                  const selected = form.audiences.includes(opt.value);
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => toggleFormAudience(opt.value)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer ${
+                        selected
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-surface text-muted-foreground border-border hover:border-primary/40'
+                      }`}
+                    >
+                      {pick(opt.labelBn, opt.labelEn)}
+                    </button>
+                  );
+                })}
+              </div>
+            </FormField>
           </div>
           <Switch checked={form.isUrgent} onChange={(v) => setForm({ ...form, isUrgent: v })} label={pick('জরুরি নোটিশ হিসেবে চিহ্নিত করুন', 'Mark as urgent notice')} />
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={closeComposer}>{pick('বাতিল', 'Cancel')}</Button>
-            <Button type="submit" variant="primary" disabled={saving || updatingNotice}>{editingNoticeId ? pick('পরিবর্তন সংরক্ষণ', 'Save changes') : pick('প্রকাশ করুন', 'Save Notice')}</Button>
+            <Button type="button" variant="outline" disabled={saving || updatingNotice} onClick={closeComposer}>
+              {pick('বাতিল', 'Cancel')}
+            </Button>
+            <Button type="submit" variant="primary" disabled={saving || updatingNotice}>
+              {(saving || updatingNotice) && <Loader2 className="w-4 h-4 animate-spin" />}
+              {saving || updatingNotice
+                ? editingNoticeId
+                  ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
+                  : pick('প্রকাশ হচ্ছে...', 'Publishing...')
+                : editingNoticeId
+                  ? pick('পরিবর্তন সংরক্ষণ', 'Save changes')
+                  : pick('প্রকাশ করুন', 'Save Notice')}
+            </Button>
           </div>
         </form>
       </Modal>

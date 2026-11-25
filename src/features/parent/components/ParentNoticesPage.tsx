@@ -1,6 +1,6 @@
 'use client';
 
-import { useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
+import { PortalNoticesView } from '@/src/components/shared/PortalNoticesView';
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from '@/src/lib/navigation';
@@ -115,34 +115,13 @@ function ChildSwitcherBar({
 }
 
 export function ParentNoticesPage() {
-  const { data: db, isLoading } = useGetBootstrapQuery();
-  const { data: noticePage } = useGetPublicNoticesQuery({ limit: 20 });
-  const { locale, pick } = useI18n();
-  if (isLoading || !db) return <LoadingSkeleton />;
-
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={pick('বিদ্যালয় নোটিশ', 'School Notices')}
-        description={pick('অভিভাবকদের জন্য গুরুত্বপূর্ণ ঘোষণা', 'Announcements for parents and guardians')}
-      />
-      <div className="space-y-3">
-        {(noticePage?.items ?? []).map((n) => (
-          <Card key={n.id} className="p-5">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h3 className="text-base font-semibold">{n.title}</h3>
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  {formatDateLong(n.publishedAt ?? n.createdAt, locale)}
-                </p>
-              </div>
-              <StatusBadge enumName="NoticeStatus" value={n.status} />
-            </div>
-            <p className="text-base text-foreground/85 mt-3 leading-relaxed">{n.description}</p>
-          </Card>
-        ))}
-      </div>
-    </div>
+    <PortalNoticesView
+      titleBn="অভিভাবক নোটিশ বোর্ড"
+      titleEn="Guardian & School Notice Board"
+      descriptionBn="অভিভাবক সমাবেশ, একাডেমিক সূচি ও বিদ্যালয়ের সকল গুরুত্বপূর্ণ বিজ্ঞপ্তি।"
+      descriptionEn="Official parent circulars, guardian meetings, and school announcements."
+    />
   );
 }
 
