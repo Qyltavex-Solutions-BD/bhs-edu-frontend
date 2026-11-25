@@ -3,21 +3,24 @@
 import React from 'react';
 import Link from 'next/link';
 import {
-  Archive,
   ClipboardList,
   Edit3,
   Lock,
   Plus,
-  RotateCcw,
   Settings2,
+  Trash2,
 } from 'lucide-react';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Select } from '@/src/components/ui/primitives';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { getEnumMeta } from '@/src/lib/constants/enums';
-import { ResultPublicationStatus } from '@/src/types/enums';
+import { ExamStatus } from '@/src/types/enums';
 import type { AcademicYear, Exam, SchoolClass } from '@/src/types/entities';
+
+const BN_DIGITS = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+const toBnYearText = (val?: string) =>
+  val ? val.replace(/[0-9]/g, (d) => BN_DIGITS[Number(d)]) : '—';
 
 interface ExamsTableProps {
   exams: Exam[];
@@ -27,11 +30,9 @@ interface ExamsTableProps {
   setClassFilter: (val: string) => void;
   statusFilter: string;
   setStatusFilter: (val: string) => void;
-  showArchived: boolean;
-  setShowArchived: (val: boolean) => void;
   onCreateClick: () => void;
   onEditClick: (exam: Exam) => void;
-  onArchiveToggle: (exam: Exam) => void;
+  onDeleteClick: (exam: Exam) => void;
 }
 
 export function ExamsTable({
@@ -42,11 +43,9 @@ export function ExamsTable({
   setClassFilter,
   statusFilter,
   setStatusFilter,
-  showArchived,
-  setShowArchived,
   onCreateClick,
   onEditClick,
-  onArchiveToggle,
+  onDeleteClick,
 }: ExamsTableProps) {
   return (
     <DataTable
@@ -58,7 +57,7 @@ export function ExamsTable({
           exam._count?.examSubjects ??
           (exam.examSubjects ? exam.examSubjects.length : 0);
         const progressPct =
-          exam.resultStatus === ResultPublicationStatus.PUBLISHED
+          exam.status === ExamStatus.COMPLETED
             ? 100
             : subjectCount > 0
               ? 50
@@ -66,22 +65,21 @@ export function ExamsTable({
         const deadlineExpired =
           Boolean(exam.marksEntryDeadline) &&
           new Date(exam.marksEntryDeadline!) < new Date() &&
-          exam.resultStatus === ResultPublicationStatus.DRAFT;
+          exam.status !== ExamStatus.COMPLETED;
 
         return {
           exam,
           id: exam.id,
           name: exam.name,
           classLabel: cls?.nameBn || cls?.name || '—',
-          yearLabel: formatNumber(year?.name ?? '2026', 'bn'),
+          yearLabel: toBnYearText(year?.name),
           typeLabel: typeMeta.bn,
           startDate: exam.startDate,
           endDate: exam.endDate,
           subjectCount,
           progressPct,
           deadlineExpired,
-          resultStatus: exam.resultStatus,
-          statusLabel: getEnumMeta('ExamStatus', exam.status).bn,
+          status: exam.status,
         };
       })}
       searchPlaceholder="পরীক্ষার নাম, শ্রেণি বা ধরন খুঁজুন..."
@@ -113,11 +111,11 @@ export function ExamsTable({
             <Select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              aria-label="ফলাফলের অবস্থা ফিল্টার"
+              aria-label="পরীক্ষার অবস্থা ফিল্টার"
             >
               <option value="ALL">সকল অবস্থা</option>
-              {Object.values(ResultPublicationStatus).map((st) => {
-                const meta = getEnumMeta('ResultPublicationStatus', st);
+              {Object.values(ExamStatus).map((st) => {
+                const meta = getEnumMeta('ExamStatus', st);
                 return (
                   <option key={st} value={st}>
                     {meta.bn}
@@ -126,23 +124,14 @@ export function ExamsTable({
               })}
             </Select>
           </div>
-          <label className="inline-flex items-center gap-1.5 px-2.5 h-10 rounded-[var(--radius)] border border-border bg-surface text-xs sm:text-sm text-muted-foreground cursor-pointer select-none whitespace-nowrap">
-            <input
-              type="checkbox"
-              checked={showArchived}
-              onChange={(e) => setShowArchived(e.target.checked)}
-              className="rounded border-border accent-primary"
-            />
-            আর্কাইভ
-          </label>
         </div>
       }
       columns={[
         {
           accessorKey: 'name',
-          header: 'পরীক্ষার নাম ও ধরন',
+          header: 'পরীক্ষার নাম',
           cell: ({ row }) => {
-            const { exam, typeLabel } = row.original;
+            const { exam } = row.original;
             return (
               <div className={`min-w-[180px] ${exam.isDeleted ? 'opacity-60' : ''}`}>
                 <div className="font-semibold text-foreground flex items-center gap-1.5 leading-snug">
@@ -154,10 +143,6 @@ export function ExamsTable({
                     />
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {typeLabel}
-                  {exam.allowCombinedPass ? ' · যৌথ পাশ' : ''}
-                </p>
               </div>
             );
           },
@@ -178,17 +163,16 @@ export function ExamsTable({
           cell: ({ row }) => {
             const { exam, deadlineExpired } = row.original;
             return (
-              <div className="whitespace-nowrap text-xs tabular-nums">
+              <div className="whitespace-nowrap text-xs tabular-nums space-y-0.5">
                 <div className="text-foreground font-medium">
-                  {formatDateShort(exam.startDate, 'bn')} – {formatDateShort(exam.endDate, 'bn')}
+                  শুরু: {formatDateShort(exam.startDate, 'bn')}
+                </div>
+                <div className="text-muted-foreground">
+                  শেষ: {formatDateShort(exam.endDate, 'bn')}
                 </div>
                 {exam.marksEntryDeadline && (
-                  <div
-                    className={`mt-0.5 ${
-                      deadlineExpired ? 'text-destructive font-semibold' : 'text-muted-foreground'
-                    }`}
-                  >
-                    শেষ তারিখ: {formatDateShort(exam.marksEntryDeadline, 'bn')}
+                  <div className={deadlineExpired ? 'text-destructive font-semibold' : 'text-muted-foreground'}>
+                    নম্বর জমা: {formatDateShort(exam.marksEntryDeadline, 'bn')}
                   </div>
                 )}
               </div>
@@ -224,18 +208,15 @@ export function ExamsTable({
           ),
         },
         {
-          accessorKey: 'resultStatus',
+          accessorKey: 'status',
           header: 'অবস্থা',
           cell: ({ row }) => (
-            <div className="flex flex-col items-start gap-1">
-              <StatusBadge enumName="ResultPublicationStatus" value={row.original.resultStatus} />
-              <span className="text-xs text-muted-foreground">{row.original.statusLabel}</span>
-            </div>
+            <StatusBadge enumName="ExamStatus" value={row.original.status} />
           ),
         },
         {
           id: 'actions',
-          header: 'ব্যবস্থাপনা',
+          header: () => <div className="text-right">ব্যবস্থাপনা</div>,
           enableSorting: false,
           cell: ({ row }) => {
             const { exam } = row.original;
@@ -268,16 +249,12 @@ export function ExamsTable({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onArchiveToggle(exam)}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors cursor-pointer"
-                  title={exam.isDeleted ? 'পুনরুদ্ধার করুন' : 'আর্কাইভ করুন'}
-                  aria-label={exam.isDeleted ? 'পুনরুদ্ধার করুন' : 'আর্কাইভ করুন'}
+                  onClick={() => onDeleteClick(exam)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
+                  title="মুছে ফেলুন"
+                  aria-label="মুছে ফেলুন"
                 >
-                  {exam.isDeleted ? (
-                    <RotateCcw className="w-3.5 h-3.5 text-primary" />
-                  ) : (
-                    <Archive className="w-3.5 h-3.5" />
-                  )}
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             );
@@ -285,7 +262,7 @@ export function ExamsTable({
         },
       ]}
       renderMobileCard={(row) => {
-        const { exam, classLabel, yearLabel, typeLabel, subjectCount, progressPct, deadlineExpired, statusLabel } = row;
+        const { exam, classLabel, yearLabel, typeLabel, subjectCount, progressPct, deadlineExpired } = row;
         return (
           <div className={`space-y-3 ${exam.isDeleted ? 'opacity-65' : ''}`}>
             <div className="flex items-start justify-between gap-2">
@@ -298,7 +275,7 @@ export function ExamsTable({
                   {classLabel} · {yearLabel} · {typeLabel}
                 </p>
               </div>
-              <StatusBadge enumName="ResultPublicationStatus" value={exam.resultStatus} />
+              <StatusBadge enumName="ExamStatus" value={exam.status} />
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-xs tabular-nums bg-surface-muted/50 rounded-md p-2.5">
@@ -313,7 +290,7 @@ export function ExamsTable({
                       deadlineExpired ? 'text-destructive font-semibold' : 'text-muted-foreground'
                     }`}
                   >
-                    ডেডলাইন: {formatDateShort(exam.marksEntryDeadline, 'bn')}
+                    নম্বর জমা: {formatDateShort(exam.marksEntryDeadline, 'bn')}
                   </span>
                 )}
               </div>
@@ -322,7 +299,6 @@ export function ExamsTable({
                 <span className="font-semibold text-foreground">
                   {formatNumber(subjectCount, 'bn')} বিষয় · {formatNumber(progressPct, 'bn')}%
                 </span>
-                <span className="block text-muted-foreground mt-0.5">{statusLabel}</span>
               </div>
             </div>
 
@@ -353,14 +329,11 @@ export function ExamsTable({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => onArchiveToggle(exam)}
-                  aria-label={exam.isDeleted ? 'পুনরুদ্ধার' : 'আর্কাইভ'}
+                  onClick={() => onDeleteClick(exam)}
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label="মুছে ফেলুন"
                 >
-                  {exam.isDeleted ? (
-                    <RotateCcw className="w-3.5 h-3.5 text-primary" />
-                  ) : (
-                    <Archive className="w-3.5 h-3.5 text-muted-foreground" />
-                  )}
+                  <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>
