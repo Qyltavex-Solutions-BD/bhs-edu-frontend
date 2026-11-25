@@ -173,7 +173,7 @@ export const ADMIN_NAV_GROUPS: NavGroup[] = [
     labelBn: 'যোগাযোগ ও ওয়েবসাইট',
     labelEn: 'COMMUNICATION',
     items: [
-      { to: '/admin/notices', labelBn: 'নোটিশ ও ইভেন্ট', labelEn: 'Notices & Circulars', icon: MessageSquare, badge: '8' },
+      { to: '/admin/notices', labelBn: 'নোটিশ ও ইভেন্ট', labelEn: 'Notices & Circulars', icon: MessageSquare },
       { to: '/admin/website/home', labelBn: 'ওয়েবসাইট CMS', labelEn: 'Website CMS', icon: Globe },
     ],
   },

@@ -486,8 +486,12 @@ export function AdminNoticesAndEventsPage({
                         {n.isUrgent && <span className="text-xs font-semibold text-destructive">{pick('জরুরি', 'Urgent')}</span>}
                       </div>
                     </td>
-                    <td className="p-3.5 text-sm text-muted-foreground tabular-nums">{n.memoNo || '—'}</td>
-                    <td className="whitespace-nowrap p-3.5 text-sm text-muted-foreground tabular-nums">{formatDateShort(n.createdAt, locale)}</td>
+                    <td className="p-3.5 text-sm text-muted-foreground">
+                      <span className="tabular-nums">{n.memoNo || '—'}</span>
+                    </td>
+                    <td className="whitespace-nowrap p-3.5 text-sm text-muted-foreground">
+                      <span className="tabular-nums">{formatDateShort(n.createdAt, locale)}</span>
+                    </td>
                     <td className="whitespace-nowrap p-3.5">
                       {n.deletionPending
                         ? <span className="text-sm font-medium text-destructive">{pick('মুছে ফেলা হচ্ছে', 'Deletion pending')}</span>
