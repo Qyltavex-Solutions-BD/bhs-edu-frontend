@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useParams } from '@/src/lib/navigation';
-import { useGetBootstrapQuery } from '@/src/store/api';
+import { useGetStaffWorkspaceQuery } from '../api/staff.api';
 import { useI18n } from '@/src/lib/i18n';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { StaffShell } from './StaffShell';
@@ -28,10 +28,16 @@ export function AdminStaffPage({
   defaultTab?: keyof typeof TAB;
 }) {
   const { id } = useParams<{ id?: string }>();
-  const { data: db, isLoading } = useGetBootstrapQuery();
+  const { data: db, isLoading, error, refetch } = useGetStaffWorkspaceQuery();
   const { pick } = useI18n();
   const section: SectionKey = id ? 'profile' : TAB[defaultTab] ?? 'all';
-  if (isLoading || !db) return <LoadingSkeleton />;
+  if (isLoading) return <LoadingSkeleton />;
+  if (error || !db) return (
+    <div role="alert" className="space-y-2">
+      <p>{pick('স্টাফের তথ্য লোড করা যায়নি', 'Could not load staff data.')} {error && 'message' in error ? error.message : ''}</p>
+      <button type="button" className="underline" onClick={refetch}>{pick('আবার চেষ্টা করুন', 'Retry')}</button>
+    </div>
+  );
 
   const copy: Record<SectionKey, { title: string; description: string }> = {
     all: {

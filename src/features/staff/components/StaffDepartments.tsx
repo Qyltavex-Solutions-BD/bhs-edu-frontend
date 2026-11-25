@@ -8,10 +8,10 @@ import { DataTable } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, FormField, Input, Modal, Select, Textarea } from '@/src/components/ui/primitives';
 import { DepartmentStatus, StaffStatus } from '@/src/types/enums';
-import type { MockDatabase } from '@/src/mocks/seed';
+import type { StaffWorkspace } from '../api/staff.api';
 import type { Department } from '@/src/types/entities';
 
-export function deptName(db: MockDatabase, id?: string | null) {
+export function deptName(db: StaffWorkspace, id?: string | null) {
   return db.departments.find((item) => item.id === id)?.name ?? '—';
 }
 
@@ -19,7 +19,7 @@ function errorMessage(err: unknown, fallback: string) {
   return (err as { message?: string })?.message || fallback;
 }
 
-export function StaffDepartments({ db }: { db: MockDatabase }) {
+export function StaffDepartments({ db }: { db: StaffWorkspace }) {
   const { pick } = useI18n();
   const [saveDepartment, { isLoading }] = useSaveDepartmentMutation();
   const [removeDepartment, { isLoading: removing }] = useRemoveDepartmentMutation();
@@ -41,7 +41,7 @@ export function StaffDepartments({ db }: { db: MockDatabase }) {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     try {
-      await saveDepartment({ id: editing?.id, ...form, status: form.status as DepartmentStatus }).unwrap();
+      await saveDepartment({ id: editing?.id, ...form, name: form.name.trim(), code: form.code.trim() || null, status: form.status as DepartmentStatus }).unwrap();
       toast.success(pick('বিভাগ সংরক্ষিত হয়েছে।', 'Department saved.'));
       setOpen(false);
     } catch (err) {
@@ -79,7 +79,7 @@ export function StaffDepartments({ db }: { db: MockDatabase }) {
       <Modal open={open} onClose={() => setOpen(false)} title={editing ? pick('বিভাগ সম্পাদনা', 'Edit department') : pick('নতুন বিভাগ', 'New department')}>
         <form onSubmit={submit} className="space-y-4">
           <FormField label={pick('নাম', 'Name')} required>
-            <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
+            <Input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
           </FormField>
           <FormField label={pick('কোড', 'Code')}>
             <Input value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value })} />
@@ -88,7 +88,7 @@ export function StaffDepartments({ db }: { db: MockDatabase }) {
             <Textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
           </FormField>
           <FormField label={pick('অবস্থা', 'Status')}>
-            <Select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
+            <Select value={form.status} onChange={(event) => setForm({ ...form, name: form.name.trim(), code: form.code.trim() || null, status: event.target.value })}>
               <option value={DepartmentStatus.ACTIVE}>{pick('সক্রিয়', 'Active')}</option>
               <option value={DepartmentStatus.INACTIVE}>{pick('বন্ধ', 'Inactive')}</option>
             </Select>

@@ -13,7 +13,6 @@ import {
   handleAttendanceMock,
   handleStudentsMock,
   handleParentsMock,
-  handleStaffMock,
   handleContentMock,
   type MockHandler,
 } from './handlers';
@@ -29,7 +28,6 @@ const handlers: MockHandler[] = [
   handleAttendanceMock,
   handleStudentsMock,
   handleParentsMock,
-  handleStaffMock,
   handleContentMock,
 ];
 

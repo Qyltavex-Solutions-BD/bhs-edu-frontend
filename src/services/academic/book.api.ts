@@ -26,6 +26,20 @@ export interface QueryBookParams {
   type?: BookType;
   search?: string;
   isActive?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedBooksResponse {
+  items: BookWithRelations[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
 }
 
 export interface BookWithRelations extends Book {
@@ -54,7 +68,33 @@ export const bookApi = schoolApi.injectEndpoints({
       }),
       transformResponse: (response: any) => {
         const raw = response?.data ?? response;
+        if (raw && Array.isArray(raw.items)) return raw.items;
         return Array.isArray(raw) ? raw : [];
+      },
+      providesTags: ['Academic'],
+    }),
+
+    getBooksPaginated: builder.query<PaginatedBooksResponse, QueryBookParams>({
+      query: (params) => ({
+        url: '/academic/books',
+        method: 'GET',
+        params: { page: 1, limit: 15, ...params },
+      }),
+      transformResponse: (response: any): PaginatedBooksResponse => {
+        const raw = response?.data ?? response;
+        if (raw && Array.isArray(raw.items)) return raw;
+        const items = Array.isArray(raw) ? raw : [];
+        return {
+          items,
+          meta: {
+            total: items.length,
+            page: 1,
+            limit: items.length || 15,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        };
       },
       providesTags: ['Academic'],
     }),
@@ -106,6 +146,7 @@ export const bookApi = schoolApi.injectEndpoints({
 
 export const {
   useGetBooksQuery,
+  useGetBooksPaginatedQuery,
   useGetBookByIdQuery,
   useCreateBookMutation,
   useUpdateBookMutation,

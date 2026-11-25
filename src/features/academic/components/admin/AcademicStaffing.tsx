@@ -11,14 +11,16 @@ import {
   useGetClassTeachersQuery,
   useGetSchoolClassesQuery,
   useGetSectionsQuery,
+  useGetTeacherAssignmentsPaginatedQuery,
   useGetTeacherAssignmentsQuery,
   useRemoveClassTeacherMutation,
   type TeacherAssignmentItem,
 } from '@/src/services/academic';
+import { ConfirmDialog } from '@/src/components/shared/Feedback';
 import { useGetStaffQuery } from '@/src/features/staff/api/staff.api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
-import { Button, Card, FormField, Input, Modal, Select } from '@/src/components/ui/primitives';
+import { Button, Card, FormField, Input, Modal, SegmentedTabs, Select } from '@/src/components/ui/primitives';
 import { Search, Plus, Trash2, BookOpen, Users, GraduationCap, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
 import type { AcademicYear } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
@@ -66,6 +68,10 @@ export function AcademicStaffing({
     return source.filter((section) => section.isActive);
   }, [realSections, db.sections]);
 
+  const [activeTab, setActiveTab] = useState<'assignments' | 'class-teachers'>(
+    mode === 'class-teachers' ? 'class-teachers' : 'assignments'
+  );
+
   const classLabel = (classId: string) => {
     const schoolClass = classes.find((item) => item.id === classId);
     return locale === 'bn' ? schoolClass?.nameBn || schoolClass?.name : schoolClass?.name;
@@ -73,29 +79,46 @@ export function AcademicStaffing({
   const teacherName = (staffId: string) =>
     teachers.find((member) => member.id === staffId)?.name ?? '—';
 
-  if (mode === 'class-teachers') {
-    return (
-      <ClassTeachers
-        db={db}
-        year={year}
-        teachers={teachers}
-        sections={sections}
-        classLabel={classLabel}
-        teacherName={teacherName}
-      />
-    );
-  }
-
   return (
-    <SubjectTeachers
-      db={db}
-      year={year}
-      teachers={teachers}
-      classes={classes}
-      sections={sections}
-      classLabel={classLabel}
-      teacherName={teacherName}
-    />
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 no-print">
+        <SegmentedTabs
+          value={activeTab}
+          onChange={(val) => setActiveTab(val as 'assignments' | 'class-teachers')}
+          items={[
+            {
+              value: 'assignments',
+              label: pick('বিষয় শিক্ষক বণ্টন', 'Subject Teachers'),
+            },
+            {
+              value: 'class-teachers',
+              label: pick('শ্রেণি শিক্ষক', 'Class Teachers'),
+            },
+          ]}
+        />
+      </div>
+
+      {activeTab === 'class-teachers' ? (
+        <ClassTeachers
+          db={db}
+          year={year}
+          teachers={teachers}
+          sections={sections}
+          classLabel={classLabel}
+          teacherName={teacherName}
+        />
+      ) : (
+        <SubjectTeachers
+          db={db}
+          year={year}
+          teachers={teachers}
+          classes={classes}
+          sections={sections}
+          classLabel={classLabel}
+          teacherName={teacherName}
+        />
+      )}
+    </div>
   );
 }
 
@@ -181,7 +204,7 @@ function ClassTeachers({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground max-w-2xl">
+        <p className="text-base text-muted-foreground max-w-2xl">
           {pick(
             `${year.name} সালে এক শাখায় একজন শ্রেণি শিক্ষক। একজন শিক্ষক একই বছরে একটি শাখার শ্রেণি শিক্ষক হতে পারবেন।`,
             `In ${year.name}, each section has one class teacher. A teacher can hold only one section that year.`
@@ -297,15 +320,61 @@ function SubjectTeachers({
   const [assignTeacher, { isLoading: saving }] = useAssignTeacherMutation();
   const [deleteAssignment, { isLoading: removing }] = useDeleteTeacherAssignmentMutation();
 
+  // Filtering & pagination states (backend-driven)
+  const [classFilter, setClassFilter] = useState<string>('ALL');
+  const [sectionFilter, setSectionFilter] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [page, setPage] = useState<number>(1);
+  const [removeTarget, setRemoveTarget] = useState<TeacherAssignmentItem | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [year.id, classFilter, sectionFilter]);
+
   const { data: realClassSubjects } = useGetClassSubjectsQuery(
     isUuid(year?.id) ? { academicYearId: year.id } : undefined,
     { skip: !isUuid(year?.id) }
   );
   const { data: realGroups } = useGetAcademicGroupsQuery();
-  const { data: realAssignments, isLoading: loadingAssignments } = useGetTeacherAssignmentsQuery(
+  const { data: realAssignments } = useGetTeacherAssignmentsQuery(
     isUuid(year?.id) ? { academicYearId: year.id, isActive: true, limit: 500 } : undefined,
     { skip: !isUuid(year?.id) }
   );
+  const {
+    data: paginatedAssignments,
+    isLoading: loadingAssignments,
+    isFetching: fetchingAssignments,
+  } = useGetTeacherAssignmentsPaginatedQuery(
+    {
+      academicYearId: year.id,
+      isActive: true,
+      page,
+      limit: 15,
+      ...(classFilter !== 'ALL' ? { classId: classFilter } : {}),
+      ...(sectionFilter !== 'ALL' ? { sectionId: sectionFilter } : {}),
+      ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    },
+    { skip: !isUuid(year?.id) }
+  );
+
+  const filteredRows: TeacherAssignmentItem[] = paginatedAssignments?.items ?? [];
+  const assignmentsMeta = paginatedAssignments?.meta ?? {
+    total: 0,
+    page: 1,
+    limit: 15,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  };
 
   const classSubjectsList = useMemo(
     () =>
@@ -342,10 +411,6 @@ function SubjectTeachers({
   const [canEnterMarks, setCanEnterMarks] = useState(true);
   const [open, setOpen] = useState(false);
   const selectedSubjectId = subjects.some((item) => item.id === classSubjectId) ? classSubjectId : subjects[0]?.id ?? '';
-
-  // Filtering states
-  const [classFilter, setClassFilter] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const subjectLabel = (classSubjectIdValue: string, row?: TeacherAssignmentItem) => {
     if (row?.classSubject?.subject) {
@@ -411,21 +476,6 @@ function SubjectTeachers({
 
   const freeTeachersCount = Math.max(0, teachers.length - relevantTeachingTeachers.size);
 
-  // Filtered rows
-  const filteredRows = useMemo(() => {
-    return allAssignments.filter((row) => {
-      if (classFilter !== 'ALL' && row.classId !== classFilter) return false;
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const teacher = teacherName(row.staffId).toLowerCase();
-        const sub = subjectLabel(row.classSubjectId).toLowerCase();
-        const clsName = (classLabel(row.classId) || '').toLowerCase();
-        if (!teacher.includes(q) && !sub.includes(q) && !clsName.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [allAssignments, classFilter, searchQuery, teacherName, classLabel, subjectLabel]);
-
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!section?.classId) return;
@@ -446,20 +496,33 @@ function SubjectTeachers({
     }
   };
 
-  const handleRemove = async (id: string) => {
+  const handleRemove = (row: TeacherAssignmentItem) => {
+    setRemoveTarget(row);
+  };
+
+  const confirmRemove = async () => {
+    if (!removeTarget) return;
     try {
-      await deleteAssignment(id).unwrap();
+      await deleteAssignment(removeTarget.id).unwrap();
       toast.success(pick('বণ্টন সরানো হয়েছে।', 'Assignment removed.'));
+      setRemoveTarget(null);
     } catch (err) {
       toast.error(errorMessage(err, pick('বণ্টন সরানো যায়নি।', 'Could not remove the assignment.')));
     }
   };
 
-  const isFiltered = classFilter !== 'ALL' || searchQuery.trim() !== '';
+  const isFiltered = classFilter !== 'ALL' || sectionFilter !== 'ALL' || searchQuery.trim() !== '';
   const resetFilters = () => {
     setClassFilter('ALL');
+    setSectionFilter('ALL');
     setSearchQuery('');
+    setPage(1);
   };
+
+  const filterSections = useMemo(() => {
+    if (classFilter === 'ALL') return sections;
+    return sections.filter((s) => s.classId === classFilter);
+  }, [sections, classFilter]);
 
   return (
     <div className="space-y-6">
@@ -541,21 +604,38 @@ function SubjectTeachers({
           )}
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
           <Select
             value={classFilter}
-            onChange={(e) => setClassFilter(e.target.value)}
-            className="w-52 h-10 text-sm"
+            onChange={(e) => {
+              setClassFilter(e.target.value);
+              setSectionFilter('ALL');
+            }}
+            className="w-48 h-10 text-sm"
           >
             <option value="ALL">{pick('সকল শ্রেণি', 'All Classes')}</option>
             {activeClasses.map((cls) => {
               const count = allAssignments.filter((a) => a.classId === cls.id).length;
               return (
                 <option key={cls.id} value={cls.id}>
-                  {classLabel(cls.id) || cls.name} ({formatNumber(count, locale)}টি বিষয়)
+                  {classLabel(cls.id) || cls.name} ({formatNumber(count, locale)}টি)
                 </option>
               );
             })}
+          </Select>
+
+          <Select
+            value={sectionFilter}
+            onChange={(e) => setSectionFilter(e.target.value)}
+            className="w-40 h-10 text-sm"
+          >
+            <option value="ALL">{pick('সকল শাখা', 'All Sections')}</option>
+            {filterSections.map((sec) => (
+              <option key={sec.id} value={sec.id}>
+                {classFilter === 'ALL' ? `${classLabel(sec.classId)} — ` : ''}
+                {sec.name} {pick('শাখা', 'Sec')}
+              </option>
+            ))}
           </Select>
 
           <Button type="button" variant="primary" size="sm" onClick={() => setOpen(true)} className="h-10 text-sm px-4">
@@ -716,7 +796,7 @@ function SubjectTeachers({
                         variant="outline"
                         size="sm"
                         disabled={removing}
-                        onClick={() => handleRemove(row.id)}
+                        onClick={() => handleRemove(row)}
                         className="text-xs sm:text-sm text-destructive hover:bg-destructive/10 hover:border-destructive/30"
                       >
                         <Trash2 className="w-3.5 h-3.5 mr-1" />
@@ -730,6 +810,54 @@ function SubjectTeachers({
           </tbody>
         </table>
       </Card>
+
+      {assignmentsMeta.total > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+          <span>
+            {locale === 'bn'
+              ? `মোট ${formatNumber(assignmentsMeta.total, 'bn')} টি বণ্টন · পৃষ্ঠা ${formatNumber(assignmentsMeta.page, 'bn')} / ${formatNumber(assignmentsMeta.totalPages, 'bn')}`
+              : `Total ${assignmentsMeta.total} assignments · Page ${assignmentsMeta.page} / ${assignmentsMeta.totalPages}`}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!assignmentsMeta.hasPreviousPage || fetchingAssignments}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              {pick('পূর্ববর্তী', 'Previous')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!assignmentsMeta.hasNextPage || fetchingAssignments}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              {pick('পরবর্তী', 'Next')}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={Boolean(removeTarget)}
+        onClose={() => setRemoveTarget(null)}
+        onConfirm={confirmRemove}
+        title={pick('শিক্ষক বণ্টন সরান', 'Remove Teacher Assignment')}
+        description={
+          removeTarget
+            ? pick(
+                `আপনি কি নিশ্চিতভাবে "${removeTarget.staff?.name || teacherName(removeTarget.staffId)}"-কে "${subjectLabel(removeTarget.classSubjectId, removeTarget)}" থেকে সরাতে চান?`,
+                `Are you sure you want to remove "${removeTarget.staff?.name || teacherName(removeTarget.staffId)}" from "${subjectLabel(removeTarget.classSubjectId, removeTarget)}"?`,
+              )
+            : ''
+        }
+        confirmLabel={pick('সরান', 'Remove')}
+        destructive
+        loading={removing}
+      />
     </div>
   );
 }

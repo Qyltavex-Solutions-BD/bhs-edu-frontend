@@ -2,23 +2,29 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useAcademicYearSelection } from '@/src/views/admin/AcademicFoundation';
+import { LoadingSkeleton } from '@/src/components/shared/Feedback';
+import { useGetStaffProfileQuery } from '../api/staff.api';
 import { useI18n } from '@/src/lib/i18n';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Card } from '@/src/components/ui/primitives';
 import { deptName } from './StaffDepartments';
 import { StaffFormModal } from './StaffFormModal';
-import type { MockDatabase } from '@/src/mocks/seed';
+import type { StaffWorkspace } from '../api/staff.api';
 
-export function StaffProfile({ db, staffId }: { db: MockDatabase; staffId: string }) {
-  const { locale, pick } = useI18n();
-  const year = useAcademicYearSelection(db.academicYears);
-  const member = db.staff.find((item) => item.id === staffId);
+export function StaffProfile({ db, staffId }: { db: StaffWorkspace; staffId: string }) {
+  const { pick } = useI18n();
+  const { data: member, isLoading, error, refetch } = useGetStaffProfileQuery(staffId);
   const [open, setOpen] = useState(false);
-  if (!member) return <p className="text-sm text-muted-foreground">{pick('স্টাফ পাওয়া যায়নি।', 'Staff member was not found.')}</p>;
+  if (isLoading) return <LoadingSkeleton />;
+  if (error || !member) return (
+    <div role="alert">
+      <p>{pick('স্টাফ প্রোফাইল লোড করা যায়নি।', 'Could not load the staff profile.')}</p>
+      <Button size="sm" variant="outline" onClick={refetch}>{pick('আবার চেষ্টা করুন', 'Retry')}</Button>
+    </div>
+  );
 
-  const classDuties = db.sectionClassTeachers.filter((row) => row.staffId === member.id && row.academicYearId === year?.id);
-  const subjects = db.teacherAssignments.filter((row) => row.staffId === member.id && row.isActive && row.academicYearId === year?.id);
+  const classDuties = member.sectionClassTeachers.filter((duty) => duty.academicYear.isActive);
+  const subjects = member.teacherAssignments.filter((duty) => duty.isActive && duty.academicYear.isActive);
 
   return (
     <div className="space-y-4">
@@ -38,8 +44,8 @@ export function StaffProfile({ db, staffId }: { db: MockDatabase; staffId: strin
           <p className="font-semibold">{pick('চাকরি', 'Employment')}</p>
           <p>{pick('বিভাগ', 'Department')}: {deptName(db, member.departmentId)}</p>
           <p>{pick('যোগ্যতা', 'Qualification')}: {member.qualification || '—'}</p>
-          <p>{pick('যোগদান', 'Joined')}: {member.joiningDate || '—'}</p>
-          <p>{pick('ছাড়ার তারিখ', 'Left')}: {member.leavingDate || '—'}</p>
+          <p>{pick('যোগদান', 'Joined')}: {member.joiningDate?.slice(0, 10) || '—'}</p>
+          <p>{pick('ছাড়ার তারিখ', 'Left')}: {member.leavingDate?.slice(0, 10) || '—'}</p>
         </Card>
         <Card className="p-4 space-y-1">
           <p className="font-semibold">{pick('যোগাযোগ', 'Contact')}</p>
@@ -50,18 +56,13 @@ export function StaffProfile({ db, staffId }: { db: MockDatabase; staffId: strin
         </Card>
       </div>
       <Card className="p-4 space-y-2 text-sm">
-        <p className="font-semibold">{pick('এই বছরের শিক্ষকতা', 'Teaching this year')} · {year?.name}</p>
-        {classDuties.map((duty) => {
-          const section = db.sections.find((item) => item.id === duty.sectionId);
-          const schoolClass = db.classes.find((item) => item.id === section?.classId);
-          return <p key={duty.id}>{pick('শ্রেণি শিক্ষক', 'Class teacher')}: {locale === 'bn' ? schoolClass?.nameBn || schoolClass?.name : schoolClass?.name} ({section?.name})</p>;
-        })}
-        {subjects.map((duty) => {
-          const section = db.sections.find((item) => item.id === duty.sectionId);
-          const classSubject = db.classSubjects.find((item) => item.id === duty.classSubjectId);
-          const subject = db.subjects.find((item) => item.id === classSubject?.subjectId);
-          return <p key={duty.id}>{pick('বিষয়', 'Subject')}: {subject?.nameBn || subject?.name} · {section?.name}</p>;
-        })}
+        <p className="font-semibold">{pick('এই বছরের শিক্ষকতা', 'Teaching this year')}</p>
+        {classDuties.map((duty) => (
+          <p key={duty.id}>{pick('শ্রেণি শিক্ষক', 'Class teacher')} {duty.section.schoolClass.name} ({duty.section.name})</p>
+        ))}
+        {subjects.map((duty) => (
+          <p key={duty.id}>{pick('বিষয়', 'Subject')} {duty.classSubject.subject.name} {duty.section?.name}</p>
+        ))}
         {!classDuties.length && !subjects.length && <p className="text-muted-foreground">{pick('এই বছর কোনো বণ্টন নেই।', 'No assignment this year.')}</p>}
       </Card>
       <StaffFormModal db={db} open={open} onClose={() => setOpen(false)} member={member} defaultType={member.staffType} />

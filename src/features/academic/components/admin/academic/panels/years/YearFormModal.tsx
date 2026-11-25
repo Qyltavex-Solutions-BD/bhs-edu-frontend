@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, FormField, Input, Modal, Switch } from '@/src/components/ui';
+import { Button, FormField, Input, Modal, Select, Switch } from '@/src/components/ui';
 import type { AcademicYear } from '@/src/types/entities';
 import { yearSchema, type YearFormValues } from '../../academic.schema';
 
@@ -33,18 +33,21 @@ const formatInputDate = (d?: string) => {
 interface YearFormModalProps {
   open: boolean;
   editingYear: AcademicYear | null;
+  existingYears?: AcademicYear[];
   saving: boolean;
   onClose: () => void;
-  onSubmit: (values: YearFormValues) => Promise<void>;
+  onSubmit: (values: YearFormValues, copyFromYearId?: string) => Promise<void>;
 }
 
 export function YearFormModal({
   open,
   editingYear,
+  existingYears = [],
   saving,
   onClose,
   onSubmit,
 }: YearFormModalProps) {
+  const [copyFromYearId, setCopyFromYearId] = useState<string>('');
   const {
     register,
     handleSubmit,
@@ -63,6 +66,7 @@ export function YearFormModal({
   useEffect(() => {
     if (!open) {
       reset(defaultValues);
+      setCopyFromYearId('');
       return;
     }
     if (editingYear) {
@@ -72,10 +76,13 @@ export function YearFormModal({
         endDate: formatInputDate(editingYear.endDate),
         isActive: editingYear.isActive,
       });
+      setCopyFromYearId('');
     } else {
       reset(defaultValues);
+      const active = existingYears.find((y) => y.isActive) ?? existingYears[0];
+      setCopyFromYearId(active?.id ?? '');
     }
-  }, [open, editingYear, reset]);
+  }, [open, editingYear, existingYears, reset]);
 
   // Auto-fill 1 Jan - 31 Dec when typing a 4-digit Bangla year in create mode
   useEffect(() => {
@@ -95,7 +102,7 @@ export function YearFormModal({
       title={editingYear ? 'শিক্ষাবর্ষ সম্পাদনা করুন' : 'নতুন শিক্ষাবর্ষ তৈরি করুন'}
       description="মাধ্যমিক স্কুলের শিক্ষাবর্ষ সাধারণত ১ জানুয়ারি থেকে ৩১ ডিসেম্বর পর্যন্ত একক ক্যালেন্ডার বছর হয়।"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit((values) => onSubmit(values, copyFromYearId || undefined))} className="space-y-4">
         <FormField label="শিক্ষাবর্ষ (বাংলা সাল)" required error={errors.name?.message}>
           <Input
             inputMode="numeric"
@@ -123,6 +130,26 @@ export function YearFormModal({
           onChange={(val) => setValue('isActive', val)}
           label="এই শিক্ষাবর্ষকে চলতি (Active) হিসেবে সেট করুন"
         />
+
+        {!editingYear && existingYears.length > 0 && (
+          <FormField
+            label="আগের শিক্ষাবর্ষ থেকে শ্রেণির বিষয়সমূহ কপি করুন (ঐচ্ছিক)"
+            hint="নির্বাচন করলে নতুন বছরে ৬ষ্ঠ–১০ম শ্রেণির সব বিষয় স্বয়ংক্রিয়ভাবে কপি হয়ে যাবে।"
+          >
+            <Select
+              value={copyFromYearId}
+              onChange={(e) => setCopyFromYearId(e.target.value)}
+            >
+              <option value="">কপি করবেন না (খালি রাখুন)</option>
+              {existingYears.map((yr) => (
+                <option key={yr.id} value={yr.id}>
+                  {yr.name}
+                  {yr.isActive ? ' (চলতি)' : ''}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+        )}
 
         <div className="flex justify-end gap-2 pt-3 border-t border-border">
           <Button type="button" variant="outline" onClick={onClose}>

@@ -19,12 +19,13 @@ import {
 import {
   useCreateBookMutation,
   useDeleteBookMutation,
-  useGetBooksQuery,
+  useGetBooksPaginatedQuery,
   useGetSchoolClassesQuery,
   useGetSubjectsQuery,
   useUpdateBookMutation,
   type BookWithRelations,
 } from '@/src/services/academic';
+import { ConfirmDialog } from '@/src/components/shared/Feedback';
 import { Button, Card, FormField, Input, Modal, Select, Switch } from '@/src/components/ui';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { formatNumber } from '@/src/lib/formatters';
@@ -34,6 +35,9 @@ import type { MockDatabase } from '@/src/mocks/seed';
 import { errorMessage } from './shared';
 import { BOOK_TYPE_LABELS, useAcademicI18n } from '../academic.i18n';
 import { bookSchema, type BookFormValues } from '../academic.schema';
+
+const isUuid = (val?: string) =>
+  Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 
 const defaultFormValues: BookFormValues = {
   classId: '',
@@ -73,6 +77,21 @@ export function BooksPanel({
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [page, setPage] = useState<number>(1);
+  const [deleteTarget, setDeleteTarget] = useState<BookWithRelations | Book | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedClassId, subjectFilter, typeFilter, statusFilter]);
 
   // Keep selectedClassId synchronized with real database classes
   useEffect(() => {
@@ -91,21 +110,34 @@ export function BooksPanel({
     }
   }, [realClasses, classList, selectedClassId]);
 
-  // Books Query for selected class
+  // Backend-driven Paginated Books Query
   const {
-    data: realBooks,
+    data: paginatedBooks,
     isLoading: loadingBooks,
     isFetching: fetchingBooks,
     refetch: refetchBooks,
-  } = useGetBooksQuery(
-    selectedClassId ? { classId: selectedClassId } : undefined,
-    { skip: !selectedClassId }
+  } = useGetBooksPaginatedQuery(
+    {
+      classId: selectedClassId,
+      page,
+      limit: 15,
+      ...(subjectFilter !== 'all' ? { subjectId: subjectFilter } : {}),
+      ...(typeFilter !== 'all' ? { type: typeFilter as BookType } : {}),
+      ...(statusFilter !== 'all' ? { isActive: statusFilter === 'active' } : {}),
+      ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    },
+    { skip: !isUuid(selectedClassId) }
   );
 
-  const rawBooks: (BookWithRelations | Book)[] =
-    realBooks !== undefined
-      ? realBooks
-      : (db?.books ?? []).filter((b) => !selectedClassId || b.classId === selectedClassId);
+  const rawBooks: BookWithRelations[] = paginatedBooks?.items ?? [];
+  const booksMeta = paginatedBooks?.meta ?? {
+    total: 0,
+    page: 1,
+    limit: 15,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  };
 
   // Mutations
   const [createBook, { isLoading: creating }] = useCreateBookMutation();
@@ -226,19 +258,16 @@ export function BooksPanel({
     }
   };
 
-  const handleDelete = async (book: BookWithRelations | Book) => {
-    if (
-      !window.confirm(
-        isBn
-          ? `আপনি কি নিশ্চিতভাবে '${book.name}' পাঠ্যবইটি তালিকা থেকে মুছতে চান?`
-          : `Are you sure you want to delete '${book.name}'?`
-      )
-    ) {
-      return;
-    }
+  const handleDelete = (book: BookWithRelations | Book) => {
+    setDeleteTarget(book);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteBook(book.id).unwrap();
+      await deleteBook(deleteTarget.id).unwrap();
       toast.success(t(dict.books.deleteSuccess));
+      setDeleteTarget(null);
     } catch (err) {
       toast.error(errorMessage(err, t(dict.books.deleteFailed)));
     }
@@ -265,35 +294,17 @@ export function BooksPanel({
     };
   };
 
-  // Stats
+  // Stats (server-backed total + current page breakdown)
   const stats = useMemo(() => {
-    const total = rawBooks.length;
+    const total = booksMeta.total;
     const textbooks = rawBooks.filter((b) => b.type === BookType.TEXTBOOK).length;
     const supplementary = rawBooks.filter((b) => b.type === BookType.SUPPLEMENTARY).length;
     const grammar = rawBooks.filter((b) => b.type === BookType.GRAMMAR).length;
     return { total, textbooks, supplementary, grammar };
-  }, [rawBooks]);
+  }, [booksMeta.total, rawBooks]);
 
-  // Filtered Books
-  const filteredBooks = useMemo(() => {
-    return rawBooks
-      .filter((book) => {
-        if (subjectFilter !== 'all' && book.subjectId !== subjectFilter) return false;
-        if (typeFilter !== 'all' && book.type !== typeFilter) return false;
-        if (statusFilter === 'active' && !book.isActive) return false;
-        if (statusFilter === 'inactive' && book.isActive) return false;
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase().trim();
-          const matchName = book.name.toLowerCase().includes(q);
-          const matchCode = !isJuniorClass && (book.bookCode || '').toLowerCase().includes(q);
-          const sub = resolveSubject(book.subjectId, (book as BookWithRelations).subject);
-          const matchSub = (sub.displayTitle || '').toLowerCase().includes(q);
-          return matchName || matchCode || matchSub;
-        }
-        return true;
-      })
-      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0) || a.name.localeCompare(b.name));
-  }, [rawBooks, subjectFilter, typeFilter, statusFilter, searchQuery, isBn, subjectList]);
+  // Backend already filtered, searched, and sorted
+  const filteredBooks = rawBooks;
 
   const hasActiveFilters =
     subjectFilter !== 'all' ||
@@ -306,6 +317,7 @@ export function BooksPanel({
     setTypeFilter('all');
     setStatusFilter('all');
     setSearchQuery('');
+    setPage(1);
   };
 
   const typeBadgeColors: Record<BookType, string> = {
@@ -317,26 +329,14 @@ export function BooksPanel({
 
   return (
     <div className="space-y-6">
-      {/* Top Banner & Quick Class Switcher */}
+      {/* Top Class Switcher & Actions (no duplicate title) */}
       <Card className="p-4 bg-gradient-to-r from-surface to-surface-muted border-border">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="p-2 rounded-lg bg-primary/10 text-primary">
-                <BookOpen className="w-5 h-5" />
-              </span>
-              <div>
-                <h2 className="text-lg font-bold text-foreground">
-                  {t(dict.books.panelTitle)}
-                </h2>
-                <p className="text-xs text-muted-foreground">
-                  {isBn
-                    ? 'শ্রেণিভিত্তিক এনসিটিবি অনুমোদিত মূল পাঠ্যবই, ব্যাকরণ ও সহপাঠ দ্রুতপঠনের তালিকা।'
-                    : 'Class-wise NCTB prescribed textbooks, grammar, and supplementary reader catalog.'}
-                </p>
-              </div>
-            </div>
-          </div>
+          <p className="text-base text-muted-foreground">
+            {isBn
+              ? 'শ্রেণিভিত্তিক এনসিটিবি অনুমোদিত মূল পাঠ্যবই, ব্যাকরণ ও সহপাঠ দ্রুতপঠনের তালিকা।'
+              : 'Class-wise NCTB prescribed textbooks, grammar, and supplementary reader catalog.'}
+          </p>
 
           <div className="flex items-center gap-2 w-full md:w-auto">
             <Button
@@ -636,6 +636,36 @@ export function BooksPanel({
         </table>
       </Card>
 
+      {booksMeta.total > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+          <span>
+            {isBn
+              ? `মোট ${formatNumber(booksMeta.total, 'bn')} টি বই · পৃষ্ঠা ${formatNumber(booksMeta.page, 'bn')} / ${formatNumber(booksMeta.totalPages, 'bn')}`
+              : `Total ${booksMeta.total} books · Page ${booksMeta.page} / ${booksMeta.totalPages}`}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!booksMeta.hasPreviousPage || fetchingBooks}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              {isBn ? 'পূর্ববর্তী' : 'Previous'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!booksMeta.hasNextPage || fetchingBooks}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              {isBn ? 'পরবর্তী' : 'Next'}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Create / Edit Modal */}
       <Modal
         open={modalOpen}
@@ -740,6 +770,21 @@ export function BooksPanel({
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title={isBn ? 'পাঠ্যবই মুছে ফেলুন' : 'Delete Book'}
+        description={
+          isBn
+            ? `আপনি কি নিশ্চিতভাবে "${deleteTarget?.name ?? ''}" পাঠ্যবইটি তালিকা থেকে মুছতে চান?`
+            : `Are you sure you want to delete "${deleteTarget?.name ?? ''}"?`
+        }
+        confirmLabel={isBn ? 'মুছে ফেলুন' : 'Delete'}
+        destructive
+        loading={deleting}
+      />
     </div>
   );
 }
