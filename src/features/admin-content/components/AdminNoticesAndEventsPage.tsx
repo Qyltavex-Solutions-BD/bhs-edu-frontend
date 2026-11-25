@@ -17,7 +17,9 @@ import {
   Pencil,
   Plus,
   Printer,
+  RotateCcw,
   Save,
+  SearchX,
   Trash2,
   X,
 } from 'lucide-react';
@@ -84,9 +86,26 @@ export function AdminNoticesAndEventsPage({
 
   const [statusFilter, setStatusFilter] = useState<NoticeStatus | ''>('');
   const [noticeSearch, setNoticeSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [noticePage, setNoticePage] = useState(1);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(noticeSearch.trim());
+      setNoticePage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [noticeSearch]);
+
   const { currentData: noticeList, isFetching: loadingNotices, isError: noticesError } =
-    useGetAdminNoticesQuery({ status: statusFilter || undefined, page: noticePage, search: noticeSearch.trim() || undefined }, { skip: tab !== 'notices' });
+    useGetAdminNoticesQuery(
+      {
+        status: statusFilter || undefined,
+        page: noticePage,
+        search: debouncedSearch || undefined,
+      },
+      { skip: tab !== 'notices' }
+    );
   const [getDocument] = useGetAdminNoticeDocumentMutation({ selectFromResult: () => ({}) });
   useEffect(() => {
     const url = viewerNotice?.attachmentUrl;
@@ -287,12 +306,91 @@ export function AdminNoticesAndEventsPage({
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {(loadingNotices || noticesError || !noticeList?.items.length) && (
+                {loadingNotices &&
+                  Array.from({ length: 6 }).map((_, idx) => (
+                    <tr key={`notice-skeleton-${idx}`} className="animate-pulse">
+                      <td className="p-3">
+                        <div className="h-4 w-3/4 max-w-sm rounded bg-surface-muted" />
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="h-4 w-14 rounded bg-surface-muted" />
+                          <div className="h-3 w-12 rounded bg-surface-muted" />
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="h-4 w-24 rounded bg-surface-muted" />
+                      </td>
+                      <td className="p-3">
+                        <div className="h-4 w-20 rounded bg-surface-muted" />
+                      </td>
+                      <td className="p-3">
+                        <div className="h-6 w-20 rounded-full bg-surface-muted" />
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="inline-flex items-center gap-2">
+                          <div className="h-7 w-14 rounded bg-surface-muted" />
+                          <div className="h-7 w-14 rounded bg-surface-muted" />
+                          <div className="h-7 w-14 rounded bg-surface-muted" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                {!loadingNotices && noticesError && (
                   <tr>
-                    <td colSpan={5} className="p-4">
-                      {loadingNotices ? <LoadingSkeleton /> : noticesError
-                        ? <p role="alert">Could not load notices.</p>
-                        : <p>No notices found.</p>}
+                    <td colSpan={5} className="py-12 px-4 text-center">
+                      <div className="mx-auto max-w-sm space-y-2">
+                        <p role="alert" className="text-base font-semibold text-destructive">
+                          {pick('নোটিশ লোড করা যায়নি', 'Could not load notices')}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {pick(
+                            'সার্ভারের সাথে সংযোগে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
+                            'There was a problem connecting to the server. Please try again.'
+                          )}
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {!loadingNotices && !noticesError && !noticeList?.items.length && (
+                  <tr>
+                    <td colSpan={5} className="py-14 px-4 text-center">
+                      <div className="mx-auto max-w-md flex flex-col items-center space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-surface-muted flex items-center justify-center text-muted-foreground">
+                          <SearchX className="w-6 h-6" />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-base font-semibold text-foreground">
+                            {pick('কোনো নোটিশ পাওয়া যায়নি', 'No matching notices found')}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {noticeSearch || statusFilter
+                              ? pick(
+                                  'আপনার অনুসন্ধান বা নির্বাচিত ফিল্টারের সাথে কোনো নোটিশ মেলেনি।',
+                                  'No notices match your current search or status filter.'
+                                )
+                              : pick(
+                                  'এখনো কোনো নোটিশ প্রকাশ বা সংরক্ষণ করা হয়নি।',
+                                  'No notices have been published or saved yet.'
+                                )}
+                          </p>
+                        </div>
+                        {(noticeSearch || statusFilter) && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setNoticeSearch('');
+                              setDebouncedSearch('');
+                              setStatusFilter('');
+                              setNoticePage(1);
+                            }}
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            {pick('ফিল্টার রিসেট করুন', 'Reset Filters')}
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}

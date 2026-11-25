@@ -45,6 +45,13 @@ export const authApi = baseApi.injectEndpoints({
       transformResponse: unwrap<LoginResponseData>,
       invalidatesTags: ['Bootstrap'],
     }),
+    refreshSession: builder.mutation<LoginResponseData, void>({
+      query: () => ({ url: '/auth/refresh', method: 'POST', body: {} }),
+      transformResponse: unwrap<LoginResponseData>,
+    }),
+    logoutUser: builder.mutation<void, void>({
+      query: () => ({ url: '/auth/logout', method: 'POST', body: {} }),
+    }),
     getAuthProfile: builder.query<unknown, void>({
       query: () => ({ url: '/auth/me', method: 'GET' }),
       transformResponse: unwrap<unknown>,
@@ -82,6 +89,8 @@ export const authApi = baseApi.injectEndpoints({
 
 export const {
   useLoginUserMutation,
+  useRefreshSessionMutation,
+  useLogoutUserMutation,
   useGetAuthProfileQuery,
   useRegisterUserMutation,
   useVerifyOtpMutation,

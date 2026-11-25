@@ -18,10 +18,10 @@ export interface AuthUser {
   parentId?: string;
   studentId?: string;
   designation?: string;
-  isDemoSession: boolean;
 }
 
 export interface AuthState {
+  isHydrated: boolean;
   isAuthenticated: boolean;
   accessToken: string | null;
   user: AuthUser | null;
@@ -30,9 +30,10 @@ export interface AuthState {
   sessionExpired: boolean;
 }
 
-export const AUTH_STORAGE_KEY = 'bhs_auth_session';
+export const AUTH_STORAGE_KEY = 'bhs_auth_user_meta';
 
 const initialState: AuthState = {
+  isHydrated: false,
   isAuthenticated: false,
   accessToken: null,
   user: null,
@@ -45,6 +46,9 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
+    markAuthHydrated(state) {
+      state.isHydrated = true;
+    },
     hydrateAuth(
       state,
       action: PayloadAction<{
@@ -54,6 +58,7 @@ const authSlice = createSlice({
         permissions: string[];
       }>
     ) {
+      state.isHydrated = true;
       state.isAuthenticated = true;
       state.accessToken = action.payload.accessToken;
       state.user = action.payload.user;
@@ -70,15 +75,16 @@ const authSlice = createSlice({
         permissions?: string[];
       }>
     ) {
+      state.isHydrated = true;
       state.isAuthenticated = true;
       state.accessToken = action.payload.accessToken;
       if (action.payload.user) state.user = action.payload.user;
       if (action.payload.role) state.role = action.payload.role;
       if (action.payload.permissions) state.permissions = action.payload.permissions;
       state.sessionExpired = false;
-
     },
     logout(state) {
+      state.isHydrated = true;
       state.isAuthenticated = false;
       state.accessToken = null;
       state.user = null;
@@ -87,6 +93,7 @@ const authSlice = createSlice({
       state.sessionExpired = false;
     },
     triggerSessionExpired(state) {
+      state.isHydrated = true;
       state.sessionExpired = true;
       state.isAuthenticated = false;
       state.accessToken = null;
@@ -98,6 +105,7 @@ const authSlice = createSlice({
 });
 
 export const {
+  markAuthHydrated,
   hydrateAuth,
   setCredentials,
   logout,

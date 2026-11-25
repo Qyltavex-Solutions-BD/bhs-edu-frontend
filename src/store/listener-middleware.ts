@@ -50,9 +50,11 @@ listenerMiddleware.startListening({
       (listenerApi.getState() as PersistenceState).auth;
     if (!accessToken || !user || !role) return;
 
+    // Never persist accessToken or refreshToken in localStorage (XSS protection).
+    // Refresh token lives in an HttpOnly cookie; accessToken lives in Redux memory only.
     safelyWrite(
       AUTH_STORAGE_KEY,
-      JSON.stringify({ accessToken, user, role, permissions })
+      JSON.stringify({ user, role, permissions })
     );
   },
 });
