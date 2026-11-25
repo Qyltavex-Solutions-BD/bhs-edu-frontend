@@ -1,6 +1,35 @@
 import { BloodGroup } from '@/src/types/enums';
+import type {
+  AcademicGroup,
+  AcademicYear,
+  ClassSubject,
+  SchoolClass,
+  SchoolProfile,
+  Section,
+  Student,
+  StudentEnrollment,
+  Subject,
+} from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
-import type { AdmissionType, StructuredAddress } from '@/src/types/proposed/future';
+import type {
+  AdmissionType,
+  OnlineAdmissionApplication,
+  StructuredAddress,
+} from '@/src/types/proposed/future';
+
+export interface AdmissionCatalogData {
+  academicYears: AcademicYear[];
+  classes: SchoolClass[];
+  sections: Section[];
+  academicGroups: AcademicGroup[];
+  classSubjects: ClassSubject[];
+  subjects?: Subject[];
+  enrollments?: StudentEnrollment[];
+  students?: Student[];
+  onlineAdmissions?: OnlineAdmissionApplication[];
+  admissionContent?: Partial<MockDatabase['admissionContent']>;
+  schoolProfile?: SchoolProfile;
+}
 
 export type AdmissionFormMode = 'public' | 'admin';
 
@@ -395,7 +424,7 @@ export interface OptionalSubjectChoice {
 }
 
 export function getOptionalSubjectsForClassGroup(
-  db: MockDatabase,
+  db: AdmissionCatalogData,
   classId: string,
   groupId?: string | null,
   academicYearId?: string
@@ -426,7 +455,9 @@ export function getOptionalSubjectsForClassGroup(
   for (const row of rows) {
     if (seen.has(row.subjectId)) continue;
     seen.add(row.subjectId);
-    const sub = db.subjects.find((s) => s.id === row.subjectId);
+    const sub =
+      (row as ClassSubject & { subject?: Subject }).subject ??
+      db.subjects?.find((s) => s.id === row.subjectId);
     if (!sub) continue;
     choices.push({
       classSubjectId: row.id,
@@ -440,19 +471,19 @@ export function getOptionalSubjectsForClassGroup(
 }
 
 export function getNextSuggestedRoll(
-  db: MockDatabase,
+  db: AdmissionCatalogData,
   academicYearId: string,
   sectionId: string
 ): number {
   if (!academicYearId || !sectionId) return 1;
-  const rolls = db.enrollments
+  const rolls = (db.enrollments ?? [])
     .filter((e) => e.academicYearId === academicYearId && e.sectionId === sectionId)
     .map((e) => e.roll);
   return rolls.length ? Math.max(...rolls) + 1 : 1;
 }
 
 export function checkDuplicateIdentity(
-  db: MockDatabase,
+  db: AdmissionCatalogData,
   params: {
     birthCertificateNo?: string;
     boardRegistrationNo?: string;
@@ -464,11 +495,11 @@ export function checkDuplicateIdentity(
   const brn = params.boardRegistrationNo?.trim();
 
   if (bcn && BD_BIRTH_CERT_REGEX.test(bcn)) {
-    const existingStudent = db.students.find((s) => s.birthCertificateNo === bcn);
+    const existingStudent = (db.students ?? []).find((s) => s.birthCertificateNo === bcn);
     if (existingStudent) {
       result.birthCertConflict = `এই জন্ম নিবন্ধন নম্বর ইতোমধ্যে ${existingStudent.nameBn || existingStudent.nameEn} (${existingStudent.studentId})-এর নামে নিবন্ধিত রয়েছে।`;
     } else {
-      const existingApp = db.onlineAdmissions.find(
+      const existingApp = (db.onlineAdmissions ?? []).find(
         (a) =>
           a.birthCertificateNo === bcn &&
           a.status !== 'REJECTED' &&
@@ -481,11 +512,11 @@ export function checkDuplicateIdentity(
   }
 
   if (brn && brn.length >= 8) {
-    const existingStudent = db.students.find((s) => s.boardRegistrationNo === brn);
+    const existingStudent = (db.students ?? []).find((s) => s.boardRegistrationNo === brn);
     if (existingStudent) {
       result.boardRegConflict = `এই বোর্ড রেজিস্ট্রেশন নম্বর ইতোমধ্যে ${existingStudent.nameBn || existingStudent.nameEn} (${existingStudent.studentId})-এর নামে নিবন্ধিত রয়েছে।`;
     } else {
-      const existingApp = db.onlineAdmissions.find(
+      const existingApp = (db.onlineAdmissions ?? []).find(
         (a) =>
           a.boardRegistrationNo === brn &&
           a.status !== 'REJECTED' &&

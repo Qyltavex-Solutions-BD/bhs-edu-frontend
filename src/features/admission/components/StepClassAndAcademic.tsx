@@ -4,9 +4,9 @@ import React from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { AlertCircle, Info } from 'lucide-react';
 import { useI18n } from '@/src/lib/i18n';
-import type { MockDatabase } from '@/src/mocks/seed';
 import type { AdmissionType } from '@/src/types/proposed/future';
 import {
+  type AdmissionCatalogData,
   ADMISSION_TYPE_META,
   AdmissionFormMode,
   cleanDecimalInput,
@@ -26,7 +26,7 @@ import {
 
 interface StepClassAndAcademicProps {
   form: UseFormReturn<UnifiedAdmissionFormValues>;
-  db: MockDatabase;
+  db: AdmissionCatalogData;
   mode: AdmissionFormMode;
   boardRegDuplicate?: string;
 }
@@ -51,7 +51,7 @@ export function StepClassAndAcademic({
   const academicYearId = watch('academicYearId');
   const prevExamGpa = watch('prevExamGpa');
 
-  const openClassIds = db.admissionContent.publicOpenClassIds;
+  const openClassIds = db.admissionContent?.publicOpenClassIds;
   const availableClasses = db.classes
     .filter((c) => c.isActive)
     .filter((c) =>

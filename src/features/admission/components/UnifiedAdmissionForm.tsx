@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -18,11 +18,16 @@ import {
   useCreateStudentMutation,
   useSubmitAdmissionApplicationMutation,
 } from '@/src/store/api';
-import type { MockDatabase } from '@/src/mocks/seed';
+import {
+  useCheckStudentDuplicateQuery,
+  useGetNextSuggestedRollQuery,
+} from '@/src/features/students/api/students.api';
 import type { Student, StudentEnrollment } from '@/src/types/entities';
 import type { OnlineAdmissionApplication } from '@/src/types/proposed/future';
 import {
+  type AdmissionCatalogData,
   AdmissionFormMode,
+  BD_BIRTH_CERT_REGEX,
   checkDuplicateIdentity,
 } from '../rules';
 import {
@@ -49,7 +54,7 @@ export interface AdminAdmissionResult {
 
 interface UnifiedAdmissionFormProps {
   mode: AdmissionFormMode;
-  db: MockDatabase;
+  db: AdmissionCatalogData;
   yearId?: string;
   prefillApplication?: OnlineAdmissionApplication | null;
   onPublicSuccess?: (application: OnlineAdmissionApplication) => void;
@@ -94,19 +99,70 @@ export function UnifiedAdmissionForm({
   });
 
   const targetClassId = form.watch('targetClassId');
+  const academicYearId = form.watch('academicYearId');
+  const sectionId = form.watch('sectionId');
+  const roll = form.watch('roll');
   const birthCertificateNo = form.watch('birthCertificateNo');
   const boardRegistrationNo = form.watch('boardRegistrationNo');
   const selectedClass = db.classes.find((c) => c.id === targetClassId);
 
-  const duplicates = useMemo(
-    () =>
-      checkDuplicateIdentity(db, {
-        birthCertificateNo,
-        boardRegistrationNo,
-        ignoreApplicationId: prefillApplication?.id,
-      }),
-    [db, birthCertificateNo, boardRegistrationNo, prefillApplication?.id]
+  useEffect(() => {
+    if (!academicYearId && defaultValues.academicYearId) {
+      form.setValue('academicYearId', defaultValues.academicYearId);
+    }
+    if (!targetClassId && defaultValues.targetClassId) {
+      form.setValue('targetClassId', defaultValues.targetClassId);
+    }
+    if (!sectionId && defaultValues.sectionId) {
+      form.setValue('sectionId', defaultValues.sectionId);
+    }
+  }, [
+    academicYearId,
+    targetClassId,
+    sectionId,
+    defaultValues.academicYearId,
+    defaultValues.targetClassId,
+    defaultValues.sectionId,
+    form,
+  ]);
+
+  const { data: nextRollData } = useGetNextSuggestedRollQuery(
+    { academicYearId, sectionId },
+    { skip: mode !== 'admin' || !academicYearId || !sectionId }
   );
+
+  useEffect(() => {
+    if (mode === 'admin' && nextRollData?.nextRoll && !roll) {
+      form.setValue('roll', String(nextRollData.nextRoll));
+    }
+  }, [mode, nextRollData?.nextRoll, roll, form]);
+
+  const trimmedBcn = birthCertificateNo?.trim() ?? '';
+  const trimmedBrn = boardRegistrationNo?.trim() ?? '';
+  const shouldCheckBcn = BD_BIRTH_CERT_REGEX.test(trimmedBcn);
+  const shouldCheckBrn = trimmedBrn.length >= 8;
+
+  const { data: liveDuplicates } = useCheckStudentDuplicateQuery(
+    {
+      ...(shouldCheckBcn ? { birthCertificateNo: trimmedBcn } : {}),
+      ...(shouldCheckBrn ? { boardRegistrationNo: trimmedBrn } : {}),
+    },
+    { skip: mode !== 'admin' || (!shouldCheckBcn && !shouldCheckBrn) }
+  );
+
+  const duplicates = useMemo(() => {
+    if (mode === 'admin') {
+      return {
+        birthCertConflict: liveDuplicates?.birthCertConflict,
+        boardRegConflict: liveDuplicates?.boardRegConflict,
+      };
+    }
+    return checkDuplicateIdentity(db, {
+      birthCertificateNo,
+      boardRegistrationNo,
+      ignoreApplicationId: prefillApplication?.id,
+    });
+  }, [mode, liveDuplicates, db, birthCertificateNo, boardRegistrationNo, prefillApplication?.id]);
 
   const steps: Array<{ num: 1 | 2 | 3 | 4; title: string }> = [
     {
@@ -213,19 +269,23 @@ export function UnifiedAdmissionForm({
 
     try {
       const payload = toAdminCreateStudentPayload(values, db, prefillApplication?.id);
-      const res = (await createStudent(payload).unwrap()) as {
-        student: Student;
-        enrollment: StudentEnrollment;
-      };
+      const raw = (await createStudent(payload).unwrap()) as {
+        student?: Student;
+        enrollment?: StudentEnrollment;
+        currentEnrollment?: StudentEnrollment;
+      } & Student;
+      const student: Student = raw.student ?? raw;
+      const enrollment: StudentEnrollment =
+        raw.currentEnrollment ?? (raw.enrollment as StudentEnrollment);
       toast.success(
         pick(
-          `${res.student.nameBn || res.student.nameEn} ভর্তি সম্পন্ন হয়েছে (${res.student.studentId})।`,
-          `${res.student.nameEn} admitted successfully (${res.student.studentId}).`
+          `${student.nameBn || student.nameEn} ভর্তি সম্পন্ন হয়েছে (${student.studentId})।`,
+          `${student.nameEn} admitted successfully (${student.studentId}).`
         )
       );
       onAdminSuccess?.({
-        student: res.student,
-        enrollment: res.enrollment,
+        student,
+        enrollment,
         formValues: values,
       });
     } catch (err: unknown) {
@@ -377,7 +437,7 @@ export function UnifiedAdmissionForm({
             {step === 4 && mode === 'public' && (
               <StepFinalPublic
                 form={form}
-                db={db}
+                db={db as unknown as import('@/src/mocks/seed').MockDatabase}
                 onJumpToStep={(target) => setStep(target)}
               />
             )}
