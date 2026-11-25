@@ -3,8 +3,25 @@ import type { Exam } from '@/src/types/entities';
 
 export const examCreationApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
-    createExam: builder.mutation<Exam, Partial<Exam>>({
-      query: (body) => ({ url: '/exams', method: 'POST', body }),
+    createExam: builder.mutation<
+      Exam,
+      {
+        name: string;
+        academicYearId: string;
+        classId: string;
+        examType: string;
+        gradingScaleId?: string;
+        startDate: string;
+        endDate: string;
+        marksEntryDeadline?: string | null;
+        allowCombinedPass?: boolean;
+        weightagePercentage?: number | null;
+        status?: string;
+        autoAttachSubjects?: boolean;
+      }
+    >({
+      query: (body) => ({ url: '/examination/exams', method: 'POST', body }),
+      transformResponse: (res: any) => (res && res.data ? res.data : res),
       invalidatesTags: ['Exams', 'Audit'],
     }),
   }),
