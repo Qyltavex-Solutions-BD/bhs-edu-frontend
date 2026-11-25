@@ -106,6 +106,19 @@ export interface ExamSubject {
   continuousAssessmentPassMarks?: number | null;
   isOptional: boolean;
   displayOrder: number;
+  subject?: {
+    id: string;
+    name: string;
+    nameBn?: string | null;
+    officialCode?: string | null;
+    category?: string | null;
+    paperNumber?: number | null;
+  };
+  group?: {
+    id: string;
+    name: string;
+    nameBn?: string | null;
+  } | null;
 }
 
 export interface ExamRoutine {

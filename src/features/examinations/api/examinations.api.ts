@@ -110,6 +110,92 @@ export const examinationsApi = baseApi.injectEndpoints({
       },
       providesTags: ['Exams'],
     }),
+
+    getExamSubjects: builder.query<ExamSubject[], string>({
+      query: (examId) => ({
+        url: `/examination/exams/${examId}/subjects`,
+        method: 'GET',
+      }),
+      transformResponse: (res: any) => {
+        const payload = res?.data ?? res;
+        const raw = Array.isArray(payload) ? payload : (payload?.subjects ?? []);
+        return raw.map((es: any) => ({
+          ...es,
+          fullMarks: Number(es.fullMarks ?? 0),
+          passMarks: Number(es.passMarks ?? 0),
+          writtenFullMarks: es.writtenFullMarks != null ? Number(es.writtenFullMarks) : null,
+          writtenPassMarks: es.writtenPassMarks != null ? Number(es.writtenPassMarks) : null,
+          mcqFullMarks: es.mcqFullMarks != null ? Number(es.mcqFullMarks) : null,
+          mcqPassMarks: es.mcqPassMarks != null ? Number(es.mcqPassMarks) : null,
+          practicalFullMarks: es.practicalFullMarks != null ? Number(es.practicalFullMarks) : null,
+          practicalPassMarks: es.practicalPassMarks != null ? Number(es.practicalPassMarks) : null,
+          continuousAssessmentFullMarks:
+            es.continuousAssessmentFullMarks != null
+              ? Number(es.continuousAssessmentFullMarks)
+              : null,
+          continuousAssessmentPassMarks:
+            es.continuousAssessmentPassMarks != null
+              ? Number(es.continuousAssessmentPassMarks)
+              : null,
+        }));
+      },
+      providesTags: (_result, _error, examId) => [
+        { type: 'Exams', id: `SUBJECTS-${examId}` },
+        { type: 'Exams', id: examId },
+      ],
+    }),
+
+    createExamSubject: builder.mutation<
+      ExamSubject,
+      { examId: string; body: Partial<ExamSubject> & { subjectId: string } }
+    >({
+      query: ({ examId, body }) => ({
+        url: `/examination/exams/${examId}/subjects`,
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (res: any) => (res && res.data ? res.data : res),
+      invalidatesTags: (_result, _error, { examId }) => [
+        { type: 'Exams', id: `SUBJECTS-${examId}` },
+        { type: 'Exams', id: examId },
+        { type: 'Exams', id: 'LIST' },
+        'Audit',
+      ],
+    }),
+
+    updateExamSubject: builder.mutation<
+      ExamSubject,
+      { examId: string; subjectConfigId: string; body: Partial<ExamSubject> }
+    >({
+      query: ({ examId, subjectConfigId, body }) => ({
+        url: `/examination/exams/${examId}/subjects/${subjectConfigId}`,
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (res: any) => (res && res.data ? res.data : res),
+      invalidatesTags: (_result, _error, { examId }) => [
+        { type: 'Exams', id: `SUBJECTS-${examId}` },
+        { type: 'Exams', id: examId },
+        { type: 'Exams', id: 'LIST' },
+        'Audit',
+      ],
+    }),
+
+    removeExamSubject: builder.mutation<
+      { deletedId?: string },
+      { examId: string; subjectConfigId: string }
+    >({
+      query: ({ examId, subjectConfigId }) => ({
+        url: `/examination/exams/${examId}/subjects/${subjectConfigId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_result, _error, { examId }) => [
+        { type: 'Exams', id: `SUBJECTS-${examId}` },
+        { type: 'Exams', id: examId },
+        { type: 'Exams', id: 'LIST' },
+        'Audit',
+      ],
+    }),
     saveMarksBatch: builder.mutation<
       { savedCount: number },
       {
@@ -215,6 +301,10 @@ export const {
   useUpdateExamMutation,
   useDeleteExamMutation,
   useGetGradingScalesQuery,
+  useGetExamSubjectsQuery,
+  useCreateExamSubjectMutation,
+  useUpdateExamSubjectMutation,
+  useRemoveExamSubjectMutation,
   useSaveMarksBatchMutation,
   useProcessExamResultsMutation,
   useUpsertExamSubjectMutation,
