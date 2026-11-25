@@ -93,6 +93,13 @@ export function formatDateShort(
   locale: 'bn' | 'en'
 ): string {
   if (!dateInput) return '—';
+  if (typeof dateInput === 'string') {
+    const isoDateMatch = /^(\d{4})-(\d{2})-(\d{2})(?:$|[T\s])/.exec(dateInput.trim());
+    if (isoDateMatch && !dateInput.includes('T')) {
+      const out = `${isoDateMatch[3]}/${isoDateMatch[2]}/${isoDateMatch[1]}`;
+      return locale === 'bn' ? toBnDigits(out) : out;
+    }
+  }
   const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
   if (Number.isNaN(d.getTime())) return String(dateInput);
   const dd = String(d.getDate()).padStart(2, '0');
