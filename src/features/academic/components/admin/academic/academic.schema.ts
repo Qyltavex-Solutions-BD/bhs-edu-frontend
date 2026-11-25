@@ -83,7 +83,6 @@ export const classSchema = z.object({
       const num = parseInt(val, 10);
       return !isNaN(num) && num >= 1 && num <= 12;
     }, 'শ্রেণি নম্বর ১ থেকে ১২ এর মধ্যে হতে হবে'),
-  sectionNames: z.string(),
   isActive: z.boolean(),
 });
 

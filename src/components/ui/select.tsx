@@ -124,14 +124,20 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           <RadixSelect.Trigger
             type="button"
             className={cn(
-              'group inline-flex items-center justify-between gap-2.5 w-full h-10 px-3.5 rounded-2xl border border-border bg-surface text-foreground text-sm sm:text-base font-semibold shadow-xs hover:border-[#1C6440]/60 hover:bg-surface-muted/30 focus:outline-none focus:ring-2 focus:ring-[#1C6440]/25 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
+              'group inline-flex items-center justify-between gap-2.5 w-full h-10 px-3.5 rounded-2xl border border-border bg-surface text-foreground text-base font-medium shadow-xs hover:border-[#1C6440]/60 hover:bg-surface-muted/30 focus:outline-none focus:ring-2 focus:ring-[#1C6440]/25 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed',
               disabled && 'opacity-60 cursor-not-allowed'
             )}
             aria-label={props['aria-label']}
           >
             <span className="truncate flex-1 text-left">
-              {displayLabel || (
-                <span className="text-muted-foreground font-normal">{placeholder || '—'}</span>
+              {displayLabel ? (
+                currentOption?.disabled ? (
+                  <span className="text-muted-foreground/50 font-normal">{displayLabel}</span>
+                ) : (
+                  displayLabel
+                )
+              ) : (
+                <span className="text-muted-foreground/50 font-normal">{placeholder || '—'}</span>
               )}
             </span>
             <RadixSelect.Icon asChild>
@@ -155,7 +161,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                       value={encoded}
                       disabled={opt.disabled}
                       className={cn(
-                        'relative flex w-full cursor-pointer select-none items-center justify-between rounded-xl px-3 py-2 text-sm sm:text-base font-medium outline-none transition-colors data-[highlighted]:bg-[#1C6440]/10 data-[highlighted]:text-[#1C6440] data-[state=checked]:bg-[#1C6440]/10 data-[state=checked]:text-[#1C6440] data-[state=checked]:font-bold data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+                        'relative flex w-full cursor-pointer select-none items-center justify-between rounded-xl px-3 py-2 text-base font-medium outline-none transition-colors data-[highlighted]:bg-[#1C6440]/10 data-[highlighted]:text-[#1C6440] data-[state=checked]:bg-[#1C6440]/10 data-[state=checked]:text-[#1C6440] data-[state=checked]:font-bold data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
                         isChecked && 'bg-[#1C6440]/10 text-[#1C6440] font-bold'
                       )}
                     >

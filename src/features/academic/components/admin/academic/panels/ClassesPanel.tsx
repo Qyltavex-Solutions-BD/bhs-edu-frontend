@@ -1,28 +1,33 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Pencil, X } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import {
   useCreateSchoolClassMutation,
+  useGetClassTeachersQuery,
   useGetSchoolClassesQuery,
   useGetSectionsQuery,
   useUpdateSchoolClassMutation,
 } from '@/src/services/academic';
 import { useAppSelector } from '@/src/store/hooks';
-import { Button, Card, FormField, Input, Switch } from '@/src/components/ui';
+import { Button, Card, FormField, Input, Modal, Switch } from '@/src/components/ui';
+import { StatusBadge } from '@/src/components/shared/StatusBadge';
+import type { SchoolClass } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
 import { errorMessage } from './shared';
 import { useAcademicI18n } from '../academic.i18n';
 import { classSchema, type ClassFormValues } from '../academic.schema';
 
+const isUuid = (id?: string | null) =>
+  Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
+
 const defaultValues: ClassFormValues = {
   name: '',
   nameBn: '',
   numericValue: '',
-  sectionNames: '',
   isActive: true,
 };
 
@@ -30,15 +35,20 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
   const { isBn, t, dict } = useAcademicI18n();
   const selectedYearId = useAppSelector((state) => state.ui.selectedAcademicYearId);
 
-  // Live classes and sections from backend
   const { data: realClasses, isLoading: loadingClasses } = useGetSchoolClassesQuery();
   const { data: realSections } = useGetSectionsQuery();
+  const { data: realClassTeachers } = useGetClassTeachersQuery(
+    isUuid(selectedYearId) ? { academicYearId: selectedYearId! } : undefined,
+    { skip: !isUuid(selectedYearId) }
+  );
+
   const classList = realClasses && realClasses.length > 0 ? realClasses : (db?.classes ?? []);
 
   const [createSchoolClass, { isLoading: creating }] = useCreateSchoolClassMutation();
   const [updateSchoolClass, { isLoading: updating }] = useUpdateSchoolClassMutation();
 
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const {
     register,
@@ -58,6 +68,24 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
   const startCreate = () => {
     setEditingId(null);
     reset(defaultValues);
+    setModalOpen(true);
+  };
+
+  const startEdit = (schoolClass: SchoolClass) => {
+    setEditingId(schoolClass.id);
+    reset({
+      name: schoolClass.name,
+      nameBn: schoolClass.nameBn ?? '',
+      numericValue: String(schoolClass.numericValue),
+      isActive: schoolClass.isActive,
+    });
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setEditingId(null);
+    reset(defaultValues);
+    setModalOpen(false);
   };
 
   const onSubmit = async (values: ClassFormValues) => {
@@ -76,21 +104,15 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
         }).unwrap();
         toast.success(t(dict.classes.updateSuccess));
       } else {
-        const sections = (values.sectionNames || '')
-          .split(/[,،\n]/)
-          .map((name) => name.trim())
-          .filter(Boolean);
-
         await createSchoolClass({
           name: trimmedName,
           nameBn: trimmedNameBn,
           numericValue: numVal,
           isActive: values.isActive,
-          sections,
         }).unwrap();
         toast.success(t(dict.classes.createSuccess));
       }
-      startCreate();
+      closeModal();
     } catch (err) {
       toast.error(
         errorMessage(
@@ -102,76 +124,27 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="p-5 space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-bold">
-            {editingId ? t(dict.classes.editTitle) : t(dict.classes.newTitle)}
-          </h3>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-foreground">
+            {isBn ? 'শ্রেণি ব্যবস্থাপনা' : 'Class Management'}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {isBn
+              ? 'প্রতিষ্ঠানের শ্রেণিসমূহ তৈরি ও হালনাগাদ করুন। শাখা যুক্ত করতে পাশের "শাখা" ট্যাব ব্যবহার করুন।'
+              : 'Create and manage classes. Use the "Sections" tab to add or manage sections.'}
+          </p>
         </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
-          <FormField label={t(dict.classes.nameEnLabel)} required error={errors.name?.message}>
-            <Input
-              {...register('name')}
-              placeholder={t(dict.classes.nameEnPlaceholder)}
-            />
-          </FormField>
-
-          <FormField label={t(dict.classes.nameBnLabel)} error={errors.nameBn?.message}>
-            <Input
-              {...register('nameBn')}
-              placeholder={t(dict.classes.nameBnPlaceholder)}
-            />
-          </FormField>
-
-          <FormField label={t(dict.classes.numericLabel)} required error={errors.numericValue?.message}>
-            <Input
-              type="number"
-              min={1}
-              max={12}
-              {...register('numericValue')}
-              placeholder="e.g. 6"
-            />
-          </FormField>
-
-          {!editingId && (
-            <FormField label={t(dict.classes.sectionsLabel)} error={errors.sectionNames?.message}>
-              <Input
-                {...register('sectionNames')}
-                placeholder={t(dict.classes.sectionsPlaceholder)}
-              />
-            </FormField>
-          )}
-
-          <div className="flex items-center gap-2 pb-1">
-            <Switch
-              checked={isActive}
-              onChange={(val) => setValue('isActive', val)}
-              label={t(dict.common.active)}
-            />
-            <Button type="submit" variant="primary" disabled={saving}>
-              {saving
-                ? editingId
-                  ? t(dict.common.updating)
-                  : t(dict.common.saving)
-                : editingId
-                  ? t(dict.common.update)
-                  : t(dict.common.save)}
-            </Button>
-            {editingId && (
-              <Button type="button" variant="outline" onClick={startCreate}>
-                <X className="w-4 h-4 mr-1" />
-                {t(dict.common.cancel)}
-              </Button>
-            )}
-          </div>
-        </form>
-      </Card>
+        <Button type="button" variant="primary" onClick={startCreate}>
+          <Plus className="w-4 h-4" />
+          {t(dict.classes.newTitle)}
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {loadingClasses && classList.length === 0 ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
+          <div className="col-span-full text-center py-8 text-base text-muted-foreground">
             {t(dict.classes.loadingClasses)}
           </div>
         ) : (
@@ -194,48 +167,43 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
                   : '';
 
             return (
-              <Card key={schoolClass.id} className="p-5 space-y-2.5">
+              <Card key={schoolClass.id} className="p-5 space-y-3">
                 <div className="flex items-start justify-between gap-2">
-                  <div>
+                  <div className="space-y-1">
                     <h3 className="text-base font-bold text-primary">
                       {displayName}
                       {secondaryName && (
-                        <span className="text-xs font-normal text-muted-foreground ml-1">
+                        <span className="text-sm font-normal text-muted-foreground ml-1">
                           {secondaryName}
                         </span>
                       )}
                     </h3>
-                    <p className="text-xs text-muted-foreground">
-                      {t(dict.classes.numericBadge)}: {schoolClass.numericValue} ·{' '}
-                      {schoolClass.isActive
-                        ? t(dict.common.active)
-                        : t(dict.common.inactive)}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                      <span>
+                        {t(dict.classes.numericBadge)}: {schoolClass.numericValue}
+                      </span>
+                      <StatusBadge
+                        value={schoolClass.isActive ? 'ACTIVE' : 'INACTIVE'}
+                        customLabel={
+                          schoolClass.isActive ? t(dict.common.active) : t(dict.common.inactive)
+                        }
+                        customTone={schoolClass.isActive ? 'success' : 'neutral'}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEditingId(schoolClass.id);
-                        reset({
-                          name: schoolClass.name,
-                          nameBn: schoolClass.nameBn ?? '',
-                          numericValue: String(schoolClass.numericValue),
-                          sectionNames: '',
-                          isActive: schoolClass.isActive,
-                        });
-                      }}
-                      title={t(dict.common.edit)}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => startEdit(schoolClass)}
+                    title={t(dict.common.edit)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
                 </div>
 
-                <div className="space-y-1.5 text-sm pt-1 border-t border-border/40">
-                  <div className="text-xs font-semibold text-muted-foreground flex justify-between">
+                <div className="space-y-2 pt-2 border-t border-border/40">
+                  <div className="text-sm font-semibold text-muted-foreground flex justify-between">
                     <span>{t(dict.classes.sectionsHeader)}</span>
                     {schoolClass._count?.enrollments !== undefined && (
                       <span>
@@ -244,30 +212,35 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
                     )}
                   </div>
                   {sections.length === 0 && (
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-muted-foreground text-sm">
                       {t(dict.classes.noSections)}
                     </p>
                   )}
                   {sections.map((section) => {
-                    const classTeacher = db?.sectionClassTeachers?.find(
+                    const realCt = realClassTeachers?.find(
+                      (ct) => ct.sectionId === section.id
+                    );
+                    const mockCt = db?.sectionClassTeachers?.find(
                       (assignment) =>
                         assignment.sectionId === section.id &&
                         assignment.academicYearId === selectedYearId
                     );
-                    const teacher = classTeacher
-                      ? db?.staff?.find((member) => member.id === classTeacher.staffId)
+                    const mockTeacher = mockCt
+                      ? db?.staff?.find((member) => member.id === mockCt.staffId)
                       : null;
+                    const teacherName = realCt?.staff?.name ?? mockTeacher?.name ?? '—';
+
                     return (
                       <div
                         key={section.id}
-                        className="flex justify-between items-center p-2 bg-surface-muted/50 rounded text-xs"
+                        className="flex justify-between items-center p-2.5 bg-surface-muted/50 rounded-lg text-sm"
                       >
-                        <span className="font-medium">
+                        <span className="font-medium text-foreground">
                           {t(dict.classes.secPrefix)} {section.name}
                           {!section.isActive ? t(dict.classes.offBadge) : ''}
                         </span>
-                        <span className="text-muted-foreground truncate max-w-[140px]">
-                          {teacher?.name ?? '—'}
+                        <span className="text-muted-foreground truncate max-w-[160px]">
+                          {teacherName}
                         </span>
                       </div>
                     );
@@ -278,6 +251,67 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
           })
         )}
       </div>
+
+      <Modal
+        open={modalOpen}
+        onClose={closeModal}
+        title={editingId ? t(dict.classes.editTitle) : t(dict.classes.newTitle)}
+        description={
+          isBn
+            ? 'শ্রেণির ইংরেজি ও বাংলা নাম এবং ক্রমিক শ্রেণি নম্বর নির্ধারণ করুন।'
+            : 'Configure the class English/Bengali names and numeric value.'
+        }
+        size="md"
+      >
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <FormField label={t(dict.classes.nameEnLabel)} required error={errors.name?.message}>
+            <Input
+              {...register('name')}
+              placeholder={t(dict.classes.nameEnPlaceholder)}
+            />
+          </FormField>
+
+          <FormField label={t(dict.classes.nameBnLabel)} error={errors.nameBn?.message}>
+            <Input
+              {...register('nameBn')}
+              placeholder={t(dict.classes.nameBnPlaceholder)}
+            />
+          </FormField>
+
+          <FormField label={t(dict.classes.numericLabel)} required error={errors.numericValue?.message}>
+            <Input
+              type="number"
+              min={1}
+              max={12}
+              {...register('numericValue')}
+              placeholder={isBn ? 'যেমন: ৬' : 'e.g. 6'}
+            />
+          </FormField>
+
+          <div className="pt-1">
+            <Switch
+              checked={isActive}
+              onChange={(val) => setValue('isActive', val)}
+              label={t(dict.common.active)}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-border">
+            <Button type="button" variant="outline" onClick={closeModal}>
+              {t(dict.common.cancel)}
+            </Button>
+            <Button type="submit" variant="primary" disabled={saving}>
+              {saving
+                ? editingId
+                  ? t(dict.common.updating)
+                  : t(dict.common.saving)
+                : editingId
+                  ? t(dict.common.update)
+                  : t(dict.common.save)}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

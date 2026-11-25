@@ -153,20 +153,20 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
       </div>
 
       <Card className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-surface-muted text-muted-foreground">
+        <table className="w-full text-base">
+          <thead className="bg-surface-muted text-sm text-muted-foreground">
             <tr>
-              <th className="p-3 text-left">{t(dict.catalog.codeColumn)}</th>
-              <th className="p-3 text-left">{t(dict.catalog.subjectColumn)}</th>
-              <th className="p-3 text-left">{t(dict.catalog.categoryColumn)}</th>
-              <th className="p-3 text-left">{t(dict.catalog.statusColumn)}</th>
-              <th className="p-3 text-right">{t(dict.catalog.actionsColumn)}</th>
+              <th className="p-3.5 text-left">{t(dict.catalog.codeColumn)}</th>
+              <th className="p-3.5 text-left">{t(dict.catalog.subjectColumn)}</th>
+              <th className="p-3.5 text-left">{t(dict.catalog.categoryColumn)}</th>
+              <th className="p-3.5 text-left">{t(dict.catalog.statusColumn)}</th>
+              <th className="p-3.5 text-right">{t(dict.catalog.actionsColumn)}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {sortedSubjects.length === 0 ? (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-muted-foreground">
+                <td colSpan={5} className="p-8 text-center text-base text-muted-foreground">
                   {isLoading ? t(dict.common.loading) : t(dict.catalog.emptyCatalog)}
                 </td>
               </tr>
@@ -188,14 +188,14 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
                   : subject.category;
 
                 return (
-                  <tr key={subject.id}>
-                    <td className="p-3 tabular-nums text-muted-foreground">
+                  <tr key={subject.id} className="hover:bg-surface-muted/40 transition-colors">
+                    <td className="p-3.5 tabular-nums text-sm text-muted-foreground">
                       {subject.officialCode || '—'}
                     </td>
-                    <td className="p-3 font-medium">
+                    <td className="p-3.5 font-medium">
                       <span className="text-foreground">{displayName}</span>
                       {secondaryName && (
-                        <span className="text-xs text-muted-foreground ml-1">
+                        <span className="text-sm text-muted-foreground ml-1">
                           {secondaryName}
                         </span>
                       )}

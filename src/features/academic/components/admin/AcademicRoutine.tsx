@@ -1,8 +1,11 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import {
+  AlertTriangle,
+  ArrowRight,
   BookOpen,
   Check,
   CheckCircle,
@@ -28,8 +31,12 @@ import {
   useDeleteClassRoutineMutation,
   useGetTeacherAssignmentsQuery,
   useGetAcademicGroupsQuery,
+  useGetClassTeachersQuery,
   type ClassRoutineSlot,
 } from '@/src/services/academic';
+
+const isUuid = (id?: string) =>
+  Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
 import { useGetStaffQuery } from '@/src/features/staff/api/staff.api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
@@ -146,8 +153,8 @@ export function AcademicRoutine({
 
   // 5. Fetch real Class Subjects for selected class
   const { data: realClassSubjects } = useGetClassSubjectsQuery(
-    schoolClass?.id ? { academicYearId: year.id, classId: schoolClass.id } : undefined,
-    { skip: !schoolClass?.id }
+    schoolClass?.id && isUuid(year?.id) ? { academicYearId: year.id, classId: schoolClass.id } : undefined,
+    { skip: !schoolClass?.id || !isUuid(year?.id) }
   );
   const classSubjects = useMemo(() => {
     if (realClassSubjects && realClassSubjects.length > 0) return realClassSubjects;
@@ -158,8 +165,10 @@ export function AcademicRoutine({
 
   // 6. Fetch real Teacher Assignments
   const { data: realAssignments } = useGetTeacherAssignmentsQuery(
-    effectiveSectionId ? { academicYearId: year.id, sectionId: effectiveSectionId } : undefined,
-    { skip: !effectiveSectionId }
+    effectiveSectionId && isUuid(year?.id)
+      ? { academicYearId: year.id, sectionId: effectiveSectionId }
+      : undefined,
+    { skip: !effectiveSectionId || !isUuid(year?.id) }
   );
   const assignments = useMemo(() => {
     if (realAssignments && realAssignments.length > 0) return realAssignments;
@@ -169,9 +178,16 @@ export function AcademicRoutine({
   }, [realAssignments, db?.teacherAssignments, year.id, effectiveSectionId]);
 
   // 7. Fetch real Class Routines for academic year
-  const { data: realRoutines } = useGetClassRoutinesQuery({
-    academicYearId: year.id,
-  });
+  const { data: realRoutines } = useGetClassRoutinesQuery(
+    isUuid(year?.id) ? { academicYearId: year.id } : undefined,
+    { skip: !isUuid(year?.id) }
+  );
+
+  // 8. Fetch real Class Teachers for academic year
+  const { data: realClassTeachers } = useGetClassTeachersQuery(
+    isUuid(year?.id) ? { academicYearId: year.id } : undefined,
+    { skip: !isUuid(year?.id) }
+  );
 
   const yearRoutines = useMemo(() => {
     if (realRoutines && realRoutines.length > 0) return realRoutines;
@@ -199,12 +215,17 @@ export function AcademicRoutine({
   );
 
   // Class Teacher
+  const realClassTeacherEntry = (realClassTeachers ?? []).find(
+    (row) => row.sectionId === effectiveSectionId && row.academicYearId === year.id
+  );
   const classTeacherRow = (db?.sectionClassTeachers ?? []).find(
     (row) => row.sectionId === effectiveSectionId && row.academicYearId === year.id
   );
-  const classTeacher = classTeacherRow
-    ? teachers.find((member) => member.id === classTeacherRow.staffId)
-    : null;
+  const classTeacher = realClassTeacherEntry?.staff
+    ? realClassTeacherEntry.staff
+    : classTeacherRow
+      ? teachers.find((member) => member.id === classTeacherRow.staffId)
+      : null;
 
   const today = getTodayWeekDay();
 
@@ -808,21 +829,21 @@ export function AcademicRoutine({
     const gName = grp.name || '';
     if (gName === 'Science') {
       return (
-        <span className="font-bold text-[11px] text-sky-600 dark:text-sky-400 shrink-0" title="বিজ্ঞান বিভাগ">
+        <span className="font-bold text-xs text-sky-600 dark:text-sky-400 shrink-0" title="বিজ্ঞান বিভাগ">
           [বি]
         </span>
       );
     }
     if (gName === 'Humanities') {
       return (
-        <span className="font-bold text-[11px] text-purple-600 dark:text-purple-400 shrink-0" title="মানবিক বিভাগ">
+        <span className="font-bold text-xs text-purple-600 dark:text-purple-400 shrink-0" title="মানবিক বিভাগ">
           [মা]
         </span>
       );
     }
     if (gName === 'Business Studies') {
       return (
-        <span className="font-bold text-[11px] text-amber-600 dark:text-amber-400 shrink-0" title="ব্যবসায় শিক্ষা বিভাগ">
+        <span className="font-bold text-xs text-amber-600 dark:text-amber-400 shrink-0" title="ব্যবসায় শিক্ষা বিভাগ">
           [বা]
         </span>
       );
@@ -830,7 +851,7 @@ export function AcademicRoutine({
 
     const initial = (grp.nameBn || grp.name || '').charAt(0);
     return (
-      <span className="font-bold text-[11px] text-muted-foreground shrink-0">
+      <span className="font-bold text-xs text-muted-foreground shrink-0">
         [{initial}]
       </span>
     );
@@ -969,7 +990,7 @@ export function AcademicRoutine({
                       </span>
                       {teacherName && teacherName !== '—' && (
                         <span
-                          className="text-[11px] text-muted-foreground leading-none truncate shrink-0 max-w-[100px]"
+                          className="text-xs text-muted-foreground leading-none truncate shrink-0 max-w-[100px]"
                           title={teacherName}
                         >
                           ({teacherName})
@@ -979,7 +1000,7 @@ export function AcademicRoutine({
 
                     {/* Right: Clean Short Room Number */}
                     {roomDisplay && (
-                      <span className="text-[10px] font-medium text-muted-foreground shrink-0 tabular-nums">
+                      <span className="text-xs font-medium text-muted-foreground shrink-0 tabular-nums">
                         {roomDisplay}
                       </span>
                     )}
@@ -996,7 +1017,7 @@ export function AcademicRoutine({
                   e.stopPropagation();
                   openQuickAdd(day, period);
                 }}
-                className="mt-1 w-full py-0.5 text-[9px] text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1 border-t border-dashed border-border/40 cursor-pointer no-print"
+                className="mt-1 w-full py-0.5 text-xs text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1 border-t border-dashed border-border/40 cursor-pointer no-print"
                 title={pick('অন্য বিভাগ যুক্ত করুন', 'Add another department')}
               >
                 <Plus className="w-2.5 h-2.5" />
@@ -1097,7 +1118,7 @@ export function AcademicRoutine({
               {slot.isBreak ? pick('বিরতি', 'Break') : subName}
             </p>
             {grpLabel && (
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-primary/10 text-primary border border-primary/20">
+              <span className="px-1.5 py-0.2 rounded text-xs font-bold bg-primary/10 text-primary border border-primary/20">
                 {grpLabel}
               </span>
             )}
@@ -1256,6 +1277,61 @@ export function AcademicRoutine({
         </div>
       </Card>
 
+      {/* Prerequisite Setup Guidance Banner */}
+      {viewMode === 'section' &&
+        schoolClass &&
+        (classSubjects.length === 0 || assignments.length === 0) && (
+          <div className="no-print rounded-[var(--radius)] border border-amber-500/30 bg-amber-500/5 px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="text-sm font-semibold text-foreground">
+                  {classSubjects.length === 0
+                    ? pick(
+                        `${schoolClass.nameBn || schoolClass.name} শ্রেণিতে এখনো কোনো বিষয় যুক্ত করা হয়নি`,
+                        `No subjects configured yet for ${schoolClass.name}`
+                      )
+                    : pick(
+                        `${schoolClass.nameBn || schoolClass.name} (${section?.name ?? ''}) শাখায় এখনো বিষয়ভিত্তিক শিক্ষক বণ্টন করা হয়নি`,
+                        `No subject-teacher assignments found yet for ${schoolClass.name} (${section?.name ?? ''})`
+                      )}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {classSubjects.length === 0
+                    ? pick(
+                        'সহজে রুটিন তৈরি করতে আগে ধাপ ৩-এ গিয়ে এই শ্রেণির বিষয়গুলো নির্ধারণ করুন।',
+                        'Configure subjects for this class in Step 3 first for smooth routine scheduling.'
+                      )
+                    : pick(
+                        'ধাপ ৪-এ গিয়ে বিষয়ভিত্তিক শিক্ষক নির্ধারণ করলে রুটিন তৈরির সময় শিক্ষক স্বয়ংক্রিয়ভাবে সিলেক্ট হবে।',
+                        'Assigning teachers in Step 4 auto-selects teachers when scheduling periods.'
+                      )}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {classSubjects.length === 0 && (
+                <Link
+                  href="/admin/academic/class-subjects"
+                  className="inline-flex items-center gap-1.5 rounded-[var(--radius)] bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  {pick('ধাপ ৩: বিষয় যুক্ত করুন', 'Step 3: Add Subjects')}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              )}
+              {assignments.length === 0 && (
+                <Link
+                  href="/admin/academic/teacher-assignments"
+                  className="inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-surface-muted transition-colors"
+                >
+                  {pick('ধাপ ৪: শিক্ষক বণ্টন করুন', 'Step 4: Assign Teachers')}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
       {/* Add / Update Period Modal */}
       <Modal
         open={composerOpen}
@@ -1290,7 +1366,7 @@ export function AcademicRoutine({
                 {section?.name || 'ক'}
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                <p className="text-xs font-bold uppercase tracking-wider text-primary">
                   {pick('নির্বাচিত শ্রেণি ও শাখা', 'SELECTED SECTION')}
                 </p>
                 <p className="text-sm font-bold text-foreground">
@@ -1299,7 +1375,7 @@ export function AcademicRoutine({
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[10px] uppercase font-bold text-muted-foreground">
+              <p className="text-xs uppercase font-bold text-muted-foreground">
                 {pick('ডিফল্ট কক্ষ', 'Default Room')}
               </p>
               <p className="text-xs font-semibold text-foreground">
@@ -1397,7 +1473,7 @@ export function AcademicRoutine({
                   <p className="text-xs font-semibold text-foreground">
                     {pick('টিফিন বা সাধারণ বিরতি?', 'Break or Tiffin Slot?')}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     {pick('বিরতি নির্বাচন করলে বিষয় ও শিক্ষক নির্বাচনের প্রয়োজন নেই।', 'Break periods do not require subject or teacher.')}
                   </p>
                 </div>
@@ -1503,7 +1579,7 @@ export function AcademicRoutine({
               {/* 1. Science Group Card */}
               <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.03] dark:bg-emerald-500/[0.06] space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-emerald-600 text-white tracking-wide">
+                  <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-600 text-white tracking-wide">
                     {pick('বিজ্ঞান বিভাগ (SCIENCE GROUP)', 'SCIENCE GROUP')}
                   </span>
                   <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
@@ -1577,7 +1653,7 @@ export function AcademicRoutine({
               {/* 2. Humanities / Arts Group Card */}
               <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/[0.03] dark:bg-amber-500/[0.06] space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-amber-600 text-white tracking-wide">
+                  <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-amber-600 text-white tracking-wide">
                     {pick('মানবিক বিভাগ (HUMANITIES / ARTS GROUP)', 'ARTS / HUMANITIES GROUP')}
                   </span>
                   <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
@@ -1651,7 +1727,7 @@ export function AcademicRoutine({
               {/* 3. Commerce / Business Studies Group Card */}
               <div className="p-3.5 rounded-xl border border-sky-500/30 bg-sky-500/[0.03] dark:bg-sky-500/[0.06] space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded text-[11px] font-bold bg-sky-600 text-white tracking-wide">
+                  <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-sky-600 text-white tracking-wide">
                     {pick('ব্যবসায় শিক্ষা বিভাগ (COMMERCE / BUSINESS STUDIES GROUP)', 'COMMERCE / BUSINESS STUDIES GROUP')}
                   </span>
                   <span className="text-xs font-semibold text-sky-600 dark:text-sky-400">
