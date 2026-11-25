@@ -13,10 +13,17 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  useDeleteExamSubjectMutation,
-  useGetBootstrapQuery,
-  useUpsertExamSubjectMutation,
+  useCreateExamSubjectMutation,
+  useGetExamsQuery,
+  useGetExamSubjectsQuery,
+  useRemoveExamSubjectMutation,
+  useUpdateExamSubjectMutation,
 } from '@/src/store/api';
+import {
+  useGetAcademicGroupsQuery,
+  useGetSchoolClassesQuery,
+  useGetSubjectsQuery,
+} from '@/src/services/academic';
 import {
   ConfirmDialog,
   LoadingSkeleton,
@@ -31,9 +38,15 @@ import { getEnumMeta } from '@/src/lib/constants/enums';
 import type { ExamSubject } from '@/src/types/entities';
 
 export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: string }) {
-  const { data: db, isLoading } = useGetBootstrapQuery();
-  const [upsertSubject, { isLoading: saving }] = useUpsertExamSubjectMutation();
-  const [deleteSubject] = useDeleteExamSubjectMutation();
+  const { data: examsData, isLoading: examsLoading } = useGetExamsQuery({ limit: 100 });
+  const { data: classesList = [], isLoading: classesLoading } = useGetSchoolClassesQuery();
+  const { data: subjectsList = [], isLoading: subjectsLoading } = useGetSubjectsQuery();
+  const { data: groupsList = [] } = useGetAcademicGroupsQuery();
+
+  const [createExamSubject, { isLoading: creating }] = useCreateExamSubjectMutation();
+  const [updateExamSubject, { isLoading: updating }] = useUpdateExamSubjectMutation();
+  const [removeExamSubject] = useRemoveExamSubjectMutation();
+  const saving = creating || updating;
 
   const [selectedExamId, setSelectedExamId] = useState(initialExamId ?? '');
   const [modalOpen, setModalOpen] = useState(false);
@@ -61,8 +74,8 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
   });
 
   const activeExams = useMemo(
-    () => (db ? db.exams.filter((e) => !e.isDeleted) : []),
-    [db]
+    () => (examsData?.items ?? []).filter((e) => !e.isDeleted),
+    [examsData]
   );
 
   const resolvedExamId =
@@ -72,16 +85,20 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
 
   const activeExam = activeExams.find((e) => e.id === resolvedExamId) ?? null;
 
+  const { data: examSubjectsRaw = [], isLoading: subjectsConfigLoading } =
+    useGetExamSubjectsQuery(activeExam?.id ?? '', { skip: !activeExam?.id });
+
   const examSubjects = useMemo(() => {
-    if (!db || !activeExam) return [];
-    return db.examSubjects
-      .filter((es) => es.examId === activeExam.id)
-      .sort((a, b) => a.displayOrder - b.displayOrder);
-  }, [db, activeExam]);
+    return [...examSubjectsRaw].sort((a, b) => a.displayOrder - b.displayOrder);
+  }, [examSubjectsRaw]);
 
-  if (isLoading || !db) return <LoadingSkeleton rows={6} />;
+  if (examsLoading || classesLoading || subjectsLoading || (activeExam && subjectsConfigLoading)) {
+    return <LoadingSkeleton rows={6} />;
+  }
 
-  const activeClass = activeExam ? db.classes.find((c) => c.id === activeExam.classId) : null;
+  const activeClass = activeExam
+    ? activeExam.schoolClass ?? classesList.find((c) => c.id === activeExam.classId) ?? null
+    : null;
   const isClassNineTen = (activeClass?.numericValue ?? 0) >= 9;
 
   const totalFullMarks = examSubjects.reduce((s, x) => s + x.fullMarks, 0);
@@ -98,7 +115,7 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
 
   const openAddModal = () => {
     const usedIds = new Set(examSubjects.map((es) => es.subjectId));
-    const nextSubject = db.subjects.find((s) => !usedIds.has(s.id)) ?? db.subjects[0];
+    const nextSubject = subjectsList.find((s) => !usedIds.has(s.id)) ?? subjectsList[0];
     setEditingEs(null);
     setForm({
       subjectId: nextSubject?.id ?? '',
@@ -156,11 +173,8 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
       return;
     }
 
-    const res = await upsertSubject({
-      id: editingEs?.id,
-      examId: activeExam.id,
-      subjectId: form.subjectId,
-      groupId: isClassNineTen && form.groupId ? form.groupId : null,
+    const commonPayload = {
+      groupId: isClassNineTen && form.groupId ? form.groupId : undefined,
       fullMarks: Number(form.fullMarks),
       passMarks: Number(form.passMarks),
       hasWritten: form.hasWritten,
@@ -173,29 +187,50 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
       practicalFullMarks: form.hasPractical ? Number(form.practicalFullMarks) : 0,
       practicalPassMarks: form.hasPractical ? Number(form.practicalPassMarks) : 0,
       hasContinuousAssessment: form.hasContinuousAssessment,
-      continuousAssessmentFullMarks: form.hasContinuousAssessment ? Number(form.continuousAssessmentFullMarks) : 0,
-      continuousAssessmentPassMarks: form.hasContinuousAssessment ? Number(form.continuousAssessmentPassMarks) : 0,
+      continuousAssessmentFullMarks: form.hasContinuousAssessment
+        ? Number(form.continuousAssessmentFullMarks)
+        : 0,
+      continuousAssessmentPassMarks: form.hasContinuousAssessment
+        ? Number(form.continuousAssessmentPassMarks)
+        : 0,
       isOptional: form.isOptional,
-    });
+    };
 
-    if ('error' in res) {
-      const msg = (res.error as { message?: string })?.message;
-      toast.error(msg || 'বিষয় সংরক্ষণ ব্যর্থ হয়েছে।');
-      return;
+    try {
+      if (editingEs) {
+        await updateExamSubject({
+          examId: activeExam.id,
+          subjectConfigId: editingEs.id,
+          body: commonPayload,
+        }).unwrap();
+      } else {
+        await createExamSubject({
+          examId: activeExam.id,
+          body: {
+            subjectId: form.subjectId,
+            ...commonPayload,
+          },
+        }).unwrap();
+      }
+      toast.success('পরীক্ষার বিষয় কাঠামো সংরক্ষিত হয়েছে।');
+      setModalOpen(false);
+    } catch (err: any) {
+      const msg = err?.data?.message || err?.message;
+      toast.error(Array.isArray(msg) ? msg.join(', ') : msg || 'বিষয় সংরক্ষণ ব্যর্থ হয়েছে।');
     }
-
-    toast.success('পরীক্ষার বিষয় কাঠামো সংরক্ষিত হয়েছে।');
-    setModalOpen(false);
   };
 
   const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return;
-    const res = await deleteSubject({ id: deleteTarget.id });
-    if ('error' in res) {
-      const msg = (res.error as { message?: string })?.message;
-      toast.error(msg || 'মুছা সম্ভব হয়নি।');
-    } else {
+    if (!deleteTarget || !activeExam) return;
+    try {
+      await removeExamSubject({
+        examId: activeExam.id,
+        subjectConfigId: deleteTarget.id,
+      }).unwrap();
       toast.success('বিষয়টি পরীক্ষা থেকে অপসারণ করা হয়েছে।');
+    } catch (err: any) {
+      const msg = err?.data?.message || err?.message;
+      toast.error(Array.isArray(msg) ? msg.join(', ') : msg || 'মুছা সম্ভব হয়নি।');
     }
     setDeleteTarget(null);
   };
@@ -317,14 +352,14 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
 
       <DataTable
         data={examSubjects.map((es) => {
-          const sub = db.subjects.find((s) => s.id === es.subjectId);
-          const grp = es.groupId ? db.academicGroups.find((g) => g.id === es.groupId) : null;
+          const sub = es.subject ?? subjectsList.find((s) => s.id === es.subjectId);
+          const grp = es.group ?? (es.groupId ? groupsList.find((g) => g.id === es.groupId) : null);
           return {
             es,
             id: es.id,
             subjectName: sub?.nameBn || sub?.name || '—',
             subjectCode: sub?.officialCode ?? '—',
-            groupLabel: grp ? (grp.nameBn) : 'সকল বিভাগ',
+            groupLabel: grp ? (grp.nameBn || grp.name) : 'সকল বিভাগ',
             fullMarks: es.fullMarks,
           };
         })}
@@ -543,9 +578,9 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
                 disabled={Boolean(editingEs)}
                 onChange={(e) => setForm({ ...form, subjectId: e.target.value })}
               >
-                {db.subjects.map((s) => (
+                {subjectsList.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.nameBn} ({s.officialCode})
+                    {s.nameBn || s.name} {s.officialCode ? `(${s.officialCode})` : ''}
                   </option>
                 ))}
               </Select>
@@ -561,9 +596,9 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
                   onChange={(e) => setForm({ ...form, groupId: e.target.value })}
                 >
                   <option value="">{'সকল বিভাগের জন্য (কমন)'}</option>
-                  {db.academicGroups.map((g) => (
+                  {groupsList.map((g) => (
                     <option key={g.id} value={g.id}>
-                      {g.nameBn}
+                      {g.nameBn || g.name}
                     </option>
                   ))}
                 </Select>
