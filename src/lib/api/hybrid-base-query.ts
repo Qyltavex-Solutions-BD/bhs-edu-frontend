@@ -183,7 +183,12 @@ export const hybridBaseQuery: BaseQueryFn<ApiRequest, unknown, ApiError> = async
   let result = await realApiQuery(request, api, extraOptions);
 
   // Reactive silent refresh on 401 Unauthorized, then transparently retry original request.
-  if (result.error?.status === 401 && !isPublicAuthRequest) {
+  // Note: /auth/change-password can return 401/400 for wrong current password without meaning the JWT expired.
+  if (
+    result.error?.status === 401 &&
+    !isPublicAuthRequest &&
+    !request.url.startsWith('/auth/change-password')
+  ) {
     const refreshed = await silentRefreshSession(api, extraOptions);
     if (refreshed) {
       result = await realApiQuery(request, api, extraOptions);

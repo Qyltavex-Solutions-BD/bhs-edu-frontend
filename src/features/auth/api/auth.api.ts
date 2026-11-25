@@ -13,6 +13,75 @@ export interface LoginResponseData {
     permissions: string[];
   };
 }
+
+export interface AuthProfileStaff {
+  id: string;
+  employeeId?: string | null;
+  name: string;
+  designation: string;
+  qualification?: string | null;
+  staffType: string;
+  phone?: string | null;
+  email?: string | null;
+  presentAddress?: string | null;
+  permanentAddress?: string | null;
+  emergencyContact?: string | null;
+  joiningDate?: string | null;
+  department?: { id: string; name: string; code?: string | null } | null;
+}
+
+export interface AuthProfileParent {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string | null;
+  occupation?: string | null;
+  address?: string | null;
+  students?: Array<{
+    id: string;
+    relationship?: string | null;
+    student: {
+      id: string;
+      studentId?: string | null;
+      nameEn?: string | null;
+      nameBn?: string | null;
+    };
+  }>;
+}
+
+export interface AuthProfileData {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  isActive: boolean;
+  roles: string[];
+  permissions: string[];
+  staff: AuthProfileStaff | null;
+  parent: AuthProfileParent | null;
+  createdAt: string;
+}
+
+export interface UpdateProfilePayload {
+  name?: string;
+  phone?: string;
+  qualification?: string;
+  presentAddress?: string;
+  permanentAddress?: string;
+  emergencyContact?: string;
+  occupation?: string;
+  address?: string;
+}
+
+export interface ActiveSessionItem {
+  id: string;
+  userAgent: string;
+  ipAddress: string;
+  createdAt: string;
+  lastActiveAt: string;
+  isCurrent: boolean;
+}
+
 export interface RegisterPayload {
   name: string;
   email: string;
@@ -43,7 +112,7 @@ export const authApi = baseApi.injectEndpoints({
     loginUser: builder.mutation<LoginResponseData, LoginPayload>({
       query: (body) => ({ url: '/auth/login', method: 'POST', body }),
       transformResponse: unwrap<LoginResponseData>,
-      invalidatesTags: ['Bootstrap'],
+      invalidatesTags: ['Bootstrap', 'AuthProfile', 'AuthSessions'],
     }),
     refreshSession: builder.mutation<LoginResponseData, void>({
       query: () => ({ url: '/auth/refresh', method: 'POST', body: {} }),
@@ -52,9 +121,32 @@ export const authApi = baseApi.injectEndpoints({
     logoutUser: builder.mutation<void, void>({
       query: () => ({ url: '/auth/logout', method: 'POST', body: {} }),
     }),
-    getAuthProfile: builder.query<unknown, void>({
+    getAuthProfile: builder.query<AuthProfileData, void>({
       query: () => ({ url: '/auth/me', method: 'GET' }),
-      transformResponse: unwrap<unknown>,
+      transformResponse: unwrap<AuthProfileData>,
+      providesTags: ['AuthProfile'],
+    }),
+    updateAuthProfile: builder.mutation<AuthProfileData, UpdateProfilePayload>({
+      query: (body) => ({ url: '/auth/me', method: 'PATCH', body }),
+      transformResponse: unwrap<AuthProfileData>,
+      invalidatesTags: ['AuthProfile'],
+    }),
+    getAuthSessions: builder.query<ActiveSessionItem[], void>({
+      query: () => ({ url: '/auth/sessions', method: 'GET' }),
+      transformResponse: unwrap<ActiveSessionItem[]>,
+      providesTags: ['AuthSessions'],
+    }),
+    revokeAuthSession: builder.mutation<void, string>({
+      query: (sessionId) => ({
+        url: `/auth/sessions/${encodeURIComponent(sessionId)}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['AuthSessions'],
+    }),
+    revokeOtherAuthSessions: builder.mutation<{ revokedCount: number }, void>({
+      query: () => ({ url: '/auth/sessions', method: 'DELETE' }),
+      transformResponse: unwrap<{ revokedCount: number }>,
+      invalidatesTags: ['AuthSessions'],
     }),
     registerUser: builder.mutation<
       { userId: string; email: string; isVerified: boolean },
@@ -92,6 +184,10 @@ export const {
   useRefreshSessionMutation,
   useLogoutUserMutation,
   useGetAuthProfileQuery,
+  useUpdateAuthProfileMutation,
+  useGetAuthSessionsQuery,
+  useRevokeAuthSessionMutation,
+  useRevokeOtherAuthSessionsMutation,
   useRegisterUserMutation,
   useVerifyOtpMutation,
   useResendOtpMutation,
@@ -99,4 +195,3 @@ export const {
   useResetPasswordMutation,
   useChangePasswordMutation,
 } = authApi;
-
