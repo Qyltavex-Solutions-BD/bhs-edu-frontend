@@ -384,6 +384,7 @@ export function ResetPasswordPage() {
   const router = useRouter();
   const [token, setToken] = useState('');
   const [pass, setPass] = useState('');
+  const [showPass, setShowPass] = useState(false);
   const [resetPasswordApi, { isLoading: resetting }] = useResetPasswordMutation();
 
   const handleReset = async (e: React.FormEvent) => {
@@ -424,13 +425,24 @@ export function ResetPasswordPage() {
             />
           </FormField>
           <FormField label={pick('নতুন পাসওয়ার্ড', 'New Password')} required>
-            <Input
-              type="password"
-              value={pass}
-              onChange={(e) => setPass(e.target.value)}
-              placeholder="••••••••"
-              required
-            />
+            <div className="relative">
+              <Input
+                type={showPass ? 'text' : 'password'}
+                value={pass}
+                onChange={(e) => setPass(e.target.value)}
+                placeholder="••••••••"
+                className="pr-10"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass((v) => !v)}
+                aria-label={pick('পাসওয়ার্ড দেখুন বা লুকান', 'Toggle password visibility')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </FormField>
           <Button type="submit" variant="primary" className="w-full" disabled={resetting}>
             {resetting ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save Password')}

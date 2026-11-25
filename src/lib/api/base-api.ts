@@ -3,6 +3,8 @@ import { hybridBaseQuery } from './hybrid-base-query';
 
 export const apiTagTypes = [
   'Bootstrap',
+  'AuthProfile',
+  'AuthSessions',
   'Institution',
   'Students',
   'Staff',
