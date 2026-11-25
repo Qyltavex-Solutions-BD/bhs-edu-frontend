@@ -33,6 +33,7 @@ interface AdminDashboardWidgetsProps {
   pendingActions: DashboardPendingAction[];
   onDismissAction: (id: string) => void;
   notices: Notice[];
+  noticesLoading?: boolean;
   auditLogs: AuditLog[];
   locale: 'bn' | 'en';
   pick: (bn: string, en: string) => string;
@@ -42,6 +43,7 @@ export function AdminDashboardWidgets({
   pendingActions,
   onDismissAction,
   notices,
+  noticesLoading = false,
   auditLogs,
   locale,
   pick,
@@ -137,17 +139,33 @@ export function AdminDashboardWidgets({
           </div>
 
           <div className="divide-y divide-border/60">
-            {notices.slice(0, 4).map((n) => (
-              <div key={n.id} className="py-3 flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-base font-semibold text-foreground truncate">{n.title}</p>
-                  <p className="text-sm text-muted-foreground tabular-nums mt-0.5">
-                    {formatDateShort(n.createdAt, (locale === 'bn' ? 'bn' : 'en'))}
-                  </p>
+            {noticesLoading ? (
+              Array.from({ length: 5 }).map((_, idx) => (
+                <div key={idx} className="py-3 flex items-start justify-between gap-3 animate-pulse">
+                  <div className="space-y-1.5 flex-1">
+                    <div className="h-4 w-3/4 rounded bg-surface-muted" />
+                    <div className="h-3 w-24 rounded bg-surface-muted" />
+                  </div>
+                  <div className="h-5 w-16 rounded-full bg-surface-muted shrink-0" />
                 </div>
-                <StatusBadge enumName="NoticeStatus" value={n.status} />
+              ))
+            ) : notices.length === 0 ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                {pick('এখনো কোনো নোটিশ প্রকাশ করা হয়নি।', 'No notices published yet.')}
               </div>
-            ))}
+            ) : (
+              notices.slice(0, 5).map((n) => (
+                <div key={n.id} className="py-3 flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-base font-semibold text-foreground truncate">{n.title}</p>
+                    <p className="text-sm text-muted-foreground tabular-nums mt-0.5">
+                      {formatDateShort(n.createdAt, (locale === 'bn' ? 'bn' : 'en'))}
+                    </p>
+                  </div>
+                  <StatusBadge enumName="NoticeStatus" value={n.status} />
+                </div>
+              ))
+            )}
           </div>
         </div>
 

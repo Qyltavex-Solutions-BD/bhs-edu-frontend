@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { SchoolEmblem } from '@/src/components/shared/Feedback';
 import { Button } from '@/src/components/ui/primitives';
-import type { AppRole } from '@/src/store/slices/authSlice';
 
 interface PortalStudentDisabledScreenProps {
   pick: (bn: string, en: string) => string;
@@ -35,45 +34,6 @@ export function PortalStudentDisabledScreen({ pick }: PortalStudentDisabledScree
           </Link>
           <Link href="/">
             <Button variant="ghost">{pick('হোমপেজ', 'Home')}</Button>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface PortalLoginRequiredScreenProps {
-  pick: (bn: string, en: string) => string;
-}
-
-export function PortalLoginRequiredScreen({
-  pick,
-}: PortalLoginRequiredScreenProps) {
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-surface border border-border rounded-[var(--radius)] p-7 space-y-4 text-center">
-        <div className="flex justify-center">
-          <SchoolEmblem size={52} />
-        </div>
-        <h1 className="text-xl font-bold text-foreground">
-          {pick('এই পোর্টালে প্রবেশ করতে লগইন প্রয়োজন', 'Sign In Required for This Portal')}
-        </h1>
-        <p className="text-base text-muted-foreground leading-relaxed">
-          {pick(
-            'আপনি অনুমোদিত ভূমিকা দিয়ে সাইন ইন করে পোর্টালটি ব্যবহার করতে পারেন। ডেমো সেশন শুধুমাত্র প্রদর্শনের জন্য।',
-            'Please sign in with an authorized account for this portal.'
-          )}
-        </p>
-        <div className="flex flex-col gap-2 pt-2">
-          <Link href="/login">
-            <Button variant="outline" className="w-full">
-              {pick('লগইন পৃষ্ঠায় যান', 'Go to Login Page')}
-            </Button>
-          </Link>
-          <Link href="/">
-            <Button variant="ghost" className="w-full">
-              {pick('পাবলিক ওয়েবসাইটে ফিরুন', 'Return to Public Website')}
-            </Button>
           </Link>
         </div>
       </div>

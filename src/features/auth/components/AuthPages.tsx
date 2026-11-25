@@ -32,12 +32,14 @@ import {
 import { useI18n } from '@/src/lib/i18n';
 import { SchoolEmblem } from '@/src/components/shared/Feedback';
 import { Button, Card, FormField, Input } from '@/src/components/ui/primitives';
+import { DemoLoginCards, type DemoAccount } from './DemoLoginCards';
 
 export function LoginPage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { locale, pick } = useI18n();
   const [showPass, setShowPass] = useState(false);
+  const [activeDemoRole, setActiveDemoRole] = useState<DemoAccount['key'] | null>(null);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -46,11 +48,11 @@ export function LoginPage() {
 
   const [loginApi, { isLoading: isLoggingIn }] = useLoginUserMutation();
 
-  const onSubmit = async (values: LoginFormValues) => {
+  const performLogin = async (email: string, password: string) => {
     try {
       const res = await loginApi({
-        email: values.identifier.trim(),
-        password: values.password,
+        email: email.trim(),
+        password,
       }).unwrap();
 
       const roles = res.user?.roles || [];
@@ -71,7 +73,6 @@ export function LoginPage() {
             email: res.user.email,
             phone: res.user.phone,
             role,
-            isDemoSession: false,
           },
           role,
           permissions: res.user.permissions ?? [],
@@ -95,6 +96,25 @@ export function LoginPage() {
           'Login failed. Please check your email/phone and password.'
         );
       toast.error(errorMsg);
+    }
+  };
+
+  const onSubmit = async (values: LoginFormValues) => {
+    await performLogin(values.identifier, values.password);
+  };
+
+  const handleDemoLogin = async (
+    email: string,
+    password: string,
+    roleKey: DemoAccount['key']
+  ) => {
+    setActiveDemoRole(roleKey);
+    form.setValue('identifier', email);
+    form.setValue('password', password);
+    try {
+      await performLogin(email, password);
+    } finally {
+      setActiveDemoRole(null);
     }
   };
 
@@ -274,6 +294,12 @@ export function LoginPage() {
                 </Button>
               </form>
             </Card>
+
+            <DemoLoginCards
+              onSelectAccount={handleDemoLogin}
+              isLoading={isLoggingIn}
+              activeRole={activeDemoRole}
+            />
 
             <p className="text-center text-sm text-muted-foreground">
               {pick('অ্যাকাউন্ট সহায়তার জন্য ', 'Need help signing in? ')}
