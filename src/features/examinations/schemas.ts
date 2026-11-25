@@ -1,16 +1,24 @@
 import { z } from 'zod';
 import { ExamStatus, ExamType, ResultPublicationStatus } from '@/src/types/enums';
 
+export const ALLOWED_EXAM_TYPES = [
+  ExamType.HALF_YEARLY,
+  ExamType.ANNUAL,
+  ExamType.SELECTION,
+] as const;
+
 export const examCreateSchema = z
   .object({
     academicYearId: z.string().min(1, 'শিক্ষাবর্ষ নির্বাচন করুন'),
-    classId: z.string().min(1, 'শ্রেণি নির্বাচন করুন'),
+    classIds: z.array(z.string().min(1)).min(1, 'কমপক্ষে একটি শ্রেণি নির্বাচন করুন'),
     gradingScaleId: z.string().min(1, 'গ্রেডিং স্কেল নির্বাচন করুন'),
     name: z
       .string()
       .min(2, 'পরীক্ষার নাম কমপক্ষে ২ অক্ষরের হতে হবে')
       .max(150, 'পরীক্ষার নাম সর্বোচ্চ ১৫০ অক্ষরের হতে পারে'),
-    examType: z.nativeEnum(ExamType),
+    examType: z.enum(ALLOWED_EXAM_TYPES, {
+      message: 'শুধুমাত্র অর্ধবার্ষিক, বার্ষিক বা নির্বাচনী পরীক্ষা নির্বাচন করা যাবে',
+    }),
     startDate: z
       .string()
       .min(10, 'শুরুর তারিখ দিন')
@@ -42,7 +50,11 @@ export const examUpdateSchema = z
       .min(2, 'পরীক্ষার নাম কমপক্ষে ২ অক্ষরের হতে হবে')
       .max(150, 'পরীক্ষার নাম সর্বোচ্চ ১৫০ অক্ষরের হতে পারে')
       .optional(),
-    examType: z.nativeEnum(ExamType).optional(),
+    examType: z
+      .enum(ALLOWED_EXAM_TYPES, {
+        message: 'শুধুমাত্র অর্ধবার্ষিক, বার্ষিক বা নির্বাচনী পরীক্ষা নির্বাচন করা যাবে',
+      })
+      .optional(),
     gradingScaleId: z.string().min(1).optional(),
     startDate: z
       .string()
@@ -80,7 +92,7 @@ export const examQuerySchema = z.object({
   academicYearId: z.string().optional(),
   classId: z.string().optional(),
   status: z.nativeEnum(ExamStatus).optional(),
-  examType: z.nativeEnum(ExamType).optional(),
+  examType: z.enum(ALLOWED_EXAM_TYPES).optional(),
   resultStatus: z.nativeEnum(ResultPublicationStatus).optional(),
   search: z.string().optional(),
   isDeleted: z.boolean().optional(),

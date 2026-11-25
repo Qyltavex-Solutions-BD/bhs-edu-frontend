@@ -178,9 +178,9 @@ export const ENUM_LABELS: Record<string, Record<string, EnumMeta>> = {
     MULTIMEDIA_CONTENT: { bn: 'মাল্টিমিডিয়া কন্টেন্ট', en: 'Multimedia Content', tone: 'warning' },
   },
   ResultPublicationStatus: {
-    DRAFT: { bn: 'খসড়া (অপ্রকাশিত)', en: 'Draft', tone: 'warning' },
+    DRAFT: { bn: 'অপ্রকাশিত', en: 'Unpublished', tone: 'warning' },
     PUBLISHED: { bn: 'প্রকাশিত', en: 'Published', tone: 'success' },
-    WITHHELD: { bn: 'স্থগিত (Withheld)', en: 'Withheld', tone: 'destructive' },
+    WITHHELD: { bn: 'স্থগিত', en: 'Withheld', tone: 'destructive' },
   },
   ResultStatus: {
     PASS: { bn: 'উত্তীর্ণ (PASS)', en: 'PASS', tone: 'success' },
