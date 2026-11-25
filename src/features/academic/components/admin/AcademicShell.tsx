@@ -30,7 +30,6 @@ const SUB_TAB_GROUPS: SubLink[][] = [
   ],
   [
     { href: '/admin/academic/documents', labelBn: 'সিলেবাস', labelEn: 'Syllabus' },
-    { href: '/admin/academic/policies', labelBn: 'নীতিমালা', labelEn: 'Policies' },
   ],
 ];
 

@@ -351,14 +351,16 @@ export function PortalNoticesView({
                         )}
                       </div>
                     </td>
-                    <td className="p-3.5 text-sm text-muted-foreground tabular-nums">
-                      {n.memoNo || '—'}
+                    <td className="p-3.5 text-sm text-muted-foreground">
+                      <span className="tabular-nums">{n.memoNo || '—'}</span>
                     </td>
                     <td className="p-3.5">
                       <div className="flex flex-wrap gap-1.5">{renderAudienceBadges(n)}</div>
                     </td>
-                    <td className="whitespace-nowrap p-3.5 text-sm text-muted-foreground tabular-nums">
-                      {formatDateShort(n.publishedAt ?? n.createdAt, locale)}
+                    <td className="whitespace-nowrap p-3.5 text-sm text-muted-foreground">
+                      <span className="tabular-nums">
+                        {formatDateShort(n.publishedAt ?? n.createdAt, locale)}
+                      </span>
                     </td>
                     <td className="p-3.5 text-right">
                       <Button
