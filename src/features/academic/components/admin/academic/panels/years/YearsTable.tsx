@@ -37,7 +37,7 @@ export function YearsTable({
           cell: ({ row }) => {
             const year = row.original;
             return (
-              <div className="flex items-center gap-2 font-semibold text-foreground tabular-nums whitespace-nowrap">
+              <div className="flex items-center gap-2 text-base font-semibold text-foreground tabular-nums whitespace-nowrap">
                 <Calendar className="w-4 h-4 text-primary shrink-0" />
                 <span>{toBnYearText(year.name)}</span>
               </div>
@@ -50,7 +50,7 @@ export function YearsTable({
           cell: ({ row }) => {
             const year = row.original;
             return (
-              <span className="text-sm text-muted-foreground tabular-nums whitespace-nowrap">
+              <span className="text-base text-muted-foreground tabular-nums whitespace-nowrap">
                 {formatDateShort(year.startDate, 'bn')} — {formatDateShort(year.endDate, 'bn')}
               </span>
             );
@@ -119,7 +119,7 @@ export function YearsTable({
             />
           </div>
 
-          <div className="text-xs text-muted-foreground tabular-nums bg-surface-muted/50 rounded-md px-3 py-2">
+          <div className="text-sm text-muted-foreground tabular-nums bg-surface-muted/50 rounded-md px-3 py-2">
             <span className="block font-medium text-foreground/80 mb-0.5">সময়সীমা</span>
             <span>
               {formatDateShort(year.startDate, 'bn')} — {formatDateShort(year.endDate, 'bn')}

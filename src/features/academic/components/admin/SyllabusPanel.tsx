@@ -13,6 +13,7 @@ import {
 } from '@/src/services/academic';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort } from '@/src/lib/formatters';
+import { ConfirmDialog } from '@/src/components/shared/Feedback';
 import { Button, Card, FormField, Input, Modal, Select, Switch } from '@/src/components/ui/primitives';
 import type { AcademicYear } from '@/src/types/entities';
 
@@ -43,6 +44,7 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
   const [description, setDescription] = useState('');
   const [isPublished, setIsPublished] = useState(true);
   const [file, setFile] = useState<File | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SyllabusFileRecord | null>(null);
 
   useEffect(() => {
     if (classes.length > 0 && !classId) {
@@ -95,13 +97,16 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
     }
   };
 
-  const handleDelete = async (item: SyllabusFileRecord) => {
-    if (!window.confirm(pick('সিলেবাস ফাইলটি মুছে ফেলবেন?', 'Delete this syllabus file?'))) {
-      return;
-    }
+  const handleDelete = (item: SyllabusFileRecord) => {
+    setDeleteTarget(item);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteSyllabus(item.id).unwrap();
+      await deleteSyllabus(deleteTarget.id).unwrap();
       toast.success(pick('সিলেবাস মুছে ফেলা হয়েছে।', 'Syllabus deleted.'));
+      setDeleteTarget(null);
     } catch (err: any) {
       toast.error(err?.message || pick('মুছে ফেলা যায়নি।', 'Could not delete syllabus.'));
     }
@@ -305,9 +310,23 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
               {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
               {uploading ? pick('আপলোড হচ্ছে...', 'Uploading...') : pick('আপলোড করুন', 'Upload Syllabus')}
             </Button>
-          </div>
-        </form>
-      </Modal>
+            </div>
+          </form>
+        </Modal>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title={pick('সিলেবাস মুছে ফেলুন', 'Delete Syllabus')}
+        description={pick(
+          `আপনি কি নিশ্চিতভাবে "${deleteTarget?.title ?? ''}" সিলেবাস ফাইলটি মুছে ফেলতে চান?`,
+          `Are you sure you want to delete "${deleteTarget?.title ?? ''}"?`,
+        )}
+        confirmLabel={pick('মুছে ফেলুন', 'Delete')}
+        destructive
+        loading={deleting}
+      />
     </div>
   );
 }

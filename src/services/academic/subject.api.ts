@@ -24,6 +24,22 @@ export interface UpdateSubjectPayload {
 export interface QuerySubjectParams {
   search?: string;
   classId?: string;
+  category?: SubjectCategory;
+  isActive?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedSubjectsResponse {
+  items: Subject[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
 }
 
 export const subjectApi = schoolApi.injectEndpoints({
@@ -36,7 +52,33 @@ export const subjectApi = schoolApi.injectEndpoints({
       }),
       transformResponse: (response: any) => {
         const raw = response?.data ?? response;
+        if (raw && Array.isArray(raw.items)) return raw.items;
         return Array.isArray(raw) ? raw : [];
+      },
+      providesTags: ['Academic'],
+    }),
+
+    getSubjectsPaginated: builder.query<PaginatedSubjectsResponse, QuerySubjectParams>({
+      query: (params) => ({
+        url: '/academic/subjects',
+        method: 'GET',
+        params: { page: 1, limit: 12, ...params },
+      }),
+      transformResponse: (response: any): PaginatedSubjectsResponse => {
+        const raw = response?.data ?? response;
+        if (raw && Array.isArray(raw.items)) return raw;
+        const items = Array.isArray(raw) ? raw : [];
+        return {
+          items,
+          meta: {
+            total: items.length,
+            page: 1,
+            limit: items.length || 12,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        };
       },
       providesTags: ['Academic'],
     }),
@@ -88,6 +130,7 @@ export const subjectApi = schoolApi.injectEndpoints({
 
 export const {
   useGetSubjectsQuery,
+  useGetSubjectsPaginatedQuery,
   useGetSubjectByIdQuery,
   useCreateSubjectMutation,
   useUpdateSubjectMutation,

@@ -13,10 +13,9 @@ import {
   StaffStatus,
   StaffType,
 } from '@/src/types/enums';
-import type { MockDatabase } from '@/src/mocks/seed';
+import type { StaffWorkspace } from '../api/staff.api';
 import type { Staff } from '@/src/types/entities';
 
-const ADMIN_DEPARTMENT_IDS = new Set(['dept-adm', 'dept-acc', 'dept-lib', 'dept-sec', 'dept-lab']);
 
 function errorMessage(err: unknown, fallback: string) {
   return (err as { message?: string })?.message || fallback;
@@ -29,7 +28,7 @@ export function StaffFormModal({
   member,
   defaultType,
 }: {
-  db: MockDatabase;
+  db: StaffWorkspace;
   open: boolean;
   onClose: () => void;
   member: Staff | null;
@@ -41,16 +40,16 @@ export function StaffFormModal({
   const blank = {
     employeeId: '',
     name: '',
-    nameBn: '',
     designation: '',
     qualification: '',
     staffType: defaultType as string,
     departmentId: '',
+    staffStructureId: '',
     employmentType: EmploymentType.PERMANENT as string,
     phone: '',
     email: '',
     nid: '',
-    joiningDate: new Date().toISOString().slice(0, 10),
+    joiningDate: '',
     status: StaffStatus.ACTIVE as string,
     leavingDate: '',
     gender: '',
@@ -71,20 +70,20 @@ export function StaffFormModal({
         ? {
             employeeId: member.employeeId ?? '',
             name: member.name,
-            nameBn: member.nameBn ?? '',
             designation: member.designation,
             qualification: member.qualification ?? '',
             staffType: member.staffType,
             departmentId: member.departmentId ?? '',
+            staffStructureId: member.staffStructureId ?? '',
             employmentType: member.employmentType,
             phone: member.phone ?? '',
             email: member.email ?? '',
             nid: member.nid ?? '',
-            joiningDate: member.joiningDate ?? '',
+            joiningDate: member.joiningDate?.slice(0, 10) ?? '',
             status: member.status,
-            leavingDate: member.leavingDate ?? '',
+            leavingDate: member.leavingDate?.slice(0, 10) ?? '',
             gender: member.gender ?? '',
-            dateOfBirth: member.dateOfBirth ?? '',
+            dateOfBirth: member.dateOfBirth?.slice(0, 10) ?? '',
             bloodGroup: member.bloodGroup ?? '',
             fatherName: member.fatherName ?? '',
             motherName: member.motherName ?? '',
@@ -98,8 +97,17 @@ export function StaffFormModal({
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    const { leavingDate, ...values } = form;
     const body = {
-      ...form,
+      ...values,
+      name: form.name.trim(),
+      designation: form.designation.trim(),
+      employeeId: form.employeeId.trim() || undefined,
+      email: form.email.trim() || null,
+      nid: form.nid.trim() || null,
+      joiningDate: form.joiningDate || null,
+      dateOfBirth: form.dateOfBirth || null,
+      staffStructureId: form.staffStructureId || null,
       departmentId: form.departmentId || null,
       gender: (form.gender || null) as Gender | null,
       bloodGroup: (form.bloodGroup || null) as BloodGroup | null,
@@ -108,7 +116,7 @@ export function StaffFormModal({
       status: form.status as StaffStatus,
     };
     try {
-      if (member) await updateStaff({ id: member.id, ...body }).unwrap();
+      if (member) await updateStaff({ id: member.id, ...body, ...(leavingDate ? { leavingDate } : {}) }).unwrap();
       else await createStaff(body).unwrap();
       toast.success(pick('স্টাফ সংরক্ষিত হয়েছে।', 'Staff member saved.'));
       onClose();
@@ -120,45 +128,46 @@ export function StaffFormModal({
   return (
     <Modal open={open} onClose={onClose} title={member ? pick('প্রোফাইল সম্পাদনা', 'Edit profile') : pick('নতুন স্টাফ', 'Add staff')} maxWidth="max-w-3xl">
       <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FormField label={pick('ইংরেজি নাম', 'Name in English')} required>
-          <Input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
-        </FormField>
-        <FormField label={pick('বাংলা নাম', 'Name in Bangla')}>
-          <Input value={form.nameBn} onChange={(event) => setForm({ ...form, nameBn: event.target.value })} />
+        <FormField label={pick('পূর্ণ নাম', 'Full name')} required>
+          <Input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
         </FormField>
         <FormField label={pick('স্টাফ আইডি', 'Staff ID')}>
           <Input value={form.employeeId} onChange={(event) => setForm({ ...form, employeeId: event.target.value })} />
         </FormField>
         <FormField label={pick('পদবি', 'Designation')} required>
-          <Input value={form.designation} onChange={(event) => setForm({ ...form, designation: event.target.value })} />
+          <Input required disabled={Boolean(form.staffStructureId)} value={form.designation} onChange={(event) => setForm({ ...form, designation: event.target.value })} />
         </FormField>
         <FormField label={pick('ধরন', 'Type')} required>
-          <Select value={form.staffType} onChange={(event) => setForm({ ...form, staffType: event.target.value })}>
+          <Select disabled={Boolean(form.staffStructureId)} value={form.staffType} onChange={(event) => setForm({ ...form, staffType: event.target.value })}>
             <option value={StaffType.TEACHER}>{pick('শিক্ষক', 'Teacher')}</option>
             <option value={StaffType.OFFICER}>{pick('কর্মকর্তা', 'Officer')}</option>
             <option value={StaffType.EMPLOYEE}>{pick('কর্মচারী', 'Employee')}</option>
           </Select>
         </FormField>
         <FormField label={pick('বিভাগ', 'Department')}>
-          <Select value={form.departmentId} onChange={(event) => setForm({ ...form, departmentId: event.target.value })}>
+          <Select disabled={Boolean(form.staffStructureId)} value={form.departmentId} onChange={(event) => setForm({ ...form, departmentId: event.target.value })}>
             <option value="">{pick('নেই', 'None')}</option>
-            {form.staffType === StaffType.TEACHER ? (
-              <optgroup label={pick('একাডেমিক বিভাগ', 'Academic Departments')}>
-                {db.departments
-                  .filter((item) => (!ADMIN_DEPARTMENT_IDS.has(item.id) || item.id === 'dept-adm') && (item.status === DepartmentStatus.ACTIVE || item.id === form.departmentId))
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>{item.name}</option>
-                  ))}
-              </optgroup>
-            ) : (
-              <optgroup label={pick('প্রশাসনিক ও সেবা শাখা', 'Administrative & Support Branches')}>
-                {db.departments
-                  .filter((item) => ADMIN_DEPARTMENT_IDS.has(item.id) && (item.status === DepartmentStatus.ACTIVE || item.id === form.departmentId))
-                  .map((item) => (
-                    <option key={item.id} value={item.id}>{item.name}</option>
-                  ))}
-              </optgroup>
-            )}
+            {db.departments
+              .filter((item) => item.status === DepartmentStatus.ACTIVE || item.id === form.departmentId)
+              .map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </Select>
+        </FormField>
+        <FormField label={pick('অনুমোদিত পদ', 'Sanctioned post')}>
+          <Select value={form.staffStructureId} onChange={(event) => {
+            const id = event.target.value;
+            const post = db.staffStructures.find((item) => item.id === id);
+            setForm(post ? {
+              ...form,
+              staffStructureId: id,
+              designation: post.designation,
+              staffType: post.staffType,
+              departmentId: post.departmentId ?? '',
+            } : { ...form, staffStructureId: '' });
+          }}>
+            <option value="">{pick('নেই', 'None')}</option>
+            {db.staffStructures
+              .filter((item) => item.isActive || item.id === form.staffStructureId)
+              .map((item) => <option key={item.id} value={item.id}>{item.designation}</option>)}
           </Select>
         </FormField>
         <FormField label={pick('নিয়োগ', 'Employment')}>

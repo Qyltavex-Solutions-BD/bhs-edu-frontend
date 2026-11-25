@@ -1,46 +1,34 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { useSaveStaffStructureMutation, useToggleArchiveMutation } from '@/src/store/api';
+import { useSaveStaffStructureMutation, useArchiveStaffStructureMutation } from '../api/staff.api';
 import { useI18n } from '@/src/lib/i18n';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, FormField, Input, Modal, Select } from '@/src/components/ui/primitives';
-import { StaffStatus, StaffType } from '@/src/types/enums';
+import { StaffType } from '@/src/types/enums';
 import { deptName } from './StaffDepartments';
-import type { MockDatabase } from '@/src/mocks/seed';
+import type { StaffWorkspace } from '../api/staff.api';
 import type { StaffStructure } from '@/src/types/entities';
 
-const ADMIN_DEPARTMENT_IDS = new Set(['dept-adm', 'dept-acc', 'dept-lib', 'dept-sec', 'dept-lab']);
 
 function errorMessage(err: unknown, fallback: string) {
   return (err as { message?: string })?.message || fallback;
 }
 
-export function StaffPosts({ db }: { db: MockDatabase }) {
+export function StaffPosts({ db }: { db: StaffWorkspace }) {
   const { pick } = useI18n();
   const [savePost, { isLoading }] = useSaveStaffStructureMutation();
-  const [toggleArchive, { isLoading: archiving }] = useToggleArchiveMutation();
+  const [toggleArchive, { isLoading: archiving }] = useArchiveStaffStructureMutation();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<StaffStructure | null>(null);
   const [form, setForm] = useState({ designation: '', staffType: StaffType.TEACHER as string, departmentId: '', totalPositions: '1' });
 
-  const rows = useMemo(
-    () =>
-      db.staffStructures.map((structure) => ({
-        ...structure,
-        department: deptName(db, structure.departmentId),
-        filled: db.staff.filter(
-          (member) =>
-            member.status === StaffStatus.ACTIVE &&
-            member.staffType === structure.staffType &&
-            member.designation.trim().toLowerCase() === structure.designation.trim().toLowerCase() &&
-            (member.departmentId ?? null) === (structure.departmentId ?? null)
-        ).length,
-      })),
-    [db]
-  );
+  const rows = db.staffStructures.map((structure) => ({
+    ...structure,
+    department: deptName(db, structure.departmentId),
+  }));
 
   const start = (structure: StaffStructure | null) => {
     setEditing(structure);
@@ -58,7 +46,7 @@ export function StaffPosts({ db }: { db: MockDatabase }) {
     try {
       await savePost({
         id: editing?.id,
-        designation: form.designation,
+        designation: form.designation.trim(),
         staffType: form.staffType as StaffType,
         departmentId: form.departmentId || null,
         totalPositions: Number(form.totalPositions),
@@ -76,13 +64,13 @@ export function StaffPosts({ db }: { db: MockDatabase }) {
         <Button variant="primary" size="sm" onClick={() => start(null)}>{pick('নতুন পদ', 'New post')}</Button>
       </div>
       <DataTable
-        data={rows.filter((row) => !row.isDeleted)}
+        data={rows}
         exportFilename="posts.csv"
         columns={[
           { accessorKey: 'designation', header: pick('পদবি', 'Designation') },
           { accessorKey: 'department', header: pick('বিভাগ', 'Department') },
           { accessorKey: 'staffType', header: pick('ধরন', 'Type'), cell: ({ row }) => <StatusBadge enumName="StaffType" value={row.original.staffType} /> },
-          { accessorKey: 'filled', header: pick('পূরণ', 'Filled') },
+          { accessorKey: 'filledPositions', header: pick('পূরণ', 'Filled') },
           { accessorKey: 'totalPositions', header: pick('আসন', 'Posts') },
           {
             id: 'edit',
@@ -96,7 +84,7 @@ export function StaffPosts({ db }: { db: MockDatabase }) {
                   disabled={archiving}
                   onClick={async () => {
                     try {
-                      await toggleArchive({ collection: 'staffStructures', id: row.original.id }).unwrap();
+                      await toggleArchive(row.original.id).unwrap();
                       toast.success(pick('পদ আর্কাইভ হয়েছে।', 'Post archived.'));
                     } catch (err) {
                       toast.error(errorMessage(err, pick('আর্কাইভ হয়নি।', 'Could not archive the post.')));
@@ -113,7 +101,7 @@ export function StaffPosts({ db }: { db: MockDatabase }) {
       <Modal open={open} onClose={() => setOpen(false)} title={editing ? pick('পদ সম্পাদনা', 'Edit post') : pick('নতুন পদ', 'New post')}>
         <form onSubmit={submit} className="space-y-4">
           <FormField label={pick('পদবি', 'Designation')} required>
-            <Input value={form.designation} onChange={(event) => setForm({ ...form, designation: event.target.value })} />
+            <Input required value={form.designation} onChange={(event) => setForm({ ...form, designation: event.target.value })} />
           </FormField>
           <FormField label={pick('ধরন', 'Type')}>
             <Select value={form.staffType} onChange={(event) => setForm({ ...form, staffType: event.target.value })}>
@@ -125,24 +113,10 @@ export function StaffPosts({ db }: { db: MockDatabase }) {
           <FormField label={pick('বিভাগ', 'Department')}>
             <Select value={form.departmentId} onChange={(event) => setForm({ ...form, departmentId: event.target.value })}>
               <option value="">{pick('সাধারণ', 'General')}</option>
-              {form.staffType === StaffType.TEACHER ? (
-                <optgroup label={pick('একাডেমিক বিভাগ', 'Academic Departments')}>
-                  {db.departments
-                    .filter((item) => !ADMIN_DEPARTMENT_IDS.has(item.id) || item.id === 'dept-adm')
-                    .map((item) => (
-                      <option key={item.id} value={item.id}>{item.name}</option>
-                    ))}
-                </optgroup>
-              ) : (
-                <optgroup label={pick('প্রশাসনিক ও সেবা শাখা', 'Administrative & Support Branches')}>
-                  {db.departments
-                    .filter((item) => ADMIN_DEPARTMENT_IDS.has(item.id))
-                    .map((item) => (
-                      <option key={item.id} value={item.id}>{item.name}</option>
-                    ))}
-                </optgroup>
-              )}
-            </Select>
+              {db.departments.map((item) => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </Select>
           </FormField>
           <FormField label={pick('আসন সংখ্যা', 'Number of posts')} required>
             <Input type="number" min={1} value={form.totalPositions} onChange={(event) => setForm({ ...form, totalPositions: event.target.value })} />

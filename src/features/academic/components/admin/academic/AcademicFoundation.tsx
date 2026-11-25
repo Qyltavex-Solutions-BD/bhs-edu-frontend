@@ -86,7 +86,5 @@ export function AcademicFoundation({
   db?: MockDatabase;
 }) {
   if (tab === 'years') return <YearsPanel years={db?.academicYears} />;
-  if (tab === 'groups') return <GroupsPanel groups={db?.academicGroups} />;
-  if (tab === 'classes') return <ClassesPanel db={db} />;
-  return <SectionsPanel db={db} />;
+  return <ClassesPanel db={db} />;
 }

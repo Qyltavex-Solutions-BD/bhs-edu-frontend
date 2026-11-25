@@ -23,6 +23,7 @@ import {
   useGetAcademicGroupsQuery,
   useGetAcademicYearsQuery,
   useGetBooksQuery,
+  useGetClassSubjectsPaginatedQuery,
   useGetClassSubjectsQuery,
   useGetSchoolClassesQuery,
   useGetSubjectsQuery,
@@ -30,6 +31,7 @@ import {
   useToggleClassSubjectActiveMutation,
   useUpdateClassSubjectMutation,
 } from '@/src/services/academic';
+import { ConfirmDialog } from '@/src/components/shared/Feedback';
 import { Button, Card, FormField, Input, Modal, Select, Switch } from '@/src/components/ui';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { formatNumber } from '@/src/lib/formatters';
@@ -41,6 +43,9 @@ import {
   assignClassSubjectSchema,
   type AssignClassSubjectFormValues,
 } from '../academic.schema';
+
+const isUuid = (val?: string) =>
+  Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 
 export function ClassSubjectsPanel({
   db,
@@ -83,9 +88,24 @@ export function ClassSubjectsPanel({
   const [typeFilter, setTypeFilter] = useState<'all' | 'compulsory' | 'optional'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [page, setPage] = useState<number>(1);
   const [fromYearId, setFromYearId] = useState<string>('');
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [rolloverModalOpen, setRolloverModalOpen] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<ClassSubject | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [selectedYearId, selectedClassId, groupFilter, typeFilter, statusFilter]);
 
   // Synchronize selectedYearId with real years from backend database
   useEffect(() => {
@@ -128,35 +148,49 @@ export function ClassSubjectsPanel({
     }
   }, [yearList, selectedYearId, fromYearId]);
 
-  // Class subjects query for this year & selected class (GET API Integration)
+  const currentClass = classList.find((c) => c.id === selectedClassId);
+  const usesGroup = (currentClass?.numericValue ?? 0) >= 9;
+
+  // Paginated backend query for the main table
   const {
-    data: realClassSubjects,
+    data: paginatedClassSubjects,
     isLoading: loadingClassSubjects,
     isFetching: fetchingClassSubjects,
     refetch: refetchClassSubjects,
-  } = useGetClassSubjectsQuery(
-    selectedYearId
-      ? selectedClassId
-        ? { academicYearId: selectedYearId, classId: selectedClassId }
-        : { academicYearId: selectedYearId }
-      : undefined,
-    { skip: !selectedYearId }
+  } = useGetClassSubjectsPaginatedQuery(
+    {
+      academicYearId: selectedYearId,
+      classId: selectedClassId,
+      page,
+      limit: 15,
+      ...(usesGroup && groupFilter !== 'all' && groupFilter !== 'common'
+        ? { groupId: groupFilter }
+        : {}),
+      ...(typeFilter !== 'all' ? { isOptional: typeFilter === 'optional' } : {}),
+      ...(statusFilter !== 'all' ? { isActive: statusFilter === 'active' } : {}),
+      ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    },
+    { skip: !isUuid(selectedYearId) || !isUuid(selectedClassId) }
   );
 
-  // When real API responds, use realClassSubjects directly (even if [] for an empty class), else fallback to mock
-  const rawList: ClassSubject[] =
-    realClassSubjects !== undefined
-      ? realClassSubjects
-      : (db?.classSubjects ?? []);
+  // Full list for duplicate check in Add Modal
+  const { data: realClassSubjects } = useGetClassSubjectsQuery(
+    selectedYearId && selectedClassId
+      ? { academicYearId: selectedYearId, classId: selectedClassId }
+      : undefined,
+    { skip: !isUuid(selectedYearId) || !isUuid(selectedClassId) }
+  );
 
-  // All class subjects for selected academic year and class
-  const classSubjectsAll = useMemo(() => {
-    return (rawList || []).filter((item) => {
-      const matchYear = selectedYearId ? item.academicYearId === selectedYearId : true;
-      const matchClass = selectedClassId ? item.classId === selectedClassId : true;
-      return matchYear && matchClass;
-    });
-  }, [rawList, selectedYearId, selectedClassId]);
+  const classSubjectsAll: ClassSubject[] = realClassSubjects ?? [];
+  const paginatedItems: ClassSubject[] = paginatedClassSubjects?.items ?? [];
+  const csMeta = paginatedClassSubjects?.meta ?? {
+    total: 0,
+    page: 1,
+    limit: 15,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  };
 
   // Mutations
   const [assignSubject, { isLoading: assigning }] = useAssignClassSubjectMutation();
@@ -164,9 +198,6 @@ export function ClassSubjectsPanel({
   const [toggleActive] = useToggleClassSubjectActiveMutation();
   const [rollover, { isLoading: copying }] = useRolloverClassSubjectsMutation();
   const [deleteSubject, { isLoading: removing }] = useDeleteClassSubjectMutation();
-
-  const currentClass = classList.find((c) => c.id === selectedClassId);
-  const usesGroup = (currentClass?.numericValue ?? 0) >= 9;
 
   // React Hook Form for assigning subject
   const {
@@ -223,7 +254,7 @@ export function ClassSubjectsPanel({
   // Set of already assigned subject IDs for current class & selected group
   const assignedSubjectIdsForCurrentGroup = useMemo(() => {
     return new Set(
-      rawList
+      classSubjectsAll
         .filter(
           (item) =>
             (!selectedYearId || item.academicYearId === selectedYearId) &&
@@ -232,12 +263,12 @@ export function ClassSubjectsPanel({
         )
         .map((item) => item.subjectId)
     );
-  }, [rawList, selectedYearId, selectedClassId, usesGroup, formGroupId]);
+  }, [classSubjectsAll, selectedYearId, selectedClassId, usesGroup, formGroupId]);
 
   // Books prescribed for the selected class (from the Books catalog)
   const { data: realBooks } = useGetBooksQuery(
     selectedClassId ? { classId: selectedClassId } : undefined,
-    { skip: !selectedClassId }
+    { skip: !isUuid(selectedClassId) }
   );
 
   const booksForSelectedClass = useMemo(() => {
@@ -284,33 +315,11 @@ export function ClassSubjectsPanel({
 
   // Filtered and sorted class subjects for the table
   const filteredSubjects = useMemo(() => {
-    return classSubjectsAll
-      .filter((item) => {
-        if (!usesGroup || groupFilter === 'all') return true;
-        if (groupFilter === 'common') return !item.groupId;
-        return item.groupId === groupFilter;
-      })
-      .filter((item) => {
-        if (typeFilter === 'compulsory') return !item.isOptional;
-        if (typeFilter === 'optional') return item.isOptional;
-        return true;
-      })
-      .filter((item) => {
-        if (statusFilter === 'active') return item.isActive;
-        if (statusFilter === 'inactive') return !item.isActive;
-        return true;
-      })
-      .filter((item) => {
-        if (!searchQuery.trim()) return true;
-        const q = searchQuery.toLowerCase().trim();
-        const resolved = resolveSubject(item);
-        const matchTitle = (resolved.displayTitle || '').toLowerCase().includes(q);
-        const matchSub = (resolved.subtitle || '').toLowerCase().includes(q);
-        const matchCode = usesGroup && (resolved.code || '').toLowerCase().includes(q);
-        return matchTitle || matchSub || matchCode;
-      })
-      .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
-  }, [classSubjectsAll, usesGroup, groupFilter, typeFilter, statusFilter, searchQuery, subjectList, isBn]);
+    if (usesGroup && groupFilter === 'common') {
+      return paginatedItems.filter((item) => !item.groupId);
+    }
+    return paginatedItems;
+  }, [paginatedItems, usesGroup, groupFilter]);
 
   const hasActiveFilters =
     groupFilter !== 'all' ||
@@ -323,6 +332,7 @@ export function ClassSubjectsPanel({
     setTypeFilter('all');
     setStatusFilter('all');
     setSearchQuery('');
+    setPage(1);
   };
 
   const onAssign = async (values: AssignClassSubjectFormValues) => {
@@ -367,18 +377,16 @@ export function ClassSubjectsPanel({
     }
   };
 
-  const handleRemove = async (item: ClassSubject) => {
-    const resolved = resolveSubject(item);
-    const confirmPrompt = isBn
-      ? `আপনি কি নিশ্চিতভাবে '${resolved.displayTitle}' বিষয়টিকে পাঠ্যক্রম থেকে সরাতে চান?`
-      : `Are you sure you want to remove '${resolved.displayTitle}' from this curriculum?`;
+  const handleRemove = (item: ClassSubject) => {
+    setRemoveTarget(item);
+  };
 
-    if (!window.confirm(confirmPrompt)) {
-      return;
-    }
+  const confirmRemove = async () => {
+    if (!removeTarget) return;
     try {
-      await deleteSubject(item.id).unwrap();
+      await deleteSubject(removeTarget.id).unwrap();
       toast.success(t(dict.classSubjects.removeSuccess));
+      setRemoveTarget(null);
     } catch (err) {
       toast.error(errorMessage(err, t(dict.classSubjects.removeFailed)));
     }
@@ -404,20 +412,15 @@ export function ClassSubjectsPanel({
 
   return (
     <div className="space-y-5">
-      {/* 1. Clean Header & Action Buttons */}
+      {/* 1. Guidance & Action Buttons (no duplicate title) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold text-foreground">
-            {isBn ? 'শ্রেণিভিত্তিক বিষয় ও পাঠ্যক্রম' : 'Class Subjects & Curriculum'}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {usesGroup
-              ? t(dict.classSubjects.streamGuidance910)
-              : t(dict.classSubjects.streamGuidanceGeneral)}
-          </p>
-        </div>
+        <p className="text-base text-muted-foreground">
+          {usesGroup
+            ? t(dict.classSubjects.streamGuidance910)
+            : t(dict.classSubjects.streamGuidanceGeneral)}
+        </p>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
             type="button"
             variant="outline"
@@ -755,6 +758,36 @@ export function ClassSubjectsPanel({
         </table>
       </Card>
 
+      {csMeta.total > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+          <span>
+            {isBn
+              ? `মোট ${formatNumber(csMeta.total, 'bn')} টি বিষয় · পৃষ্ঠা ${formatNumber(csMeta.page, 'bn')} / ${formatNumber(csMeta.totalPages, 'bn')}`
+              : `Total ${csMeta.total} subjects · Page ${csMeta.page} / ${csMeta.totalPages}`}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!csMeta.hasPreviousPage || fetchingClassSubjects}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              {isBn ? 'পূর্ববর্তী' : 'Previous'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!csMeta.hasNextPage || fetchingClassSubjects}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              {isBn ? 'পরবর্তী' : 'Next'}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* 4. Add Subject Modal */}
       <Modal
         open={addModalOpen}
@@ -881,6 +914,23 @@ export function ClassSubjectsPanel({
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={Boolean(removeTarget)}
+        onClose={() => setRemoveTarget(null)}
+        onConfirm={confirmRemove}
+        title={isBn ? 'বিষয় সরিয়ে ফেলুন' : 'Remove Subject'}
+        description={
+          removeTarget
+            ? isBn
+              ? `আপনি কি নিশ্চিতভাবে '${resolveSubject(removeTarget).displayTitle}' বিষয়টিকে পাঠ্যক্রম থেকে সরাতে চান?`
+              : `Are you sure you want to remove '${resolveSubject(removeTarget).displayTitle}' from this curriculum?`
+            : ''
+        }
+        confirmLabel={isBn ? 'সরিয়ে ফেলুন' : 'Remove'}
+        destructive
+        loading={removing}
+      />
     </div>
   );
 }

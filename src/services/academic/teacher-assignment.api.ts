@@ -24,8 +24,21 @@ export interface QueryTeacherAssignmentParams {
   sectionId?: string;
   classSubjectId?: string;
   isActive?: boolean;
+  search?: string;
   page?: number;
   limit?: number;
+}
+
+export interface PaginatedTeacherAssignmentsResponse {
+  items: TeacherAssignmentItem[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
 }
 
 export interface TeacherAssignmentItem {
@@ -77,7 +90,34 @@ export const teacherAssignmentApi = schoolApi.injectEndpoints({
       }),
       transformResponse: (response: any) => {
         const raw = response?.data ?? response;
+        if (raw && Array.isArray(raw.items)) return raw.items;
         return Array.isArray(raw) ? raw : [];
+      },
+      providesTags: ['Academic'],
+    }),
+
+    getTeacherAssignmentsPaginated: builder.query<
+      PaginatedTeacherAssignmentsResponse,
+      QueryTeacherAssignmentParams
+    >({
+      query: (params) => ({
+        url: '/academic/teacher-assignments',
+        method: 'GET',
+        params: { page: 1, limit: 15, ...params },
+      }),
+      transformResponse: (response: any): PaginatedTeacherAssignmentsResponse => {
+        const raw = response?.data ?? response;
+        if (raw && Array.isArray(raw.items)) return raw;
+        const items = Array.isArray(raw) ? raw : [];
+        const meta = response?.meta ?? {
+          total: items.length,
+          page: 1,
+          limit: items.length || 15,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        };
+        return { items, meta };
       },
       providesTags: ['Academic'],
     }),
@@ -125,6 +165,7 @@ export const teacherAssignmentApi = schoolApi.injectEndpoints({
 
 export const {
   useGetTeacherAssignmentsQuery,
+  useGetTeacherAssignmentsPaginatedQuery,
   useAssignTeacherMutation,
   useUpdateTeacherAssignmentMutation,
   useReleaseTeacherAssignmentMutation,

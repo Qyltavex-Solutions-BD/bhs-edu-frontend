@@ -1,18 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import {
   useCreateSubjectMutation,
   useDeleteSubjectMutation,
-  useGetSubjectsQuery,
+  useGetSubjectsPaginatedQuery,
   useUpdateSubjectMutation,
 } from '@/src/services/academic';
+import { ConfirmDialog } from '@/src/components/shared/Feedback';
 import { Button, Card, FormField, Input, Modal, Select, Switch, Textarea } from '@/src/components/ui';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
+import { formatNumber } from '@/src/lib/formatters';
 import { SubjectCategory } from '@/src/types/enums';
 import type { Subject } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
@@ -29,14 +31,39 @@ const defaultValues: SubjectFormValues = {
   isActive: true,
 };
 
-export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
-  const { isBn, t, dict } = useAcademicI18n();
+export function SubjectCatalogPanel({ db: _db }: { db?: MockDatabase }) {
+  const { isBn, locale, t, dict } = useAcademicI18n();
 
-  const { data: realSubjects, isLoading } = useGetSubjectsQuery();
-  const subjectList: Subject[] =
-    realSubjects && realSubjects.length > 0
-      ? realSubjects
-      : (db?.subjects ?? []);
+  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [deleteTarget, setDeleteTarget] = useState<Subject | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const { data: paginatedSubjects, isLoading, isFetching } = useGetSubjectsPaginatedQuery({
+    page,
+    limit: 12,
+    ...(debouncedSearch ? { search: debouncedSearch } : {}),
+    ...(categoryFilter !== 'all' ? { category: categoryFilter as SubjectCategory } : {}),
+  });
+
+  const subjectList: Subject[] = paginatedSubjects?.items ?? [];
+  const meta = paginatedSubjects?.meta ?? {
+    total: 0,
+    page: 1,
+    limit: 12,
+    totalPages: 1,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  };
 
   const [createSubject, { isLoading: creating }] = useCreateSubjectMutation();
   const [updateSubject, { isLoading: updating }] = useUpdateSubjectMutation();
@@ -128,25 +155,51 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm(isBn ? 'আপনি কি নিশ্চিতভাবে এই বিষয়টি মুছতে চান?' : 'Are you sure you want to delete this subject?')) {
-      return;
-    }
+  const handleDelete = (subject: Subject) => {
+    setDeleteTarget(subject);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await deleteSubject(id).unwrap();
+      await deleteSubject(deleteTarget.id).unwrap();
       toast.success(t(dict.catalog.deleteSuccess));
+      setDeleteTarget(null);
     } catch (err) {
       toast.error(errorMessage(err, t(dict.catalog.deleteFailed)));
     }
   };
 
-  const sortedSubjects = [...subjectList].sort(
-    (a, b) => a.displayOrder - b.displayOrder || a.name.localeCompare(b.name)
-  );
-
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[240px]">
+          <div className="relative flex-1 min-w-[200px] max-w-xs">
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={isBn ? 'বিষয় বা কোড খুঁজুন...' : 'Search subject or code...'}
+              className="pl-9"
+            />
+          </div>
+          <Select
+            value={categoryFilter}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              setPage(1);
+            }}
+            className="w-44"
+          >
+            <option value="all">{isBn ? 'সকল ক্যাটাগরি' : 'All categories'}</option>
+            {Object.values(SubjectCategory).map((cat) => (
+              <option key={cat} value={cat}>
+                {CATEGORY_LABELS[cat] ? (isBn ? CATEGORY_LABELS[cat].bn : CATEGORY_LABELS[cat].en) : cat}
+              </option>
+            ))}
+          </Select>
+        </div>
+
         <Button type="button" variant="primary" onClick={startCreate}>
           <Plus className="w-4 h-4" /> {t(dict.catalog.newSubjectButton)}
         </Button>
@@ -164,14 +217,14 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {sortedSubjects.length === 0 ? (
+            {subjectList.length === 0 ? (
               <tr>
                 <td colSpan={5} className="p-8 text-center text-base text-muted-foreground">
-                  {isLoading ? t(dict.common.loading) : t(dict.catalog.emptyCatalog)}
+                  {isLoading || isFetching ? t(dict.common.loading) : t(dict.catalog.emptyCatalog)}
                 </td>
               </tr>
             ) : (
-              sortedSubjects.map((subject) => {
+              subjectList.map((subject) => {
                 const displayName = isBn
                   ? subject.nameBn || subject.name
                   : subject.name;
@@ -238,7 +291,7 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
                         variant="ghost"
                         size="sm"
                         disabled={deleting}
-                        onClick={() => handleDelete(subject.id)}
+                        onClick={() => handleDelete(subject)}
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -251,6 +304,36 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
           </tbody>
         </table>
       </Card>
+
+      {meta.total > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+          <span>
+            {isBn
+              ? `মোট ${formatNumber(meta.total, 'bn')} টি বিষয় · পৃষ্ঠা ${formatNumber(meta.page, 'bn')} / ${formatNumber(meta.totalPages, 'bn')}`
+              : `Total ${meta.total} subjects · Page ${meta.page} / ${meta.totalPages}`}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!meta.hasPreviousPage || isFetching}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              {isBn ? 'পূর্ববর্তী' : 'Previous'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!meta.hasNextPage || isFetching}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              {isBn ? 'পরবর্তী' : 'Next'}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Modal
         open={open}
@@ -324,6 +407,21 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title={isBn ? 'বিষয় মুছে ফেলুন' : 'Delete Subject'}
+        description={
+          isBn
+            ? `আপনি কি নিশ্চিতভাবে "${deleteTarget?.nameBn || deleteTarget?.name || ''}" বিষয়টি তালিকা থেকে মুছতে চান?`
+            : `Are you sure you want to delete "${deleteTarget?.name || ''}"?`
+        }
+        confirmLabel={isBn ? 'মুছে ফেলুন' : 'Delete'}
+        destructive
+        loading={deleting}
+      />
     </div>
   );
 }

@@ -26,7 +26,23 @@ export interface QueryClassSubjectParams {
   academicYearId?: string;
   classId?: string;
   groupId?: string;
+  isOptional?: boolean;
   isActive?: boolean;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedClassSubjectsResponse {
+  items: ClassSubject[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
 }
 
 export interface RolloverResult {
@@ -44,7 +60,33 @@ export const classSubjectApi = schoolApi.injectEndpoints({
       }),
       transformResponse: (response: any) => {
         const raw = response?.data ?? response;
+        if (raw && Array.isArray(raw.items)) return raw.items;
         return Array.isArray(raw) ? raw : [];
+      },
+      providesTags: ['Academic'],
+    }),
+
+    getClassSubjectsPaginated: builder.query<PaginatedClassSubjectsResponse, QueryClassSubjectParams>({
+      query: (params) => ({
+        url: '/academic/class-subjects',
+        method: 'GET',
+        params: { page: 1, limit: 15, ...params },
+      }),
+      transformResponse: (response: any): PaginatedClassSubjectsResponse => {
+        const raw = response?.data ?? response;
+        if (raw && Array.isArray(raw.items)) return raw;
+        const items = Array.isArray(raw) ? raw : [];
+        return {
+          items,
+          meta: {
+            total: items.length,
+            page: 1,
+            limit: items.length || 15,
+            totalPages: 1,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        };
       },
       providesTags: ['Academic'],
     }),
@@ -130,6 +172,7 @@ export const classSubjectApi = schoolApi.injectEndpoints({
 
 export const {
   useGetClassSubjectsQuery,
+  useGetClassSubjectsPaginatedQuery,
   useGetClassSubjectByIdQuery,
   useAssignClassSubjectMutation,
   useUpdateClassSubjectMutation,
