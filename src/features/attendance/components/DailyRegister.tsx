@@ -7,18 +7,18 @@ import {
   AlertTriangle,
   Calendar,
   CheckCheck,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  ChevronUp,
   CreditCard,
   Download,
+  Radio,
   RotateCcw,
   Save,
   Search,
   Settings,
   UserX,
 } from 'lucide-react';
+import { GateMonitor } from './GateMonitor';
 import { useSaveAttendanceBatchMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
 import { useSearchParams } from '@/src/lib/navigation';
@@ -69,7 +69,7 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
   const [draftRemarks, setDraftRemarks] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
-  const [showMatrix, setShowMatrix] = useState(true);
+  const [workspaceTab, setWorkspaceTab] = useState<'register' | 'gate'>('register');
 
   const sections = useMemo(
     () => db.sections.filter((item) => item.classId === classId),
@@ -293,16 +293,23 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
 
   const handleSave = async () => {
     const entries = enrollments
-      .map((enrollment) => ({
-        enrollment,
-        status: statusOf(enrollment.id),
-        remarks: remarksOf(enrollment.id),
-      }))
-      .filter((row) => (manual ? true : Boolean(row.status)))
+      .map((enrollment) => {
+        const saved = attendanceByEnrollment.get(enrollment.id);
+        const dirty = isRowDirty(enrollment.id);
+        return {
+          enrollment,
+          status: statusOf(enrollment.id),
+          remarks: remarksOf(enrollment.id),
+          method: dirty
+            ? AttendanceMethod.MANUAL
+            : saved?.method ?? (manual ? AttendanceMethod.MANUAL : AttendanceMethod.RFID),
+        };
+      })
+      .filter((row) => Boolean(row.status))
       .map((row) => ({
         studentEnrollmentId: row.enrollment.id,
         status: row.status ?? AttendanceStatus.PRESENT,
-        method: manual ? AttendanceMethod.MANUAL : AttendanceMethod.RFID,
+        method: row.method,
         remarks: row.remarks,
       }));
 
@@ -370,7 +377,41 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
 
   return (
     <div className="space-y-5">
-      {/* 4-Column Hairline-Divided KPI Strip */}
+      {/* Workspace Tabs: Section Register vs Live Gate Feed */}
+      <div className="inline-flex rounded-2xl border border-border bg-surface p-1 gap-1">
+        <button
+          type="button"
+          onClick={() => setWorkspaceTab('register')}
+          className={cn(
+            'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer',
+            workspaceTab === 'register'
+              ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-surface-muted/60'
+          )}
+        >
+          <Calendar className="w-4 h-4" />
+          <span>{pick('শ্রেণিভিত্তিক দৈনিক হাজিরা', 'Class Daily Register')}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setWorkspaceTab('gate')}
+          className={cn(
+            'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer',
+            workspaceTab === 'gate'
+              ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-surface-muted/60'
+          )}
+        >
+          <Radio className="w-4 h-4" />
+          <span>{pick('লাইভ গেট ফিড ও বাকি তালিকা', 'Live Gate Feed & Pending')}</span>
+        </button>
+      </div>
+
+      {workspaceTab === 'gate' ? (
+        <GateMonitor db={db} yearId={yearId} embedded />
+      ) : (
+        <>
+          {/* 4-Column Hairline-Divided KPI Strip */}
       <Card className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden p-0">
         <div className="p-4 sm:p-5 bg-surface flex flex-col justify-between gap-1.5">
           <p className="text-base font-bold text-foreground">
@@ -432,74 +473,6 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
               : pick('এই তারিখে এখনো হাজিরা নেই', 'No attendance recorded on this date')}
           </p>
         </div>
-      </Card>
-
-      {/* School-Wide Section Completion Matrix */}
-      <Card className="p-0 overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setShowMatrix((v) => !v)}
-          className="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-surface-muted/50 transition-colors cursor-pointer"
-        >
-          <div className="flex items-center gap-2.5">
-            <span className="text-base font-bold text-foreground">
-              {pick('সকল শ্রেণি ও শাখার আজকের অবস্থা', 'School-Wide Section Progress')}
-            </span>
-            <span className="text-sm text-muted-foreground tabular-nums">
-              {pick(
-                `(${formatNumber(sectionMatrix.completedCount, 'bn')}/${formatNumber(sectionMatrix.totalSections, 'bn')} শাখা সম্পূর্ণ)`,
-                `(${sectionMatrix.completedCount}/${sectionMatrix.totalSections} sections complete)`
-              )}
-            </span>
-          </div>
-          {showMatrix ? (
-            <ChevronUp className="w-4 h-4 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
-          )}
-        </button>
-
-        {showMatrix && (
-          <div className="px-4 pb-3 pt-1 border-t border-border flex flex-wrap gap-2">
-            {sectionMatrix.rows.map((item) => {
-              const selected = item.classId === classId && item.sectionId === activeSectionId;
-              const dotClass = item.complete
-                ? 'bg-success'
-                : item.marked > 0
-                  ? 'bg-warning'
-                  : 'bg-border';
-              return (
-                <button
-                  key={`${item.classId}-${item.sectionId}`}
-                  type="button"
-                  onClick={() => {
-                    setClassId(item.classId);
-                    setSectionId(item.sectionId);
-                  }}
-                  className={cn(
-                    'inline-flex items-center gap-2 px-2.5 py-1.5 rounded-[var(--radius)] border text-xs transition-colors cursor-pointer',
-                    selected
-                      ? 'border-primary bg-primary/10 text-primary font-semibold'
-                      : 'border-border bg-background hover:bg-surface-muted text-foreground'
-                  )}
-                >
-                  <span className={cn('w-2 h-2 rounded-full shrink-0', dotClass)} />
-                  <span>
-                    {item.classLabel} ({item.sectionLabel})
-                  </span>
-                  <span className="text-muted-foreground tabular-nums">
-                    {formatNumber(item.marked, locale)}/{formatNumber(item.total, locale)}
-                  </span>
-                  {item.method === AttendanceMethod.RFID && (
-                    <span className="text-xs font-mono uppercase px-1.5 py-0.5 rounded bg-surface-muted text-muted-foreground">
-                      RFID
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </Card>
 
       {/* Controls Toolbar */}
@@ -742,10 +715,10 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
 
       {/* High-Density Register Table */}
       <Card className="p-0 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-base">
+        <div className="w-full overflow-x-auto">
+          <table className="w-full min-w-[780px] lg:min-w-full text-base">
             <thead>
-              <tr className="border-b border-border bg-surface-muted/60 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              <tr className="border-b border-border bg-surface-muted/60 text-left text-sm font-semibold text-muted-foreground">
                 <th className="py-3.5 px-4 w-16">{pick('রোল', 'Roll')}</th>
                 <th className="py-3.5 px-4">{pick('শিক্ষার্থী', 'Student')}</th>
                 <th className="py-3.5 px-4 w-44">{pick('প্রবেশ / প্রস্থান', 'In / Out')}</th>
@@ -807,14 +780,23 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
                         </div>
                       </td>
                       <td className="py-3 px-4 text-sm tabular-nums text-muted-foreground">
-                        {saved?.inTime || saved?.outTime ? (
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-foreground font-semibold">
-                              {pick('প্রবেশ:', 'In:')} {formatClockTime(saved?.inTime)}
-                            </span>
+                        {saved?.inTime || saved?.outTime || saved?.method ? (
+                          <div className="flex flex-col gap-1">
+                            {saved?.inTime && (
+                              <span className="text-foreground font-semibold">
+                                {pick('প্রবেশ:', 'In:')} {formatClockTime(saved.inTime)}
+                              </span>
+                            )}
                             {saved?.outTime && (
                               <span>
                                 {pick('প্রস্থান:', 'Out:')} {formatClockTime(saved.outTime)}
+                              </span>
+                            )}
+                            {saved?.method && (
+                              <span className="inline-flex w-fit items-center px-2 py-0.5 rounded text-xs font-medium bg-surface-muted border border-border text-muted-foreground">
+                                {saved.method === AttendanceMethod.RFID
+                                  ? 'RFID'
+                                  : pick('ম্যানুয়াল', 'Manual')}
                               </span>
                             )}
                           </div>
@@ -877,6 +859,8 @@ export function DailyRegister({ db, yearId }: { db: MockDatabase; yearId: string
           </table>
         </div>
       </Card>
+        </>
+      )}
     </div>
   );
 }
