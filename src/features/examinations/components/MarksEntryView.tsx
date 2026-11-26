@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
+  useBulkToggleMarkLockMutation,
   useGetExamsQuery,
   useGetExamSubjectsQuery,
   useGetGradeSheetQuery,
@@ -111,6 +112,7 @@ export function MarksEntryView() {
   const [saveBulkMarks, { isLoading: saving }] = useSaveBulkMarksMutation();
   const [updateExam, { isLoading: unlocking }] = useUpdateExamMutation();
   const [toggleMarkLock, { isLoading: togglingLock }] = useToggleMarkLockMutation();
+  const [bulkToggleMarkLock, { isLoading: bulkLocking }] = useBulkToggleMarkLockMutation();
 
   const [selectedExamId, setSelectedExamId] = useState(urlExamId);
   const [selectedSubjectId, setSelectedSubjectId] = useState(urlSubjectId);
@@ -124,7 +126,13 @@ export function MarksEntryView() {
   const [csvModalOpen, setCsvModalOpen] = useState(false);
   const [csvText, setCsvText] = useState('');
 
-  const activeExams = useMemo(() => examsRes?.items ?? [], [examsRes?.items]);
+  const activeExams = useMemo(() => {
+    const items = [...(examsRes?.items ?? [])];
+    return items.sort(
+      (a, b) =>
+        (a.schoolClass?.numericValue ?? 99) - (b.schoolClass?.numericValue ?? 99)
+    );
+  }, [examsRes?.items]);
 
   const resolvedExamId =
     selectedExamId && activeExams.some((e) => e.id === selectedExamId)
@@ -306,6 +314,7 @@ export function MarksEntryView() {
     activeExam?.marksEntryDeadline &&
       new Date(activeExam.marksEntryDeadline) < new Date()
   );
+  const canLockMarks = Boolean(!activeExam?.marksEntryDeadline || deadlineExpired);
   const isLocked = Boolean(
     !activeExam ||
       activeExam.isLocked ||
@@ -452,6 +461,15 @@ export function MarksEntryView() {
 
   const handleToggleStudentLock = async (stu: GradeSheetStudentRow) => {
     if (!stu.mark?.id) return;
+    if (!stu.mark.isLocked && !canLockMarks) {
+      toast.info(
+        pick(
+          `নম্বর এন্ট্রির শেষ তারিখ (${formatDateShort(activeExam!.marksEntryDeadline!, 'bn')}) পার হওয়ার পর লক করা যাবে।`,
+          `Marks can only be locked after the deadline (${formatDateShort(activeExam!.marksEntryDeadline!, 'en')}).`
+        )
+      );
+      return;
+    }
     try {
       await toggleMarkLock({
         id: stu.mark.id,
@@ -464,6 +482,39 @@ export function MarksEntryView() {
       );
     } catch (err) {
       toast.error(getErrorMessage(err, pick('লক পরিবর্তন করা যায়নি।', 'Could not update mark lock.')));
+    }
+  };
+
+  const handleBulkLock = async (lockState: boolean) => {
+    if (!activeExamSubject) return;
+    if (lockState && !canLockMarks) {
+      toast.info(
+        pick(
+          `নম্বর এন্ট্রির শেষ তারিখ (${formatDateShort(activeExam!.marksEntryDeadline!, 'bn')}) পার হওয়ার পর লক করা যাবে।`,
+          `Marks can only be locked after the deadline (${formatDateShort(activeExam!.marksEntryDeadline!, 'en')}).`
+        )
+      );
+      return;
+    }
+    try {
+      const res = await bulkToggleMarkLock({
+        examSubjectId: activeExamSubject.id,
+        ...(sectionFilter !== 'ALL' ? { sectionId: sectionFilter } : {}),
+        isLocked: lockState,
+      }).unwrap();
+      toast.success(
+        lockState
+          ? pick(
+              `${formatNumber(res.updatedCount, 'bn')} জন শিক্ষার্থীর নম্বর লক করা হয়েছে।`,
+              `Locked marks for ${res.updatedCount} student(s).`
+            )
+          : pick(
+              `${formatNumber(res.updatedCount, 'bn')} জন শিক্ষার্থীর নম্বর আনলক করা হয়েছে।`,
+              `Unlocked marks for ${res.updatedCount} student(s).`
+            )
+      );
+    } catch (err) {
+      toast.error(getErrorMessage(err, pick('বাল্ক লক পরিবর্তন করা যায়নি।', 'Failed to bulk lock marks.')));
     }
   };
 
@@ -623,83 +674,6 @@ export function MarksEntryView() {
         }
       />
 
-      {/* Selection Toolbar */}
-      <Card className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-        <div className="sm:col-span-1 lg:col-span-4">
-          <label className="block text-xs text-muted-foreground mb-1">
-            {pick('পরীক্ষা নির্বাচন করুন', 'Examination')}
-          </label>
-          <Select value={resolvedExamId} onChange={(e) => requestSwitch('exam', e.target.value)}>
-            {activeExams.map((ex) => {
-              const clsName =
-                locale === 'bn'
-                  ? (ex.schoolClass as { nameBn?: string; name?: string } | undefined)?.nameBn ||
-                    ex.schoolClass?.name
-                  : ex.schoolClass?.name;
-              return (
-                <option key={ex.id} value={ex.id}>
-                  {ex.name}
-                  {clsName ? ` (${clsName})` : ''}
-                </option>
-              );
-            })}
-          </Select>
-        </div>
-
-        <div className="sm:col-span-1 lg:col-span-4">
-          <label className="block text-xs text-muted-foreground mb-1">
-            {pick('বিষয় নির্বাচন করুন', 'Subject')}
-          </label>
-          <Select
-            value={resolvedSubjectId}
-            disabled={loadingSubjects || examSubjects.length === 0}
-            onChange={(e) => requestSwitch('subject', e.target.value)}
-          >
-            {examSubjects.length === 0 && (
-              <option value="">{pick('কোনো বিষয় নেই', 'No subjects')}</option>
-            )}
-            {examSubjects.map((es) => {
-              const subName = locale === 'bn' ? es.subject?.nameBn || es.subject?.name : es.subject?.name;
-              const code = es.subject?.officialCode ? ` (${es.subject.officialCode})` : '';
-              const grpName = es.group
-                ? ` — ${locale === 'bn' ? es.group.nameBn || es.group.name : es.group.name}`
-                : '';
-              return (
-                <option key={es.id} value={es.id}>
-                  {subName || '—'}
-                  {code}
-                  {grpName}
-                </option>
-              );
-            })}
-          </Select>
-        </div>
-
-        <div className="sm:col-span-1 lg:col-span-2">
-          <label className="block text-xs text-muted-foreground mb-1">
-            {pick('শাখা', 'Section')}
-          </label>
-          <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
-            <option value="ALL">{pick('সকল শাখা', 'All')}</option>
-            {classSections.map((s) => (
-              <option key={s.id} value={s.id}>
-                {pick('শাখা', 'Sec')} {s.name}
-              </option>
-            ))}
-          </Select>
-        </div>
-
-        <div className="sm:col-span-1 lg:col-span-2 relative">
-          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={pick('রোল বা নাম...', 'Roll/name...')}
-            className="pl-9"
-          />
-        </div>
-      </Card>
-
       {/* KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5">
@@ -787,6 +761,92 @@ export function MarksEntryView() {
         </Card>
       </div>
 
+      {/* Compact Selection Toolbar */}
+      <Card className="p-4 flex flex-wrap items-end gap-3">
+        <div className="w-full sm:w-64">
+          <label className="block text-xs text-muted-foreground mb-1">
+            {pick('পরীক্ষা নির্বাচন করুন', 'Examination')}
+          </label>
+          <Select
+            value={resolvedExamId}
+            onChange={(e) => requestSwitch('exam', e.target.value)}
+            className="h-9 text-sm"
+          >
+            {activeExams.map((ex) => {
+              const clsName =
+                locale === 'bn'
+                  ? (ex.schoolClass as { nameBn?: string; name?: string } | undefined)?.nameBn ||
+                    ex.schoolClass?.name
+                  : ex.schoolClass?.name;
+              return (
+                <option key={ex.id} value={ex.id}>
+                  {ex.name}
+                  {clsName ? ` (${clsName})` : ''}
+                </option>
+              );
+            })}
+          </Select>
+        </div>
+
+        <div className="w-full sm:w-56">
+          <label className="block text-xs text-muted-foreground mb-1">
+            {pick('বিষয় নির্বাচন করুন', 'Subject')}
+          </label>
+          <Select
+            value={resolvedSubjectId}
+            disabled={loadingSubjects || examSubjects.length === 0}
+            onChange={(e) => requestSwitch('subject', e.target.value)}
+            className="h-9 text-sm"
+          >
+            {examSubjects.length === 0 && (
+              <option value="">{pick('কোনো বিষয় নেই', 'No subjects')}</option>
+            )}
+            {examSubjects.map((es) => {
+              const subName = locale === 'bn' ? es.subject?.nameBn || es.subject?.name : es.subject?.name;
+              const code = es.subject?.officialCode ? ` (${es.subject.officialCode})` : '';
+              const grpName = es.group
+                ? ` — ${locale === 'bn' ? es.group.nameBn || es.group.name : es.group.name}`
+                : '';
+              return (
+                <option key={es.id} value={es.id}>
+                  {subName || '—'}
+                  {code}
+                  {grpName}
+                </option>
+              );
+            })}
+          </Select>
+        </div>
+
+        <div className="w-full sm:w-36">
+          <label className="block text-xs text-muted-foreground mb-1">
+            {pick('শাখা', 'Section')}
+          </label>
+          <Select
+            value={sectionFilter}
+            onChange={(e) => setSectionFilter(e.target.value)}
+            className="h-9 text-sm"
+          >
+            <option value="ALL">{pick('সকল শাখা', 'All')}</option>
+            {classSections.map((s) => (
+              <option key={s.id} value={s.id}>
+                {pick('শাখা', 'Sec')} {s.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="w-full sm:w-48 relative sm:ml-auto">
+          <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={pick('রোল বা নাম...', 'Roll/name...')}
+            className="pl-9 h-9 text-sm"
+          />
+        </div>
+      </Card>
+
       {/* Lock / Deadline Notice Banner */}
       {(isLocked || deadlineExpired) && activeExam && (
         <div className="p-4 rounded-[var(--radius)] border border-warning/40 bg-warning/10 flex flex-wrap items-center justify-between gap-3 text-sm">
@@ -851,12 +911,52 @@ export function MarksEntryView() {
                 <span className="font-semibold text-primary">{pick('৪র্থ / ঐচ্ছিক বিষয়', '4th / Optional')}</span>
               )}
             </div>
-            {activeExam && (
-              <StatusBadge
-                enumName="ResultPublicationStatus"
-                value={activeExam.resultStatus as ResultPublicationStatus}
-              />
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {targetStudents.some((s) => s.mark?.id) && !isLocked && (
+                <>
+                  {targetStudents.some((s) => s.mark?.id && !s.mark.isLocked) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={bulkLocking || !canLockMarks}
+                      onClick={() => handleBulkLock(true)}
+                      title={
+                        !canLockMarks && activeExam?.marksEntryDeadline
+                          ? pick(
+                              `শেষ তারিখ (${formatDateShort(activeExam.marksEntryDeadline, 'bn')}) পার হলে লক করা যাবে`,
+                              `Available after deadline (${formatDateShort(activeExam.marksEntryDeadline, 'en')})`
+                            )
+                          : pick('সব নম্বর লক করুন', 'Lock all entered marks')
+                      }
+                      className="h-7 px-2.5 text-xs"
+                    >
+                      <Lock className="w-3 h-3 mr-1" />
+                      {pick('সব লক করুন', 'Lock All')}
+                    </Button>
+                  )}
+                  {targetStudents.some((s) => s.mark?.isLocked) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={bulkLocking}
+                      onClick={() => handleBulkLock(false)}
+                      className="h-7 px-2.5 text-xs"
+                    >
+                      <Unlock className="w-3 h-3 mr-1" />
+                      {pick('সব আনলক করুন', 'Unlock All')}
+                    </Button>
+                  )}
+                </>
+              )}
+              {activeExam && (
+                <StatusBadge
+                  enumName="ResultPublicationStatus"
+                  value={activeExam.resultStatus as ResultPublicationStatus}
+                />
+              )}
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -1092,12 +1192,17 @@ export function MarksEntryView() {
                         {stu.mark?.id ? (
                           <button
                             type="button"
-                            disabled={togglingLock || isLocked}
+                            disabled={togglingLock || isLocked || (!rowLocked && !canLockMarks)}
                             onClick={() => handleToggleStudentLock(stu)}
                             title={
-                              rowLocked
-                                ? pick('আনলক করুন', 'Unlock mark')
-                                : pick('লক করুন', 'Lock mark')
+                              !rowLocked && !canLockMarks && activeExam?.marksEntryDeadline
+                                ? pick(
+                                    `শেষ তারিখ (${formatDateShort(activeExam.marksEntryDeadline, 'bn')}) পার হলে লক করা যাবে`,
+                                    `Lock available after deadline (${formatDateShort(activeExam.marksEntryDeadline, 'en')})`
+                                  )
+                                : rowLocked
+                                  ? pick('আনলক করুন', 'Unlock mark')
+                                  : pick('লক করুন', 'Lock mark')
                             }
                             className={`p-1.5 rounded border transition-colors cursor-pointer disabled:opacity-40 ${
                               rowLocked
