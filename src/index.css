@@ -165,8 +165,6 @@
 .tabular-nums {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.01em;
-  display: inline-block;
-  padding-left: 0.5px;
 }
 
 /* Deep Forest-Charcoal Frosted Glass Surfaces (subtle BHS heritage depth, crisp white borders) */

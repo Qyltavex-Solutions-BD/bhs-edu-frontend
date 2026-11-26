@@ -531,7 +531,9 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                   `ফেলের হার: ${formatNumber(stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0, locale)}%`,
                   `Failure rate: ${stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0}%`
                 )
-              : pick('শতভাগ পাস অর্জিত', '100% pass achieved')}
+              : stats.total > 0 && stats.passed === stats.total
+                ? pick('শতভাগ পাস অর্জিত', '100% pass achieved')
+                : pick('কোনো অনুত্তীর্ণ নেই', 'No failed examinees')}
           </p>
         </Card>
       </div>
