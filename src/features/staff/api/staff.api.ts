@@ -1,4 +1,5 @@
 import { baseApi } from '@/src/lib/api/base-api';
+import { env } from '@/src/lib/env';
 import type { CardStatus } from '@/src/types/enums';
 import type {
   Department,
@@ -29,6 +30,41 @@ export interface StaffWorkspace {
   staff: Staff[];
   departments: Department[];
   staffStructures: StaffStructure[];
+}
+
+export interface StaffPaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface StaffPageResult {
+  items: Staff[];
+  meta: StaffPaginationMeta;
+}
+
+export interface StaffStatistics {
+  totalStaff: number;
+  activeStaff: number;
+  activeNonTeachers: number;
+  activeTeachers: number;
+  activeOfficers: number;
+  activeEmployees: number;
+  formerTeachers: number;
+  formerStaff: number;
+}
+
+export interface StaffQueryParams {
+  staffType?: string;
+  status?: string;
+  isFormer?: boolean;
+  departmentId?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
 }
 
 type Envelope<T> = { data: T };
@@ -72,17 +108,33 @@ export const staffApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `/staff/structures/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Staff', 'Audit'],
     }),
-    getStaff: builder.query<
-      Staff[],
-      {
-        staffType?: string;
-        status?: string;
-        departmentId?: string;
-        search?: string;
-        page?: number;
-        limit?: number;
-      } | void
-    >({
+    getStaffPage: builder.query<StaffPageResult, StaffQueryParams | void>({
+      query: (params) => ({
+        url: '/staff',
+        method: 'GET',
+        params: params || undefined,
+      }),
+      transformResponse: (
+        response: Envelope<Staff[]> & { meta?: StaffPaginationMeta }
+      ): StaffPageResult => ({
+        items: response.data ?? [],
+        meta: response.meta ?? {
+          total: response.data?.length ?? 0,
+          page: 1,
+          limit: 15,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      }),
+      providesTags: ['Staff'],
+    }),
+    getStaffStatistics: builder.query<StaffStatistics, void>({
+      query: () => ({ url: '/staff/statistics', method: 'GET' }),
+      transformResponse: (response: Envelope<StaffStatistics>) => response.data,
+      providesTags: ['Staff'],
+    }),
+    getStaff: builder.query<Staff[], StaffQueryParams | void>({
       query: (params) => ({
         url: '/staff',
         method: 'GET',
@@ -91,12 +143,19 @@ export const staffApi = baseApi.injectEndpoints({
       transformResponse: (response: Envelope<Staff[]>) => response.data,
       providesTags: ['Staff'],
     }),
-    createStaff: builder.mutation<Staff, Partial<Staff>>({
+    createStaff: builder.mutation<Staff, FormData | Partial<Staff>>({
       query: (body) => ({ url: '/staff', method: 'POST', body }),
       invalidatesTags: ['Staff', 'Audit'],
     }),
-    updateStaff: builder.mutation<Staff, Partial<Staff> & { id: string }>({
-      query: ({ id, ...body }) => ({ url: `/staff/${id}`, method: 'PATCH', body }),
+    updateStaff: builder.mutation<
+      Staff,
+      { id: string; body: FormData | Partial<Staff> }
+    >({
+      query: ({ id, body }) => ({ url: `/staff/${id}`, method: 'PATCH', body }),
+      invalidatesTags: ['Staff', 'Audit'],
+    }),
+    deleteStaff: builder.mutation<void, string>({
+      query: (id) => ({ url: `/staff/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Staff', 'Audit'],
     }),
     saveDepartment: builder.mutation<Department, Partial<Department>>({
@@ -123,14 +182,28 @@ export const staffApi = baseApi.injectEndpoints({
 
 export const {
   useGetStaffQuery,
+  useGetStaffPageQuery,
+  useGetStaffStatisticsQuery,
   useGetStaffWorkspaceQuery,
   useGetStaffProfileQuery,
   useArchiveStaffStructureMutation,
   useCreateStaffMutation,
   useUpdateStaffMutation,
+  useDeleteStaffMutation,
   useSaveDepartmentMutation,
   useRemoveDepartmentMutation,
   useSaveStaffStructureMutation,
   useUpdateRfidCardStatusMutation,
 } = staffApi;
+
+export function resolveStaffPhotoUrl(photo?: string | null): string | null {
+  if (!photo) return null;
+  if (photo.startsWith('http://') || photo.startsWith('https://') || photo.startsWith('data:')) {
+    return photo;
+  }
+  if (photo.startsWith('/')) {
+    return `${env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')}${photo}`;
+  }
+  return photo;
+}
 
