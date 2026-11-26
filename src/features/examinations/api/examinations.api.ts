@@ -454,6 +454,18 @@ export const examinationsApi = baseApi.injectEndpoints({
       transformResponse: (res: any) => res?.data ?? res,
       invalidatesTags: ['Results', 'Audit'],
     }),
+    bulkToggleMarkLock: builder.mutation<
+      { updatedCount: number; isLocked: boolean },
+      { examSubjectId: string; sectionId?: string; isLocked: boolean }
+    >({
+      query: (body) => ({
+        url: '/examination/marks/bulk-lock',
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      invalidatesTags: ['Results', 'Audit'],
+    }),
     saveMarksBatch: builder.mutation<
       { savedCount: number },
       {
@@ -571,6 +583,7 @@ export const {
   useGetGradeSheetQuery,
   useSaveBulkMarksMutation,
   useToggleMarkLockMutation,
+  useBulkToggleMarkLockMutation,
   useSaveMarksBatchMutation,
   useProcessExamResultsMutation,
   useUpsertExamSubjectMutation,
