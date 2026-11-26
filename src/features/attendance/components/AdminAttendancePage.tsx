@@ -1,10 +1,14 @@
 'use client';
 
 import React from 'react';
-import { useGetBootstrapQuery } from '@/src/store/api';
 import { useAcademicYearSelection } from '@/src/views/admin/AcademicFoundation';
 import { useI18n } from '@/src/lib/i18n';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
+import {
+  useGetAttendanceAcademicYearsQuery,
+  useGetAttendanceClassesQuery,
+  useGetAttendanceSectionsQuery,
+} from '../api/attendance.api';
 import { AttendanceShell } from './AttendanceShell';
 import { DailyRegister } from './DailyRegister';
 import { AttendanceReports } from './AttendanceReports';
@@ -16,11 +20,15 @@ export function AdminAttendancePage({
 }: {
   defaultTab?: 'daily' | 'reports' | 'sms' | 'settings';
 }) {
-  const { data: db, isLoading } = useGetBootstrapQuery();
+  const { data: years = [], isLoading: loadingYears } = useGetAttendanceAcademicYearsQuery();
+  const { data: classes = [], isLoading: loadingClasses } = useGetAttendanceClassesQuery();
+  const { data: sections = [], isLoading: loadingSections } = useGetAttendanceSectionsQuery();
   const { pick } = useI18n();
-  const year = useAcademicYearSelection(db?.academicYears);
+  const year = useAcademicYearSelection(years);
 
-  if (isLoading || !db || !year) return <LoadingSkeleton />;
+  if (loadingYears || loadingClasses || loadingSections || !year) {
+    return <LoadingSkeleton />;
+  }
 
   const copy = {
     daily: {
@@ -57,14 +65,18 @@ export function AdminAttendancePage({
     <AttendanceShell
       title={copy.title}
       description={copy.description}
-      years={db.academicYears}
+      years={years}
       selectedYear={year}
       showYear={defaultTab === 'daily' || defaultTab === 'reports' || defaultTab === 'settings'}
     >
-      {defaultTab === 'daily' && <DailyRegister db={db} yearId={year.id} />}
-      {defaultTab === 'reports' && <AttendanceReports db={db} yearId={year.id} />}
-      {defaultTab === 'sms' && <AttendanceSmsLogs db={db} />}
-      {defaultTab === 'settings' && <AttendanceSettings db={db} yearId={year.id} />}
+      {defaultTab === 'daily' && (
+        <DailyRegister yearId={year.id} classes={classes} sections={sections} />
+      )}
+      {defaultTab === 'reports' && (
+        <AttendanceReports yearId={year.id} classes={classes} sections={sections} />
+      )}
+      {defaultTab === 'sms' && <AttendanceSmsLogs />}
+      {defaultTab === 'settings' && <AttendanceSettings yearId={year.id} />}
     </AttendanceShell>
   );
 }

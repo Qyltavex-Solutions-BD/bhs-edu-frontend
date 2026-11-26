@@ -1,6 +1,5 @@
+import React from 'react';
 import { AttendanceStatus } from '@/src/types/enums';
-import { closedDay, localToday, shiftDate } from '@/src/lib/schoolDay';
-import type { MockDatabase } from '@/src/mocks/seed';
 
 export function errorMessage(err: unknown, fallback: string): string {
   const e = err as { message?: string; data?: { message?: string } } | null | undefined;
@@ -44,12 +43,14 @@ export const STATUS_OPTIONS = [
 
 export function formatClockTime(iso?: string | null): string {
   if (!iso) return '—';
-  // Handle both "2026-11-19T09:52:00" and full ISO "2026-11-19T09:52:00.000Z" cleanly
-  const match = iso.match(/T(\d{2}:\d{2})/);
-  if (match) return match[1];
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Dhaka',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d);
 }
 
 export function formatScanDateTime(iso?: string | null): string {
@@ -73,24 +74,52 @@ export function attendanceBarTone(rate: number | null): string {
   return 'bg-destructive';
 }
 
-export function shiftOpenDay(
-  db: MockDatabase,
-  fromIso: string,
-  yearId: string,
-  direction: -1 | 1
-): string | null {
-  const today = localToday();
-  let cursor = shiftDate(fromIso, direction);
-  for (let i = 0; i < 30; i += 1) {
-    if (cursor > today) return null;
-    if (!closedDay(db, cursor, yearId)) return cursor;
-    cursor = shiftDate(cursor, direction);
-  }
-  return null;
-}
-
 export function getStatusLabel(status: AttendanceStatus | undefined, locale: 'bn' | 'en'): string {
   const found = STATUS_OPTIONS.find((item) => item.value === status);
   if (!found) return locale === 'bn' ? 'অচিহ্নিত' : 'Unmarked';
   return locale === 'bn' ? found.bn : found.en;
+}
+
+const TONE_CLASSES: Record<'primary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral', string> = {
+  primary: 'bg-primary/10 text-primary border-primary/20',
+  success: 'bg-success/10 text-success border-success/20',
+  warning: 'bg-warning/10 text-warning border-warning/20',
+  danger: 'bg-destructive/10 text-destructive border-destructive/20',
+  info: 'bg-info/10 text-info border-info/20',
+  neutral: 'bg-muted text-muted-foreground border-border',
+};
+
+export function ToneBadge({
+  tone = 'neutral',
+  children,
+}: {
+  tone?: keyof typeof TONE_CLASSES;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${TONE_CLASSES[tone]}`}
+    >
+      {children}
+    </span>
+  );
+}
+
+export function downloadCsv(
+  filename: string,
+  headers: string[],
+  rows: Array<Array<string | number | null | undefined>>
+) {
+  const escape = (val: string | number | null | undefined) => {
+    const str = String(val ?? '');
+    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+  };
+  const csv = [headers, ...rows].map((r) => r.map(escape).join(',')).join('\n');
+  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
