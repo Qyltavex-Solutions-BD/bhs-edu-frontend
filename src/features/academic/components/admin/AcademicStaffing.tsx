@@ -5,15 +5,15 @@ import { toast } from 'sonner';
 import {
   useAssignClassTeacherMutation,
   useAssignTeacherMutation,
-  useDeleteTeacherAssignmentMutation,
   useGetAcademicGroupsQuery,
   useGetClassSubjectsQuery,
   useGetClassTeachersQuery,
   useGetSchoolClassesQuery,
   useGetSectionsQuery,
-  useGetTeacherAssignmentsPaginatedQuery,
   useGetTeacherAssignmentsQuery,
+  useReleaseTeacherAssignmentMutation,
   useRemoveClassTeacherMutation,
+  useUpdateTeacherAssignmentMutation,
   type TeacherAssignmentItem,
 } from '@/src/services/academic';
 import { ConfirmDialog } from '@/src/components/shared/Feedback';
@@ -21,7 +21,7 @@ import { useGetStaffQuery } from '@/src/features/staff/api/staff.api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { Button, Card, FormField, Input, Modal, SegmentedTabs, Select } from '@/src/components/ui/primitives';
-import { Search, Plus, Trash2, BookOpen, Users, GraduationCap, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
+import { Search, Plus, Trash2, BookOpen, CheckCircle2, RotateCcw, Pencil, Save } from 'lucide-react';
 import type { AcademicYear } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
 import { StaffStatus, StaffType } from '@/src/types/enums';
@@ -51,22 +51,14 @@ export function AcademicStaffing({
   const { data: realClasses } = useGetSchoolClassesQuery();
   const { data: realSections } = useGetSectionsQuery();
 
-  const teachers = useMemo(() => {
-    if (realStaff && realStaff.length > 0) return realStaff;
-    return db.staff.filter(
-      (member) => member.staffType === StaffType.TEACHER && member.status === StaffStatus.ACTIVE
-    );
-  }, [realStaff, db.staff]);
+  const teachers = useMemo(() => realStaff ?? [], [realStaff]);
 
-  const classes = useMemo(
-    () => (realClasses && realClasses.length > 0 ? realClasses : db.classes),
-    [realClasses, db.classes]
+  const classes = useMemo(() => realClasses ?? [], [realClasses]);
+
+  const sections = useMemo(
+    () => (realSections ?? []).filter((section) => section.isActive),
+    [realSections]
   );
-
-  const sections = useMemo(() => {
-    const source = realSections && realSections.length > 0 ? realSections : db.sections;
-    return source.filter((section) => section.isActive);
-  }, [realSections, db.sections]);
 
   const [activeTab, setActiveTab] = useState<'assignments' | 'class-teachers'>(
     mode === 'class-teachers' ? 'class-teachers' : 'assignments'
@@ -163,10 +155,10 @@ function ClassTeachers({
     }
   }, [teachers, staffId]);
 
-  const assignmentsList = useMemo(() => {
-    if (realClassTeachers !== undefined) return realClassTeachers;
-    return db.sectionClassTeachers.filter((item) => item.academicYearId === year.id);
-  }, [realClassTeachers, db.sectionClassTeachers, year.id]);
+  const assignmentsList = useMemo(
+    () => realClassTeachers ?? [],
+    [realClassTeachers]
+  );
 
   const rows = useMemo(
     () =>
@@ -318,15 +310,36 @@ function SubjectTeachers({
 }) {
   const { locale, pick } = useI18n();
   const [assignTeacher, { isLoading: saving }] = useAssignTeacherMutation();
-  const [deleteAssignment, { isLoading: removing }] = useDeleteTeacherAssignmentMutation();
+  const [updateAssignment, { isLoading: updating }] = useUpdateTeacherAssignmentMutation();
+  const [releaseAssignment, { isLoading: removing }] = useReleaseTeacherAssignmentMutation();
 
   // Filtering & pagination states (backend-driven)
+  const [matrixOpen, setMatrixOpen] = useState(false);
+  const [matrixClassId, setMatrixClassId] = useState<string>('');
+  const [matrixDrafts, setMatrixDrafts] = useState<
+    Record<string, { staffId: string; canEnterMarks: boolean }>
+  >({});
+  const [savingMatrix, setSavingMatrix] = useState(false);
+  const [editGroup, setEditGroup] = useState<{
+    classId: string;
+    classSubjectId: string;
+    classTitle: string;
+    subjectTitle: string;
+  } | null>(null);
+  const [editDrafts, setEditDrafts] = useState<
+    Record<string, { staffId: string; canEnterMarks: boolean }>
+  >({});
+  const [savingGroupEdit, setSavingGroupEdit] = useState(false);
   const [classFilter, setClassFilter] = useState<string>('ALL');
   const [sectionFilter, setSectionFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [page, setPage] = useState<number>(1);
-  const [removeTarget, setRemoveTarget] = useState<TeacherAssignmentItem | null>(null);
+  const [removeGroupTarget, setRemoveGroupTarget] = useState<{
+    classTitle: string;
+    subjectTitle: string;
+    assignments: TeacherAssignmentItem[];
+  } | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -341,52 +354,23 @@ function SubjectTeachers({
   }, [year.id, classFilter, sectionFilter]);
 
   const { data: realClassSubjects } = useGetClassSubjectsQuery(
-    isUuid(year?.id) ? { academicYearId: year.id } : undefined,
+    isUuid(year?.id) ? { academicYearId: year.id, limit: 200 } : undefined,
     { skip: !isUuid(year?.id) }
   );
   const { data: realGroups } = useGetAcademicGroupsQuery();
-  const { data: realAssignments } = useGetTeacherAssignmentsQuery(
+  const { data: realAssignments, isLoading: loadingAssignments } = useGetTeacherAssignmentsQuery(
     isUuid(year?.id) ? { academicYearId: year.id, isActive: true, limit: 500 } : undefined,
     { skip: !isUuid(year?.id) }
   );
-  const {
-    data: paginatedAssignments,
-    isLoading: loadingAssignments,
-    isFetching: fetchingAssignments,
-  } = useGetTeacherAssignmentsPaginatedQuery(
-    {
-      academicYearId: year.id,
-      isActive: true,
-      page,
-      limit: 15,
-      ...(classFilter !== 'ALL' ? { classId: classFilter } : {}),
-      ...(sectionFilter !== 'ALL' ? { sectionId: sectionFilter } : {}),
-      ...(debouncedSearch ? { search: debouncedSearch } : {}),
-    },
-    { skip: !isUuid(year?.id) }
-  );
-
-  const filteredRows: TeacherAssignmentItem[] = paginatedAssignments?.items ?? [];
-  const assignmentsMeta = paginatedAssignments?.meta ?? {
-    total: 0,
-    page: 1,
-    limit: 15,
-    totalPages: 1,
-    hasNextPage: false,
-    hasPreviousPage: false,
-  };
 
   const classSubjectsList = useMemo(
-    () =>
-      realClassSubjects !== undefined
-        ? realClassSubjects
-        : db.classSubjects.filter((item) => item.academicYearId === year.id),
-    [realClassSubjects, db.classSubjects, year.id]
+    () => realClassSubjects ?? [],
+    [realClassSubjects]
   );
 
   const groupsList = useMemo(
-    () => (realGroups && realGroups.length > 0 ? realGroups : db.academicGroups),
-    [realGroups, db.academicGroups]
+    () => realGroups ?? [],
+    [realGroups]
   );
 
   const [sectionId, setSectionId] = useState(sections[0]?.id ?? '');
@@ -410,6 +394,7 @@ function SubjectTeachers({
 
   const [canEnterMarks, setCanEnterMarks] = useState(true);
   const [open, setOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState<TeacherAssignmentItem | null>(null);
   const selectedSubjectId = subjects.some((item) => item.id === classSubjectId) ? classSubjectId : subjects[0]?.id ?? '';
 
   const subjectLabel = (classSubjectIdValue: string, row?: TeacherAssignmentItem) => {
@@ -428,25 +413,139 @@ function SubjectTeachers({
   };
 
   const allAssignments = useMemo<TeacherAssignmentItem[]>(() => {
-    if (realAssignments !== undefined) {
-      return realAssignments.filter((item) => item.isActive);
-    }
-    return db.teacherAssignments
-      .filter((item) => item.academicYearId === year.id && item.isActive)
-      .map((item) => ({
-        ...item,
-        assignedDate: item.assignedDate || new Date().toISOString(),
-        createdAt: item.createdAt || new Date().toISOString(),
-        updatedAt: item.updatedAt || new Date().toISOString(),
-      }));
-  }, [realAssignments, db.teacherAssignments, year.id]);
+    return (realAssignments ?? []).filter((item) => item.isActive);
+  }, [realAssignments]);
 
   const activeClasses = useMemo(
     () => [...classes].filter((c) => c.isActive).sort((a, b) => a.numericValue - b.numericValue),
     [classes]
   );
 
-  // Dynamic statistics based on classFilter
+  useEffect(() => {
+    if (activeClasses.length > 0 && (!matrixClassId || !activeClasses.some((c) => c.id === matrixClassId))) {
+      setMatrixClassId(activeClasses[0].id);
+    }
+  }, [activeClasses, matrixClassId]);
+
+  const matrixSections = useMemo(
+    () => sections.filter((s) => s.classId === matrixClassId),
+    [sections, matrixClassId]
+  );
+
+  const matrixSubjects = useMemo(
+    () =>
+      classSubjectsList.filter(
+        (cs) => cs.academicYearId === year.id && cs.classId === matrixClassId && cs.isActive
+      ),
+    [classSubjectsList, year.id, matrixClassId]
+  );
+
+  const assignmentBySlot = useMemo(() => {
+    const map = new Map<string, TeacherAssignmentItem>();
+    for (const a of allAssignments) {
+      map.set(`${a.sectionId}:${a.classSubjectId}`, a);
+    }
+    return map;
+  }, [allAssignments]);
+
+  const dirtyMatrixEntries = useMemo(() => {
+    return Object.entries(matrixDrafts).filter(([key, draft]) => {
+      const existing = assignmentBySlot.get(key);
+      const origStaffId = existing?.staffId ?? '';
+      const origCanEnter = existing?.canEnterMarks ?? true;
+      if (!origStaffId && !draft.staffId) return false;
+      return draft.staffId !== origStaffId || (Boolean(draft.staffId) && draft.canEnterMarks !== origCanEnter);
+    });
+  }, [matrixDrafts, assignmentBySlot]);
+
+  const setMatrixCell = (
+    secId: string,
+    csId: string,
+    patch: Partial<{ staffId: string; canEnterMarks: boolean }>
+  ) => {
+    const key = `${secId}:${csId}`;
+    const existing = assignmentBySlot.get(key);
+    setMatrixDrafts((prev) => {
+      const current = prev[key] ?? {
+        staffId: existing?.staffId ?? '',
+        canEnterMarks: existing?.canEnterMarks ?? true,
+      };
+      return {
+        ...prev,
+        [key]: { ...current, ...patch },
+      };
+    });
+  };
+
+  const handleSaveMatrix = async () => {
+    if (dirtyMatrixEntries.length === 0) {
+      toast.info(pick('কোনো নতুন পরিবর্তন নেই।', 'No new changes to save.'));
+      setMatrixOpen(false);
+      return;
+    }
+    setSavingMatrix(true);
+    let successCount = 0;
+    const failedKeys: string[] = [];
+
+    for (const [key, draft] of dirtyMatrixEntries) {
+      const [secId, csId] = key.split(':');
+      const existing = assignmentBySlot.get(key);
+      try {
+        if (!draft.staffId) {
+          if (existing) {
+            await releaseAssignment({ id: existing.id }).unwrap();
+          }
+        } else if (existing && existing.staffId === draft.staffId) {
+          await updateAssignment({
+            id: existing.id,
+            canEnterMarks: draft.canEnterMarks,
+          }).unwrap();
+        } else {
+          await assignTeacher({
+            academicYearId: year.id,
+            classId: matrixClassId,
+            sectionId: secId,
+            classSubjectId: csId,
+            staffId: draft.staffId,
+            canEnterMarks: draft.canEnterMarks,
+            replaceExisting: true,
+          }).unwrap();
+        }
+        successCount++;
+      } catch {
+        failedKeys.push(key);
+      }
+    }
+
+    setSavingMatrix(false);
+    setMatrixDrafts((prev) => {
+      const next: typeof prev = {};
+      for (const k of failedKeys) {
+        if (prev[k]) next[k] = prev[k];
+      }
+      return next;
+    });
+
+    if (successCount > 0) {
+      toast.success(
+        locale === 'bn'
+          ? `${formatNumber(successCount, 'bn')}টি শিক্ষক বণ্টন সংরক্ষণ করা হয়েছে।`
+          : `${successCount} assignment(s) saved.`
+      );
+      if (failedKeys.length === 0) {
+        setMatrixOpen(false);
+      }
+    }
+    if (failedKeys.length > 0) {
+      toast.error(
+        locale === 'bn'
+          ? `${formatNumber(failedKeys.length, 'bn')}টি বণ্টন সংরক্ষণ করা যায়নি।`
+          : `${failedKeys.length} assignment(s) failed to save.`
+      );
+    }
+  };
+
+  // Dynamic statistics based on real DB ClassSubjects and active TeacherAssignments
   const relevantClassSubjects = useMemo(() => {
     return classSubjectsList.filter(
       (cs) =>
@@ -457,55 +556,118 @@ function SubjectTeachers({
   }, [classSubjectsList, year.id, classFilter]);
 
   const relevantAssignments = useMemo(() => {
-    return allAssignments.filter((a) =>
-      classFilter === 'ALL' ? true : a.classId === classFilter
+    return allAssignments.filter(
+      (a) =>
+        (classFilter === 'ALL' ? true : a.classId === classFilter) &&
+        (sectionFilter === 'ALL' ? true : a.sectionId === sectionFilter)
     );
-  }, [allAssignments, classFilter]);
+  }, [allAssignments, classFilter, sectionFilter]);
 
   const assignedSubjectIds = useMemo(() => {
     return new Set(relevantAssignments.map((a) => a.classSubjectId));
   }, [relevantAssignments]);
 
-  const unassignedSubjects = useMemo(() => {
-    return relevantClassSubjects.filter((cs) => !assignedSubjectIds.has(cs.id));
+  const unassignedSubjectsCount = useMemo(() => {
+    return relevantClassSubjects.filter((cs) => !assignedSubjectIds.has(cs.id)).length;
   }, [relevantClassSubjects, assignedSubjectIds]);
 
-  const relevantTeachingTeachers = useMemo(() => {
-    return new Set(relevantAssignments.map((a) => a.staffId));
-  }, [relevantAssignments]);
+  const openCreateModal = () => {
+    if (classFilter !== 'ALL' && activeClasses.some((c) => c.id === classFilter)) {
+      setMatrixClassId(classFilter);
+    }
+    setMatrixDrafts({});
+    setMatrixOpen(true);
+  };
 
-  const freeTeachersCount = Math.max(0, teachers.length - relevantTeachingTeachers.size);
+  const openEditGroupModal = (group: {
+    classId: string;
+    classSubjectId: string;
+    classTitle: string;
+    subjectTitle: string;
+  }) => {
+    const classSecs = sections.filter((s) => s.classId === group.classId);
+    const initial: Record<string, { staffId: string; canEnterMarks: boolean }> = {};
+    for (const sec of classSecs) {
+      const existing = assignmentBySlot.get(`${sec.id}:${group.classSubjectId}`);
+      initial[sec.id] = {
+        staffId: existing?.staffId ?? '',
+        canEnterMarks: existing?.canEnterMarks ?? true,
+      };
+    }
+    setEditDrafts(initial);
+    setEditGroup(group);
+  };
 
-  const handleSave = async (event: React.FormEvent) => {
+  const handleSaveGroupEdit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!section?.classId) return;
-    try {
-      await assignTeacher({
-        academicYearId: year.id,
-        classId: section.classId,
-        sectionId,
-        classSubjectId: selectedSubjectId,
-        staffId,
-        canEnterMarks,
-        replaceExisting: true,
-      }).unwrap();
-      toast.success(pick('বিষয় শিক্ষক বণ্টন সম্পন্ন হয়েছে।', 'Subject teacher assigned.'));
-      setOpen(false);
-    } catch (err) {
-      toast.error(errorMessage(err, pick('বণ্টন হয়নি।', 'Could not assign the teacher.')));
+    if (!editGroup) return;
+    const classSecs = sections.filter((s) => s.classId === editGroup.classId);
+    setSavingGroupEdit(true);
+    let changed = 0;
+    let failed = 0;
+
+    for (const sec of classSecs) {
+      const draft = editDrafts[sec.id];
+      if (!draft) continue;
+      const existing = assignmentBySlot.get(`${sec.id}:${editGroup.classSubjectId}`);
+      const origStaffId = existing?.staffId ?? '';
+      const origCanEnter = existing?.canEnterMarks ?? true;
+
+      if (
+        draft.staffId === origStaffId &&
+        (!draft.staffId || draft.canEnterMarks === origCanEnter)
+      ) {
+        continue;
+      }
+
+      try {
+        if (!draft.staffId) {
+          if (existing) {
+            await releaseAssignment({ id: existing.id }).unwrap();
+          }
+        } else if (existing && existing.staffId === draft.staffId) {
+          await updateAssignment({
+            id: existing.id,
+            canEnterMarks: draft.canEnterMarks,
+          }).unwrap();
+        } else {
+          await assignTeacher({
+            academicYearId: year.id,
+            classId: editGroup.classId,
+            sectionId: sec.id,
+            classSubjectId: editGroup.classSubjectId,
+            staffId: draft.staffId,
+            canEnterMarks: draft.canEnterMarks,
+            replaceExisting: true,
+          }).unwrap();
+        }
+        changed++;
+      } catch {
+        failed++;
+      }
+    }
+
+    setSavingGroupEdit(false);
+    if (failed === 0) {
+      if (changed > 0) {
+        toast.success(pick('বিষয় শিক্ষক বণ্টন হালনাগাদ হয়েছে।', 'Subject teacher assignment updated.'));
+      } else {
+        toast.info(pick('কোনো নতুন পরিবর্তন নেই।', 'No new changes to save.'));
+      }
+      setEditGroup(null);
+    } else {
+      toast.error(pick('কিছু শাখার বণ্টন হালনাগাদ করা যায়নি।', 'Some section updates failed.'));
     }
   };
 
-  const handleRemove = (row: TeacherAssignmentItem) => {
-    setRemoveTarget(row);
-  };
-
-  const confirmRemove = async () => {
-    if (!removeTarget) return;
+  const confirmRemoveGroup = async () => {
+    if (!removeGroupTarget) return;
     try {
-      await deleteAssignment(removeTarget.id).unwrap();
-      toast.success(pick('বণ্টন সরানো হয়েছে।', 'Assignment removed.'));
-      setRemoveTarget(null);
+      for (const item of removeGroupTarget.assignments) {
+        await releaseAssignment({ id: item.id }).unwrap();
+      }
+      toast.success(pick('বণ্টন সরানো হয়েছে।', 'Assignment released.'));
+      setRemoveGroupTarget(null);
     } catch (err) {
       toast.error(errorMessage(err, pick('বণ্টন সরানো যায়নি।', 'Could not remove the assignment.')));
     }
@@ -524,55 +686,113 @@ function SubjectTeachers({
     return sections.filter((s) => s.classId === classFilter);
   }, [sections, classFilter]);
 
+  const visibleSectionNames = useMemo(() => {
+    if (sectionFilter !== 'ALL') {
+      const sec = sections.find((s) => s.id === sectionFilter);
+      return sec ? [sec.name] : [];
+    }
+    return Array.from(new Set(filterSections.map((s) => s.name)));
+  }, [sectionFilter, sections, filterSections]);
+
+  const groupedRows = useMemo(() => {
+    const q = debouncedSearch.toLowerCase();
+    const classOrderMap = new Map(classes.map((c) => [c.id, c.numericValue ?? 99]));
+    const sectionNameMap = new Map(sections.map((s) => [s.id, s.name]));
+    const groups = new Map<
+      string,
+      {
+        key: string;
+        classId: string;
+        classSubjectId: string;
+        classTitle: string;
+        classNumeric: number;
+        subjectTitle: string;
+        bySectionName: Map<string, TeacherAssignmentItem>;
+      }
+    >();
+
+    for (const row of allAssignments) {
+      if (classFilter !== 'ALL' && row.classId !== classFilter) continue;
+      if (sectionFilter !== 'ALL' && row.sectionId !== sectionFilter) continue;
+
+      const secName = row.section?.name || sectionNameMap.get(row.sectionId) || '';
+      const clsTitle = row.schoolClass?.name || classLabel(row.classId) || '—';
+      const subTitle = subjectLabel(row.classSubjectId, row);
+      const tObj = teachers.find((t) => t.id === row.staffId);
+      const tName = tObj?.nameBn || tObj?.name || row.staff?.name || '';
+
+      if (q) {
+        const hay = `${clsTitle} ${subTitle} ${tName} ${secName}`.toLowerCase();
+        if (!hay.includes(q)) continue;
+      }
+
+      const key = `${row.classId}:${row.classSubjectId}`;
+      let entry = groups.get(key);
+      if (!entry) {
+        entry = {
+          key,
+          classId: row.classId,
+          classSubjectId: row.classSubjectId,
+          classTitle: clsTitle,
+          classNumeric: row.schoolClass?.numericValue ?? classOrderMap.get(row.classId) ?? 99,
+          subjectTitle: subTitle,
+          bySectionName: new Map(),
+        };
+        groups.set(key, entry);
+      }
+      if (secName) {
+        entry.bySectionName.set(secName, row);
+      }
+    }
+
+    return Array.from(groups.values()).sort((a, b) => {
+      if (a.classNumeric !== b.classNumeric) return a.classNumeric - b.classNumeric;
+      return a.subjectTitle.localeCompare(b.subjectTitle, locale);
+    });
+  }, [allAssignments, classFilter, sectionFilter, debouncedSearch, classes, sections, teachers, locale]);
+
+  const pageSize = 15;
+  const totalGrouped = groupedRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalGrouped / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const pagedGroups = useMemo(
+    () => groupedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [groupedRows, currentPage]
+  );
+
   return (
     <div className="space-y-6">
-      {/* 1. Top Actionable KPI Summary Cards */}
-      <div className="bg-surface border border-border rounded-[var(--radius)] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border shadow-xs">
-        <div className="p-4 sm:p-5">
-          <p className="text-sm font-medium text-muted-foreground">{pick('বিষয় বণ্টন অগ্রগতি', 'Subject Allocation Progress')}</p>
+      {/* 1. Top 3 Simple Full-Width KPI Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-surface border border-border rounded-[var(--radius)] p-4 sm:p-5 shadow-xs">
+          <p className="text-sm font-medium text-muted-foreground">{pick('মোট বিষয়', 'Total Subjects')}</p>
           <p className="text-2xl sm:text-3xl font-bold text-foreground tabular-nums mt-1.5">
-            {formatNumber(assignedSubjectIds.size, locale)}
-            <span className="text-sm sm:text-base font-normal text-muted-foreground"> / {formatNumber(relevantClassSubjects.length, locale)} {pick('টি বিষয়', 'subjects')}</span>
+            {formatNumber(relevantClassSubjects.length, locale)}
           </p>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-normal">
-            {pick(`মোট বরাদ্দ: ${formatNumber(relevantAssignments.length, locale)}টি পাঠদান`, `Total: ${formatNumber(relevantAssignments.length, locale)} assignments`)}
-          </p>
-        </div>
-
-        <div className="p-4 sm:p-5">
-          <p className="text-sm font-medium text-muted-foreground">{pick('শিক্ষকহীন বাকি বিষয়', 'Pending / Unassigned Subjects')}</p>
-          <p className={`text-2xl sm:text-3xl font-bold tabular-nums mt-1.5 flex items-center gap-1.5 ${unassignedSubjects.length > 0 ? 'text-amber-500' : 'text-success'}`}>
-            {formatNumber(unassignedSubjects.length, locale)}
-            <span className="text-sm sm:text-base font-normal text-muted-foreground">{pick('টি বিষয় বাকি', 'subjects pending')}</span>
-          </p>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-normal">
-            {unassignedSubjects.length > 0
-              ? pick('এগুলোতে এখনও কোনো শিক্ষক বসানো হয়নি', 'Needs teacher allocation')
-              : pick('সব বিষয়ে শিক্ষক বরাদ্দ সম্পন্ন হয়েছে', 'All curriculum subjects allocated')}
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            {pick('পাঠ্যক্রমের সক্রিয় বিষয়', 'Active curriculum subjects')}
           </p>
         </div>
 
-        <div className="p-4 sm:p-5">
-          <p className="text-sm font-medium text-muted-foreground">{pick('শ্রেণিকক্ষে শিক্ষক', 'Teachers in Classroom')}</p>
+        <div className="bg-surface border border-border rounded-[var(--radius)] p-4 sm:p-5 shadow-xs">
+          <p className="text-sm font-medium text-muted-foreground">{pick('শিক্ষক দেওয়া হয়েছে', 'Subjects Assigned')}</p>
           <p className="text-2xl sm:text-3xl font-bold text-primary tabular-nums mt-1.5">
-            {formatNumber(relevantTeachingTeachers.size, locale)}
-            <span className="text-sm sm:text-base font-normal text-muted-foreground"> / {formatNumber(teachers.length, locale)} {pick('জন', 'teachers')}</span>
+            {formatNumber(assignedSubjectIds.size, locale)}
           </p>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-normal">
-            {pick('সক্রিয়ভাবে পাঠদানে যুক্ত আছেন', 'Actively assigned to classes')}
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            {pick(`মোট শাখা বণ্টন: ${formatNumber(relevantAssignments.length, locale)}টি`, `Section slots: ${relevantAssignments.length}`)}
           </p>
         </div>
 
-        <div className="p-4 sm:p-5">
-          <p className="text-sm font-medium text-muted-foreground">{pick('দায়িত্বহীন / ফ্রি শিক্ষক', 'Available / Free Teachers')}</p>
-          <p className={`text-2xl sm:text-3xl font-bold tabular-nums mt-1.5 ${freeTeachersCount > 0 ? 'text-foreground' : 'text-success'}`}>
-            {formatNumber(freeTeachersCount, locale)}
-            <span className="text-sm sm:text-base font-normal text-muted-foreground ml-1">{pick('জন শিক্ষক', 'free teachers')}</span>
+        <div className="bg-surface border border-border rounded-[var(--radius)] p-4 sm:p-5 shadow-xs">
+          <p className="text-sm font-medium text-muted-foreground">{pick('বাকি', 'Pending')}</p>
+          <p className={`text-2xl sm:text-3xl font-bold tabular-nums mt-1.5 ${unassignedSubjectsCount > 0 ? 'text-amber-500' : 'text-success'}`}>
+            {formatNumber(unassignedSubjectsCount, locale)}
           </p>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-normal">
-            {freeTeachersCount > 0
-              ? pick('এখনও কোনো বিষয়ে ক্লাস বরাদ্দ পাননি', 'No class allocated yet')
-              : pick('সকল শিক্ষককে ক্লাসে যুক্ত করা হয়েছে', 'All teachers deployed')}
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+            {unassignedSubjectsCount > 0
+              ? pick('বসাতে বাকি আছে', 'Needs teacher')
+              : pick('সব সম্পন্ন', 'All assigned')}
           </p>
         </div>
       </div>
@@ -614,14 +834,11 @@ function SubjectTeachers({
             className="w-48 h-10 text-sm"
           >
             <option value="ALL">{pick('সকল শ্রেণি', 'All Classes')}</option>
-            {activeClasses.map((cls) => {
-              const count = allAssignments.filter((a) => a.classId === cls.id).length;
-              return (
-                <option key={cls.id} value={cls.id}>
-                  {classLabel(cls.id) || cls.name} ({formatNumber(count, locale)}টি)
-                </option>
-              );
-            })}
+            {activeClasses.map((cls) => (
+              <option key={cls.id} value={cls.id}>
+                {classLabel(cls.id) || cls.name}
+              </option>
+            ))}
           </Select>
 
           <Select
@@ -638,104 +855,290 @@ function SubjectTeachers({
             ))}
           </Select>
 
-          <Button type="button" variant="primary" size="sm" onClick={() => setOpen(true)} className="h-10 text-sm px-4">
+          <Button type="button" variant="primary" size="sm" onClick={openCreateModal} className="h-10 text-sm px-4">
             <Plus className="w-4 h-4 mr-1.5" />
             {pick('নতুন শিক্ষক বণ্টন', 'Assign Subject Teacher')}
           </Button>
         </div>
       </div>
 
-      {/* 4. Modal to Assign Subject Teacher */}
+      {/* 3. Modal for Bulk Matrix Teacher Assignment */}
       <Modal
-        open={open}
-        onClose={() => setOpen(false)}
-        title={pick('বিষয় শিক্ষক বণ্টন', 'Assign Subject Teacher')}
-        maxWidth="max-w-lg"
+        open={matrixOpen}
+        onClose={() => {
+          if (savingMatrix) return;
+          setMatrixOpen(false);
+          setMatrixDrafts({});
+        }}
+        title={pick('বিষয় শিক্ষক বণ্টন', 'Assign Subject Teachers')}
+        description={pick(
+          'শ্রেণি নির্বাচন করে প্রতিটি বিষয় ও শাখার জন্য শিক্ষক নির্ধারণ করুন।',
+          'Select a class and assign teachers for each subject and section.'
+        )}
+        maxWidth="max-w-5xl"
       >
-        <form onSubmit={handleSave} className="space-y-4">
-          <FormField label={pick('শ্রেণি ও শাখা', 'Class & Section')} required>
-            <Select
-              value={sectionId}
-              onChange={(event) => {
-                setSectionId(event.target.value);
-                setClassSubjectId('');
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="w-full sm:w-64">
+              <FormField label={pick('শ্রেণি নির্বাচন করুন', 'Select Class')}>
+                <Select
+                  value={matrixClassId}
+                  disabled={savingMatrix}
+                  onChange={(e) => {
+                    setMatrixClassId(e.target.value);
+                    setMatrixDrafts({});
+                  }}
+                  className="h-10 text-sm font-medium"
+                >
+                  {activeClasses.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {classLabel(cls.id) || cls.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            </div>
+          </div>
+
+          {matrixSubjects.length === 0 || matrixSections.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground border border-border rounded-lg">
+              <BookOpen className="w-9 h-9 mx-auto mb-2 opacity-40" />
+              <p className="text-sm font-medium text-foreground">
+                {matrixSections.length === 0
+                  ? pick('এই শ্রেণিতে কোনো সক্রিয় শাখা নেই।', 'No active sections in this class.')
+                  : pick('এই শ্রেণিতে কোনো সক্রিয় বিষয় যোগ করা হয়নি।', 'No active subjects configured for this class.')}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto max-h-[60vh] border border-border rounded-lg">
+              <table className="w-full text-sm">
+                <thead className="bg-surface-muted text-muted-foreground border-b border-border sticky top-0 z-10">
+                  <tr>
+                    <th className="p-3.5 text-left font-semibold text-foreground/80 min-w-[200px]">
+                      {pick('বিষয় ও গ্রুপ', 'Subject & Group')}
+                    </th>
+                    {matrixSections.map((sec) => (
+                      <th key={sec.id} className="p-3.5 text-left font-semibold text-foreground/80 min-w-[230px]">
+                        {sec.name} {pick('শাখা', 'Section')}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {matrixSubjects.map((cs) => (
+                    <tr key={cs.id} className="hover:bg-surface-muted/30 transition-colors">
+                      <td className="p-3.5 font-medium text-foreground align-top">
+                        {subjectLabel(cs.id)}
+                      </td>
+                      {matrixSections.map((sec) => {
+                        const key = `${sec.id}:${cs.id}`;
+                        const existing = assignmentBySlot.get(key);
+                        const draft = matrixDrafts[key];
+                        const currentStaffId = draft ? draft.staffId : (existing?.staffId ?? '');
+                        const currentCanEnter = draft ? draft.canEnterMarks : (existing?.canEnterMarks ?? true);
+
+                        return (
+                          <td key={sec.id} className="p-3 align-top">
+                            <div className="p-2 rounded-md border border-border bg-surface space-y-1.5">
+                              <Select
+                                value={currentStaffId}
+                                disabled={savingMatrix}
+                                onChange={(e) => setMatrixCell(sec.id, cs.id, { staffId: e.target.value })}
+                                className="h-9 text-xs sm:text-sm"
+                              >
+                                <option value="">{pick('— শিক্ষক নির্ধারিত নয় —', '— Unassigned —')}</option>
+                                {teachers.map((t) => (
+                                  <option key={t.id} value={t.id}>
+                                    {t.nameBn || t.name}
+                                  </option>
+                                ))}
+                              </Select>
+                              {currentStaffId && (
+                                <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={currentCanEnter}
+                                    disabled={savingMatrix}
+                                    onChange={(e) =>
+                                      setMatrixCell(sec.id, cs.id, { canEnterMarks: e.target.checked })
+                                    }
+                                    className="rounded border-border text-primary w-3.5 h-3.5 cursor-pointer"
+                                  />
+                                  {pick('নম্বর এন্ট্রির অনুমতি', 'Allow marks entry')}
+                                </label>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-3 border-t border-border">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={savingMatrix}
+              onClick={() => {
+                setMatrixOpen(false);
+                setMatrixDrafts({});
               }}
             >
-              {sections.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {classLabel(item.classId)} — {item.name} শাখা
-                </option>
-              ))}
-            </Select>
-          </FormField>
-          <FormField label={pick('পাঠ্যক্রমের বিষয়', 'Curriculum Subject')} required>
-            <Select value={selectedSubjectId} onChange={(event) => setClassSubjectId(event.target.value)}>
-              {subjects.length === 0 && <option value="">{pick('এই শ্রেণিতে কোনো সক্রিয় বিষয় নেই', 'No active subjects')}</option>}
-              {subjects.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {subjectLabel(item.id)}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-          <FormField label={pick('মনোনীত শিক্ষক', 'Assigned Teacher')} required>
-            <Select value={staffId} onChange={(event) => setStaffId(event.target.value)}>
-              {teachers.map((teacher) => (
-                <option key={teacher.id} value={teacher.id}>
-                  {teacher.nameBn || teacher.name} ({teacher.designation})
-                </option>
-              ))}
-            </Select>
-          </FormField>
-          <div className="flex items-center gap-2 pt-1">
-            <input
-              type="checkbox"
-              id="canEnterMarks"
-              checked={canEnterMarks}
-              onChange={(e) => setCanEnterMarks(e.target.checked)}
-              className="rounded border-border text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-            />
-            <label htmlFor="canEnterMarks" className="text-sm text-foreground font-medium cursor-pointer">
-              {pick('পরীক্ষার নম্বর এন্ট্রি ও সংশোধনের অনুমতি দিন', 'Allow marks entry for examinations')}
-            </label>
-          </div>
-          <div className="flex justify-end gap-2 pt-2 border-t border-border">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{pick('বাতিল', 'Cancel')}</Button>
-            <Button type="submit" variant="primary" disabled={saving || !selectedSubjectId || !staffId}>
-              {saving ? pick('বণ্টন হচ্ছে...', 'Assigning...') : pick('সংরক্ষণ করুন', 'Save Assignment')}
+              {pick('বাতিল', 'Cancel')}
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={savingMatrix}
+              onClick={handleSaveMatrix}
+            >
+              <Save className="w-3.5 h-3.5 mr-1.5" />
+              {savingMatrix
+                ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
+                : pick('সব পরিবর্তন সংরক্ষণ করুন', 'Save All Changes')}
             </Button>
           </div>
-        </form>
+        </div>
       </Modal>
 
-      {/* 5. Main Assignment Table */}
+      {/* 4. Modal to Edit All Sections of a Subject Side-by-Side */}
+      <Modal
+        open={Boolean(editGroup)}
+        onClose={() => {
+          if (savingGroupEdit) return;
+          setEditGroup(null);
+        }}
+        title={
+          editGroup
+            ? `${editGroup.classTitle} — ${editGroup.subjectTitle}`
+            : pick('বিষয় শিক্ষক সম্পাদনা', 'Edit Subject Teacher')
+        }
+        description={pick(
+          'প্রতিটি শাখার জন্য শিক্ষক পরিবর্তন বা নির্ধারণ করুন। কোনো শাখা থেকে সরাতে "শিক্ষক নির্ধারিত নয়" নির্বাচন করুন।',
+          'Update teachers for each section. Select "Unassigned" to release a section teacher.'
+        )}
+        maxWidth="max-w-2xl"
+      >
+        {editGroup && (
+          <form onSubmit={handleSaveGroupEdit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {sections
+                .filter((s) => s.classId === editGroup.classId)
+                .map((sec) => {
+                  const draft = editDrafts[sec.id] ?? { staffId: '', canEnterMarks: true };
+                  return (
+                    <div
+                      key={sec.id}
+                      className="p-3.5 rounded-lg border border-border bg-surface-muted/20 space-y-2.5"
+                    >
+                      <FormField label={`${sec.name} ${pick('শাখা', 'Section')}`}>
+                        <Select
+                          value={draft.staffId}
+                          disabled={savingGroupEdit}
+                          onChange={(e) =>
+                            setEditDrafts((prev) => ({
+                              ...prev,
+                              [sec.id]: { ...draft, staffId: e.target.value },
+                            }))
+                          }
+                        >
+                          <option value="">{pick('— শিক্ষক নির্ধারিত নয় —', '— Unassigned —')}</option>
+                          {teachers.map((teacher) => (
+                            <option key={teacher.id} value={teacher.id}>
+                              {teacher.nameBn || teacher.name} ({teacher.designation})
+                            </option>
+                          ))}
+                        </Select>
+                      </FormField>
+                      {draft.staffId && (
+                        <label className="inline-flex items-center gap-2 text-xs text-foreground cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={draft.canEnterMarks}
+                            disabled={savingGroupEdit}
+                            onChange={(e) =>
+                              setEditDrafts((prev) => ({
+                                ...prev,
+                                [sec.id]: { ...draft, canEnterMarks: e.target.checked },
+                              }))
+                            }
+                            className="rounded border-border text-primary w-3.5 h-3.5 cursor-pointer"
+                          />
+                          {pick('নম্বর এন্ট্রির অনুমতি', 'Allow marks entry')}
+                        </label>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={savingGroupEdit}
+                onClick={() => setEditGroup(null)}
+              >
+                {pick('বাতিল', 'Cancel')}
+              </Button>
+              <Button type="submit" variant="primary" disabled={savingGroupEdit}>
+                <Save className="w-3.5 h-3.5 mr-1.5" />
+                {savingGroupEdit
+                  ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
+                  : pick('সংরক্ষণ করুন', 'Save Changes')}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      {/* 5. Main Assignment Table (Grouped by Class & Subject, Sections side-by-side) */}
       <Card className="overflow-x-auto border-border">
         <table className="w-full text-sm">
           <thead className="bg-surface-muted text-muted-foreground border-b border-border">
             <tr>
-              <th className="p-3.5 text-left font-semibold text-foreground/80">{pick('শ্রেণি ও শাখা', 'Class & Section')}</th>
-              <th className="p-3.5 text-left font-semibold text-foreground/80">{pick('বিষয় ও গ্রুপ', 'Subject & Group')}</th>
-              <th className="p-3.5 text-left font-semibold text-foreground/80">{pick('দায়িত্বপ্রাপ্ত শিক্ষক', 'Assigned Teacher')}</th>
-              <th className="p-3.5 text-center font-semibold text-foreground/80">{pick('নম্বর এন্ট্রি', 'Marks Entry')}</th>
-              <th className="p-3.5 text-right font-semibold text-foreground/80">{pick('কাজ', 'Action')}</th>
+              <th className="p-3.5 text-left font-semibold text-foreground/80 min-w-[140px]">
+                {pick('শ্রেণি', 'Class')}
+              </th>
+              <th className="p-3.5 text-left font-semibold text-foreground/80 min-w-[210px]">
+                {pick('বিষয় ও গ্রুপ', 'Subject & Group')}
+              </th>
+              {visibleSectionNames.map((secName) => (
+                <th key={secName} className="p-3.5 text-left font-semibold text-foreground/80 min-w-[200px]">
+                  {secName} {pick('শাখা', 'Section')}
+                </th>
+              ))}
+              <th className="p-3.5 text-right font-semibold text-foreground/80 w-[190px]">
+                {pick('কাজ', 'Action')}
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {loadingAssignments ? (
               Array.from({ length: 5 }).map((_, idx) => (
                 <tr key={`ta-skel-${idx}`} className="animate-pulse">
-                  <td className="p-3.5"><div className="h-5 w-36 rounded bg-surface-muted" /></td>
+                  <td className="p-3.5"><div className="h-5 w-28 rounded bg-surface-muted" /></td>
                   <td className="p-3.5"><div className="h-5 w-40 rounded bg-surface-muted" /></td>
-                  <td className="p-3.5"><div className="h-5 w-44 rounded bg-surface-muted" /></td>
-                  <td className="p-3.5 text-center"><div className="inline-block h-6 w-24 rounded-full bg-surface-muted" /></td>
-                  <td className="p-3.5 text-right"><div className="inline-block h-8 w-18 rounded bg-surface-muted" /></td>
+                  {visibleSectionNames.map((secName) => (
+                    <td key={secName} className="p-3.5"><div className="h-5 w-36 rounded bg-surface-muted" /></td>
+                  ))}
+                  <td className="p-3.5 text-right"><div className="inline-block h-8 w-20 rounded bg-surface-muted" /></td>
                 </tr>
               ))
-            ) : filteredRows.length === 0 ? (
+            ) : pagedGroups.length === 0 ? (
               <tr>
-                <td className="p-8 text-center text-muted-foreground" colSpan={5}>
+                <td
+                  className="p-8 text-center text-muted-foreground"
+                  colSpan={3 + Math.max(1, visibleSectionNames.length)}
+                >
                   <BookOpen className="w-9 h-9 mx-auto mb-2 opacity-40 text-muted-foreground" />
-                  <p className="text-base font-semibold text-foreground">{pick('কোনো বিষয় শিক্ষক বণ্টন পাওয়া যায়নি', 'No subject assignments found')}</p>
+                  <p className="text-base font-semibold text-foreground">
+                    {pick('কোনো বিষয় শিক্ষক বণ্টন পাওয়া যায়নি', 'No subject assignments found')}
+                  </p>
                   <p className="text-sm mt-1.5 text-muted-foreground">
                     {isFiltered
                       ? pick('ফিল্টারের সাথে মেলে এমন কোনো রেকর্ড নেই। ফিল্টার রিসেট করে দেখুন।', 'No records match the current filter.')
@@ -744,86 +1147,90 @@ function SubjectTeachers({
                 </td>
               </tr>
             ) : (
-              filteredRows.map((row) => {
-                const sectionRow = sections.find((item) => item.id === row.sectionId);
-                const teacher = teachers.find((item) => item.id === row.staffId);
-                const clsTitle = row.schoolClass?.name || classLabel(row.classId) || '—';
-                const sectionTitle = row.section?.name || sectionRow?.name || '';
-                const teacherDisplay =
-                  teacher?.nameBn || teacher?.name || row.staff?.name || teacherName(row.staffId);
-                const teacherDesig = teacher?.designation || row.staff?.designation;
+              pagedGroups.map((group) => (
+                <tr key={group.key} className="hover:bg-surface-muted/40 transition-colors">
+                  <td className="p-3.5 font-semibold text-foreground text-base align-top">
+                    {group.classTitle}
+                  </td>
+                  <td className="p-3.5 font-medium text-foreground text-base align-top">
+                    {group.subjectTitle}
+                  </td>
+                  {visibleSectionNames.map((secName) => {
+                    const row = group.bySectionName.get(secName);
+                    if (!row) {
+                      return (
+                        <td key={secName} className="p-3.5 text-sm text-muted-foreground align-top">
+                          —
+                        </td>
+                      );
+                    }
+                    const teacher = teachers.find((item) => item.id === row.staffId);
+                    const teacherDisplay =
+                      teacher?.nameBn || teacher?.name || row.staff?.name || teacherName(row.staffId);
+                    const teacherDesig = teacher?.designation || row.staff?.designation;
 
-                return (
-                  <tr key={row.id} className="hover:bg-surface-muted/40 transition-colors">
-                    <td className="p-3.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-foreground text-base">{clsTitle}</span>
-                        <span className="px-2.5 py-0.5 rounded-full bg-surface-muted text-xs font-medium text-muted-foreground border border-border">
-                          {sectionTitle} {pick('শাখা', 'Sec')}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-3.5">
-                      <div className="font-medium text-foreground text-base">
-                        {subjectLabel(row.classSubjectId, row)}
-                      </div>
-                    </td>
-                    <td className="p-3.5">
-                      <div>
-                        <p className="font-semibold text-primary text-base">
+                    return (
+                      <td key={secName} className="p-3.5 align-top">
+                        <p className="font-semibold text-primary text-sm sm:text-base leading-snug">
                           {teacherDisplay}
                         </p>
                         {teacherDesig && (
-                          <p className="text-sm text-muted-foreground mt-0.5">{teacherDesig}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{teacherDesig}</p>
                         )}
-                      </div>
-                    </td>
-                    <td className="p-3.5 text-center">
-                      {row.canEnterMarks ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs sm:text-sm font-medium bg-success/10 text-success border border-success/20">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          {pick('অনুমোদিত', 'Allowed')}
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-1 rounded-full text-xs sm:text-sm font-medium bg-surface-muted text-muted-foreground border border-border">
-                          {pick('অনুমতি নেই', 'Not allowed')}
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3.5 text-right">
+                      </td>
+                    );
+                  })}
+                  <td className="p-3.5 text-right align-top">
+                    <div className="inline-flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openEditGroupModal(group)}
+                        className="text-xs sm:text-sm"
+                      >
+                        <Pencil className="w-3.5 h-3.5 mr-1" />
+                        {pick('সম্পাদনা', 'Edit')}
+                      </Button>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         disabled={removing}
-                        onClick={() => handleRemove(row)}
+                        onClick={() =>
+                          setRemoveGroupTarget({
+                            classTitle: group.classTitle,
+                            subjectTitle: group.subjectTitle,
+                            assignments: Array.from(group.bySectionName.values()),
+                          })
+                        }
                         className="text-xs sm:text-sm text-destructive hover:bg-destructive/10 hover:border-destructive/30"
                       >
                         <Trash2 className="w-3.5 h-3.5 mr-1" />
                         {pick('সরান', 'Remove')}
                       </Button>
-                    </td>
-                  </tr>
-                );
-              })
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
       </Card>
 
-      {assignmentsMeta.total > 0 && (
+      {totalGrouped > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
           <span>
             {locale === 'bn'
-              ? `মোট ${formatNumber(assignmentsMeta.total, 'bn')} টি বণ্টন · পৃষ্ঠা ${formatNumber(assignmentsMeta.page, 'bn')} / ${formatNumber(assignmentsMeta.totalPages, 'bn')}`
-              : `Total ${assignmentsMeta.total} assignments · Page ${assignmentsMeta.page} / ${assignmentsMeta.totalPages}`}
+              ? `মোট ${formatNumber(totalGrouped, 'bn')} টি বিষয় · পৃষ্ঠা ${formatNumber(currentPage, 'bn')} / ${formatNumber(totalPages, 'bn')}`
+              : `Total ${totalGrouped} subjects · Page ${currentPage} / ${totalPages}`}
           </span>
           <div className="flex items-center gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
-              disabled={!assignmentsMeta.hasPreviousPage || fetchingAssignments}
+              disabled={currentPage <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
               {pick('পূর্ববর্তী', 'Previous')}
@@ -832,8 +1239,8 @@ function SubjectTeachers({
               type="button"
               variant="outline"
               size="sm"
-              disabled={!assignmentsMeta.hasNextPage || fetchingAssignments}
-              onClick={() => setPage((p) => p + 1)}
+              disabled={currentPage >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             >
               {pick('পরবর্তী', 'Next')}
             </Button>
@@ -842,15 +1249,15 @@ function SubjectTeachers({
       )}
 
       <ConfirmDialog
-        open={Boolean(removeTarget)}
-        onClose={() => setRemoveTarget(null)}
-        onConfirm={confirmRemove}
+        open={Boolean(removeGroupTarget)}
+        onClose={() => setRemoveGroupTarget(null)}
+        onConfirm={confirmRemoveGroup}
         title={pick('শিক্ষক বণ্টন সরান', 'Remove Teacher Assignment')}
         description={
-          removeTarget
+          removeGroupTarget
             ? pick(
-                `আপনি কি নিশ্চিতভাবে "${removeTarget.staff?.name || teacherName(removeTarget.staffId)}"-কে "${subjectLabel(removeTarget.classSubjectId, removeTarget)}" থেকে সরাতে চান?`,
-                `Are you sure you want to remove "${removeTarget.staff?.name || teacherName(removeTarget.staffId)}" from "${subjectLabel(removeTarget.classSubjectId, removeTarget)}"?`,
+                `আপনি কি নিশ্চিতভাবে "${removeGroupTarget.classTitle} — ${removeGroupTarget.subjectTitle}"-এর শিক্ষক বণ্টন সরাতে চান?`,
+                `Are you sure you want to remove the teacher assignments for "${removeGroupTarget.classTitle} — ${removeGroupTarget.subjectTitle}"?`,
               )
             : ''
         }

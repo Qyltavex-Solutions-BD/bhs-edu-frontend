@@ -13,8 +13,11 @@ export interface AssignTeacherPayload {
 
 export interface UpdateTeacherAssignmentPayload {
   id: string;
-  canEnterMarks?: boolean;
   staffId?: string;
+  canEnterMarks?: boolean;
+  assignedDate?: string;
+  releasedDate?: string;
+  isActive?: boolean;
 }
 
 export interface QueryTeacherAssignmentParams {
@@ -122,6 +125,18 @@ export const teacherAssignmentApi = schoolApi.injectEndpoints({
       providesTags: ['Academic'],
     }),
 
+    getMyTeacherAssignments: builder.query<TeacherAssignmentItem[], void>({
+      query: () => ({
+        url: '/academic/teacher-assignments/my-assignments',
+        method: 'GET',
+      }),
+      transformResponse: (response: any) => {
+        const raw = response?.data ?? response;
+        return Array.isArray(raw) ? raw : [];
+      },
+      providesTags: ['Academic'],
+    }),
+
     assignTeacher: builder.mutation<TeacherAssignmentItem, AssignTeacherPayload>({
       query: (body) => ({
         url: '/academic/teacher-assignments',
@@ -142,20 +157,14 @@ export const teacherAssignmentApi = schoolApi.injectEndpoints({
       invalidatesTags: ['Academic', 'Bootstrap'],
     }),
 
-    releaseTeacherAssignment: builder.mutation<TeacherAssignmentItem, { id: string; releaseDate?: string; remarks?: string }>({
+    releaseTeacherAssignment: builder.mutation<
+      TeacherAssignmentItem,
+      { id: string; releasedDate?: string }
+    >({
       query: ({ id, ...body }) => ({
         url: `/academic/teacher-assignments/${id}/release`,
-        method: 'POST',
+        method: 'PATCH',
         body,
-      }),
-      transformResponse: (response: any) => response?.data ?? response,
-      invalidatesTags: ['Academic', 'Bootstrap'],
-    }),
-
-    deleteTeacherAssignment: builder.mutation<{ id: string }, string>({
-      query: (id) => ({
-        url: `/academic/teacher-assignments/${id}`,
-        method: 'DELETE',
       }),
       transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ['Academic', 'Bootstrap'],
@@ -166,8 +175,8 @@ export const teacherAssignmentApi = schoolApi.injectEndpoints({
 export const {
   useGetTeacherAssignmentsQuery,
   useGetTeacherAssignmentsPaginatedQuery,
+  useGetMyTeacherAssignmentsQuery,
   useAssignTeacherMutation,
   useUpdateTeacherAssignmentMutation,
   useReleaseTeacherAssignmentMutation,
-  useDeleteTeacherAssignmentMutation,
 } = teacherAssignmentApi;
