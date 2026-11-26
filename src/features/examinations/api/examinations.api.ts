@@ -74,6 +74,91 @@ export interface QueryExamRoutineParams {
   endDate?: string;
 }
 
+export interface GradeSheetStudentMark {
+  id: string;
+  isAbsent: boolean;
+  writtenMarks: number;
+  mcqMarks: number;
+  practicalMarks: number;
+  continuousAssessmentMarks: number;
+  totalMarks: number;
+  isLocked: boolean;
+  enteredBy: string;
+  updatedAt: string;
+}
+
+export interface GradeSheetStudentRow {
+  studentEnrollmentId: string;
+  studentId: string;
+  roll: number;
+  name: string;
+  nameBn: string | null;
+  gender: string;
+  section: string;
+  sectionId: string;
+  group: string | null;
+  isOptionalSubject: boolean;
+  isEnrolledOptional: boolean;
+  mark: GradeSheetStudentMark | null;
+}
+
+export interface GradeSheetResponse {
+  examination: {
+    id: string;
+    name: string;
+    examType: string;
+    status: string;
+    marksEntryDeadline: string | null;
+    isLocked: boolean;
+    resultStatus: string;
+    academicYear: string;
+    schoolClass: string;
+  };
+  examSubject: {
+    id: string;
+    subjectName: string;
+    officialCode: string | null;
+    fullMarks: number;
+    passMarks: number;
+    hasWritten: boolean;
+    writtenFullMarks: number | null;
+    hasMcq: boolean;
+    mcqFullMarks: number | null;
+    hasPractical: boolean;
+    practicalFullMarks: number | null;
+    hasContinuousAssessment: boolean;
+    continuousAssessmentFullMarks: number | null;
+  };
+  summary: {
+    totalStudents: number;
+    marksEnteredCount: number;
+    marksPendingCount: number;
+    absentCount: number;
+  };
+  students: GradeSheetStudentRow[];
+}
+
+export interface BulkMarkEntryItem {
+  studentEnrollmentId: string;
+  isAbsent?: boolean;
+  writtenMarks?: number;
+  mcqMarks?: number;
+  practicalMarks?: number;
+  continuousAssessmentMarks?: number;
+}
+
+export interface BulkCreateMarkPayload {
+  examSubjectId: string;
+  sectionId?: string;
+  marks: BulkMarkEntryItem[];
+}
+
+export interface BulkCreateMarkResult {
+  totalProcessed: number;
+  createdCount: number;
+  updatedCount: number;
+}
+
 export const examinationsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getExams: builder.query<
@@ -339,6 +424,36 @@ export const examinationsApi = baseApi.injectEndpoints({
         'Audit',
       ],
     }),
+    getGradeSheet: builder.query<
+      GradeSheetResponse,
+      { examSubjectId: string; sectionId?: string }
+    >({
+      query: (params) => ({
+        url: '/examination/marks/grade-sheet',
+        method: 'GET',
+        params,
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      providesTags: ['Results'],
+    }),
+    saveBulkMarks: builder.mutation<BulkCreateMarkResult, BulkCreateMarkPayload>({
+      query: (body) => ({
+        url: '/examination/marks/bulk',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      invalidatesTags: ['Results', 'Exams', 'Audit'],
+    }),
+    toggleMarkLock: builder.mutation<any, { id: string; isLocked: boolean }>({
+      query: ({ id, isLocked }) => ({
+        url: `/examination/marks/${id}/lock`,
+        method: 'PATCH',
+        body: { isLocked },
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      invalidatesTags: ['Results', 'Audit'],
+    }),
     saveMarksBatch: builder.mutation<
       { savedCount: number },
       {
@@ -453,6 +568,9 @@ export const {
   useCreateExamRoutineMutation,
   useUpdateExamRoutineMutation,
   useRemoveExamRoutineMutation,
+  useGetGradeSheetQuery,
+  useSaveBulkMarksMutation,
+  useToggleMarkLockMutation,
   useSaveMarksBatchMutation,
   useProcessExamResultsMutation,
   useUpsertExamSubjectMutation,

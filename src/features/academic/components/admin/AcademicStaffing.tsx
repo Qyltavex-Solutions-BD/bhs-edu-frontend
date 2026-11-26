@@ -785,7 +785,7 @@ function SubjectTeachers({
         </div>
 
         <div className="bg-surface border border-border rounded-[var(--radius)] p-4 sm:p-5 shadow-xs">
-          <p className="text-sm font-medium text-muted-foreground">{pick('শিক্ষক বাকি', 'Subjects Pending')}</p>
+          <p className="text-sm font-medium text-muted-foreground">{pick('বাকি', 'Pending')}</p>
           <p className={`text-2xl sm:text-3xl font-bold tabular-nums mt-1.5 ${unassignedSubjectsCount > 0 ? 'text-amber-500' : 'text-success'}`}>
             {formatNumber(unassignedSubjectsCount, locale)}
           </p>
@@ -834,14 +834,11 @@ function SubjectTeachers({
             className="w-48 h-10 text-sm"
           >
             <option value="ALL">{pick('সকল শ্রেণি', 'All Classes')}</option>
-            {activeClasses.map((cls) => {
-              const count = allAssignments.filter((a) => a.classId === cls.id).length;
-              return (
-                <option key={cls.id} value={cls.id}>
-                  {classLabel(cls.id) || cls.name} ({formatNumber(count, locale)}টি)
-                </option>
-              );
-            })}
+            {activeClasses.map((cls) => (
+              <option key={cls.id} value={cls.id}>
+                {classLabel(cls.id) || cls.name}
+              </option>
+            ))}
           </Select>
 
           <Select
