@@ -16,7 +16,10 @@ import {
   useGetPublicAdmissionCatalogQuery,
   useLazyGetPublicAdmissionStatusQuery,
 } from '@/src/features/admission/api/admission.api';
-import type { AdmissionCatalogData } from '@/src/features/admission/rules';
+import {
+  getRequiredDocumentChecklist,
+  type AdmissionCatalogData,
+} from '@/src/features/admission/rules';
 import type { SchoolProfile } from '@/src/types/entities';
 import { useI18n } from '@/src/lib/i18n';
 import { formatBdt, formatDateLong } from '@/src/lib/formatters';
@@ -217,6 +220,83 @@ export function AdmissionStatusPage() {
                 </Button>
               </div>
             </div>
+
+            {found.status === 'APPROVED' && (
+              <div className="p-4 rounded-[4px] border border-primary/30 bg-primary/5 space-y-2.5">
+                <p className="text-sm font-bold text-primary flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  {pick(
+                    'অভিনন্দন! আপনার আবেদনটি প্রাথমিকভাবে অনুমোদিত হয়েছে।',
+                    'Congratulations! Your application has been provisionally approved.'
+                  )}
+                </p>
+
+                <p className="text-xs sm:text-sm text-foreground leading-relaxed">
+                  {found.reportingStartDate && found.reportingEndDate
+                    ? pick(
+                        `আগামী ${formatDateLong(found.reportingStartDate, 'bn')} থেকে ${formatDateLong(found.reportingEndDate, 'bn')}-এর মধ্যে নিচের মূল কাগজপত্র ও ভর্তি ফি নিয়ে স্বশরীরে বিদ্যালয় অফিসে উপস্থিত হতে হবে। অন্যথায় আপনার প্রাথমিক অনুমোদন বাতিল বলে গণ্য হবে।`,
+                        `You must appear in person at the school office between ${formatDateLong(found.reportingStartDate, 'en')} and ${formatDateLong(found.reportingEndDate, 'en')} with the original documents below and admission fee. Otherwise, your initial approval will be cancelled.`
+                      )
+                    : found.reportingEndDate
+                    ? pick(
+                        `আগামী ${formatDateLong(found.reportingEndDate, 'bn')}-এর মধ্যে নিচের মূল কাগজপত্র ও ভর্তি ফি নিয়ে স্বশরীরে বিদ্যালয় অফিসে উপস্থিত হতে হবে। অন্যথায় আপনার প্রাথমিক অনুমোদন বাতিল বলে গণ্য হবে।`,
+                        `You must appear in person at the school office by ${formatDateLong(found.reportingEndDate, 'en')} with the original documents below and admission fee. Otherwise, your initial approval will be cancelled.`
+                      )
+                    : pick(
+                        'নির্ধারিত সময়ের মধ্যে নিচের মূল কাগজপত্র ও ভর্তি ফি নিয়ে স্বশরীরে বিদ্যালয় অফিসে উপস্থিত হতে হবে।',
+                        'Please appear in person at the school office within the scheduled time with the original documents below and admission fee.'
+                      )}
+                </p>
+
+                <div className="space-y-1.5 pt-1 border-t border-primary/15">
+                  <p className="text-xs sm:text-sm font-semibold text-foreground">
+                    {pick(
+                      'বিদ্যালয়ে যে সকল মূল কাগজপত্র নিয়ে আসতে হবে:',
+                      'Original documents you must bring to school:'
+                    )}
+                  </p>
+                  <ul className="space-y-1.5 text-xs sm:text-sm text-foreground">
+                    {getRequiredDocumentChecklist(
+                      foundClass?.numericValue ?? 6,
+                      found.admissionType ?? (found.isReadmission ? 'READMISSION' : 'NEW'),
+                      found.fatherAlive === false || found.motherAlive === false
+                    ).map((doc) => (
+                      <li key={doc.key} className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                        <span>{locale === 'bn' ? doc.labelBn : doc.labelEn}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {(found.status === 'NEW' || found.status === 'UNDER_REVIEW') && (
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {pick(
+                  'আপনার আবেদনটি বর্তমানে বিদ্যালয় অফিসে প্রাথমিক যাচাইয়ের অপেক্ষায় রয়েছে। অনুমোদিত হলে এখানেই উপস্থিতির তারিখ ও প্রয়োজনীয় মূল কাগজপত্রের তালিকা দেখতে পাবেন।',
+                  'Your application is pending initial review. Once approved, the reporting date and required original documents will be shown here.'
+                )}
+              </p>
+            )}
+
+            {found.status === 'ADMITTED' && (
+              <p className="text-xs sm:text-sm font-medium text-success">
+                {pick(
+                  'আপনার চূড়ান্ত ভর্তি সম্পন্ন হয়েছে এবং বিদ্যালয়ের নিয়মিত শিক্ষার্থী হিসেবে শাখা ও রোল বরাদ্দ করা হয়েছে।',
+                  'Your final admission is complete and you have been enrolled with an assigned section and roll.'
+                )}
+              </p>
+            )}
+
+            {found.status === 'REJECTED' && (
+              <p className="text-xs sm:text-sm font-medium text-destructive">
+                {pick(
+                  'দুঃখিত, আপনার আবেদনটি বাতিল করা হয়েছে। বিস্তারিত জানতে বিদ্যালয় অফিসে যোগাযোগ করুন।',
+                  'Sorry, your application was rejected. Please contact the school office for details.'
+                )}
+              </p>
+            )}
 
             <div className="inline-flex border border-border rounded-[4px] overflow-hidden divide-x divide-border text-sm">
               <button

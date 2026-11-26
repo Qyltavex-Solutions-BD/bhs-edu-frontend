@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
+  Calendar,
   CheckCircle2,
   ClipboardCheck,
   Clock,
@@ -114,6 +115,8 @@ export function StudentAdmissionInbox({
   const [roll, setRoll] = useState('');
   const [formSerialNo, setFormSerialNo] = useState('');
   const [verifiedDocs, setVerifiedDocs] = useState<Record<string, boolean>>({});
+  const [reportingStartDate, setReportingStartDate] = useState('');
+  const [reportingEndDate, setReportingEndDate] = useState('');
   const [fullFormApp, setFullFormApp] = useState<OnlineAdmissionApplication | null>(null);
   const [admittedResult, setAdmittedResult] = useState<AdminAdmissionResult | null>(null);
 
@@ -175,6 +178,12 @@ export function StudentAdmissionInbox({
     setRoll(nextSecId ? String(computeRollFromEnrollments(nextSecId)) : '');
     setFormSerialNo(found?.applicationNumber ?? '');
     setVerifiedDocs(initialDocs);
+    setReportingStartDate(
+      found?.reportingStartDate ? String(found.reportingStartDate).slice(0, 10) : ''
+    );
+    setReportingEndDate(
+      found?.reportingEndDate ? String(found.reportingEndDate).slice(0, 10) : ''
+    );
   };
 
   const handleSectionChange = (nextSectionId: string) => {
@@ -184,6 +193,26 @@ export function StudentAdmissionInbox({
 
   const act = async (status: 'APPROVED' | 'REJECTED' | 'ADMITTED') => {
     if (!app) return;
+    if (status === 'APPROVED') {
+      if (!reportingEndDate) {
+        toast.error(
+          pick(
+            'প্রাথমিক অনুমোদনের জন্য বিদ্যালয়ে উপস্থিতির শেষ তারিখ দিন।',
+            'Please provide the reporting deadline date for approval.'
+          )
+        );
+        return;
+      }
+      if (reportingStartDate && reportingStartDate > reportingEndDate) {
+        toast.error(
+          pick(
+            'শুরুর তারিখ শেষ তারিখের পরের হতে পারবে না।',
+            'Start date cannot be after the deadline date.'
+          )
+        );
+        return;
+      }
+    }
     try {
       await updateStatus({
         id: app.id,
@@ -193,6 +222,9 @@ export function StudentAdmissionInbox({
         academicYearId: yearId,
         formSerialNo: status === 'ADMITTED' ? formSerialNo || app.applicationNumber : undefined,
         verifiedDocuments: status === 'ADMITTED' ? verifiedDocs : undefined,
+        reportingStartDate:
+          status === 'APPROVED' && reportingStartDate ? reportingStartDate : undefined,
+        reportingEndDate: status === 'APPROVED' ? reportingEndDate : undefined,
       }).unwrap();
       toast.success(
         status === 'ADMITTED'
@@ -802,6 +834,59 @@ export function StudentAdmissionInbox({
                 )}
               </div>
             )}
+
+            <div className="space-y-3 p-3.5 rounded-lg border border-primary/25 bg-primary/[0.03]">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-primary">
+                <Calendar className="w-4 h-4 shrink-0" />
+                {pick(
+                  'প্রাথমিক অনুমোদনের শর্ত ও বিদ্যালয়ে উপস্থিতির নির্দেশনা',
+                  'Initial Approval Reporting Dates & Required Documents'
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <FormField label={pick('উপস্থিতির শুরুর তারিখ (ঐচ্ছিক)', 'Reporting Start Date (Optional)')}>
+                  <Input
+                    type="date"
+                    value={reportingStartDate}
+                    onChange={(e) => setReportingStartDate(e.target.value)}
+                    className="h-9"
+                  />
+                </FormField>
+                <FormField label={pick('উপস্থিতির শেষ তারিখ', 'Reporting Deadline Date')} required>
+                  <Input
+                    type="date"
+                    value={reportingEndDate}
+                    onChange={(e) => setReportingEndDate(e.target.value)}
+                    className="h-9"
+                  />
+                </FormField>
+              </div>
+
+              <p className="text-[11px] text-destructive font-medium">
+                {pick(
+                  'বিঃদ্রঃ নির্ধারিত তারিখের মধ্যে নিচের মূল কাগজপত্র ও ভর্তি ফি নিয়ে স্বশরীরে বিদ্যালয়ে উপস্থিত না হলে প্রাথমিক অনুমোদন বাতিল বলে গণ্য হবে।',
+                  'Note: Failure to appear in person with the original documents below by the deadline will cancel the initial approval.'
+                )}
+              </p>
+
+              <div className="space-y-1.5 pt-1 border-t border-primary/15">
+                <p className="text-xs font-semibold text-foreground">
+                  {pick(
+                    'বিদ্যালয়ে যে সকল মূল কাগজপত্র নিয়ে সরাসরি আসতে হবে:',
+                    'Original documents the student must bring to school:'
+                  )}
+                </p>
+                <ul className="space-y-1.5 text-xs text-foreground">
+                  {appChecklist.map((item) => (
+                    <li key={item.key} className="flex items-start gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-primary mt-0.5 shrink-0" />
+                      <span>{locale === 'bn' ? item.labelBn : item.labelEn}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
               </>
             )}
 

@@ -13,6 +13,8 @@ type AdmissionSubmission = Omit<
   | 'submittedAt'
   | 'admissionTestRoll'
   | 'admissionTestDate'
+  | 'reportingStartDate'
+  | 'reportingEndDate'
 >;
 
 interface AdmissionStatusUpdate {
@@ -23,6 +25,8 @@ interface AdmissionStatusUpdate {
   academicYearId?: string;
   formSerialNo?: string;
   verifiedDocuments?: Record<string, boolean>;
+  reportingStartDate?: string;
+  reportingEndDate?: string;
 }
 
 export const admissionApi = baseApi.injectEndpoints({
