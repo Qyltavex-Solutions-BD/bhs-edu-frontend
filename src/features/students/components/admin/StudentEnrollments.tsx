@@ -193,6 +193,14 @@ export function StudentEnrollments({
 
   const populatedClasses = new Set(sessionEnrollments.map((r) => r.classId)).size;
   const populatedSections = new Set(sessionEnrollments.map((r) => r.sectionId)).size;
+  const avgPerSection =
+    populatedSections > 0 ? Math.round(totalCount / populatedSections) : 0;
+  const seniorTotalCount = sessionEnrollments.filter(
+    (r) => r.classNumeric >= 9
+  ).length;
+  const readmissionCount = sessionEnrollments.filter((r) => r.isReadmission).length;
+  const repeaterCount = sessionEnrollments.filter((r) => r.isRepeater).length;
+  const regularNewCount = totalCount - readmissionCount - repeaterCount;
 
   const streamCounts = useMemo(() => {
     const map = new Map<string, number>();
@@ -289,9 +297,11 @@ export function StudentEnrollments({
       await updateEnrollment({
         id: editing.id,
         sectionId: form.sectionId,
-        groupId: form.groupId || null,
+        groupId: editingNeedsGroup ? form.groupId || null : null,
         roll: Number(form.roll),
-        optionalClassSubjectId: form.optionalClassSubjectId || null,
+        optionalClassSubjectId: editingNeedsGroup
+          ? form.optionalClassSubjectId || null
+          : null,
         isRepeater: form.isRepeater,
         isReadmission: form.isReadmission,
         remarks: form.remarks,
@@ -321,87 +331,93 @@ export function StudentEnrollments({
   return (
     <div className="space-y-5">
       {/* 1. 4-Column Session Placement Summary Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <Card className="p-5 flex flex-col justify-between gap-3">
-          <span className="text-base font-bold text-foreground">
+      <Card className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden">
+        <div className="p-4 sm:p-5 flex flex-col gap-1.5">
+          <span className="text-sm font-bold text-foreground">
             {pick('সেশন এনরোলমেন্ট', 'Session Enrollments')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(totalCount, locale)}
             </span>
-            <span className="text-sm font-semibold text-muted-foreground">
+            <span className="text-sm font-medium text-muted-foreground">
               {pick(`সেশন ${yearObj?.name ?? ''}`, `Session ${yearObj?.name ?? ''}`)}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground tabular-nums">
+          <p className="text-xs sm:text-sm text-muted-foreground tabular-nums">
             {pick(
-              `সক্রিয় ${formatNumber(activeCount, locale)} · উত্তীর্ণ ${formatNumber(promotedCount, locale)} · সমাপ্ত/অন্যান্য ${formatNumber(completedOrOtherCount, locale)}`,
+              `সক্রিয় ${formatNumber(activeCount, locale)} · উত্তীর্ণ ${formatNumber(promotedCount, locale)} · অন্যান্য ${formatNumber(completedOrOtherCount, locale)}`,
               `${activeCount} active · ${promotedCount} promoted · ${completedOrOtherCount} other`
             )}
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-5 flex flex-col justify-between gap-3">
-          <span className="text-base font-bold text-foreground">
-            {pick('শ্রেণি ও শাখা কভারেজ', 'Class & Section Coverage')}
+        <div className="p-4 sm:p-5 flex flex-col gap-1.5">
+          <span className="text-sm font-bold text-foreground">
+            {pick('শ্রেণি ও শাখা বিন্যাস', 'Classes & Sections')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(populatedSections, locale)}
             </span>
-            <span className="text-sm font-semibold text-muted-foreground">
+            <span className="text-sm font-medium text-muted-foreground">
               {pick('টি সক্রিয় শাখা', 'active sections')}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground tabular-nums">
+          <p className="text-xs sm:text-sm text-muted-foreground tabular-nums">
             {pick(
-              `মোট ${formatNumber(populatedClasses, locale)}টি শ্রেণিতে শিক্ষার্থী বিন্যস্ত`,
-              `Distributed across ${populatedClasses} classes`
+              `${formatNumber(populatedClasses, locale)}টি শ্রেণিতে · গড়ে ${formatNumber(avgPerSection, locale)} জন/শাখা`,
+              `${populatedClasses} classes · ~${avgPerSection} per section`
             )}
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-5 flex flex-col justify-between gap-3">
-          <span className="text-base font-bold text-foreground">
+        <div className="p-4 sm:p-5 flex flex-col gap-1.5">
+          <span className="text-sm font-bold text-foreground">
             {pick('বিভাগ বণ্টন (৯ম–১০ম)', 'Streams (Classes 9–10)')}
           </span>
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1.5 tabular-nums pt-0.5">
+          <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1 tabular-nums py-0.5">
             {streamCounts.map((st) => (
               <div key={st.id} className="text-sm">
-                <span className="text-lg font-bold text-foreground">
+                <span className="text-xl font-extrabold text-foreground">
                   {formatNumber(st.count, locale)}
                 </span>{' '}
                 <span className="text-muted-foreground font-medium">{st.label}</span>
               </div>
             ))}
           </div>
-          <p className="text-sm text-muted-foreground">
-            {pick('বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা', 'Science, Humanities & Business')}
+          <p className="text-xs sm:text-sm text-muted-foreground tabular-nums">
+            {pick(
+              `৯ম ও ১০ম শ্রেণিতে মোট ${formatNumber(seniorTotalCount, locale)} জন`,
+              `${seniorTotalCount} students in Classes 9–10`
+            )}
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-5 flex flex-col justify-between gap-3">
-          <span className="text-base font-bold text-foreground">
-            {pick('বছর শেষে শ্রেণি উত্তরণ', 'Year-End Promotion')}
+        <div className="p-4 sm:p-5 flex flex-col gap-1.5">
+          <span className="text-sm font-bold text-foreground">
+            {pick('ভর্তির ধরন ও প্রমোশন', 'Admission Type & Promotion')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
-              {formatNumber(activeCount, locale)}
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              {formatNumber(regularNewCount, locale)}
             </span>
-            <span className="text-sm font-semibold text-muted-foreground">
-              {pick('জন উত্তরণের উপযোগী', 'active eligible')}
+            <span className="text-sm font-medium text-muted-foreground">
+              {pick(
+                `নতুন · পুনঃভর্তি ${formatNumber(readmissionCount, locale)} · রিপিটার ${formatNumber(repeaterCount, locale)}`,
+                `new · ${readmissionCount} readm · ${repeaterCount} rep`
+              )}
             </span>
           </div>
           <Link
             href="/admin/students/promotions"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline w-fit"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline w-fit"
           >
             <span>{pick('প্রমোশন কনসোলে যান', 'Open promotion console')}</span>
             <ArrowUpRight className="w-4 h-4" />
           </Link>
-        </Card>
-      </div>
+        </div>
+      </Card>
 
       {/* 2. Class Tabs & Filter Bar */}
       <Card className="overflow-hidden">
@@ -681,7 +697,9 @@ export function StudentEnrollments({
           },
           {
             id: 'actions',
-            header: '',
+            header: () => (
+              <div className="text-right">{pick('কাজ', 'Actions')}</div>
+            ),
             enableSorting: false,
             cell: ({ row }) => {
               const editable = row.original.status === EnrollmentStatus.ACTIVE;
@@ -695,7 +713,7 @@ export function StudentEnrollments({
                       onClick={() => startEdit(row.original)}
                     >
                       <Pencil className="w-3.5 h-3.5" />
-                      <span>{pick('প্লেসমেন্ট সম্পাদনা', 'Adjust')}</span>
+                      <span>{pick('সম্পাদনা', 'Edit')}</span>
                     </Button>
                   ) : (
                     <span
@@ -773,49 +791,51 @@ export function StudentEnrollments({
               </FormField>
 
               {editingNeedsGroup && (
-                <FormField label={pick('বিভাগ (স্ট্রিম)', 'Academic Stream')} required>
-                  <Select
-                    value={form.groupId}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        groupId: event.target.value,
-                        optionalClassSubjectId: '',
-                      })
-                    }
-                  >
-                    <option value="">{pick('নির্বাচন করুন', 'Select stream')}</option>
-                    {academicGroups.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {locale === 'bn' ? item.nameBn || item.name : item.name}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField>
-              )}
+                <>
+                  <FormField label={pick('বিভাগ (স্ট্রিম)', 'Academic Stream')} required>
+                    <Select
+                      value={form.groupId}
+                      onChange={(event) =>
+                        setForm({
+                          ...form,
+                          groupId: event.target.value,
+                          optionalClassSubjectId: '',
+                        })
+                      }
+                    >
+                      <option value="">{pick('নির্বাচন করুন', 'Select stream')}</option>
+                      {academicGroups.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {locale === 'bn' ? item.nameBn || item.name : item.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormField>
 
-              <FormField label={pick('৪র্থ / ঐচ্ছিক বিষয়', 'Optional Subject')}>
-                <Select
-                  value={form.optionalClassSubjectId}
-                  onChange={(event) =>
-                    setForm({ ...form, optionalClassSubjectId: event.target.value })
-                  }
-                >
-                  <option value="">{pick('নেই', 'None')}</option>
-                  {editingOptionals.map((row) => {
-                    const subject =
-                      row.subject ??
-                      db?.subjects.find((item) => item.id === row.subjectId);
-                    return (
-                      <option key={row.id} value={row.id}>
-                        {locale === 'bn'
-                          ? subject?.nameBn || subject?.name
-                          : subject?.name}
-                      </option>
-                    );
-                  })}
-                </Select>
-              </FormField>
+                  <FormField label={pick('৪র্থ / ঐচ্ছিক বিষয়', 'Optional Subject')}>
+                    <Select
+                      value={form.optionalClassSubjectId}
+                      onChange={(event) =>
+                        setForm({ ...form, optionalClassSubjectId: event.target.value })
+                      }
+                    >
+                      <option value="">{pick('নেই', 'None')}</option>
+                      {editingOptionals.map((row) => {
+                        const subject =
+                          row.subject ??
+                          db?.subjects.find((item) => item.id === row.subjectId);
+                        return (
+                          <option key={row.id} value={row.id}>
+                            {locale === 'bn'
+                              ? subject?.nameBn || subject?.name
+                              : subject?.name}
+                          </option>
+                        );
+                      })}
+                    </Select>
+                  </FormField>
+                </>
+              )}
 
               <div className="sm:col-span-2 flex flex-wrap items-center gap-6 pt-1">
                 <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer">

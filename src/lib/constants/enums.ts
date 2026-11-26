@@ -76,10 +76,10 @@ export const ENUM_LABELS: Record<string, Record<string, EnumMeta>> = {
     PART_TIME: { bn: 'খণ্ডকালীন', en: 'Part-Time', tone: 'neutral' },
   },
   EnrollmentStatus: {
-    ACTIVE: { bn: 'অধ্যয়নরত', en: 'Active', tone: 'success' },
+    ACTIVE: { bn: 'সক্রিয়', en: 'Active', tone: 'success' },
     PROMOTED: { bn: 'উত্তীর্ণ', en: 'Promoted', tone: 'primary' },
-    TRANSFERRED: { bn: 'বদলি / টিসি', en: 'Transferred', tone: 'warning' },
-    COMPLETED: { bn: 'সম্পন্ন', en: 'Completed', tone: 'info' },
+    TRANSFERRED: { bn: 'স্থানান্তরিত', en: 'Transferred', tone: 'warning' },
+    COMPLETED: { bn: 'সমাপ্ত', en: 'Completed', tone: 'info' },
   },
   EventCategoryType: {
     SPORTS: { bn: 'ক্রীড়া', en: 'Sports', tone: 'success' },

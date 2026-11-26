@@ -1,4 +1,5 @@
 import { baseApi } from '@/src/lib/api/base-api';
+import type { AdmissionCatalogData } from '../rules';
 import type {
   AdmissionApplicationStatus,
   OnlineAdmissionApplication,
@@ -26,11 +27,17 @@ interface AdmissionStatusUpdate {
 
 export const admissionApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    getPublicAdmissionCatalog: builder.query<AdmissionCatalogData, void>({
+      query: () => ({ url: '/public/admissions/catalog', method: 'GET' }),
+      transformResponse: (response: any) => response?.data ?? response,
+      providesTags: ['Academic', 'Admissions'],
+    }),
     submitAdmissionApplication: builder.mutation<
       OnlineAdmissionApplication,
       AdmissionSubmission
     >({
       query: (body) => ({ url: '/public/admissions', method: 'POST', body }),
+      transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ['Admissions', 'Notifications'],
     }),
     updateAdmissionStatus: builder.mutation<
@@ -48,6 +55,7 @@ export const admissionApi = baseApi.injectEndpoints({
 });
 
 export const {
+  useGetPublicAdmissionCatalogQuery,
   useSubmitAdmissionApplicationMutation,
   useUpdateAdmissionStatusMutation,
 } = admissionApi;
