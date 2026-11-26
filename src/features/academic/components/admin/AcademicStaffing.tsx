@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import {
   useAssignClassTeacherMutation,
   useAssignTeacherMutation,
-  useDeleteTeacherAssignmentMutation,
   useGetAcademicGroupsQuery,
   useGetClassSubjectsQuery,
   useGetClassTeachersQuery,
@@ -13,7 +12,9 @@ import {
   useGetSectionsQuery,
   useGetTeacherAssignmentsPaginatedQuery,
   useGetTeacherAssignmentsQuery,
+  useReleaseTeacherAssignmentMutation,
   useRemoveClassTeacherMutation,
+  useUpdateTeacherAssignmentMutation,
   type TeacherAssignmentItem,
 } from '@/src/services/academic';
 import { ConfirmDialog } from '@/src/components/shared/Feedback';
@@ -21,7 +22,7 @@ import { useGetStaffQuery } from '@/src/features/staff/api/staff.api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { Button, Card, FormField, Input, Modal, SegmentedTabs, Select } from '@/src/components/ui/primitives';
-import { Search, Plus, Trash2, BookOpen, Users, GraduationCap, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
+import { Search, Plus, Trash2, BookOpen, CheckCircle2, RotateCcw, Pencil } from 'lucide-react';
 import type { AcademicYear } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
 import { StaffStatus, StaffType } from '@/src/types/enums';
@@ -318,7 +319,8 @@ function SubjectTeachers({
 }) {
   const { locale, pick } = useI18n();
   const [assignTeacher, { isLoading: saving }] = useAssignTeacherMutation();
-  const [deleteAssignment, { isLoading: removing }] = useDeleteTeacherAssignmentMutation();
+  const [updateAssignment, { isLoading: updating }] = useUpdateTeacherAssignmentMutation();
+  const [releaseAssignment, { isLoading: removing }] = useReleaseTeacherAssignmentMutation();
 
   // Filtering & pagination states (backend-driven)
   const [classFilter, setClassFilter] = useState<string>('ALL');
@@ -410,6 +412,7 @@ function SubjectTeachers({
 
   const [canEnterMarks, setCanEnterMarks] = useState(true);
   const [open, setOpen] = useState(false);
+  const [editingRow, setEditingRow] = useState<TeacherAssignmentItem | null>(null);
   const selectedSubjectId = subjects.some((item) => item.id === classSubjectId) ? classSubjectId : subjects[0]?.id ?? '';
 
   const subjectLabel = (classSubjectIdValue: string, row?: TeacherAssignmentItem) => {
@@ -446,29 +449,37 @@ function SubjectTeachers({
     [classes]
   );
 
-  // Dynamic statistics based on classFilter
-  const relevantClassSubjects = useMemo(() => {
-    return classSubjectsList.filter(
-      (cs) =>
-        cs.academicYearId === year.id &&
-        cs.isActive &&
-        (classFilter === 'ALL' ? true : cs.classId === classFilter)
+  // Dynamic statistics based on classFilter & sectionFilter (per section-subject slot)
+  const relevantSections = useMemo(() => {
+    return sections.filter(
+      (s) =>
+        (classFilter === 'ALL' ? true : s.classId === classFilter) &&
+        (sectionFilter === 'ALL' ? true : s.id === sectionFilter)
     );
-  }, [classSubjectsList, year.id, classFilter]);
+  }, [sections, classFilter, sectionFilter]);
+
+  const totalRequiredSlots = useMemo(() => {
+    return relevantSections.reduce((sum, sec) => {
+      const count = classSubjectsList.filter(
+        (cs) => cs.academicYearId === year.id && cs.classId === sec.classId && cs.isActive
+      ).length;
+      return sum + count;
+    }, 0);
+  }, [relevantSections, classSubjectsList, year.id]);
 
   const relevantAssignments = useMemo(() => {
-    return allAssignments.filter((a) =>
-      classFilter === 'ALL' ? true : a.classId === classFilter
+    return allAssignments.filter(
+      (a) =>
+        (classFilter === 'ALL' ? true : a.classId === classFilter) &&
+        (sectionFilter === 'ALL' ? true : a.sectionId === sectionFilter)
     );
-  }, [allAssignments, classFilter]);
+  }, [allAssignments, classFilter, sectionFilter]);
 
-  const assignedSubjectIds = useMemo(() => {
-    return new Set(relevantAssignments.map((a) => a.classSubjectId));
+  const assignedSlotKeys = useMemo(() => {
+    return new Set(relevantAssignments.map((a) => `${a.sectionId}:${a.classSubjectId}`));
   }, [relevantAssignments]);
 
-  const unassignedSubjects = useMemo(() => {
-    return relevantClassSubjects.filter((cs) => !assignedSubjectIds.has(cs.id));
-  }, [relevantClassSubjects, assignedSubjectIds]);
+  const pendingSlotsCount = Math.max(0, totalRequiredSlots - assignedSlotKeys.size);
 
   const relevantTeachingTeachers = useMemo(() => {
     return new Set(relevantAssignments.map((a) => a.staffId));
@@ -476,23 +487,70 @@ function SubjectTeachers({
 
   const freeTeachersCount = Math.max(0, teachers.length - relevantTeachingTeachers.size);
 
+  const openCreateModal = () => {
+    setEditingRow(null);
+    if (sectionFilter !== 'ALL' && sections.some((s) => s.id === sectionFilter)) {
+      setSectionId(sectionFilter);
+    } else if (classFilter !== 'ALL') {
+      const firstSec = sections.find((s) => s.classId === classFilter);
+      if (firstSec) setSectionId(firstSec.id);
+    }
+    setCanEnterMarks(true);
+    setOpen(true);
+  };
+
+  const openEditModal = (row: TeacherAssignmentItem) => {
+    setEditingRow(row);
+    setSectionId(row.sectionId);
+    setClassSubjectId(row.classSubjectId);
+    setStaffId(row.staffId);
+    setCanEnterMarks(row.canEnterMarks);
+    setOpen(true);
+  };
+
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!section?.classId) return;
     try {
-      await assignTeacher({
-        academicYearId: year.id,
-        classId: section.classId,
-        sectionId,
-        classSubjectId: selectedSubjectId,
-        staffId,
-        canEnterMarks,
-        replaceExisting: true,
-      }).unwrap();
-      toast.success(pick('বিষয় শিক্ষক বণ্টন সম্পন্ন হয়েছে।', 'Subject teacher assigned.'));
+      if (editingRow) {
+        await updateAssignment({
+          id: editingRow.id,
+          staffId,
+          canEnterMarks,
+        }).unwrap();
+        toast.success(pick('বিষয় শিক্ষক বণ্টন হালনাগাদ হয়েছে।', 'Subject teacher assignment updated.'));
+      } else {
+        if (!section?.classId) return;
+        await assignTeacher({
+          academicYearId: year.id,
+          classId: section.classId,
+          sectionId,
+          classSubjectId: selectedSubjectId,
+          staffId,
+          canEnterMarks,
+          replaceExisting: true,
+        }).unwrap();
+        toast.success(pick('বিষয় শিক্ষক বণ্টন সম্পন্ন হয়েছে।', 'Subject teacher assigned.'));
+      }
       setOpen(false);
+      setEditingRow(null);
     } catch (err) {
       toast.error(errorMessage(err, pick('বণ্টন হয়নি।', 'Could not assign the teacher.')));
+    }
+  };
+
+  const handleToggleMarks = async (row: TeacherAssignmentItem) => {
+    try {
+      await updateAssignment({
+        id: row.id,
+        canEnterMarks: !row.canEnterMarks,
+      }).unwrap();
+      toast.success(
+        !row.canEnterMarks
+          ? pick('নম্বর এন্ট্রির অনুমতি দেওয়া হয়েছে।', 'Marks entry permission enabled.')
+          : pick('নম্বর এন্ট্রির অনুমতি বন্ধ করা হয়েছে।', 'Marks entry permission disabled.')
+      );
+    } catch (err) {
+      toast.error(errorMessage(err, pick('অনুমতি পরিবর্তন করা যায়নি।', 'Could not update permission.')));
     }
   };
 
@@ -503,8 +561,8 @@ function SubjectTeachers({
   const confirmRemove = async () => {
     if (!removeTarget) return;
     try {
-      await deleteAssignment(removeTarget.id).unwrap();
-      toast.success(pick('বণ্টন সরানো হয়েছে।', 'Assignment removed.'));
+      await releaseAssignment({ id: removeTarget.id }).unwrap();
+      toast.success(pick('বণ্টন সরানো হয়েছে।', 'Assignment released.'));
       setRemoveTarget(null);
     } catch (err) {
       toast.error(errorMessage(err, pick('বণ্টন সরানো যায়নি।', 'Could not remove the assignment.')));
@@ -531,8 +589,8 @@ function SubjectTeachers({
         <div className="p-4 sm:p-5">
           <p className="text-sm font-medium text-muted-foreground">{pick('বিষয় বণ্টন অগ্রগতি', 'Subject Allocation Progress')}</p>
           <p className="text-2xl sm:text-3xl font-bold text-foreground tabular-nums mt-1.5">
-            {formatNumber(assignedSubjectIds.size, locale)}
-            <span className="text-sm sm:text-base font-normal text-muted-foreground"> / {formatNumber(relevantClassSubjects.length, locale)} {pick('টি বিষয়', 'subjects')}</span>
+            {formatNumber(assignedSlotKeys.size, locale)}
+            <span className="text-sm sm:text-base font-normal text-muted-foreground"> / {formatNumber(totalRequiredSlots, locale)} {pick('টি বিষয়', 'slots')}</span>
           </p>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-normal">
             {pick(`মোট বরাদ্দ: ${formatNumber(relevantAssignments.length, locale)}টি পাঠদান`, `Total: ${formatNumber(relevantAssignments.length, locale)} assignments`)}
@@ -541,12 +599,12 @@ function SubjectTeachers({
 
         <div className="p-4 sm:p-5">
           <p className="text-sm font-medium text-muted-foreground">{pick('শিক্ষকহীন বাকি বিষয়', 'Pending / Unassigned Subjects')}</p>
-          <p className={`text-2xl sm:text-3xl font-bold tabular-nums mt-1.5 flex items-center gap-1.5 ${unassignedSubjects.length > 0 ? 'text-amber-500' : 'text-success'}`}>
-            {formatNumber(unassignedSubjects.length, locale)}
+          <p className={`text-2xl sm:text-3xl font-bold tabular-nums mt-1.5 flex items-center gap-1.5 ${pendingSlotsCount > 0 ? 'text-amber-500' : 'text-success'}`}>
+            {formatNumber(pendingSlotsCount, locale)}
             <span className="text-sm sm:text-base font-normal text-muted-foreground">{pick('টি বিষয় বাকি', 'subjects pending')}</span>
           </p>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1 leading-normal">
-            {unassignedSubjects.length > 0
+            {pendingSlotsCount > 0
               ? pick('এগুলোতে এখনও কোনো শিক্ষক বসানো হয়নি', 'Needs teacher allocation')
               : pick('সব বিষয়ে শিক্ষক বরাদ্দ সম্পন্ন হয়েছে', 'All curriculum subjects allocated')}
           </p>
@@ -638,24 +696,32 @@ function SubjectTeachers({
             ))}
           </Select>
 
-          <Button type="button" variant="primary" size="sm" onClick={() => setOpen(true)} className="h-10 text-sm px-4">
+          <Button type="button" variant="primary" size="sm" onClick={openCreateModal} className="h-10 text-sm px-4">
             <Plus className="w-4 h-4 mr-1.5" />
             {pick('নতুন শিক্ষক বণ্টন', 'Assign Subject Teacher')}
           </Button>
         </div>
       </div>
 
-      {/* 4. Modal to Assign Subject Teacher */}
+      {/* 4. Modal to Assign or Edit Subject Teacher */}
       <Modal
         open={open}
-        onClose={() => setOpen(false)}
-        title={pick('বিষয় শিক্ষক বণ্টন', 'Assign Subject Teacher')}
+        onClose={() => {
+          setOpen(false);
+          setEditingRow(null);
+        }}
+        title={
+          editingRow
+            ? pick('বিষয় শিক্ষক সম্পাদনা', 'Edit Subject Teacher')
+            : pick('বিষয় শিক্ষক বণ্টন', 'Assign Subject Teacher')
+        }
         maxWidth="max-w-lg"
       >
         <form onSubmit={handleSave} className="space-y-4">
           <FormField label={pick('শ্রেণি ও শাখা', 'Class & Section')} required>
             <Select
               value={sectionId}
+              disabled={Boolean(editingRow)}
               onChange={(event) => {
                 setSectionId(event.target.value);
                 setClassSubjectId('');
@@ -669,13 +735,27 @@ function SubjectTeachers({
             </Select>
           </FormField>
           <FormField label={pick('পাঠ্যক্রমের বিষয়', 'Curriculum Subject')} required>
-            <Select value={selectedSubjectId} onChange={(event) => setClassSubjectId(event.target.value)}>
+            <Select
+              value={selectedSubjectId}
+              disabled={Boolean(editingRow)}
+              onChange={(event) => setClassSubjectId(event.target.value)}
+            >
               {subjects.length === 0 && <option value="">{pick('এই শ্রেণিতে কোনো সক্রিয় বিষয় নেই', 'No active subjects')}</option>}
-              {subjects.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {subjectLabel(item.id)}
-                </option>
-              ))}
+              {subjects.map((item) => {
+                const existingForSlot = !editingRow
+                  ? allAssignments.find(
+                      (a) => a.sectionId === sectionId && a.classSubjectId === item.id
+                    )
+                  : undefined;
+                return (
+                  <option key={item.id} value={item.id}>
+                    {subjectLabel(item.id)}
+                    {existingForSlot
+                      ? ` (${pick('বর্তমান', 'Current')}: ${existingForSlot.staff?.name || teacherName(existingForSlot.staffId)})`
+                      : ''}
+                  </option>
+                );
+              })}
             </Select>
           </FormField>
           <FormField label={pick('মনোনীত শিক্ষক', 'Assigned Teacher')} required>
@@ -700,9 +780,24 @@ function SubjectTeachers({
             </label>
           </div>
           <div className="flex justify-end gap-2 pt-2 border-t border-border">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{pick('বাতিল', 'Cancel')}</Button>
-            <Button type="submit" variant="primary" disabled={saving || !selectedSubjectId || !staffId}>
-              {saving ? pick('বণ্টন হচ্ছে...', 'Assigning...') : pick('সংরক্ষণ করুন', 'Save Assignment')}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setOpen(false);
+                setEditingRow(null);
+              }}
+            >
+              {pick('বাতিল', 'Cancel')}
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={saving || updating || !selectedSubjectId || !staffId}
+            >
+              {saving || updating
+                ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
+                : pick('সংরক্ষণ করুন', 'Save Assignment')}
             </Button>
           </div>
         </form>
@@ -779,29 +874,50 @@ function SubjectTeachers({
                       </div>
                     </td>
                     <td className="p-3.5 text-center">
-                      {row.canEnterMarks ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs sm:text-sm font-medium bg-success/10 text-success border border-success/20">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          {pick('অনুমোদিত', 'Allowed')}
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-1 rounded-full text-xs sm:text-sm font-medium bg-surface-muted text-muted-foreground border border-border">
-                          {pick('অনুমতি নেই', 'Not allowed')}
-                        </span>
-                      )}
+                      <button
+                        type="button"
+                        disabled={updating}
+                        onClick={() => handleToggleMarks(row)}
+                        title={pick('ক্লিক করে অনুমতি পরিবর্তন করুন', 'Click to toggle marks entry permission')}
+                        className="cursor-pointer disabled:opacity-60"
+                      >
+                        {row.canEnterMarks ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs sm:text-sm font-medium bg-success/10 text-success border border-success/20 hover:bg-success/20 transition-colors">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            {pick('অনুমোদিত', 'Allowed')}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs sm:text-sm font-medium bg-surface-muted text-muted-foreground border border-border hover:bg-surface-muted/80 transition-colors">
+                            {pick('অনুমতি নেই', 'Not allowed')}
+                          </span>
+                        )}
+                      </button>
                     </td>
                     <td className="p-3.5 text-right">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={removing}
-                        onClick={() => handleRemove(row)}
-                        className="text-xs sm:text-sm text-destructive hover:bg-destructive/10 hover:border-destructive/30"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" />
-                        {pick('সরান', 'Remove')}
-                      </Button>
+                      <div className="inline-flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={updating || removing}
+                          onClick={() => openEditModal(row)}
+                          className="text-xs sm:text-sm"
+                        >
+                          <Pencil className="w-3.5 h-3.5 mr-1" />
+                          {pick('সম্পাদনা', 'Edit')}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={removing}
+                          onClick={() => handleRemove(row)}
+                          className="text-xs sm:text-sm text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          {pick('সরান', 'Remove')}
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 );
