@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -12,7 +12,6 @@ import {
   Printer,
   RotateCcw,
   Search,
-  ShieldAlert,
   X,
 } from 'lucide-react';
 import { useI18n } from '@/src/lib/i18n';
@@ -20,6 +19,7 @@ import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { cn, exportToCsv, triggerCertificatePrint } from '@/src/lib/utils/cn';
 import { localToday } from '@/src/lib/schoolDay';
 import { DataTable } from '@/src/components/shared/DataTable';
+import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { PrintableTransferCertificate } from '@/src/components/print/PrintDocuments';
 import {
   Button,
@@ -30,21 +30,28 @@ import {
   Select,
   Textarea,
 } from '@/src/components/ui/primitives';
-import { useIssueTransferCertificateMutation } from '@/src/store/api';
-import { CardStatus, EnrollmentStatus, Gender, RelationshipType, StudentStatus } from '@/src/types/enums';
-import type { MockDatabase } from '@/src/mocks/seed';
-import type { StudentTransferCertificate } from '@/src/types/entities';
-import { classLabel, errorMessage, studentInitials } from './studentShared';
+import {
+  useGetStudentsQuery,
+  useGetTransferCertificatesQuery,
+  useIssueTransferCertificateMutation,
+} from '@/src/features/students/api/students.api';
+import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
+import { Gender, RelationshipType, StudentStatus } from '@/src/types/enums';
+import type { Student, StudentTransferCertificate } from '@/src/types/entities';
+import { errorMessage, resolveSchoolProfile, studentInitials } from './studentShared';
 
 interface EnrichedTransfer extends StudentTransferCertificate {
   studentNameBn: string;
   studentNameEn: string;
   studentCode: string;
   studentGender: Gender;
-  fatherName: string;
+  fatherName: string | null;
+  motherName: string | null;
   guardianPhone: string;
   leavingClassDisplay: string;
-  issueYear: string;
+  sectionName: string | null;
+  roll: number | null;
+  rawStudent: Student | null;
 }
 
 const REASON_PRESETS = [
@@ -66,32 +73,47 @@ const REASON_PRESETS = [
   },
 ];
 
-function suggestNextTcNumber(db: MockDatabase, yearStr: string): string {
-  const prefix = `TC-${yearStr}-`;
-  let maxSeq = 0;
-  db.transferCertificates.forEach((tc) => {
-    const match = tc.tcNumber.match(/(\d+)$/);
-    if (tc.tcNumber.toUpperCase().startsWith(prefix) && match) {
-      const n = Number(match[1]);
-      if (Number.isFinite(n) && n > maxSeq) maxSeq = n;
-    }
-  });
-  return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`;
-}
-
-export function StudentTransfers({ db }: { db: MockDatabase }) {
+export function StudentTransfers() {
   const { locale, pick } = useI18n();
-  const [issueTc, { isLoading }] = useIssueTransferCertificateMutation();
+  const [issueTc, { isLoading: issuing }] = useIssueTransferCertificateMutation();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [duesFilter, setDuesFilter] = useState<'ALL' | 'CLEARED' | 'PENDING'>('ALL');
   const [promotionFilter, setPromotionFilter] = useState<'ALL' | 'PROMOTED' | 'MID'>('ALL');
+  const [page, setPage] = useState(1);
 
   const [issueOpen, setIssueOpen] = useState(false);
   const [printId, setPrintId] = useState<string | null>(null);
 
-  const activeYear = db.academicYears.find((y) => y.isActive) ?? db.academicYears[0];
-  const activeYearName = activeYear?.name ?? '2026';
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  const { data: liveYears = [] } = useGetAcademicYearsQuery();
+  const activeYear = liveYears.find((y) => y.isActive) ?? liveYears[0];
+  const activeYearName = activeYear?.name ?? String(new Date().getFullYear());
+
+  const {
+    data: tcRes,
+    isLoading: loadingTc,
+    isFetching: fetchingTc,
+  } = useGetTransferCertificatesQuery({
+    page,
+    limit: 15,
+    search: debouncedSearch || undefined,
+    duesStatus: duesFilter !== 'ALL' ? duesFilter : undefined,
+    promotionStatus: promotionFilter !== 'ALL' ? promotionFilter : undefined,
+  });
+
+  const { data: activeStudentsRes } = useGetStudentsQuery(
+    { status: StudentStatus.ACTIVE, limit: 100 },
+    { skip: !issueOpen }
+  );
 
   const [form, setForm] = useState({
     studentId: '',
@@ -107,135 +129,94 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
     remarks: '',
   });
 
-  // Lookup primary guardian for a student
-  const getPrimaryGuardian = (studentId: string) => {
-    const link =
-      db.parentStudents.find((ps) => ps.studentId === studentId && ps.isPrimary) ??
-      db.parentStudents.find((ps) => ps.studentId === studentId);
-    const parent = link ? db.parents.find((p) => p.id === link.parentId) : null;
-    return {
-      name: parent ? (locale === 'bn' ? parent.nameBn || parent.name : parent.name) : '',
-      phone: parent?.phone ?? '',
-    };
-  };
-
-  // Active students eligible for TC issuance, sorted by class & roll
   const eligibleStudents = useMemo(() => {
-    return db.students
-      .filter((item) => item.status === StudentStatus.ACTIVE)
-      .map((student) => {
-        const enrollment =
-          db.enrollments.find(
-            (e) => e.studentId === student.id && e.status === EnrollmentStatus.ACTIVE
-          ) ??
-          db.enrollments.find((e) => e.studentId === student.id);
-        const cls = enrollment ? db.classes.find((c) => c.id === enrollment.classId) : null;
-        const sec = enrollment ? db.sections.find((s) => s.id === enrollment.sectionId) : null;
-        const activeCards = db.rfidCards.filter(
-          (c) => c.studentId === student.id && c.status === CardStatus.ACTIVE
-        );
-        const guardian = getPrimaryGuardian(student.id);
-        return {
-          student,
-          enrollment,
-          classNumeric: cls?.numericValue ?? 99,
-          classNameBn: cls?.nameBn || cls?.name || '',
-          classNameEn: cls?.name || '',
-          classDisplay: enrollment ? classLabel(db, enrollment.classId, locale) : '—',
-          sectionName: sec?.name ?? '—',
-          roll: enrollment?.roll ?? 0,
-          activeCards,
-          guardianName: guardian.name,
-          guardianPhone: guardian.phone,
-        };
-      })
-      .sort(
-        (a, b) =>
-          a.classNumeric - b.classNumeric ||
-          a.sectionName.localeCompare(b.sectionName) ||
-          a.roll - b.roll
-      );
-  }, [db, locale]);
+    return (activeStudentsRes?.items ?? []).map((raw: any) => {
+      const enr = raw.enrollments?.[0];
+      const cls = enr?.schoolClass;
+      const sec = enr?.section;
+      const parents = raw.parents ?? [];
+      const primary =
+        parents.find((p: any) => p.isPrimary)?.parent ?? parents[0]?.parent ?? null;
+      return {
+        student: raw as Student,
+        classNumeric: cls?.numericValue ?? 99,
+        classNameBn: cls?.nameBn || cls?.name || '',
+        classNameEn: cls?.name || '',
+        classDisplay: cls ? (locale === 'bn' ? cls.nameBn || cls.name : cls.name) : '—',
+        sectionName: sec?.name ?? '—',
+        roll: enr?.roll ?? 0,
+        guardianName: primary ? (locale === 'bn' ? primary.nameBn || primary.name : primary.name) : '',
+        guardianPhone: primary?.phone ?? '',
+      };
+    });
+  }, [activeStudentsRes?.items, locale]);
 
   const selectedStudentMeta = useMemo(
     () => eligibleStudents.find((item) => item.student.id === form.studentId) ?? null,
     [eligibleStudents, form.studentId]
   );
 
-  // Enriched TC registry rows
-  const allTransfers = useMemo<EnrichedTransfer[]>(() => {
-    return db.transferCertificates.map((tc) => {
-      const student = db.students.find((s) => s.id === tc.studentId);
-      const enrollment = tc.enrollmentId
-        ? db.enrollments.find((e) => e.id === tc.enrollmentId)
-        : db.enrollments.find((e) => e.studentId === tc.studentId);
-      const guardian = getPrimaryGuardian(tc.studentId);
-      const fallbackClass = enrollment ? classLabel(db, enrollment.classId, locale) : '—';
+  const rows = useMemo<EnrichedTransfer[]>(() => {
+    return (tcRes?.items ?? []).map((tc: any) => {
+      const student = tc.student ?? null;
+      const enr = tc.enrollment ?? null;
+      const cls = enr?.schoolClass;
+      const parents = student?.parents ?? [];
+      const father =
+        parents.find((p: any) => p.relationship === RelationshipType.FATHER)?.parent ??
+        parents.find((p: any) => p.isPrimary)?.parent ??
+        parents[0]?.parent ??
+        null;
+      const mother =
+        parents.find((p: any) => p.relationship === RelationshipType.MOTHER)?.parent ?? null;
+      const fallbackClass = cls ? (locale === 'bn' ? cls.nameBn || cls.name : cls.name) : '—';
+
       return {
         ...tc,
+        issueDate: String(tc.issueDate ?? '').slice(0, 10),
+        leavingDate: String(tc.leavingDate ?? '').slice(0, 10),
         studentNameBn: student?.nameBn || student?.nameEn || '—',
         studentNameEn: student?.nameEn || '',
         studentCode: student?.studentId ?? '—',
-        studentGender: student?.gender ?? Gender.MALE,
-        fatherName: guardian.name,
-        guardianPhone: guardian.phone,
+        studentGender: (student?.gender as Gender) ?? Gender.MALE,
+        fatherName: father ? (locale === 'bn' ? father.nameBn || father.name : father.name) : null,
+        motherName: mother ? (locale === 'bn' ? mother.nameBn || mother.name : mother.name) : null,
+        guardianPhone: father?.phone ?? '',
         leavingClassDisplay: tc.leavingClass || fallbackClass,
-        issueYear: tc.issueDate ? tc.issueDate.slice(0, 4) : '',
+        sectionName: enr?.section?.name ?? null,
+        roll: enr?.roll ?? null,
+        rawStudent: student,
       };
     });
-  }, [db, locale]);
+  }, [tcRes?.items, locale]);
 
-  // Summary metrics
-  const totalIssued = allTransfers.length;
-  const issuedThisYear = allTransfers.filter((t) => t.issueYear === activeYearName).length;
-  const duesClearedCount = allTransfers.filter((t) => t.duesCleared).length;
-  const duesPendingCount = totalIssued - duesClearedCount;
-  const promotedLeavingCount = allTransfers.filter((t) => t.promotedToNextClass).length;
-  const midSessionCount = totalIssued - promotedLeavingCount;
-
-  // Filtered rows
-  const rows = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return allTransfers
-      .filter((row) => {
-        if (duesFilter === 'CLEARED') return row.duesCleared;
-        if (duesFilter === 'PENDING') return !row.duesCleared;
-        return true;
-      })
-      .filter((row) => {
-        if (promotionFilter === 'PROMOTED') return row.promotedToNextClass;
-        if (promotionFilter === 'MID') return !row.promotedToNextClass;
-        return true;
-      })
-      .filter((row) => {
-        if (!q) return true;
-        return (
-          row.tcNumber.toLowerCase().includes(q) ||
-          row.studentNameBn.toLowerCase().includes(q) ||
-          row.studentNameEn.toLowerCase().includes(q) ||
-          row.studentCode.toLowerCase().includes(q) ||
-          (row.destinationSchool ?? '').toLowerCase().includes(q) ||
-          row.reason.toLowerCase().includes(q) ||
-          row.leavingClassDisplay.toLowerCase().includes(q)
-        );
-      })
-      .sort((a, b) => b.issueDate.localeCompare(a.issueDate));
-  }, [allTransfers, searchQuery, duesFilter, promotionFilter]);
+  const summary = tcRes?.summary ?? {
+    totalIssued: 0,
+    issuedThisYear: 0,
+    duesClearedCount: 0,
+    duesPendingCount: 0,
+    promotedLeavingCount: 0,
+    midSessionCount: 0,
+    activeStudentsCount: 0,
+  };
+  const schoolProfile = resolveSchoolProfile(tcRes?.school);
 
   const hasActiveFilters =
     Boolean(searchQuery.trim()) || duesFilter !== 'ALL' || promotionFilter !== 'ALL';
 
   const resetFilters = () => {
     setSearchQuery('');
+    setDebouncedSearch('');
     setDuesFilter('ALL');
     setPromotionFilter('ALL');
+    setPage(1);
   };
 
   const openIssueModal = () => {
     const today = localToday();
     setForm({
       studentId: '',
-      tcNumber: suggestNextTcNumber(db, activeYearName),
+      tcNumber: tcRes?.suggestedTcNumber || `TC-${activeYearName}-0001`,
       issueDate: today,
       leavingDate: today,
       leavingClass: '',
@@ -258,24 +239,14 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
     }));
   };
 
-  const duplicateTcNumber = useMemo(() => {
-    const num = form.tcNumber.trim().toLowerCase();
-    if (!num) return false;
-    return db.transferCertificates.some((tc) => tc.tcNumber.trim().toLowerCase() === num);
-  }, [db.transferCertificates, form.tcNumber]);
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.studentId) {
       toast.error(pick('একজন সক্রিয় শিক্ষার্থী নির্বাচন করুন।', 'Please select an active student.'));
       return;
     }
-    if (!form.tcNumber.trim() || duplicateTcNumber) {
-      toast.error(
-        duplicateTcNumber
-          ? pick('এই টিসি নম্বরটি আগেই ব্যবহৃত হয়েছে।', 'This TC number is already in use.')
-          : pick('টিসি নম্বর দিন।', 'TC number is required.')
-      );
+    if (!form.tcNumber.trim()) {
+      toast.error(pick('টিসি নম্বর দিন।', 'TC number is required.'));
       return;
     }
     if (!form.reason.trim()) {
@@ -310,7 +281,6 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
         `${pick('ছাড়পত্র ইস্যু সম্পন্ন হয়েছে', 'Transfer certificate issued')} (${created.tcNumber})${blockedMsg}`
       );
       setIssueOpen(false);
-      // Immediately open official print preview so clerk can print right away
       setPrintId(created.id);
     } catch (err) {
       toast.error(errorMessage(err, pick('ছাড়পত্র ইস্যু করা যায়নি।', 'Could not issue transfer certificate.')));
@@ -337,37 +307,13 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
     );
   };
 
-  const printedTc = db.transferCertificates.find((item) => item.id === printId) ?? null;
-  const printedStudent = printedTc
-    ? db.students.find((item) => item.id === printedTc.studentId) ?? null
-    : null;
-  const printedParents = useMemo(() => {
-    if (!printedStudent) return { fatherName: null, motherName: null };
-    const links = db.parentStudents.filter((ps) => ps.studentId === printedStudent.id);
-    const fatherLink =
-      links.find((l) => l.relationship === RelationshipType.FATHER) ??
-      links.find((l) => l.isPrimary) ??
-      links[0];
-    const motherLink = links.find((l) => l.relationship === RelationshipType.MOTHER);
-    const father = fatherLink ? db.parents.find((p) => p.id === fatherLink.parentId) : null;
-    const mother = motherLink ? db.parents.find((p) => p.id === motherLink.parentId) : null;
-    return {
-      fatherName: father ? (locale === 'bn' ? father.nameBn || father.name : father.name) : null,
-      motherName: mother ? (locale === 'bn' ? mother.nameBn || mother.name : mother.name) : null,
-    };
-  }, [printedStudent, db.parentStudents, db.parents, locale]);
-  const printedEnrollment = printedStudent
-    ? db.enrollments
-        .filter((e) => e.studentId === printedStudent.id)
-        .sort((a, b) => b.id.localeCompare(a.id))[0] ?? null
-    : null;
-  const printedSection = printedEnrollment
-    ? db.sections.find((s) => s.id === printedEnrollment.sectionId) ?? null
-    : null;
+  const printedRow = rows.find((item) => item.id === printId) ?? null;
+
+  if (loadingTc && !tcRes) return <LoadingSkeleton rows={6} />;
 
   return (
     <div className="space-y-5">
-      {/* 1. 4-Column Hairline-Divided Summary Strip */}
+      {/* 1. 4-Column Summary Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
@@ -375,12 +321,12 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(totalIssued, locale)}
+              {formatNumber(summary.totalIssued, locale)}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
               {pick(
-                `${activeYearName} সেশনে ${formatNumber(issuedThisYear, locale)}টি`,
-                `${issuedThisYear} in ${activeYearName}`
+                `${activeYearName} সেশনে ${formatNumber(summary.issuedThisYear, locale)}টি`,
+                `${summary.issuedThisYear} in ${activeYearName}`
               )}
             </span>
           </div>
@@ -395,17 +341,17 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(duesClearedCount, locale)}
+              {formatNumber(summary.duesClearedCount, locale)}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি পরিশোধিত', 'cleared')}
             </span>
           </div>
           <p className="text-sm text-muted-foreground tabular-nums">
-            {duesPendingCount > 0
+            {summary.duesPendingCount > 0
               ? pick(
-                  `${formatNumber(duesPendingCount, locale)}টি টিসি-তে বকেয়া চিহ্নিত`,
-                  `${duesPendingCount} marked with pending dues`
+                  `${formatNumber(summary.duesPendingCount, locale)}টি টিসি-তে বকেয়া চিহ্নিত`,
+                  `${summary.duesPendingCount} marked with pending dues`
                 )
               : pick('সকল ইস্যুকৃত টিসি বকেয়া মুক্ত', 'All issued certificates cleared')}
           </p>
@@ -417,7 +363,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(promotedLeavingCount, locale)}
+              {formatNumber(summary.promotedLeavingCount, locale)}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
               {pick('জন উত্তীর্ণ হয়ে ত্যাগ', 'promoted before leaving')}
@@ -425,8 +371,8 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
           </div>
           <p className="text-sm text-muted-foreground tabular-nums">
             {pick(
-              `মধ্য-সেশনে স্থানান্তর ${formatNumber(midSessionCount, locale)} জন`,
-              `${midSessionCount} mid-session transfers`
+              `মধ্য-সেশনে স্থানান্তর ${formatNumber(summary.midSessionCount, locale)} জন`,
+              `${summary.midSessionCount} mid-session transfers`
             )}
           </p>
         </Card>
@@ -437,7 +383,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
-              {formatNumber(eligibleStudents.length, locale)}
+              {formatNumber(summary.activeStudentsCount, locale)}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
               {pick('জন অধ্যয়নরত', 'currently enrolled')}
@@ -461,7 +407,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
                 'টিসি নম্বর, নাম বা আইডি খুঁজুন...',
                 'Search TC number, name, or ID...'
               )}
-              className="pl-9 pr-9 h-9 text-sm w-full"
+              className="pl-9 pr-9 h-10 text-base w-full"
             />
             {searchQuery && (
               <button
@@ -478,8 +424,11 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
           <div className="flex flex-wrap items-center gap-2">
             <Select
               value={duesFilter}
-              onChange={(e) => setDuesFilter(e.target.value as 'ALL' | 'CLEARED' | 'PENDING')}
-              className="w-auto min-w-[155px] h-9 text-sm"
+              onChange={(e) => {
+                setDuesFilter(e.target.value as 'ALL' | 'CLEARED' | 'PENDING');
+                setPage(1);
+              }}
+              className="w-auto min-w-[155px] h-10 text-base"
               aria-label={pick('বকেয়া অবস্থা', 'Dues status')}
             >
               <option value="ALL">{pick('সকল বকেয়া অবস্থা', 'All dues status')}</option>
@@ -489,8 +438,11 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
 
             <Select
               value={promotionFilter}
-              onChange={(e) => setPromotionFilter(e.target.value as 'ALL' | 'PROMOTED' | 'MID')}
-              className="w-auto min-w-[155px] h-9 text-sm"
+              onChange={(e) => {
+                setPromotionFilter(e.target.value as 'ALL' | 'PROMOTED' | 'MID');
+                setPage(1);
+              }}
+              className="w-auto min-w-[155px] h-10 text-base"
               aria-label={pick('উত্তরণ অবস্থা', 'Promotion status')}
             >
               <option value="ALL">{pick('সকল ত্যাগ ধরন', 'All leaving types')}</option>
@@ -516,12 +468,12 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border text-sm text-muted-foreground">
           <span className="tabular-nums">
             {hasActiveFilters
               ? pick(
-                  `মোট ${formatNumber(totalIssued, locale)}টি ছাড়পত্রের মধ্যে ${formatNumber(rows.length, locale)}টি দেখানো হচ্ছে`,
-                  `Showing ${rows.length} of ${totalIssued} transfer certificates`
+                  `মোট ${formatNumber(summary.totalIssued, locale)}টি ছাড়পত্রের মধ্যে ${formatNumber(tcRes?.meta.total ?? 0, locale)}টি দেখানো হচ্ছে`,
+                  `Showing ${tcRes?.meta.total ?? 0} of ${summary.totalIssued} transfer certificates`
                 )
               : pick(
                   'ছাড়পত্র ইস্যু হলে শিক্ষার্থীর অবস্থা স্থানান্তরিত হয়, চলতি এনরোলমেন্ট বন্ধ হয় এবং সক্রিয় RFID কার্ড ব্লক হয়ে যায়',
@@ -542,18 +494,24 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
         </div>
       </Card>
 
-      {/* 3. High-Density Transfer Certificate Registry Table */}
+      {/* 3. Transfer Certificate Registry Table */}
       <DataTable
         data={rows}
         hideToolbar
-        pageSize={15}
+        isLoading={fetchingTc}
+        server={{
+          search: searchQuery,
+          onSearch: setSearchQuery,
+          meta: tcRes?.meta,
+          onPage: setPage,
+        }}
         emptyTitle={
-          totalIssued === 0
+          summary.totalIssued === 0
             ? pick('এখনো কোনো ছাড়পত্র ইস্যু করা হয়নি', 'No transfer certificates issued yet')
             : pick('ফিল্টার অনুযায়ী কোনো ছাড়পত্র পাওয়া যায়নি', 'No matching certificates found')
         }
         emptyAction={
-          totalIssued === 0 ? (
+          summary.totalIssued === 0 ? (
             <Button variant="primary" size="sm" onClick={openIssueModal}>
               <Plus className="w-4 h-4" />
               <span>{pick('প্রথম ছাড়পত্র ইস্যু করুন', 'Issue first certificate')}</span>
@@ -571,10 +529,10 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
             header: pick('টিসি নম্বর ও ইস্যু', 'TC No. & Issued'),
             cell: ({ row }) => (
               <div className="whitespace-nowrap tabular-nums">
-                <span className="font-mono text-sm font-semibold text-foreground block">
+                <span className="font-mono text-base font-semibold text-foreground block">
                   {row.original.tcNumber}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   {formatDateShort(row.original.issueDate, locale)}
                 </span>
               </div>
@@ -587,7 +545,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
               <div className="flex items-center gap-3 min-w-[200px]">
                 <div
                   className={cn(
-                    'w-8 h-8 rounded-[var(--radius)] flex items-center justify-center font-semibold text-xs shrink-0 border border-border',
+                    'w-8 h-8 rounded-[var(--radius)] flex items-center justify-center font-semibold text-sm shrink-0 border border-border',
                     row.original.studentGender === Gender.FEMALE
                       ? 'bg-secondary/10 text-secondary'
                       : 'bg-primary/10 text-primary'
@@ -602,7 +560,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
                   >
                     {row.original.studentNameBn}
                   </Link>
-                  <span className="block text-xs font-mono text-muted-foreground truncate">
+                  <span className="block text-sm font-mono text-muted-foreground truncate">
                     {row.original.studentCode}
                   </span>
                 </div>
@@ -617,7 +575,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
                 <span className="font-medium text-foreground block">
                   {row.original.leavingClassDisplay}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   {formatDateShort(row.original.leavingDate, locale)} ·{' '}
                   {row.original.promotedToNextClass
                     ? pick('উত্তীর্ণ', 'Promoted')
@@ -634,7 +592,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
                 <span className="font-medium text-foreground block truncate">
                   {row.original.destinationSchool || pick('উল্লেখ নেই', 'Not specified')}
                 </span>
-                <span className="text-xs text-muted-foreground block truncate">
+                <span className="text-sm text-muted-foreground block truncate">
                   {row.original.reason}
                 </span>
               </div>
@@ -645,7 +603,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
             header: pick('বকেয়া ও আচরণ', 'Clearance & Conduct'),
             enableSorting: false,
             cell: ({ row }) => (
-              <div className="whitespace-nowrap text-xs">
+              <div className="whitespace-nowrap text-sm">
                 <span
                   className={cn(
                     'font-semibold block',
@@ -671,7 +629,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8 px-2.5 text-xs"
+                  className="h-8 px-2.5 text-sm"
                   onClick={() => setPrintId(row.original.id)}
                 >
                   <Printer className="w-3.5 h-3.5" />
@@ -703,7 +661,6 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
         maxWidth="max-w-2xl"
       >
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Student Selection + TC Number */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label={pick('সক্রিয় শিক্ষার্থী নির্বাচন', 'Select Active Student')} required>
               <Select
@@ -719,27 +676,18 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
               </Select>
             </FormField>
 
-            <FormField
-              label={pick('টিসি স্মারক নম্বর', 'TC Reference Number')}
-              required
-              error={
-                duplicateTcNumber
-                  ? pick('এই টিসি নম্বরটি আগেই ব্যবহৃত হয়েছে।', 'This TC number already exists.')
-                  : undefined
-              }
-            >
+            <FormField label={pick('টিসি স্মারক নম্বর', 'TC Reference Number')} required>
               <Input
                 value={form.tcNumber}
                 onChange={(e) => setForm({ ...form, tcNumber: e.target.value })}
                 className="font-mono"
-                placeholder={`TC-${activeYearName}-002`}
+                placeholder={`TC-${activeYearName}-0001`}
               />
             </FormField>
           </div>
 
-          {/* Selected Student Context & Impact Preview */}
           {selectedStudentMeta && (
-            <div className="p-3.5 rounded-[var(--radius)] bg-surface-muted/60 border border-border space-y-2 text-xs">
+            <div className="p-3.5 rounded-[var(--radius)] bg-surface-muted/60 border border-border space-y-2 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="text-sm font-semibold text-foreground">
@@ -758,26 +706,9 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
                   </p>
                 </div>
               </div>
-
-              {selectedStudentMeta.activeCards.length > 0 && (
-                <div className="flex items-start gap-2 pt-2 border-t border-border text-warning">
-                  <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>
-                    {pick(
-                      `সতর্কতা: এই শিক্ষার্থীর সক্রিয় RFID কার্ড (${selectedStudentMeta.activeCards
-                        .map((c) => c.cardNumber)
-                        .join(', ')}) ছাড়পত্র ইস্যু হওয়ার সাথে সাথে স্বয়ংক্রিয়ভাবে বন্ধ (BLOCKED) হয়ে যাবে।`,
-                      `Notice: Active RFID card (${selectedStudentMeta.activeCards
-                        .map((c) => c.cardNumber)
-                        .join(', ')}) will be automatically BLOCKED upon TC issuance.`
-                    )}
-                  </span>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Dates & Leaving Class */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <FormField label={pick('শেষ অধ্যয়নরত শ্রেণি', 'Leaving Class')} required>
               <Input
@@ -802,7 +733,6 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
             </FormField>
           </div>
 
-          {/* Reason with Quick Presets */}
           <div className="space-y-2">
             <FormField label={pick('বিদ্যালয় ত্যাগের কারণ', 'Reason for Transfer')} required>
               <Textarea
@@ -815,7 +745,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
               />
             </FormField>
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs text-muted-foreground mr-1">
+              <span className="text-sm text-muted-foreground mr-1">
                 {pick('দ্রুত নির্বাচন:', 'Quick fill:')}
               </span>
               {REASON_PRESETS.map((preset) => {
@@ -825,7 +755,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
                     key={preset.en}
                     type="button"
                     onClick={() => setForm((prev) => ({ ...prev, reason: text }))}
-                    className="px-2 py-1 text-xs rounded border border-border bg-surface hover:bg-surface-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    className="px-2 py-1 text-sm rounded border border-border bg-surface hover:bg-surface-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                   >
                     {text.length > 34 ? `${text.slice(0, 34)}…` : text}
                   </button>
@@ -834,7 +764,6 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
             </div>
           </div>
 
-          {/* Destination & Conduct */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label={pick('গন্তব্য বিদ্যালয়', 'Destination School')}>
               <Input
@@ -852,7 +781,6 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
             </FormField>
           </div>
 
-          {/* Checkboxes */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-[var(--radius)] border border-border bg-surface-muted/30">
             <label className="flex items-start gap-2.5 text-sm cursor-pointer">
               <input
@@ -865,7 +793,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
                 <span className="font-medium text-foreground block">
                   {pick('সকল বকেয়া পরিশোধিত', 'All school dues cleared')}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   {pick('টিসি-তে বকেয়া মুক্ত হিসেবে উল্লেখ থাকবে', 'Marked as cleared on the official certificate')}
                 </span>
               </span>
@@ -882,7 +810,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
                 <span className="font-medium text-foreground block">
                   {pick('পরবর্তী শ্রেণিতে উত্তীর্ণ', 'Promoted to next class')}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   {pick('বার্ষিক পরীক্ষায় উত্তীর্ণ হলে টিক দিন', 'Check if eligible for promotion to the next grade')}
                 </span>
               </span>
@@ -890,7 +818,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
           </div>
 
           {!form.duesCleared && (
-            <div className="flex items-start gap-2 p-3 rounded-[var(--radius)] border border-warning/40 bg-warning/5 text-xs text-warning">
+            <div className="flex items-start gap-2 p-3 rounded-[var(--radius)] border border-warning/40 bg-warning/5 text-sm text-warning">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>
                 {pick(
@@ -901,8 +829,7 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
             </div>
           )}
 
-          {/* Administrative Impact Confirmation */}
-          <div className="p-3 rounded-[var(--radius)] border border-border bg-surface-muted/40 text-xs text-muted-foreground">
+          <div className="p-3 rounded-[var(--radius)] border border-border bg-surface-muted/40 text-sm text-muted-foreground">
             {pick(
               'নিশ্চিত করলে শিক্ষার্থী স্থায়ীভাবে স্থানান্তরিত (TRANSFERRED) হিসেবে চিহ্নিত হবে এবং বর্তমান শ্রেণি ও হাজিরা তালিকা থেকে বাদ পড়বে। পূর্বের পরীক্ষার রেজাল্ট ও নথি সংরক্ষিত থাকবে।',
               'Confirming marks this student as TRANSFERRED and closes their active class enrollment. All historical results and attendance logs remain preserved.'
@@ -913,14 +840,10 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
             <Button type="button" variant="outline" onClick={() => setIssueOpen(false)}>
               {pick('বাতিল', 'Cancel')}
             </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isLoading || !form.studentId || duplicateTcNumber}
-            >
+            <Button type="submit" variant="primary" disabled={issuing || !form.studentId}>
               <FileCheck2 className="w-4 h-4" />
               <span>
-                {isLoading
+                {issuing
                   ? pick('ইস্যু হচ্ছে...', 'Issuing...')
                   : pick('ছাড়পত্র ইস্যু ও প্রিন্ট করুন', 'Issue & Open Print Copy')}
               </span>
@@ -931,21 +854,21 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
 
       {/* 5. Official Print Preview Modal */}
       <Modal
-        open={Boolean(printedTc && printedStudent)}
+        open={Boolean(printedRow && printedRow.rawStudent)}
         onClose={() => setPrintId(null)}
         title={
-          printedTc
-            ? `${pick('অফিসিয়াল ছাড়পত্র', 'Official Transfer Certificate')} · ${printedTc.tcNumber}`
+          printedRow
+            ? `${pick('অফিসিয়াল ছাড়পত্র', 'Official Transfer Certificate')} · ${printedRow.tcNumber}`
             : pick('ছাড়পত্র', 'Transfer Certificate')
         }
         maxWidth="max-w-4xl"
       >
-        {printedTc && printedStudent && (
+        {printedRow && printedRow.rawStudent && (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-border no-print">
               <Link
-                href={`/admin/students/${printedStudent.id}`}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                href={`/admin/students/${printedRow.studentId}`}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
               >
                 <Eye className="w-3.5 h-3.5" />
                 <span>{pick('শিক্ষার্থীর সংরক্ষিত প্রোফাইল দেখুন', 'Open archived student dossier')}</span>
@@ -957,13 +880,13 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
                 onClick={() =>
                   triggerCertificatePrint({
                     kind: 'TC',
-                    school: db.schoolProfile,
-                    tc: printedTc,
-                    student: printedStudent,
-                    fatherName: printedParents.fatherName,
-                    motherName: printedParents.motherName,
-                    sectionName: printedSection?.name ?? null,
-                    roll: printedEnrollment?.roll ?? null,
+                    school: schoolProfile,
+                    tc: printedRow,
+                    student: printedRow.rawStudent!,
+                    fatherName: printedRow.fatherName,
+                    motherName: printedRow.motherName,
+                    sectionName: printedRow.sectionName,
+                    roll: printedRow.roll,
                   })
                 }
               >
@@ -972,13 +895,13 @@ export function StudentTransfers({ db }: { db: MockDatabase }) {
               </Button>
             </div>
             <PrintableTransferCertificate
-              school={db.schoolProfile}
-              tc={printedTc}
-              student={printedStudent}
-              fatherName={printedParents.fatherName}
-              motherName={printedParents.motherName}
-              sectionName={printedSection?.name ?? null}
-              roll={printedEnrollment?.roll ?? null}
+              school={schoolProfile}
+              tc={printedRow}
+              student={printedRow.rawStudent}
+              fatherName={printedRow.fatherName}
+              motherName={printedRow.motherName}
+              sectionName={printedRow.sectionName}
+              roll={printedRow.roll}
             />
           </div>
         )}

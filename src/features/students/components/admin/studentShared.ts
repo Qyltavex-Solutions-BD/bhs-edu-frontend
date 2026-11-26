@@ -1,3 +1,4 @@
+import type { SchoolProfile } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
 
 export function classLabel(db: MockDatabase, classId: string, locale: string) {
@@ -7,7 +8,30 @@ export function classLabel(db: MockDatabase, classId: string, locale: string) {
 }
 
 export function errorMessage(err: unknown, fallback: string) {
-  return (err as { message?: string })?.message || fallback;
+  const e = err as { data?: { message?: string | string[] }; message?: string };
+  const msg = e?.data?.message ?? e?.message;
+  if (Array.isArray(msg)) return msg.join(', ');
+  return msg || fallback;
+}
+
+export function resolveSchoolProfile(school?: SchoolProfile | null): SchoolProfile {
+  return {
+    id: school?.id || 'school-profile-1',
+    name: school?.name || 'ভোজেশ্বর উচ্চ বিদ্যালয়',
+    nameEn: school?.nameEn || 'Bhojeshwar High School',
+    motto: school?.motto || 'শিক্ষাই আলো, জ্ঞানই শক্তি',
+    eiin: school?.eiin || '113587',
+    schoolCode: school?.schoolCode || 'BHS',
+    address:
+      school?.address || 'ডাকঘর: ভোজেশ্বর (মশুরা), উপজেলা: নড়িয়া, জেলা: শরীয়তপুর।',
+    phone: school?.phone || '+880 1700-000000',
+    email: school?.email || 'info@bhs.edu.bd',
+    website: school?.website || 'https://bhojeshwarhighschool.edu.bd',
+    logo: school?.logo ?? null,
+    establishedYear: school?.establishedYear || 1978,
+    createdAt: school?.createdAt || '',
+    updatedAt: school?.updatedAt || '',
+  };
 }
 
 export const BLOOD_LABEL: Record<string, string> = {

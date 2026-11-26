@@ -138,7 +138,9 @@ export function PrintableAdmissionAdmitCard({
                   <p className="text-[13.5px] text-[#3F3F46]">{school.address}</p>
                   <p className="text-[12px] text-[#52525B] tabular-nums">
                     EIIN: {school.eiin ?? '113587'} · {pick('স্থাপিত:', 'Est.')}{' '}
-                    {formatNumber(school.establishedYear ?? 1978, locale)}
+                    {locale === 'bn'
+                      ? String(school.establishedYear ?? 1978).replace(/[0-9]/g, (d) => '০১২৩৪৫৬৭৮৯'[Number(d)])
+                      : school.establishedYear ?? 1978}
                   </p>
                 </div>
                 <div className="w-[84px] h-[102px] border border-[#27272A] bg-[#FAFAFA] overflow-hidden flex items-center justify-center shrink-0">
@@ -510,7 +512,10 @@ function FormalCertificateShell({
                   <p className="text-xs text-[#3F3F46] pt-0.5">{school.address}</p>
                   <p className="text-[11px] text-[#52525B] tabular-nums">
                     EIIN: {school.eiin ?? '113587'} ·{' '}
-                    {pick('স্থাপিত:', 'Est.')} {formatNumber(school.establishedYear ?? 1978, locale)}
+                    {pick('স্থাপিত:', 'Est.')}{' '}
+                    {locale === 'bn'
+                      ? String(school.establishedYear ?? 1978).replace(/[0-9]/g, (d) => '০১২৩৪৫৬৭৮৯'[Number(d)])
+                      : school.establishedYear ?? 1978}
                   </p>
                 </div>
               </div>
@@ -1063,60 +1068,159 @@ export function PrintableIdCardSheet({
     bloodGroup?: string | null;
     phone?: string | null;
     validUntil: string;
+    photo?: string | null;
+    studentIdCode?: string;
+    rfidNumber?: string;
+    className?: string;
+    sectionName?: string;
+    roll?: string | number;
+    guardianPhone?: string | null;
   }>;
 }) {
   const { pick } = useI18n();
   return (
-    <div className="print-sheet bg-surface border border-border rounded-[var(--radius)] p-6 text-foreground">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {cards.map((card) => (
-          <div
-            key={card.code}
-            className="border border-border rounded-xl overflow-hidden bg-surface flex flex-col justify-between break-inside-avoid"
-          >
-            {/* Card Header */}
-            <div className="bg-[#0E6B35] text-white px-3.5 py-2.5 flex items-center gap-2.5">
-              <SchoolEmblem size={34} />
-              <div className="min-w-0">
-                <p className="text-sm font-bold leading-tight truncate">{school.name}</p>
-                <p className="text-xs text-white/85 tabular-nums truncate">
-                  EIIN: {school.eiin ?? '113587'} ·{' '}
+    <div className="print-sheet bg-white border border-border rounded-[var(--radius)] p-6 text-foreground [-webkit-print-color-adjust:exact] [print-color-adjust:exact]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 print:grid-cols-2 print:gap-4">
+        {cards.map((card) => {
+          const bloodLabel = card.bloodGroup
+            ? card.bloodGroup
+                .replace('_POSITIVE', '+')
+                .replace('_NEGATIVE', '−')
+                .replace('POSITIVE', '+')
+                .replace('NEGATIVE', '−')
+            : '—';
+          const displayId = card.studentIdCode || card.code;
+          const displayPhone = card.guardianPhone || card.phone || '—';
+
+          return (
+            <div
+              key={card.code}
+              className="relative rounded-xl overflow-hidden border border-[#0E6B35]/30 bg-white shadow-sm flex flex-col justify-between break-inside-avoid print:shadow-none"
+            >
+              {/* Institutional Header */}
+              <div className="bg-[#0E6B35] text-white px-4 py-3 border-b-2 border-[#D4AF37] flex items-center gap-3">
+                <div className="shrink-0 bg-white rounded-full p-0.5 shadow-sm">
+                  <SchoolEmblem size={36} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-base font-bold leading-snug tracking-tight truncate">
+                    {school.name}
+                  </p>
+                  <div className="flex items-center justify-between gap-2 text-xs text-white/90 mt-0.5">
+                    <span className="truncate">
+                      {school.address || pick('বাংলাদেশ', 'Bangladesh')}
+                    </span>
+                    <span className="font-mono shrink-0 bg-white/15 px-1.5 py-0.5 rounded">
+                      EIIN: {school.eiin || '—'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card Type Ribbon */}
+              <div className="bg-[#0E6B35]/8 border-b border-[#0E6B35]/15 px-4 py-1 flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#0E6B35]">
                   {holderType === 'STUDENT'
-                    ? pick('শিক্ষার্থী পরিচয়পত্র', 'STUDENT ID CARD')
-                    : pick('শিক্ষক / কর্মচারী পরিচয়পত্র', 'STAFF ID CARD')}
-                </p>
-              </div>
-            </div>
-
-            {/* Card Body */}
-            <div className="p-3.5 flex items-center gap-3">
-              <div className="h-14 w-12 rounded-lg bg-surface-muted border border-border text-foreground font-bold text-base flex items-center justify-center shrink-0">
-                {card.name.slice(0, 2)}
-              </div>
-              <div className="min-w-0 space-y-0.5 text-sm">
-                <p className="font-bold text-foreground truncate">{card.name}</p>
-                <p className="text-xs text-primary font-medium truncate">{card.subline}</p>
-                {card.secondaryLine && (
-                  <p className="text-xs text-muted-foreground truncate">{card.secondaryLine}</p>
+                    ? pick('শিক্ষার্থী পরিচয়পত্র', 'STUDENT IDENTITY CARD')
+                    : pick('শিক্ষক ও কর্মচারী পরিচয়পত্র', 'STAFF IDENTITY CARD')}
+                </span>
+                {card.rfidNumber && (
+                  <span className="text-xs font-mono font-semibold text-foreground/80">
+                    {card.rfidNumber}
+                  </span>
                 )}
-                <p className="text-xs font-mono text-foreground pt-0.5">ID: {card.code}</p>
+              </div>
+
+              {/* Main Card Body */}
+              <div className="p-4 flex items-start gap-4 flex-1 bg-white">
+                {/* Portrait Photo Frame */}
+                <div className="flex flex-col items-center gap-1.5 shrink-0">
+                  <div className="h-24 w-20 rounded-lg border-2 border-[#0E6B35]/25 bg-slate-50 overflow-hidden flex items-center justify-center">
+                    {card.photo ? (
+                      <img
+                        src={card.photo}
+                        alt={card.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-lg font-bold text-[#0E6B35]">
+                        {card.name
+                          .trim()
+                          .split(/\s+/)
+                          .slice(0, 2)
+                          .map((w) => w[0])
+                          .join('')
+                          .toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200 tabular-nums">
+                    {pick('রক্ত:', 'Blood:')} {bloodLabel}
+                  </span>
+                </div>
+
+                {/* Structured Details */}
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <h4 className="text-base font-bold text-slate-900 leading-snug truncate">
+                    {card.name}
+                  </h4>
+
+                  <div className="grid grid-cols-1 gap-1 text-sm text-slate-700">
+                    {card.className ? (
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-slate-500 shrink-0">{pick('শ্রেণি:', 'Class:')}</span>
+                        <span className="font-semibold text-slate-900 truncate">
+                          {card.className}
+                          {card.sectionName ? ` (${card.sectionName})` : ''}
+                          {card.roll !== undefined && card.roll !== null && card.roll !== 0
+                            ? ` · ${pick('রোল', 'Roll')}: ${card.roll}`
+                            : ''}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-medium text-[#0E6B35] truncate">{card.subline}</p>
+                    )}
+
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-slate-500 shrink-0">{pick('আইডি:', 'ID No:')}</span>
+                      <span className="font-mono font-semibold text-slate-900 truncate">
+                        {displayId}
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-slate-500 shrink-0">
+                        {holderType === 'STUDENT'
+                          ? pick('অভিভাবক:', 'Guardian:')
+                          : pick('মোবাইল:', 'Phone:')}
+                      </span>
+                      <span className="font-mono font-medium text-slate-800 truncate">
+                        {displayPhone}
+                      </span>
+                    </div>
+
+                    {!card.className && card.secondaryLine && (
+                      <p className="text-sm text-slate-600 truncate">{card.secondaryLine}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer & Authority Signature */}
+              <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex items-end justify-between gap-3 text-xs text-slate-600">
+                <div className="tabular-nums">
+                  <span className="text-slate-500">{pick('মেয়াদ উত্তীর্ণ:', 'Valid Until:')}</span>{' '}
+                  <strong className="text-slate-800">{card.validUntil}</strong>
+                </div>
+                <div className="text-center pt-2">
+                  <div className="w-28 border-t border-slate-400 pt-0.5 font-semibold text-slate-700">
+                    {pick('প্রধান শিক্ষক', 'Principal')}
+                  </div>
+                </div>
               </div>
             </div>
-
-            {/* Card Footer */}
-            <div className="px-3.5 py-2 bg-surface-muted/70 border-t border-border flex items-center justify-between text-xs text-muted-foreground tabular-nums">
-              <span>
-                {pick('রক্তের গ্রুপ:', 'Blood:')}{' '}
-                <strong className="text-destructive">
-                  {card.bloodGroup ? card.bloodGroup.replace('_POSITIVE', '+').replace('_NEGATIVE', '-') : '—'}
-                </strong>
-              </span>
-              <span>
-                {pick('মেয়াদ:', 'Valid:')} {card.validUntil}
-              </span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

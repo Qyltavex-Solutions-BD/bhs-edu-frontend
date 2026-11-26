@@ -1,6 +1,6 @@
-'use client';
+﻿'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -20,6 +20,7 @@ import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { cn, exportToCsv, triggerCertificatePrint } from '@/src/lib/utils/cn';
 import { localToday } from '@/src/lib/schoolDay';
 import { DataTable } from '@/src/components/shared/DataTable';
+import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { PrintableTestimonialCertificate } from '@/src/components/print/PrintDocuments';
 import {
@@ -30,19 +31,25 @@ import {
   Modal,
   Select,
 } from '@/src/components/ui/primitives';
-import { useIssueTestimonialMutation } from '@/src/store/api';
+import {
+  useGetStudentsQuery,
+  useGetTestimonialsQuery,
+  useIssueTestimonialMutation,
+} from '@/src/features/students/api/students.api';
+import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
 import { RelationshipType, StudentStatus, TestimonialType } from '@/src/types/enums';
-import type { MockDatabase } from '@/src/mocks/seed';
-import type { StudentTestimonial } from '@/src/types/entities';
-import { errorMessage, studentInitials } from './studentShared';
+import type { Student, StudentTestimonial } from '@/src/types/entities';
+import { errorMessage, resolveSchoolProfile, studentInitials } from './studentShared';
 
 interface EnrichedTestimonial extends StudentTestimonial {
   studentNameBn: string;
   studentNameEn: string;
   studentCode: string;
-  fatherName: string;
+  fatherName: string | null;
+  motherName: string | null;
   classSummary: string;
   purposeOrResult: string;
+  rawStudent: Student | null;
 }
 
 const PURPOSE_PRESETS = [
@@ -66,30 +73,45 @@ const PURPOSE_PRESETS = [
 
 const LETTER_GRADES = ['A+', 'A', 'A-', 'B', 'C', 'D'];
 
-function suggestNextRefNumber(db: MockDatabase, yearStr: string): string {
-  const prefix = `BHS/TEST/${yearStr}/`;
-  let maxSeq = 0;
-  db.testimonials.forEach((item) => {
-    const match = item.refNumber.match(/(\d+)$/);
-    if (item.refNumber.toUpperCase().startsWith(prefix.toUpperCase()) && match) {
-      const n = Number(match[1]);
-      if (Number.isFinite(n) && n > maxSeq) maxSeq = n;
-    }
-  });
-  return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`;
-}
-
-export function StudentTestimonials({ db }: { db: MockDatabase }) {
+export function StudentTestimonials() {
   const { locale, pick } = useI18n();
-  const [issueTestimonial, { isLoading }] = useIssueTestimonialMutation();
+  const [issueTestimonial, { isLoading: issuing }] = useIssueTestimonialMutation();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<'ALL' | TestimonialType>('ALL');
+  const [page, setPage] = useState(1);
+
   const [issueOpen, setIssueOpen] = useState(false);
   const [printId, setPrintId] = useState<string | null>(null);
 
-  const activeYear = db.academicYears.find((y) => y.isActive) ?? db.academicYears[0];
-  const activeYearName = activeYear?.name ?? '2026';
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  const { data: liveYears = [] } = useGetAcademicYearsQuery();
+  const activeYear = liveYears.find((y) => y.isActive) ?? liveYears[0];
+  const activeYearName = activeYear?.name ?? String(new Date().getFullYear());
+
+  const {
+    data: testRes,
+    isLoading: loadingTestimonials,
+    isFetching: fetchingTestimonials,
+  } = useGetTestimonialsQuery({
+    page,
+    limit: 15,
+    search: debouncedSearch || undefined,
+    type: typeFilter !== 'ALL' ? typeFilter : undefined,
+  });
+
+  const { data: studentsRes } = useGetStudentsQuery(
+    { limit: 100 },
+    { skip: !issueOpen }
+  );
 
   const [form, setForm] = useState({
     type: TestimonialType.STUDY_CHARACTER as TestimonialType,
@@ -108,137 +130,95 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
     remarks: '',
   });
 
-  const getParents = (studentId: string) => {
-    const links = db.parentStudents.filter((ps) => ps.studentId === studentId);
-    const fatherLink =
-      links.find((l) => l.relationship === RelationshipType.FATHER) ??
-      links.find((l) => l.isPrimary) ??
-      links[0];
-    const motherLink = links.find((l) => l.relationship === RelationshipType.MOTHER);
-    const father = fatherLink ? db.parents.find((p) => p.id === fatherLink.parentId) : null;
-    const mother = motherLink ? db.parents.find((p) => p.id === motherLink.parentId) : null;
-    return {
-      fatherName: father ? (locale === 'bn' ? father.nameBn || father.name : father.name) : null,
-      motherName: mother ? (locale === 'bn' ? mother.nameBn || mother.name : mother.name) : null,
-    };
-  };
-
-  // Build candidate students with latest enrollment context (ACTIVE or GRADUATED/TRANSFERRED)
   const studentOptions = useMemo(() => {
-    return db.students
-      .map((student) => {
-        const latestEnr =
-          db.enrollments.find((e) => e.studentId === student.id && e.academicYearId === activeYear?.id) ??
-          db.enrollments
-            .filter((e) => e.studentId === student.id)
-            .sort((a, b) => b.id.localeCompare(a.id))[0];
-        const cls = latestEnr ? db.classes.find((c) => c.id === latestEnr.classId) : null;
-        const sec = latestEnr ? db.sections.find((s) => s.id === latestEnr.sectionId) : null;
-        const grp = latestEnr?.groupId
-          ? db.academicGroups.find((g) => g.id === latestEnr.groupId)
-          : null;
-        const yr = latestEnr ? db.academicYears.find((y) => y.id === latestEnr.academicYearId) : null;
+    return (studentsRes?.items ?? []).map((raw: any) => {
+      const enr = raw.enrollments?.[0];
+      const cls = enr?.schoolClass;
+      const sec = enr?.section;
+      const grp = enr?.group;
+      const yr = enr?.academicYear;
+      const parents = raw.parents ?? [];
+      const father =
+        parents.find((p: any) => p.relationship === RelationshipType.FATHER)?.parent ??
+        parents.find((p: any) => p.isPrimary)?.parent ??
+        parents[0]?.parent ??
+        null;
 
-        return {
-          student,
-          enrollment: latestEnr,
-          classNameBn: cls ? cls.nameBn || cls.name : '—',
-          classNameEn: cls ? cls.name : '—',
-          classNumeric: cls?.numericValue ?? 0,
-          sectionName: sec?.name ?? null,
-          groupNameBn: grp ? grp.nameBn || grp.name : '',
-          groupNameEn: grp ? grp.name : '',
-          sessionName: yr?.name ?? activeYearName,
-          roll: latestEnr?.roll ?? null,
-        };
-      })
-      .sort((a, b) => {
-        if (b.classNumeric !== a.classNumeric) return b.classNumeric - a.classNumeric;
-        return (a.roll ?? 999) - (b.roll ?? 999);
-      });
-  }, [db.students, db.enrollments, db.classes, db.sections, db.academicGroups, db.academicYears, activeYear?.id, activeYearName]);
-
-  const activeStudentsCount = useMemo(
-    () => db.students.filter((s) => s.status === StudentStatus.ACTIVE).length,
-    [db.students]
-  );
-
-  // Enrich testimonials registry
-  const rows = useMemo<EnrichedTestimonial[]>(() => {
-    return [...db.testimonials]
-      .sort((a, b) => b.issueDate.localeCompare(a.issueDate) || b.id.localeCompare(a.id))
-      .map((item) => {
-        const student = db.students.find((s) => s.id === item.studentId);
-        const parents = getParents(item.studentId);
-        const classSummary = [
-          item.className,
-          item.sectionName ? `${pick('শাখা', 'Sec')}: ${item.sectionName}` : null,
-          item.roll ? `${pick('রোল', 'Roll')}: ${formatNumber(item.roll, locale)}` : null,
-        ]
-          .filter(Boolean)
-          .join(' · ');
-
-        const purposeOrResult =
-          item.type === TestimonialType.SSC_GRADUATE
-            ? [
-                item.passingYear ? `${pick('এসএসসি', 'SSC')} ${formatNumber(item.passingYear, locale)}` : null,
-                item.gpa ? `GPA ${item.gpa}` : null,
-                item.letterGrade ? `(${item.letterGrade})` : null,
-                item.boardRoll ? `${pick('রোল', 'Roll')}: ${item.boardRoll}` : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')
-            : item.purpose || pick('অধ্যয়ন ও চারিত্রিক প্রত্যয়ন', 'Study & character verification');
-
-        return {
-          ...item,
-          studentNameBn: student?.nameBn || student?.nameEn || '—',
-          studentNameEn: student?.nameEn || '—',
-          studentCode: student?.studentId || '—',
-          fatherName: parents.fatherName || '—',
-          classSummary: classSummary || '—',
-          purposeOrResult,
-        };
-      });
-  }, [db.testimonials, db.students, db.parentStudents, db.parents, locale, pick]);
-
-  const filteredRows = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return rows.filter((row) => {
-      if (typeFilter !== 'ALL' && row.type !== typeFilter) return false;
-      if (!q) return true;
-      const haystack = [
-        row.refNumber,
-        row.studentNameBn,
-        row.studentNameEn,
-        row.studentCode,
-        row.classSummary,
-        row.purposeOrResult,
-        row.boardRoll ?? '',
-        row.registrationNo ?? '',
-      ]
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(q);
+      return {
+        student: raw as Student,
+        classNameBn: cls ? cls.nameBn || cls.name : '—',
+        classNameEn: cls ? cls.name : '—',
+        classNumeric: cls?.numericValue ?? 0,
+        sectionName: sec?.name ?? null,
+        groupNameBn: grp ? grp.nameBn || grp.name : '',
+        groupNameEn: grp ? grp.name : '',
+        sessionName: yr?.name ?? activeYearName,
+        roll: enr?.roll ?? null,
+        fatherName: father ? (locale === 'bn' ? father.nameBn || father.name : father.name) : null,
+      };
     });
-  }, [rows, searchQuery, typeFilter]);
+  }, [studentsRes?.items, activeYearName, locale]);
 
-  // KPI metrics
-  const totalIssued = db.testimonials.length;
-  const issuedThisYear = db.testimonials.filter((t) => t.issueDate.startsWith(activeYearName)).length;
-  const studyCount = db.testimonials.filter((t) => t.type === TestimonialType.STUDY_CHARACTER).length;
-  const sscCount = db.testimonials.filter((t) => t.type === TestimonialType.SSC_GRADUATE).length;
+  const rows = useMemo<EnrichedTestimonial[]>(() => {
+    return (testRes?.items ?? []).map((item: any) => {
+      const student = item.student ?? null;
+      const parents = student?.parents ?? [];
+      const father =
+        parents.find((p: any) => p.relationship === RelationshipType.FATHER)?.parent ??
+        parents.find((p: any) => p.isPrimary)?.parent ??
+        parents[0]?.parent ??
+        null;
+      const mother =
+        parents.find((p: any) => p.relationship === RelationshipType.MOTHER)?.parent ?? null;
+
+      const classSummary = [
+        item.className,
+        item.sectionName ? `${pick('শাখা', 'Sec')}: ${item.sectionName}` : null,
+        item.roll ? `${pick('রোল', 'Roll')}: ${formatNumber(item.roll, locale)}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+
+      const purposeOrResult =
+        item.type === TestimonialType.SSC_GRADUATE
+          ? [
+              item.passingYear ? `${pick('এসএসসি', 'SSC')} ${formatNumber(item.passingYear, locale)}` : null,
+              item.gpa ? `GPA ${item.gpa}` : null,
+              item.letterGrade ? `(${item.letterGrade})` : null,
+              item.boardRoll ? `${pick('রোল', 'Roll')}: ${item.boardRoll}` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')
+          : item.purpose || pick('অধ্যয়ন ও চারিত্রিক প্রত্যয়ন', 'Study & character verification');
+
+      return {
+        ...item,
+        issueDate: String(item.issueDate ?? '').slice(0, 10),
+        studentNameBn: student?.nameBn || student?.nameEn || '—',
+        studentNameEn: student?.nameEn || '—',
+        studentCode: student?.studentId || '—',
+        fatherName: father ? (locale === 'bn' ? father.nameBn || father.name : father.name) : null,
+        motherName: mother ? (locale === 'bn' ? mother.nameBn || mother.name : mother.name) : null,
+        classSummary: classSummary || '—',
+        purposeOrResult,
+        rawStudent: student,
+      };
+    });
+  }, [testRes?.items, locale, pick]);
+
+  const summary = testRes?.summary ?? {
+    totalIssued: 0,
+    issuedThisYear: 0,
+    studyCount: 0,
+    sscCount: 0,
+    activeStudentsCount: 0,
+  };
+  const schoolProfile = resolveSchoolProfile(testRes?.school);
 
   const selectedStudentMeta = useMemo(
     () => studentOptions.find((item) => item.student.id === form.studentId) ?? null,
     [studentOptions, form.studentId]
   );
-
-  const duplicateRefNumber = useMemo(() => {
-    const ref = form.refNumber.trim().toLowerCase();
-    if (!ref) return false;
-    return db.testimonials.some((item) => item.refNumber.trim().toLowerCase() === ref);
-  }, [db.testimonials, form.refNumber]);
 
   const openIssueModal = (presetType: TestimonialType = TestimonialType.STUDY_CHARACTER) => {
     const today = localToday();
@@ -250,7 +230,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
     setForm({
       type: presetType,
       studentId: defaultCandidate?.student.id ?? '',
-      refNumber: suggestNextRefNumber(db, activeYearName),
+      refNumber: testRes?.suggestedRefNumber || `BHS/TEST/${activeYearName}/001`,
       issueDate: today,
       purpose:
         presetType === TestimonialType.STUDY_CHARACTER
@@ -292,12 +272,8 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
       toast.error(pick('একজন শিক্ষার্থী নির্বাচন করুন।', 'Please select a student.'));
       return;
     }
-    if (!form.refNumber.trim() || duplicateRefNumber) {
-      toast.error(
-        duplicateRefNumber
-          ? pick('এই স্মারক নম্বরটি আগেই ব্যবহৃত হয়েছে।', 'This reference number is already in use.')
-          : pick('স্মারক নম্বর দিন।', 'Reference number is required.')
-      );
+    if (!form.refNumber.trim()) {
+      toast.error(pick('স্মারক নম্বর দিন।', 'Reference number is required.'));
       return;
     }
     if (form.type === TestimonialType.SSC_GRADUATE && (!form.passingYear.trim() || !form.boardRoll.trim())) {
@@ -321,7 +297,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
           ? locale === 'bn'
             ? selectedStudentMeta.classNameBn
             : selectedStudentMeta.classNameEn
-          : null,
+          : '—',
         sectionName: selectedStudentMeta?.sectionName ?? null,
         roll: selectedStudentMeta?.roll ?? null,
         groupName: form.groupName.trim() || null,
@@ -363,17 +339,14 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
     );
   };
 
-  const printedItem = db.testimonials.find((item) => item.id === printId) ?? null;
-  const printedStudent = printedItem
-    ? db.students.find((item) => item.id === printedItem.studentId) ?? null
-    : null;
-  const printedParents = printedStudent ? getParents(printedStudent.id) : null;
-
+  const printedItem = rows.find((item) => item.id === printId) ?? null;
   const hasFilters = Boolean(searchQuery.trim()) || typeFilter !== 'ALL';
+
+  if (loadingTestimonials && !testRes) return <LoadingSkeleton rows={6} />;
 
   return (
     <div className="space-y-5">
-      {/* 1. 4-Column Hairline-Divided Summary Strip */}
+      {/* 1. 4-Column Summary Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
@@ -381,12 +354,12 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(totalIssued, locale)}
+              {formatNumber(summary.totalIssued, locale)}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
               {pick(
-                `${activeYearName} সেশনে ${formatNumber(issuedThisYear, locale)}টি`,
-                `${issuedThisYear} in ${activeYearName}`
+                `${activeYearName} সেশনে ${formatNumber(summary.issuedThisYear, locale)}টি`,
+                `${summary.issuedThisYear} in ${activeYearName}`
               )}
             </span>
           </div>
@@ -401,7 +374,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(studyCount, locale)}
+              {formatNumber(summary.studyCount, locale)}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি ইস্যুকৃত', 'issued')}
@@ -418,7 +391,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(sscCount, locale)}
+              {formatNumber(summary.sscCount, locale)}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি বোর্ড প্রশংসাপত্র', 'graduate copies')}
@@ -435,7 +408,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
-              {formatNumber(activeStudentsCount, locale)}
+              {formatNumber(summary.activeStudentsCount, locale)}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
               {pick('জন অধ্যয়নরত', 'active students')}
@@ -459,7 +432,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
                 'স্মারক নং, নাম বা আইডি খুঁজুন...',
                 'Search ref no, name, or ID...'
               )}
-              className="pl-9 pr-9 h-9 text-sm w-full"
+              className="pl-9 pr-9 h-10 text-base w-full"
             />
             {searchQuery && (
               <button
@@ -476,8 +449,11 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
           <div className="flex flex-wrap items-center gap-2">
             <Select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value as 'ALL' | TestimonialType)}
-              className="h-9 text-sm w-auto min-w-[190px]"
+              onChange={(e) => {
+                setTypeFilter(e.target.value as 'ALL' | TestimonialType);
+                setPage(1);
+              }}
+              className="h-10 text-base w-auto min-w-[190px]"
             >
               <option value="ALL">{pick('ধরন: সব প্রত্যয়নপত্র', 'Type: All Certificates')}</option>
               <option value={TestimonialType.STUDY_CHARACTER}>
@@ -494,7 +470,9 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
                 size="sm"
                 onClick={() => {
                   setSearchQuery('');
+                  setDebouncedSearch('');
                   setTypeFilter('ALL');
+                  setPage(1);
                 }}
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -502,7 +480,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
               </Button>
             )}
 
-            <Button variant="outline" size="sm" onClick={handleExportCsv}>
+            <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={rows.length === 0}>
               <Download className="w-3.5 h-3.5" />
               <span>{pick('CSV রপ্তানি', 'Export CSV')}</span>
             </Button>
@@ -519,10 +497,17 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
         </div>
       </Card>
 
-      {/* 3. High-Density Testimonial Registry Table */}
+      {/* 3. Testimonial Registry Table */}
       <DataTable
-        data={filteredRows}
+        data={rows}
         hideToolbar
+        isLoading={fetchingTestimonials}
+        server={{
+          search: searchQuery,
+          onSearch: setSearchQuery,
+          meta: testRes?.meta,
+          onPage: setPage,
+        }}
         emptyTitle={pick(
           'এই ফিল্টারে কোনো ইস্যুকৃত প্রত্যয়নপত্র পাওয়া যায়নি।',
           'No issued testimonials match the selected filters.'
@@ -533,10 +518,10 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
             header: pick('স্মারক ও তারিখ', 'Ref. No & Date'),
             cell: ({ row }) => (
               <div className="space-y-0.5 tabular-nums">
-                <span className="font-mono text-xs font-semibold text-foreground block">
+                <span className="font-mono text-base font-semibold text-foreground block">
                   {row.original.refNumber}
                 </span>
-                <span className="text-xs text-muted-foreground block">
+                <span className="text-sm text-muted-foreground block">
                   {formatDateShort(`${row.original.issueDate}T12:00:00`, locale)}
                 </span>
               </div>
@@ -547,7 +532,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
             header: pick('শিক্ষার্থী', 'Student'),
             cell: ({ row }) => (
               <div className="flex items-center gap-2.5 min-w-[190px]">
-                <span className="w-8 h-8 rounded-[var(--radius)] bg-surface-muted border border-border text-xs font-semibold text-foreground inline-flex items-center justify-center shrink-0">
+                <span className="w-8 h-8 rounded-[var(--radius)] bg-surface-muted border border-border text-sm font-semibold text-foreground inline-flex items-center justify-center shrink-0">
                   {studentInitials(row.original.studentNameEn)}
                 </span>
                 <div className="min-w-0">
@@ -557,7 +542,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
                   >
                     {locale === 'bn' ? row.original.studentNameBn : row.original.studentNameEn}
                   </Link>
-                  <span className="text-xs text-muted-foreground font-mono tabular-nums block">
+                  <span className="text-sm text-muted-foreground font-mono tabular-nums block">
                     {row.original.studentCode}
                   </span>
                 </div>
@@ -570,7 +555,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
             cell: ({ row }) => (
               <div className="space-y-1">
                 <StatusBadge enumName="TestimonialType" value={row.original.type} />
-                <span className="text-xs text-muted-foreground block tabular-nums">
+                <span className="text-sm text-muted-foreground block tabular-nums">
                   {row.original.classSummary}
                 </span>
               </div>
@@ -581,9 +566,9 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
             header: pick('উদ্দেশ্য / বোর্ড ফলাফল', 'Purpose / Board Result'),
             cell: ({ row }) => (
               <div className="max-w-[260px]">
-                <p className="text-xs text-foreground line-clamp-2">{row.original.purposeOrResult}</p>
+                <p className="text-sm text-foreground line-clamp-2">{row.original.purposeOrResult}</p>
                 {row.original.conductRemarks && (
-                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                  <p className="text-sm text-muted-foreground mt-0.5 truncate">
                     {pick('আচরণ:', 'Conduct:')} {row.original.conductRemarks}
                   </p>
                 )}
@@ -622,7 +607,6 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
         maxWidth="max-w-2xl"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Certificate Type Segmented Switch */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <button
               type="button"
@@ -652,7 +636,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
                 <p className="text-sm font-semibold text-foreground">
                   {pick('অধ্যয়ন ও চারিত্রিক প্রত্যয়নপত্র', 'Study & Character Certificate')}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-sm text-muted-foreground mt-0.5">
                   {pick('বর্তমান শিক্ষার্থীদের বৃত্তি, পাসপোর্ট বা দাপ্তরিক প্রয়োজনে।', 'For active students (stipend, passport, bank, official use).')}
                 </p>
               </div>
@@ -683,7 +667,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
                 <p className="text-sm font-semibold text-foreground">
                   {pick('এসএসসি প্রশংসাপত্র (Testimonial)', 'SSC / Graduate Testimonial')}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-sm text-muted-foreground mt-0.5">
                   {pick('বোর্ড পরীক্ষার রোল, রেজিস্ট্রেশন, সন ও জিপিএ যুক্ত প্রশংসাপত্র।', 'Formal graduate testimonial with board roll, reg. & GPA.')}
                 </p>
               </div>
@@ -706,7 +690,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
           </FormField>
 
           {selectedStudentMeta && (
-            <div className="p-3 rounded-[var(--radius)] border border-border bg-surface-muted/40 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs tabular-nums">
+            <div className="p-3 rounded-[var(--radius)] border border-border bg-surface-muted/40 grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm tabular-nums">
               <div>
                 <span className="text-muted-foreground block">{pick('শ্রেণি ও শাখা', 'Class & Section')}</span>
                 <span className="font-semibold text-foreground">
@@ -731,27 +715,19 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
               <div>
                 <span className="text-muted-foreground block">{pick('পিতার নাম', "Father's Name")}</span>
                 <span className="font-semibold text-foreground truncate block">
-                  {getParents(selectedStudentMeta.student.id).fatherName || '—'}
+                  {selectedStudentMeta.fatherName || '—'}
                 </span>
               </div>
             </div>
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <FormField
-              label={pick('স্মারক নম্বর (Ref. No)', 'Reference Number')}
-              required
-              error={
-                duplicateRefNumber
-                  ? pick('এই স্মারক নম্বরটি ইতিমধ্যে ব্যবহৃত হয়েছে।', 'This reference number already exists.')
-                  : undefined
-              }
-            >
+            <FormField label={pick('স্মারক নম্বর (Ref. No)', 'Reference Number')} required>
               <Input
                 value={form.refNumber}
                 onChange={(e) => setForm((prev) => ({ ...prev, refNumber: e.target.value }))}
                 className="font-mono"
-                placeholder="BHS/TEST/2026/003"
+                placeholder="BHS/TEST/2026/001"
               />
             </FormField>
 
@@ -781,7 +757,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
                       key={preset.en}
                       type="button"
                       onClick={() => setForm((prev) => ({ ...prev, purpose: text }))}
-                      className="text-xs px-2.5 py-1 rounded border border-border bg-surface hover:bg-surface-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      className="text-sm px-2.5 py-1 rounded border border-border bg-surface hover:bg-surface-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                     >
                       {text}
                     </button>
@@ -791,7 +767,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
             </div>
           ) : (
             <div className="space-y-3.5 p-3.5 rounded-[var(--radius)] border border-border bg-surface-muted/30">
-              <p className="text-xs font-semibold text-foreground">
+              <p className="text-sm font-semibold text-foreground">
                 {pick('বোর্ড পরীক্ষার তথ্য (এসএসসি প্রশংসাপত্র)', 'Board Examination Details (SSC Testimonial)')}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -878,14 +854,10 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
             <Button type="button" variant="outline" onClick={() => setIssueOpen(false)}>
               {pick('বাতিল', 'Cancel')}
             </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isLoading || !form.studentId || duplicateRefNumber}
-            >
+            <Button type="submit" variant="primary" disabled={issuing || !form.studentId}>
               <FileCheck2 className="w-4 h-4" />
               <span>
-                {isLoading
+                {issuing
                   ? pick('ইস্যু হচ্ছে...', 'Issuing...')
                   : pick('প্রত্যয়নপত্র ইস্যু ও প্রিন্ট করুন', 'Issue & Open Print Copy')}
               </span>
@@ -896,7 +868,7 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
 
       {/* 5. Formal Monochrome A4 Print Preview Modal */}
       <Modal
-        open={Boolean(printedItem && printedStudent)}
+        open={Boolean(printedItem && printedItem.rawStudent)}
         onClose={() => setPrintId(null)}
         title={
           printedItem
@@ -905,12 +877,12 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
         }
         maxWidth="max-w-4xl"
       >
-        {printedItem && printedStudent && (
+        {printedItem && printedItem.rawStudent && (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-border no-print">
               <Link
-                href={`/admin/students/${printedStudent.id}`}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                href={`/admin/students/${printedItem.studentId}`}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
               >
                 <Eye className="w-3.5 h-3.5" />
                 <span>{pick('শিক্ষার্থীর প্রোফাইল দেখুন', 'Open student dossier')}</span>
@@ -922,11 +894,11 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
                 onClick={() =>
                   triggerCertificatePrint({
                     kind: 'TESTIMONIAL',
-                    school: db.schoolProfile,
+                    school: schoolProfile,
                     testimonial: printedItem,
-                    student: printedStudent,
-                    fatherName: printedParents?.fatherName ?? null,
-                    motherName: printedParents?.motherName ?? null,
+                    student: printedItem.rawStudent!,
+                    fatherName: printedItem.fatherName,
+                    motherName: printedItem.motherName,
                   })
                 }
               >
@@ -935,11 +907,11 @@ export function StudentTestimonials({ db }: { db: MockDatabase }) {
               </Button>
             </div>
             <PrintableTestimonialCertificate
-              school={db.schoolProfile}
+              school={schoolProfile}
               testimonial={printedItem}
-              student={printedStudent}
-              fatherName={printedParents?.fatherName}
-              motherName={printedParents?.motherName}
+              student={printedItem.rawStudent}
+              fatherName={printedItem.fatherName}
+              motherName={printedItem.motherName}
             />
           </div>
         )}
