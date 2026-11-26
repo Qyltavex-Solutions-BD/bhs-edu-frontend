@@ -12,7 +12,12 @@ import {
   FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useGetBootstrapQuery } from '@/src/store/api';
+import {
+  useGetPublicAdmissionCatalogQuery,
+  useLazyGetPublicAdmissionStatusQuery,
+} from '@/src/features/admission/api/admission.api';
+import type { AdmissionCatalogData } from '@/src/features/admission/rules';
+import type { SchoolProfile } from '@/src/types/entities';
 import { useI18n } from '@/src/lib/i18n';
 import { formatBdt, formatDateLong } from '@/src/lib/formatters';
 import { LoadingSkeleton, PageHeader, SchoolEmblem } from '@/src/components/shared/Feedback';
@@ -34,31 +39,59 @@ import {
 import { buildDefaultAdmissionValues } from '@/src/features/admission/mappers';
 
 export function AdmissionStatusPage() {
-  const { data: db } = useGetBootstrapQuery();
+  const { data: catalogData } = useGetPublicAdmissionCatalogQuery();
+  const [triggerLookup, { isFetching: searching }] =
+    useLazyGetPublicAdmissionStatusQuery();
   const { locale, pick } = useI18n();
-  const [query, setQuery] = useState('ADM-2027-001');
+  const [query, setQuery] = useState('BHS-ADM-2027-0001');
   const [found, setFound] = useState<OnlineAdmissionApplication | null>(null);
   const [searched, setSearched] = useState(false);
   const [docTab, setDocTab] = useState<'form' | 'admit'>('form');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const statusDocRef = useRef<HTMLDivElement | null>(null);
 
-  const handleLookup = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSearched(true);
-    const q = query.trim().toLowerCase();
-    const match =
-      db?.onlineAdmissions.find(
-        (a) =>
-          a.applicationNumber.toLowerCase() === q ||
-          a.guardianPhone === query.trim() ||
-          a.birthCertificateNo === query.trim()
-      ) ?? null;
-    setFound(match);
+  const schoolProfile: SchoolProfile =
+    catalogData?.schoolProfile ??
+    ({
+      id: 'default',
+      name: 'Bhojeshwar High School',
+      nameBn: 'বজেশ্বর উচ্চ বিদ্যালয়',
+      nameEn: 'Bhojeshwar High School',
+      eiin: '113587',
+      address: 'নড়িয়া, শরীয়তপুর',
+      createdAt: '',
+      updatedAt: '',
+    } as SchoolProfile);
+
+  const db: AdmissionCatalogData = {
+    academicYears: catalogData?.academicYears ?? [],
+    classes: catalogData?.classes ?? [],
+    sections: catalogData?.sections ?? [],
+    academicGroups: catalogData?.academicGroups ?? [],
+    classSubjects: catalogData?.classSubjects ?? [],
+    admissionContent: catalogData?.admissionContent,
+    schoolProfile,
   };
 
-  const foundValues =
-    found && db ? buildDefaultAdmissionValues(db, 'public', undefined, found) : null;
+  const handleLookup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    setSearched(true);
+    const isNumericOnly = /^\d+$/.test(q);
+    try {
+      const res = await triggerLookup(
+        isNumericOnly ? { birthCertificateNo: q } : { applicationNumber: q }
+      ).unwrap();
+      setFound(res);
+    } catch {
+      setFound(null);
+    }
+  };
+
+  const foundValues = found
+    ? buildDefaultAdmissionValues(db, 'public', undefined, found)
+    : null;
   const foundMeta = found
     ? {
         applicationNumber: found.applicationNumber,
@@ -67,12 +100,11 @@ export function AdmissionStatusPage() {
         admissionTestDate: found.admissionTestDate,
       }
     : null;
-  const foundClass = found && db ? db.classes.find((c) => c.id === found.targetClassId) : undefined;
-  const foundGroup =
-    found && db ? db.academicGroups.find((item) => item.id === found.targetGroupId) : undefined;
+  const foundClass = found ? db.classes.find((c) => c.id === found.targetClassId) : undefined;
+  const foundGroup = found ? db.academicGroups.find((item) => item.id === found.targetGroupId) : undefined;
 
   const handleStatusPrint = () => {
-    if (!found || !db || !foundValues || !foundMeta) return;
+    if (!found || !foundValues || !foundMeta) return;
     const title = `${docTab === 'form' ? 'BHS-Admission-Form' : 'BHS-Admit-Card'}-${found.applicationNumber}`;
     const payload: CertificatePrintPayload =
       docTab === 'form'
@@ -82,7 +114,7 @@ export function AdmissionStatusPage() {
           }
         : {
             kind: 'ADMIT_CARD',
-            school: db.schoolProfile,
+            school: schoolProfile,
             application: found,
             targetClassName: locale === 'bn' ? foundClass?.nameBn ?? '' : foundClass?.name ?? '',
             groupName: foundGroup ? (locale === 'bn' ? foundGroup.nameBn : foundGroup.name) : null,
@@ -117,7 +149,7 @@ export function AdmissionStatusPage() {
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <PageHeader
         title={pick('ভর্তি আবেদনের অবস্থা যাচাই ও ফরম ডাউনলোড', 'Check Admission Status & Download Form')}
-        description={pick('আবেদন নম্বর (যেমন: ADM-2027-001) বা অভিভাবকের মোবাইল নম্বর দিয়ে খুঁজুন।', 'Search by Application No (e.g., ADM-2027-001) or guardian phone.')}
+        description={pick('আবেদন নম্বর (যেমন: BHS-ADM-2027-0001) বা জন্ম নিবন্ধন নম্বর দিয়ে খুঁজুন।', 'Search by Application No (e.g., BHS-ADM-2027-0001) or Birth Certificate No.')}
       />
 
       <Card className="p-5 no-print rounded-[4px]">
@@ -127,23 +159,26 @@ export function AdmissionStatusPage() {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="ADM-2027-001"
+              placeholder="BHS-ADM-2027-0001"
               className="pl-9 rounded-[4px]"
             />
           </div>
-          <Button type="submit" variant="primary" className="rounded-[4px]">
+          <Button type="submit" variant="primary" className="rounded-[4px]" disabled={searching}>
+            {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             {pick('যাচাই করুন', 'Check Status')}
           </Button>
         </form>
       </Card>
 
-      {searched && !found && (
+      {searching && <LoadingSkeleton />}
+
+      {searched && !searching && !found && (
         <Card className="p-8 text-center text-base text-muted-foreground rounded-[4px]">
-          {pick('এই নম্বরে কোনো আবেদন পাওয়া যায়নি। উদাহরণস্বরূপ ADM-2027-001 বা ADM-2027-002 দিয়ে চেষ্টা করুন।', 'No application matched. Try ADM-2027-001 or ADM-2027-002.')}
+          {pick('এই নম্বরে কোনো আবেদন পাওয়া যায়নি। অনুগ্রহ করে সঠিক আবেদন নম্বর (যেমন: BHS-ADM-2027-0001) বা ১৭-ডিজিট জন্ম নিবন্ধন নম্বর দিন।', 'No application matched. Please enter a valid Application No or 17-digit Birth Certificate No.')}
         </Card>
       )}
 
-      {found && db && foundValues && foundMeta && (
+      {found && foundValues && foundMeta && (
         <div className="space-y-5">
           <div className="p-4 sm:p-5 rounded-[4px] border border-border bg-surface space-y-3 no-print">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -225,7 +260,7 @@ export function AdmissionStatusPage() {
               />
             ) : (
               <PrintableAdmissionAdmitCard
-                school={db.schoolProfile}
+                school={schoolProfile}
                 application={found}
                 targetClassName={locale === 'bn' ? foundClass?.nameBn ?? '' : foundClass?.name ?? ''}
                 groupName={foundGroup ? (locale === 'bn' ? foundGroup.nameBn : foundGroup.name) : null}

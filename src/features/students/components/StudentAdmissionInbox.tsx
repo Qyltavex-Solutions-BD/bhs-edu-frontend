@@ -100,6 +100,15 @@ export function StudentAdmissionInbox({
     ]
   );
 
+  const resolvedYearId = useMemo(
+    () =>
+      yearId ||
+      academicYears.find((y) => y.isActive)?.id ||
+      academicYears[0]?.id ||
+      '',
+    [yearId, academicYears]
+  );
+
   const [openId, setOpenId] = useState<string | null>(null);
   const [sectionId, setSectionId] = useState('');
   const [roll, setRoll] = useState('');
@@ -108,16 +117,27 @@ export function StudentAdmissionInbox({
   const [fullFormApp, setFullFormApp] = useState<OnlineAdmissionApplication | null>(null);
   const [admittedResult, setAdmittedResult] = useState<AdminAdmissionResult | null>(null);
 
-  const { data: nextRollData } = useGetNextSuggestedRollQuery(
-    { academicYearId: yearId, sectionId },
-    { skip: !yearId || !sectionId }
-  );
+  const { data: nextRollData, isFetching: fetchingNextRoll } =
+    useGetNextSuggestedRollQuery(
+      { academicYearId: resolvedYearId, sectionId },
+      { skip: !resolvedYearId || !sectionId }
+    );
+
+  const computeRollFromEnrollments = (secId: string) => {
+    const rolls = liveEnrollments
+      .filter((e) => e.sectionId === secId)
+      .map((e) => e.roll);
+    return rolls.length ? Math.max(...rolls) + 1 : 1;
+  };
 
   useEffect(() => {
-    if (openId && nextRollData?.nextRoll) {
+    if (!openId || !sectionId) return;
+    if (nextRollData?.nextRoll !== undefined) {
       setRoll(String(nextRollData.nextRoll));
+    } else if (!fetchingNextRoll) {
+      setRoll(String(computeRollFromEnrollments(sectionId)));
     }
-  }, [openId, nextRollData?.nextRoll]);
+  }, [openId, sectionId, nextRollData?.nextRoll, fetchingNextRoll, liveEnrollments]);
 
   const app = onlineAdmissions.find((item) => item.id === openId) ?? null;
 
@@ -134,17 +154,32 @@ export function StudentAdmissionInbox({
       (a, b) => (sectionCountMap.get(a.id) ?? 0) - (sectionCountMap.get(b.id) ?? 0)
     )[0];
     const section = preferred || leastPopulated;
-    const nextRoll = section ? getNextSuggestedRoll(liveCatalog, yearId, section.id) : 1;
+    const cls = classes.find((c) => c.id === found?.targetClassId);
+    const type = found?.admissionType ?? (found?.isReadmission ? 'READMISSION' : 'NEW');
+    const checklist = found
+      ? getRequiredDocumentChecklist(
+          cls?.numericValue ?? 6,
+          type,
+          found.fatherAlive === false || found.motherAlive === false
+        )
+      : [];
+    const savedDocs = found?.verifiedDocuments ?? {};
+    const hasSavedDocs = Object.keys(savedDocs).length > 0;
+    const initialDocs = hasSavedDocs
+      ? savedDocs
+      : Object.fromEntries(checklist.map((item) => [item.key, true]));
+
+    const nextSecId = section?.id ?? '';
     setOpenId(id);
-    setSectionId(section?.id ?? '');
-    setRoll(String(nextRoll));
+    setSectionId(nextSecId);
+    setRoll(nextSecId ? String(computeRollFromEnrollments(nextSecId)) : '');
     setFormSerialNo(found?.applicationNumber ?? '');
-    setVerifiedDocs(found?.verifiedDocuments ?? {});
+    setVerifiedDocs(initialDocs);
   };
 
   const handleSectionChange = (nextSectionId: string) => {
     setSectionId(nextSectionId);
-    setRoll(String(getNextSuggestedRoll(liveCatalog, yearId, nextSectionId)));
+    setRoll(String(computeRollFromEnrollments(nextSectionId)));
   };
 
   const act = async (status: 'APPROVED' | 'REJECTED' | 'ADMITTED') => {
@@ -289,88 +324,91 @@ export function StudentAdmissionInbox({
 
   return (
     <div className="space-y-6">
-      {/* 1. Large KPI Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <Card className="p-5 flex flex-col justify-between gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-base font-bold text-foreground">
+      {/* 1. Compact 4-Column Admission Pipeline Summary Strip */}
+      <Card className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden">
+        <div className="p-4 sm:p-5 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-bold text-foreground">
               {pick('মোট আবেদন', 'Total Applications')}
             </span>
-            <FileText className="w-5 h-5 text-muted-foreground" />
+            <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-foreground">
-              {formatNumber(totalCount, (locale === 'bn' ? 'bn' : 'en'))}
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              {formatNumber(totalCount, locale === 'bn' ? 'bn' : 'en')}
             </span>
-            <span className="text-sm font-semibold text-muted-foreground">
+            <span className="text-sm font-medium text-muted-foreground">
               {pick('টি জমা', 'submitted')}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {pick('চলতি শিক্ষাবর্ষের সকল অনলাইন আবেদন', 'All online applications in current session')}
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {pick('চলতি সেশনে মোট অনলাইন আবেদন', 'Total online applications received')}
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-5 flex flex-col justify-between gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-base font-bold text-warning">
-              {pick('অপেক্ষমান আবেদন', 'Pending Review')}
+        <div className="p-4 sm:p-5 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-bold text-warning">
+              {pick('প্রাথমিক যাচাই বাকি', 'Pending Review')}
             </span>
-            <Clock className="w-5 h-5 text-warning" />
+            <Clock className="w-4 h-4 text-warning shrink-0" />
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-warning">
-              {formatNumber(pendingCount, (locale === 'bn' ? 'bn' : 'en'))}
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-warning">
+              {formatNumber(pendingCount, locale === 'bn' ? 'bn' : 'en')}
             </span>
-            <span className="text-sm font-semibold text-muted-foreground">
-              {pick('টি যাচাই বাকি', 'pending action')}
+            <span className="text-sm font-medium text-muted-foreground">
+              {pick('টি নতুন', 'new / review')}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {pick('যাচাই ও ভর্তি সম্পন্নকরণের অপেক্ষায়', 'Awaiting review and enrollment')}
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {pick('প্রাথমিক অনুমোদনের অপেক্ষায়', 'Awaiting initial approval')}
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-5 flex flex-col justify-between gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-base font-bold text-success">
-              {pick('ভর্তি সম্পন্ন ও অনুমোদিত', 'Admitted & Approved')}
+        <div className="p-4 sm:p-5 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-bold text-primary">
+              {pick('অনুমোদিত (ভর্তির অপেক্ষায়)', 'Approved (Ready)')}
             </span>
-            <CheckCircle2 className="w-5 h-5 text-success" />
+            <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-success">
-              {formatNumber(admittedCount, (locale === 'bn' ? 'bn' : 'en'))}
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
+              {formatNumber(approvedCount, locale === 'bn' ? 'bn' : 'en')}
             </span>
-            <span className="text-sm font-semibold text-muted-foreground">
-              {pick('জন শিক্ষার্থী', 'students')}
+            <span className="text-sm font-medium text-muted-foreground">
+              {pick('জন নির্বাচিত', 'approved')}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {pick('শিক্ষার্থী ডিরেক্টরিতে রোল ও শাখা বরাদ্দকৃত', 'Enrolled with assigned roll and section')}
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {pick('কাগজপত্র জমা ও চূড়ান্ত ভর্তির অপেক্ষায়', 'Awaiting documents & final admit')}
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-5 flex flex-col justify-between gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-base font-bold text-destructive">
-              {pick('বাতিলকৃত আবেদন', 'Rejected')}
+        <div className="p-4 sm:p-5 flex flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-bold text-success">
+              {pick('ভর্তি সম্পন্ন', 'Admitted')}
             </span>
-            <XCircle className="w-5 h-5 text-destructive" />
+            <XCircle className="w-4 h-4 text-muted-foreground shrink-0" />
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-destructive">
-              {formatNumber(rejectedCount, (locale === 'bn' ? 'bn' : 'en'))}
+          <div className="flex items-baseline gap-2 tabular-nums">
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-success">
+              {formatNumber(admittedCount, locale === 'bn' ? 'bn' : 'en')}
             </span>
-            <span className="text-sm font-semibold text-muted-foreground">
-              {pick('টি আবেদন', 'applications')}
+            <span className="text-sm font-medium text-muted-foreground">
+              {pick('জন ভর্তি', 'enrolled')}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground">
-            {pick('অসম্পূর্ণ বা ত্রুটিযুক্ত আবেদন', 'Incomplete or invalid applications')}
+          <p className="text-xs sm:text-sm font-medium text-destructive tabular-nums">
+            {pick(
+              `বাতিলকৃত আবেদন: ${formatNumber(rejectedCount, 'bn')}টি`,
+              `Rejected: ${rejectedCount} applications`
+            )}
           </p>
-        </Card>
-      </div>
+        </div>
+      </Card>
 
       {/* 2. Applications DataTable */}
       <DataTable
@@ -569,8 +607,43 @@ export function StudentAdmissionInbox({
       >
         {app && (
           <div className="space-y-5 text-sm">
-            {/* 1. Student Identity & Applied Program */}
-            <div className="flex flex-col sm:flex-row items-start gap-4 pb-4 border-b border-border">
+            {app.status === 'APPROVED' ? (
+              /* Compact Identity Header for Final Admission (Stage 2) */
+              <div className="flex items-center gap-4 p-3.5 rounded-lg bg-surface-muted/40 border border-border">
+                {app.photoPreview && (
+                  <img
+                    src={app.photoPreview}
+                    alt={app.studentNameEn}
+                    referrerPolicy="no-referrer"
+                    className="w-14 h-16 rounded-md object-cover border border-border shrink-0"
+                  />
+                )}
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-bold text-base text-foreground">
+                      {app.studentNameBn}{' '}
+                      <span className="text-xs font-mono uppercase text-muted-foreground font-normal">
+                        ({app.studentNameEn})
+                      </span>
+                    </p>
+                    <StatusBadge enumName="AdmissionApplicationStatus" value={app.status} />
+                  </div>
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    {pick('আবেদন নং:', 'App No:')}{' '}
+                    <span className="font-mono text-foreground font-medium">{app.applicationNumber}</span>
+                    {' · '}
+                    {pick('জন্ম সনদ:', 'Birth Cert:')}{' '}
+                    <span className="font-mono text-foreground">{app.birthCertificateNo}</span>
+                    {appGroup
+                      ? ` · ${locale === 'bn' ? appGroup.nameBn || appGroup.name : appGroup.name}`
+                      : ''}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* 1. Student Identity & Applied Program */}
+                <div className="flex flex-col sm:flex-row items-start gap-4 pb-4 border-b border-border">
               {app.photoPreview && (
                 <img
                   src={app.photoPreview}
@@ -729,59 +802,27 @@ export function StudentAdmissionInbox({
                 )}
               </div>
             )}
+              </>
+            )}
 
             {app.status === 'APPROVED' && (
-              <div className="space-y-4 p-3.5 rounded-lg border border-primary/25 bg-primary/[0.03]">
-                <div>
-                  <p className="text-xs font-bold text-primary">
-                    {pick(
-                      'ধাপ ২: মূল কাগজপত্র যাচাই ও চূড়ান্ত ভর্তি (শাখা ও রোল নির্ধারণ)',
-                      'Step 2: Document Verification & Final Admission'
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {pick(
-                      'অফিসে জমা দেওয়া মূল কাগজপত্রে টিক দিন এবং শাখা ও অটো-সাজেস্টেড রোল নিশ্চিত করে ভর্তি সম্পন্ন করুন।',
-                      'Verify original documents submitted at office and confirm section & roll to admit.'
-                    )}
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <FormField label={pick('শাখা', 'Section')} required>
-                    <Select value={sectionId} onChange={(event) => handleSectionChange(event.target.value)}>
-                      {sections
-                        .filter((item) => item.classId === app.targetClassId)
-                        .map((item) => {
-                          const cnt = sectionCountMap.get(item.id) ?? 0;
-                          return (
-                            <option key={item.id} value={item.id}>
-                              {pick(
-                                `শাখা ${item.name} (${formatNumber(cnt, 'bn')} জন)`,
-                                `Section ${item.name} (${cnt})`
-                              )}
-                            </option>
-                          );
-                        })}
-                    </Select>
-                  </FormField>
-                  <FormField label={pick('রোল নম্বর', 'Roll Number')} required>
-                    <Input type="number" min={1} value={roll} onChange={(event) => setRoll(event.target.value)} className="font-mono tabular-nums" />
-                  </FormField>
-                  <FormField label={pick('ফরম সিরিয়াল নং', 'Form Serial No')}>
-                    <Input value={formSerialNo} onChange={(event) => setFormSerialNo(event.target.value)} className="font-mono tabular-nums" />
-                  </FormField>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                    <ClipboardCheck className="w-3.5 h-3.5 text-primary" />
-                    {pick('মূল কাগজপত্র যাচাই (অফিসে জমাকৃত)', 'Physical Document Verification')}
-                  </p>
+              <div className="space-y-5">
+                {/* Step 2A: Pre-checked Submitted Physical Documents */}
+                <div className="space-y-2.5 p-3.5 rounded-lg border border-border bg-surface">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <ClipboardCheck className="w-4 h-4 text-primary" />
+                      {pick('১. অফিসে জমাকৃত মূল কাগজপত্র', '1. Submitted Original Documents')}
+                    </p>
+                    <span className="text-[11px] text-muted-foreground">
+                      {pick('কোনোটি বাকি থাকলে টিক তুলে দিন', 'Uncheck any missing item')}
+                    </span>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {appChecklist.map((item) => (
                       <label
                         key={item.key}
-                        className="flex items-start gap-2 p-2.5 rounded border border-border bg-surface text-xs cursor-pointer hover:bg-surface-muted/40"
+                        className="flex items-start gap-2 p-2.5 rounded-md border border-border/80 bg-surface-muted/20 text-xs cursor-pointer hover:bg-surface-muted/50 transition-colors"
                       >
                         <input
                           type="checkbox"
@@ -798,6 +839,64 @@ export function StudentAdmissionInbox({
                       </label>
                     ))}
                   </div>
+                </div>
+
+                {/* Step 2B: Side-by-Side Section Cards + Locked Live DB Auto-Suggested Roll */}
+                <div className="space-y-3.5 p-3.5 rounded-lg border border-primary/25 bg-primary/[0.03]">
+                  <p className="text-xs font-bold text-primary">
+                    {pick('২. শাখা ও রোল নির্ধারণ', '2. Section & Roll Assignment')}
+                  </p>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-semibold text-foreground block">
+                      {pick('শাখা নির্বাচন করুন', 'Select Section')} <span className="text-destructive">*</span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {sections
+                        .filter((item) => item.classId === app.targetClassId)
+                        .map((item) => {
+                          const cnt = sectionCountMap.get(item.id) ?? 0;
+                          const isSelected = sectionId === item.id;
+                          return (
+                            <label
+                              key={item.id}
+                              onClick={() => handleSectionChange(item.id)}
+                              className={`flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-lg border cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'border-primary bg-primary/5 ring-1 ring-primary/40'
+                                  : 'border-border bg-surface hover:bg-surface-muted/40'
+                              }`}
+                            >
+                              <span className="flex items-center gap-2.5">
+                                <input
+                                  type="radio"
+                                  name="admission-section"
+                                  checked={isSelected}
+                                  onChange={() => handleSectionChange(item.id)}
+                                  className="w-4 h-4 accent-primary cursor-pointer"
+                                />
+                                <span className="text-sm font-semibold text-foreground">
+                                  {pick(`শাখা ${item.name}`, `Section ${item.name}`)}
+                                </span>
+                              </span>
+                              <span className="text-xs text-muted-foreground tabular-nums">
+                                {pick(`বর্তমান: ${formatNumber(cnt, 'bn')} জন`, `Current: ${cnt}`)}
+                              </span>
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  <FormField label={pick('রোল নম্বর (স্বয়ংক্রিয়)', 'Roll Number (Auto-assigned)')} required>
+                    <Input
+                      type="text"
+                      readOnly
+                      value={fetchingNextRoll && !roll ? '...' : roll}
+                      tabIndex={-1}
+                      className="h-10 w-full sm:max-w-[240px] font-mono font-semibold tabular-nums bg-surface-muted/60 text-foreground cursor-not-allowed select-none"
+                    />
+                  </FormField>
                 </div>
               </div>
             )}
