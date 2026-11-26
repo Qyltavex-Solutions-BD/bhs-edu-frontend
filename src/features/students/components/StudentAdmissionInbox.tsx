@@ -13,7 +13,10 @@ import {
 } from 'lucide-react';
 import { useUpdateAdmissionStatusMutation } from '@/src/store/api';
 import { useGetAdminAdmissionsQuery } from '@/src/features/admission/api/admission.api';
-import { useGetNextSuggestedRollQuery } from '@/src/features/students/api/students.api';
+import {
+  useGetEnrollmentsQuery,
+  useGetNextSuggestedRollQuery,
+} from '@/src/features/students/api/students.api';
 import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
 import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
 import { useGetSectionsQuery } from '@/src/services/academic/section.api';
@@ -54,6 +57,18 @@ export function StudentAdmissionInbox({
   const { data: liveSections = [] } = useGetSectionsQuery({ isActive: true });
   const { data: liveGroups = [] } = useGetAcademicGroupsQuery();
   const { data: liveClassSubjects = [] } = useGetClassSubjectsQuery({ isActive: true });
+  const { data: liveEnrollments = [] } = useGetEnrollmentsQuery(
+    { academicYearId: yearId },
+    { skip: !yearId }
+  );
+
+  const sectionCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const enr of liveEnrollments) {
+      map.set(enr.sectionId, (map.get(enr.sectionId) ?? 0) + 1);
+    }
+    return map;
+  }, [liveEnrollments]);
 
   const academicYears = liveYears.length ? liveYears : db?.academicYears ?? [];
   const classes = liveClasses.length ? liveClasses : db?.classes ?? [];
@@ -108,14 +123,17 @@ export function StudentAdmissionInbox({
 
   const open = (id: string) => {
     const found = onlineAdmissions.find((item) => item.id === id);
-    const section =
-      sections.find(
-        (item) =>
-          found &&
-          item.classId === found.targetClassId &&
-          found.preferredSection &&
-          item.name === found.preferredSection
-      ) || sections.find((item) => item.classId === found?.targetClassId);
+    const classSections = sections.filter(
+      (item) => item.classId === found?.targetClassId
+    );
+    const preferred =
+      found?.preferredSection
+        ? classSections.find((item) => item.name === found.preferredSection)
+        : undefined;
+    const leastPopulated = [...classSections].sort(
+      (a, b) => (sectionCountMap.get(a.id) ?? 0) - (sectionCountMap.get(b.id) ?? 0)
+    )[0];
+    const section = preferred || leastPopulated;
     const nextRoll = section ? getNextSuggestedRoll(liveCatalog, yearId, section.id) : 1;
     setOpenId(id);
     setSectionId(section?.id ?? '');
@@ -152,15 +170,20 @@ export function StudentAdmissionInbox({
     }
   };
 
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'ADMITTED' | 'REJECTED'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<
+    'ALL' | 'PENDING' | 'APPROVED' | 'ADMITTED' | 'REJECTED'
+  >('ALL');
   const [classFilter, setClassFilter] = useState<string>('ALL');
 
   const totalCount = onlineAdmissions.length;
   const pendingCount = onlineAdmissions.filter(
     (item) => item.status === 'NEW' || item.status === 'UNDER_REVIEW'
   ).length;
+  const approvedCount = onlineAdmissions.filter(
+    (item) => item.status === 'APPROVED'
+  ).length;
   const admittedCount = onlineAdmissions.filter(
-    (item) => item.status === 'ADMITTED' || item.status === 'APPROVED'
+    (item) => item.status === 'ADMITTED'
   ).length;
   const rejectedCount = onlineAdmissions.filter(
     (item) => item.status === 'REJECTED'
@@ -204,8 +227,10 @@ export function StudentAdmissionInbox({
     return rows.filter((item) => {
       if (statusFilter === 'PENDING') {
         if (item.status !== 'NEW' && item.status !== 'UNDER_REVIEW') return false;
+      } else if (statusFilter === 'APPROVED') {
+        if (item.status !== 'APPROVED') return false;
       } else if (statusFilter === 'ADMITTED') {
-        if (item.status !== 'ADMITTED' && item.status !== 'APPROVED') return false;
+        if (item.status !== 'ADMITTED') return false;
       } else if (statusFilter === 'REJECTED') {
         if (item.status !== 'REJECTED') return false;
       }
@@ -350,24 +375,30 @@ export function StudentAdmissionInbox({
       {/* 2. Applications DataTable */}
       <DataTable
         data={filteredRows}
-        exportFilename="admissions.csv"
         toolbarExtra={
           <div className="flex flex-wrap items-center gap-2">
             <Select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'PENDING' | 'ADMITTED' | 'REJECTED')}
-              className="text-sm sm:text-base h-10 min-w-[160px] w-auto bg-surface font-semibold"
+              onChange={(e) =>
+                setStatusFilter(
+                  e.target.value as 'ALL' | 'PENDING' | 'APPROVED' | 'ADMITTED' | 'REJECTED'
+                )
+              }
+              className="text-sm sm:text-base h-10 min-w-[180px] w-auto bg-surface font-semibold"
               aria-label={pick('আবেদনের অবস্থা নির্বাচন করুন', 'Select status')}
             >
               <option value="ALL">{pick('সকল অবস্থা', 'All Statuses')}</option>
               <option value="PENDING">
-                {pick('অপেক্ষমান', 'Pending')} ({formatNumber(pendingCount, (locale === 'bn' ? 'bn' : 'en'))})
+                {pick('প্রাথমিক যাচাই বাকি', 'Pending Review')} ({formatNumber(pendingCount, locale === 'bn' ? 'bn' : 'en')})
+              </option>
+              <option value="APPROVED">
+                {pick('অনুমোদিত (ভর্তির অপেক্ষায়)', 'Approved (Ready)')} ({formatNumber(approvedCount, locale === 'bn' ? 'bn' : 'en')})
               </option>
               <option value="ADMITTED">
-                {pick('ভর্তি সম্পন্ন', 'Admitted')} ({formatNumber(admittedCount, (locale === 'bn' ? 'bn' : 'en'))})
+                {pick('ভর্তি সম্পন্ন', 'Admitted')} ({formatNumber(admittedCount, locale === 'bn' ? 'bn' : 'en')})
               </option>
               <option value="REJECTED">
-                {pick('বাতিলকৃত', 'Rejected')} ({formatNumber(rejectedCount, (locale === 'bn' ? 'bn' : 'en'))})
+                {pick('বাতিলকৃত', 'Rejected')} ({formatNumber(rejectedCount, locale === 'bn' ? 'bn' : 'en')})
               </option>
             </Select>
 
@@ -419,12 +450,20 @@ export function StudentAdmissionInbox({
           ) : undefined
         }
         columns={[
-          { accessorKey: 'applicationNumber', header: pick('আবেদন নং', 'Application'), cell: ({ row }) => <span className="font-mono text-base font-medium tabular-nums text-foreground">{row.original.applicationNumber}</span> },
+          {
+            accessorKey: 'applicationNumber',
+            header: pick('আবেদন নং', 'Application'),
+            cell: ({ row }) => (
+              <span className="font-mono text-xs sm:text-sm font-semibold tabular-nums text-foreground whitespace-nowrap">
+                {row.original.applicationNumber}
+              </span>
+            ),
+          },
           {
             accessorKey: 'studentNameBn',
             header: pick('শিক্ষার্থী', 'Student'),
             cell: ({ row }) => (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-[200px]">
                 {row.original.photoPreview && (
                   <img
                     src={row.original.photoPreview}
@@ -433,26 +472,87 @@ export function StudentAdmissionInbox({
                     className="w-9 h-10 rounded-lg object-cover border border-border shrink-0"
                   />
                 )}
-                <span>
-                  <span className="font-semibold text-base text-foreground block">{row.original.studentNameBn}</span>
-                  <span className="block text-sm text-muted-foreground font-mono uppercase font-normal">{row.original.studentNameEn}</span>
-                </span>
+                <div className="min-w-0">
+                  <span className="font-semibold text-sm sm:text-base text-foreground block truncate">
+                    {row.original.studentNameBn}
+                  </span>
+                  <span className="block text-xs sm:text-sm text-muted-foreground font-mono uppercase truncate">
+                    {row.original.studentNameEn}
+                  </span>
+                </div>
               </div>
             ),
           },
-          { accessorKey: 'classLabel', header: pick('শ্রেণি ও বিভাগ', 'Class & Group'), cell: ({ row }) => <span className="font-medium text-base text-foreground">{row.original.classLabel}</span> },
-          { accessorKey: 'typeLabel', header: pick('ধরন', 'Type'), cell: ({ row }) => <span className="font-normal text-base text-muted-foreground">{row.original.typeLabel}</span> },
-          { accessorKey: 'guardianPhone', header: pick('মোবাইল', 'Phone'), cell: ({ row }) => <span className="font-mono text-base tabular-nums font-medium">{row.original.guardianPhone}</span> },
-          { accessorKey: 'when', header: pick('তারিখ', 'Date'), cell: ({ row }) => <span className="text-base text-muted-foreground tabular-nums">{row.original.when}</span> },
-          { accessorKey: 'status', header: pick('অবস্থা', 'Status'), cell: ({ row }) => <StatusBadge enumName="AdmissionApplicationStatus" value={row.original.status} /> },
+          {
+            accessorKey: 'classLabel',
+            header: pick('আবেদিত শ্রেণি', 'Applied Class'),
+            cell: ({ row }) => (
+              <div className="whitespace-nowrap">
+                <span className="font-medium text-sm sm:text-base text-foreground">
+                  {row.original.classLabel}
+                </span>
+                {(row.original.admissionType === 'TRANSFER' ||
+                  row.original.admissionType === 'READMISSION' ||
+                  row.original.isReadmission) && (
+                  <span className="block text-xs text-primary font-medium mt-0.5">
+                    {row.original.typeLabel}
+                  </span>
+                )}
+              </div>
+            ),
+          },
+          {
+            accessorKey: 'guardianPhone',
+            header: pick('মোবাইল', 'Phone'),
+            cell: ({ row }) => (
+              <span className="font-mono text-sm sm:text-base tabular-nums font-medium whitespace-nowrap">
+                {row.original.guardianPhone}
+              </span>
+            ),
+          },
+          {
+            accessorKey: 'when',
+            header: pick('তারিখ', 'Date'),
+            cell: ({ row }) => (
+              <span className="text-xs sm:text-sm text-muted-foreground tabular-nums whitespace-nowrap">
+                {row.original.when}
+              </span>
+            ),
+          },
+          {
+            accessorKey: 'status',
+            header: pick('অবস্থা', 'Status'),
+            cell: ({ row }) => (
+              <div className="whitespace-nowrap">
+                <StatusBadge enumName="AdmissionApplicationStatus" value={row.original.status} />
+              </div>
+            ),
+          },
           {
             id: 'open',
-            header: '',
-            cell: ({ row }) => (
-              <Button size="sm" variant="outline" className="h-9 px-3 text-sm font-semibold" onClick={() => open(row.original.id)}>
-                {pick('যাচাই ও ভর্তি', 'Review')}
-              </Button>
-            ),
+            header: () => <div className="text-right">{pick('কাজ', 'Actions')}</div>,
+            enableSorting: false,
+            cell: ({ row }) => {
+              const st = row.original.status;
+              const isPending = st === 'NEW' || st === 'UNDER_REVIEW';
+              const isApproved = st === 'APPROVED';
+              return (
+                <div className="flex justify-end whitespace-nowrap">
+                  <Button
+                    size="sm"
+                    variant={isApproved ? 'primary' : isPending ? 'outline' : 'ghost'}
+                    className="h-8 sm:h-9 px-3 text-xs sm:text-sm font-semibold"
+                    onClick={() => open(row.original.id)}
+                  >
+                    {isPending
+                      ? pick('প্রাথমিক যাচাই', 'Initial Review')
+                      : isApproved
+                        ? pick('চূড়ান্ত ভর্তি', 'Final Admit')
+                        : pick('বিস্তারিত দেখুন', 'View Details')}
+                  </Button>
+                </div>
+              );
+            },
           },
         ]}
       />
@@ -465,65 +565,160 @@ export function StudentAdmissionInbox({
             ? `${appClass ? (locale === 'bn' ? appClass.nameBn || appClass.name : appClass.name) : '—'} · ${locale === 'bn' ? ADMISSION_TYPE_META[appType].bn : ADMISSION_TYPE_META[appType].en}`
             : undefined
         }
-        maxWidth="max-w-2xl"
+        maxWidth="max-w-3xl"
       >
         {app && (
           <div className="space-y-5 text-sm">
-            <div className="flex items-start gap-4 pb-4 border-b border-border">
+            {/* 1. Student Identity & Applied Program */}
+            <div className="flex flex-col sm:flex-row items-start gap-4 pb-4 border-b border-border">
               {app.photoPreview && (
                 <img
                   src={app.photoPreview}
                   alt={app.studentNameEn}
                   referrerPolicy="no-referrer"
-                  className="w-18 h-22 rounded-[var(--radius)] object-cover border border-border shrink-0"
+                  className="w-20 h-24 rounded-[var(--radius)] object-cover border border-border shrink-0"
                 />
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-1.5 flex-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-1.5 flex-1 w-full">
                 <p>
                   <span className="text-muted-foreground">{pick('ইংরেজি নাম:', 'English Name:')}</span>{' '}
                   <strong className="font-mono uppercase">{app.studentNameEn}</strong>
+                </p>
+                <p className="tabular-nums">
+                  <span className="text-muted-foreground">{pick('জন্ম তারিখ:', 'Date of Birth:')}</span>{' '}
+                  <span>{formatDateShort(app.dateOfBirth, locale === 'bn' ? 'bn' : 'en')}</span>
                 </p>
                 <p className="tabular-nums">
                   <span className="text-muted-foreground">{pick('জন্ম সনদ:', 'Birth Cert:')}</span>{' '}
                   <span className="font-mono">{app.birthCertificateNo}</span>
                 </p>
                 <p>
-                  <span className="text-muted-foreground">{pick('পিতা:', 'Father:')}</span>{' '}
-                  {app.fatherNameBn}{app.fatherAlive === false ? ` (${pick('মৃত', 'Deceased')})` : ''}
-                </p>
-                <p>
-                  <span className="text-muted-foreground">{pick('মাতা:', 'Mother:')}</span>{' '}
-                  {app.motherNameBn}{app.motherAlive === false ? ` (${pick('মৃত', 'Deceased')})` : ''}
-                </p>
-                {app.legalGuardianNameBn && (
-                  <p className="sm:col-span-2">
-                    <span className="text-muted-foreground">{pick('বৈধ অভিভাবক:', 'Legal Guardian:')}</span>{' '}
-                    {app.legalGuardianNameBn} ({app.legalGuardianRelation}) ·{' '}
-                    <span className="font-mono tabular-nums">{app.legalGuardianPhone}</span>
-                  </p>
-                )}
-                <p className="tabular-nums">
-                  <span className="text-muted-foreground">
-                    {pick('প্রাথমিক যোগাযোগ:', 'Primary Contact:')}
-                  </span>{' '}
-                  {app.primaryGuardianType === 'MOTHER'
-                    ? pick('মাতা', 'Mother')
-                    : app.primaryGuardianType === 'LEGAL_GUARDIAN'
-                      ? pick('বৈধ অভিভাবক', 'Legal Guardian')
-                      : pick('পিতা', 'Father')}{' '}
-                  · <strong className="font-mono">{app.guardianPhone}</strong>
+                  <span className="text-muted-foreground">{pick('লিঙ্গ ও ধর্ম:', 'Gender & Religion:')}</span>{' '}
+                  <span>{app.gender} · {app.religion}</span>
                 </p>
                 {appGroup && (
                   <p>
                     <span className="text-muted-foreground">{pick('বিভাগ ও ৪র্থ বিষয়:', 'Group & 4th:')}</span>{' '}
-                    <strong>{locale === 'bn' ? appGroup.nameBn : appGroup.name}</strong>
+                    <strong>{locale === 'bn' ? appGroup.nameBn || appGroup.name : appGroup.name}</strong>
                     {app.optionalSubjectName ? ` · ${app.optionalSubjectName}` : ''}
+                  </p>
+                )}
+                {app.admissionTestRoll && (
+                  <p className="tabular-nums">
+                    <span className="text-muted-foreground">{pick('ভর্তি পরীক্ষার রোল:', 'Test Roll:')}</span>{' '}
+                    <strong className="font-mono">{app.admissionTestRoll}</strong>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* 2. Parents, Guardian & Addresses */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3.5 rounded-lg bg-surface-muted/40 border border-border">
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">
+                  {pick('পিতার তথ্য', 'Father Details')}
+                </p>
+                <p className="font-medium">
+                  {app.fatherNameBn} ({app.fatherNameEn})
+                  {app.fatherAlive === false ? ` · ${pick('মৃত', 'Deceased')}` : ''}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {pick('পেশা:', 'Occupation:')} {app.fatherOccupation || '—'}
+                  {app.fatherPhone ? ` · ${app.fatherPhone}` : ''}
+                </p>
+                {app.fatherNid && (
+                  <p className="text-xs font-mono text-muted-foreground">
+                    NID: {app.fatherNid}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">
+                  {pick('মাতার তথ্য', 'Mother Details')}
+                </p>
+                <p className="font-medium">
+                  {app.motherNameBn} ({app.motherNameEn})
+                  {app.motherAlive === false ? ` · ${pick('মৃত', 'Deceased')}` : ''}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {pick('পেশা:', 'Occupation:')} {app.motherOccupation || '—'}
+                  {app.motherPhone ? ` · ${app.motherPhone}` : ''}
+                </p>
+                {app.motherNid && (
+                  <p className="text-xs font-mono text-muted-foreground">
+                    NID: {app.motherNid}
+                  </p>
+                )}
+              </div>
+
+              {app.legalGuardianNameBn && (
+                <p className="sm:col-span-2 text-xs pt-1 border-t border-border/60">
+                  <span className="text-muted-foreground">{pick('বৈধ অভিভাবক:', 'Legal Guardian:')}</span>{' '}
+                  {app.legalGuardianNameBn} ({app.legalGuardianRelation}) ·{' '}
+                  <span className="font-mono tabular-nums">{app.legalGuardianPhone}</span>
+                </p>
+              )}
+
+              <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-border/60 text-xs">
+                <p>
+                  <span className="text-muted-foreground font-medium">{pick('প্রাথমিক যোগাযোগ:', 'Primary Contact:')}</span>{' '}
+                  <strong className="font-mono">{app.guardianPhone}</strong>
+                </p>
+                <p>
+                  <span className="text-muted-foreground font-medium">{pick('বর্তমান ঠিকানা:', 'Present Address:')}</span>{' '}
+                  {app.presentAddress}
+                </p>
+                <p className="sm:col-span-2">
+                  <span className="text-muted-foreground font-medium">{pick('স্থায়ী ঠিকানা:', 'Permanent Address:')}</span>{' '}
+                  {app.permanentAddress}
+                </p>
+              </div>
+            </div>
+
+            {/* 3. Previous Academic & Board / TC Info */}
+            {(app.previousSchoolName ||
+              app.previousClass ||
+              app.prevExamRoll ||
+              app.prevExamGpa ||
+              app.boardRegistrationNo ||
+              app.transferCertificateNo) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-1.5 p-3.5 rounded-lg border border-border">
+                <p className="sm:col-span-2 text-xs font-semibold text-muted-foreground uppercase mb-1">
+                  {pick('পূর্ববর্তী বিদ্যালয় ও পরীক্ষার তথ্য', 'Previous Academic & Board Info')}
+                </p>
+                {app.previousSchoolName && (
+                  <p className="sm:col-span-2">
+                    <span className="text-muted-foreground">{pick('পূর্বের বিদ্যালয়:', 'Previous School:')}</span>{' '}
+                    <strong>{app.previousSchoolName}</strong>
+                    {app.previousSchoolEiin ? ` (EIIN: ${app.previousSchoolEiin})` : ''}
+                  </p>
+                )}
+                {app.previousClass && (
+                  <p>
+                    <span className="text-muted-foreground">{pick('পূর্ববর্তী শ্রেণি:', 'Previous Class:')}</span>{' '}
+                    {app.previousClass}
+                  </p>
+                )}
+                {(app.prevExamPassingYear ||
+                  app.prevExamRoll ||
+                  (app.prevExamGpa !== undefined && app.prevExamGpa !== null)) && (
+                  <p className="tabular-nums">
+                    <span className="text-muted-foreground">{pick('পূর্বের পরীক্ষা:', 'Prev Exam:')}</span>{' '}
+                    {[
+                      app.prevExamPassingYear ? `${pick('সন', 'Year')}: ${app.prevExamPassingYear}` : null,
+                      app.prevExamRoll ? `${pick('রোল', 'Roll')}: ${app.prevExamRoll}` : null,
+                      app.prevExamGpa !== undefined && app.prevExamGpa !== null ? `GPA: ${app.prevExamGpa}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </p>
                 )}
                 {app.boardRegistrationNo && (
                   <p className="tabular-nums">
                     <span className="text-muted-foreground">{pick('বোর্ড রেজিস্ট্রেশন:', 'Board Reg:')}</span>{' '}
                     <strong className="font-mono">{app.boardRegistrationNo}</strong>
+                    {app.boardRegistrationSession ? ` (${app.boardRegistrationSession})` : ''}
                   </p>
                 )}
                 {app.transferCertificateNo && (
@@ -532,24 +727,41 @@ export function StudentAdmissionInbox({
                     <strong className="font-mono">{app.transferCertificateNo}</strong>
                   </p>
                 )}
-                <p className="sm:col-span-2 text-xs text-muted-foreground">
-                  {pick('ঠিকানা:', 'Address:')} {app.presentAddress}
-                </p>
               </div>
-            </div>
+            )}
 
-            {app.status !== 'ADMITTED' && app.status !== 'REJECTED' && (
-              <>
+            {app.status === 'APPROVED' && (
+              <div className="space-y-4 p-3.5 rounded-lg border border-primary/25 bg-primary/[0.03]">
+                <div>
+                  <p className="text-xs font-bold text-primary">
+                    {pick(
+                      'ধাপ ২: মূল কাগজপত্র যাচাই ও চূড়ান্ত ভর্তি (শাখা ও রোল নির্ধারণ)',
+                      'Step 2: Document Verification & Final Admission'
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {pick(
+                      'অফিসে জমা দেওয়া মূল কাগজপত্রে টিক দিন এবং শাখা ও অটো-সাজেস্টেড রোল নিশ্চিত করে ভর্তি সম্পন্ন করুন।',
+                      'Verify original documents submitted at office and confirm section & roll to admit.'
+                    )}
+                  </p>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <FormField label={pick(' শাখা', 'Section')} required>
+                  <FormField label={pick('শাখা', 'Section')} required>
                     <Select value={sectionId} onChange={(event) => handleSectionChange(event.target.value)}>
                       {sections
                         .filter((item) => item.classId === app.targetClassId)
-                        .map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {pick(`শাখা ${item.name}`, `Section ${item.name}`)}
-                          </option>
-                        ))}
+                        .map((item) => {
+                          const cnt = sectionCountMap.get(item.id) ?? 0;
+                          return (
+                            <option key={item.id} value={item.id}>
+                              {pick(
+                                `শাখা ${item.name} (${formatNumber(cnt, 'bn')} জন)`,
+                                `Section ${item.name} (${cnt})`
+                              )}
+                            </option>
+                          );
+                        })}
                     </Select>
                   </FormField>
                   <FormField label={pick('রোল নম্বর', 'Roll Number')} required>
@@ -563,13 +775,13 @@ export function StudentAdmissionInbox({
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                     <ClipboardCheck className="w-3.5 h-3.5 text-primary" />
-                    {pick('মূল কাগজপত্র যাচাই (ঐচ্ছিক টিক দিন)', 'Physical Document Verification')}
+                    {pick('মূল কাগজপত্র যাচাই (অফিসে জমাকৃত)', 'Physical Document Verification')}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {appChecklist.map((item) => (
                       <label
                         key={item.key}
-                        className="flex items-start gap-2 p-2.5 rounded border border-border text-xs cursor-pointer hover:bg-surface-muted/40"
+                        className="flex items-start gap-2 p-2.5 rounded border border-border bg-surface text-xs cursor-pointer hover:bg-surface-muted/40"
                       >
                         <input
                           type="checkbox"
@@ -587,11 +799,33 @@ export function StudentAdmissionInbox({
                     ))}
                   </div>
                 </div>
-              </>
+              </div>
             )}
 
             <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border">
-              {app.status !== 'ADMITTED' && app.status !== 'REJECTED' ? (
+              {(app.status === 'NEW' || app.status === 'UNDER_REVIEW') ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setOpenId(null);
+                      setFullFormApp(app);
+                    }}
+                  >
+                    <FileEdit className="w-4 h-4" />
+                    {pick('সরাসরি পূর্ণ ফর্মে ভর্তি', 'Direct Full Form Admit')}
+                  </Button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" size="sm" disabled={isLoading} onClick={() => act('REJECTED')}>
+                      {pick('বাতিল করুন', 'Reject')}
+                    </Button>
+                    <Button variant="primary" size="sm" disabled={isLoading} onClick={() => act('APPROVED')}>
+                      {pick('প্রাথমিক অনুমোদন দিন', 'Approve Application')}
+                    </Button>
+                  </div>
+                </>
+              ) : app.status === 'APPROVED' ? (
                 <>
                   <Button
                     variant="ghost"
@@ -608,11 +842,8 @@ export function StudentAdmissionInbox({
                     <Button variant="outline" size="sm" disabled={isLoading} onClick={() => act('REJECTED')}>
                       {pick('বাতিল', 'Reject')}
                     </Button>
-                    <Button variant="outline" size="sm" disabled={isLoading} onClick={() => act('APPROVED')}>
-                      {pick('অনুমোদন', 'Approve')}
-                    </Button>
                     <Button variant="primary" size="sm" disabled={isLoading} onClick={() => act('ADMITTED')}>
-                      {pick('দ্রুত ভর্তি করুন', 'Quick Admit')}
+                      {pick('চূড়ান্ত ভর্তি নিশ্চিত করুন', 'Confirm Final Admission')}
                     </Button>
                   </div>
                 </>
