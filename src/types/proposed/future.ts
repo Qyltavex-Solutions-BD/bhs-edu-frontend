@@ -108,6 +108,8 @@ export interface OnlineAdmissionApplication {
   optionalSubjectName?: string | null;
   attachments?: AdmissionAttachments | null;
   verifiedDocuments?: Record<string, boolean> | null;
+  reportingStartDate?: string | null;
+  reportingEndDate?: string | null;
   declarationAccepted: boolean;
   remarks?: string;
 }

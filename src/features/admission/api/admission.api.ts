@@ -13,6 +13,8 @@ type AdmissionSubmission = Omit<
   | 'submittedAt'
   | 'admissionTestRoll'
   | 'admissionTestDate'
+  | 'reportingStartDate'
+  | 'reportingEndDate'
 >;
 
 interface AdmissionStatusUpdate {
@@ -23,6 +25,8 @@ interface AdmissionStatusUpdate {
   academicYearId?: string;
   formSerialNo?: string;
   verifiedDocuments?: Record<string, boolean>;
+  reportingStartDate?: string;
+  reportingEndDate?: string;
 }
 
 export const admissionApi = baseApi.injectEndpoints({
@@ -31,6 +35,17 @@ export const admissionApi = baseApi.injectEndpoints({
       query: () => ({ url: '/public/admissions/catalog', method: 'GET' }),
       transformResponse: (response: any) => response?.data ?? response,
       providesTags: ['Academic', 'Admissions'],
+    }),
+    getPublicAdmissionStatus: builder.query<
+      OnlineAdmissionApplication,
+      { applicationNumber?: string; birthCertificateNo?: string }
+    >({
+      query: (params) => ({
+        url: '/public/admissions/status',
+        method: 'GET',
+        params,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
     }),
     submitAdmissionApplication: builder.mutation<
       OnlineAdmissionApplication,
@@ -72,6 +87,7 @@ export const admissionApi = baseApi.injectEndpoints({
 
 export const {
   useGetPublicAdmissionCatalogQuery,
+  useLazyGetPublicAdmissionStatusQuery,
   useGetAdminAdmissionsQuery,
   useSubmitAdmissionApplicationMutation,
   useUpdateAdmissionStatusMutation,
