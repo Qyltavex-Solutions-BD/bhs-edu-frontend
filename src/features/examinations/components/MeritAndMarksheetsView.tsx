@@ -7,16 +7,23 @@ import {
   FileSpreadsheet,
   FileText,
   Layers,
-  MessageSquareText,
   Printer,
   Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useGetBootstrapQuery, useSaveResultRemarkMutation } from '@/src/store/api';
+import { useGetBootstrapQuery } from '@/src/store/api';
+import {
+  useGetExamsQuery,
+  useGetTabulationSheetQuery,
+  type TabulationRow,
+} from '@/src/features/examinations/api/examinations.api';
+import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
+import { useGetSectionsQuery } from '@/src/services/academic/section.api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { ExamType, ResultStatus } from '@/src/types/enums';
+import type { SchoolProfile } from '@/src/types/entities';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -28,9 +35,8 @@ import {
   Card,
   FormField,
   Input,
-  Modal,
   Select,
-  Textarea,
+  Modal,
 } from '@/src/components/ui/primitives';
 import {
   PrintableBulkMarksheets,
@@ -38,296 +44,302 @@ import {
   PrintableTabulationSheet,
   type PrintableMarksheetProps,
 } from '@/src/components/print/ExamPrintDocuments';
-import { buildStudentMarksheetProps } from './ExamShared';
 
-const REMARK_PRESETS = [
-  {
-    bn: 'অসাধারণ ফলাফল। তোমার মেধা ও অধ্যবসায় প্রশংসনীয়; এই ধারাবাহিকতা বজায় রাখো।',
-    en: 'Outstanding performance. Commendable dedication and academic excellence; keep it up.',
-  },
-  {
-    bn: 'সন্তোষজনক অগ্রগতি। নিয়মিত অনুশীলন করলে পরবর্তী পরীক্ষায় আরও ভালো ফলাফল সম্ভব।',
-    en: 'Satisfactory progress. Consistent practice will lead to even stronger results next term.',
-  },
-  {
-    bn: 'মোটামুটি ফলাফল। গণিত ও ইংরেজিতে অতিরিক্ত মনোযোগ ও নিয়মিত ক্লাস উপস্থিতি প্রয়োজন।',
-    en: 'Moderate performance. Additional focus on Mathematics and English with regular attendance is advised.',
-  },
-  {
-    bn: 'অনুত্তীর্ণ বিষয়ে বিশেষ প্রস্তুতি ও অভিভাবকের নিবিড় তদারকি একান্ত প্রয়োজন।',
-    en: 'Requires focused remedial preparation in failed subjects and close guardian supervision.',
-  },
-];
+const FALLBACK_SCHOOL_PROFILE: SchoolProfile = {
+  id: 'school-default',
+  name: 'ভোজেশ্বর উচ্চ বিদ্যালয়',
+  nameEn: 'Vojesshor High School',
+  eiin: '112233',
+  establishedYear: 1965,
+  address: 'ভোজেশ্বর, নড়িয়া, শরীয়তপুর',
+  phone: '',
+  email: '',
+  createdAt: '',
+  updatedAt: '',
+};
 
 export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: string }) {
-  const { data: db, isLoading } = useGetBootstrapQuery();
   const { locale, pick } = useI18n();
-  const [saveRemark, { isLoading: savingRemark }] = useSaveResultRemarkMutation();
+  const { data: db } = useGetBootstrapQuery();
+  const { data: examsRes, isLoading: loadingExams } = useGetExamsQuery({
+    limit: 100,
+    isDeleted: false,
+  });
+  const { data: allClasses = [] } = useGetSchoolClassesQuery();
 
   const standardExams = useMemo(
-    () => (db?.exams ?? []).filter((e) => e.examType !== ExamType.CONSOLIDATED),
-    [db]
+    () =>
+      (examsRes?.items ?? [])
+        .filter((e) => e.examType !== ExamType.CONSOLIDATED)
+        .sort(
+          (a, b) =>
+            (a.schoolClass?.numericValue ?? 99) - (b.schoolClass?.numericValue ?? 99)
+        ),
+    [examsRes?.items]
   );
 
-  const [selectedExamId, setSelectedExamId] = useState<string>(initialExamId ?? '');
+  const activeClasses = useMemo(
+    () =>
+      [...allClasses]
+        .filter((c) => c.isActive)
+        .sort((a, b) => a.numericValue - b.numericValue),
+    [allClasses]
+  );
+
+  const initialExam = useMemo(
+    () => (initialExamId ? standardExams.find((e) => e.id === initialExamId) ?? null : null),
+    [initialExamId, standardExams]
+  );
+
+  const [selectedExamName, setSelectedExamName] = useState<string>('');
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [sectionFilter, setSectionFilter] = useState<string>('ALL');
-  const [groupFilter, setGroupFilter] = useState<string>('ALL');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASS' | 'FAIL'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASS' | 'FAIL' | 'INCOMPLETE'>('ALL');
   const [search, setSearch] = useState('');
 
   // Modals
   const [previewMarksheet, setPreviewMarksheet] = useState<PrintableMarksheetProps | null>(null);
   const [showBulkMarksheets, setShowBulkMarksheets] = useState(false);
   const [showTabulation, setShowTabulation] = useState(false);
-  const [remarkTarget, setRemarkTarget] = useState<{
-    resultSummaryId: string;
-    studentName: string;
-    roll: number;
-    currentRemark: string;
-  } | null>(null);
-  const [remarkDraft, setRemarkDraft] = useState('');
 
-  const activeExamId = useMemo(() => {
-    if (selectedExamId && standardExams.some((e) => e.id === selectedExamId)) return selectedExamId;
-    if (initialExamId && standardExams.some((e) => e.id === initialExamId)) return initialExamId;
-    const withResults = standardExams.find((e) =>
-      (db?.resultSummaries ?? []).some((r) => r.examId === e.id)
-    );
-    return withResults?.id ?? standardExams[0]?.id ?? '';
-  }, [selectedExamId, initialExamId, standardExams, db]);
-
-  const selectedExam = useMemo(
-    () => standardExams.find((e) => e.id === activeExamId) ?? null,
-    [standardExams, activeExamId]
+  const examNames = useMemo(
+    () => Array.from(new Set(standardExams.map((e) => e.name))),
+    [standardExams]
   );
 
-  const selectedClass = useMemo(
-    () => (db && selectedExam ? db.classes.find((c) => c.id === selectedExam.classId) ?? null : null),
-    [db, selectedExam]
-  );
+  const resolvedExamName =
+    selectedExamName && examNames.includes(selectedExamName)
+      ? selectedExamName
+      : initialExam?.name ?? examNames[0] ?? '';
 
-  const selectedYear = useMemo(
-    () => (db && selectedExam ? db.academicYears.find((y) => y.id === selectedExam.academicYearId) ?? null : null),
-    [db, selectedExam]
-  );
+  const resolvedClassId =
+    selectedClassId && activeClasses.some((c) => c.id === selectedClassId)
+      ? selectedClassId
+      : initialExam?.classId ?? activeClasses[0]?.id ?? '';
 
-  const classSections = useMemo(
+  const activeExam = useMemo(
     () =>
-      db && selectedExam
-        ? db.sections
-            .filter((s) => s.classId === selectedExam.classId && s.isActive)
-            .sort((a, b) => a.name.localeCompare(b.name))
-        : [],
-    [db, selectedExam]
+      standardExams.find(
+        (e) => e.name === resolvedExamName && e.classId === resolvedClassId
+      ) ?? null,
+    [standardExams, resolvedExamName, resolvedClassId]
   );
 
-  const classGroups = useMemo(() => {
-    if (!db || !selectedExam) return [];
-    const groupIds = new Set(
-      db.enrollments
-        .filter((e) => e.classId === selectedExam.classId && e.academicYearId === selectedExam.academicYearId && e.groupId)
-        .map((e) => e.groupId as string)
-    );
-    return db.academicGroups.filter((g) => groupIds.has(g.id));
-  }, [db, selectedExam]);
+  const activeClass = useMemo(
+    () => activeClasses.find((c) => c.id === resolvedClassId) ?? null,
+    [activeClasses, resolvedClassId]
+  );
 
-  const enrichedRows = useMemo(() => {
-    if (!db || !selectedExam) return [];
-    return db.resultSummaries
-      .filter((r) => r.examId === selectedExam.id)
-      .map((summary) => {
-        const enr = db.enrollments.find((e) => e.id === summary.studentEnrollmentId);
-        const stu = enr ? db.students.find((s) => s.id === enr.studentId) : null;
-        const sec = enr ? db.sections.find((s) => s.id === enr.sectionId) : null;
-        const grp = enr?.groupId ? db.academicGroups.find((g) => g.id === enr.groupId) : null;
-        return {
-          summary,
-          enrollment: enr ?? null,
-          student: stu ?? null,
-          section: sec ?? null,
-          group: grp ?? null,
-          roll: enr?.roll ?? 0,
-          studentId: stu?.studentId ?? '',
-          studentName: locale === 'bn' ? stu?.nameBn || stu?.nameEn || '—' : stu?.nameEn || '—',
-          studentNameEn: stu?.nameEn ?? '',
-          studentNameBn: stu?.nameBn ?? '',
-          sectionName: sec?.name ?? '—',
-          groupName: grp ? (locale === 'bn' ? grp.nameBn : grp.name) : null,
-        };
-      })
-      .sort((a, b) => {
-        const aPass = a.summary.resultStatus === ResultStatus.PASS ? 0 : 1;
-        const bPass = b.summary.resultStatus === ResultStatus.PASS ? 0 : 1;
-        if (aPass !== bPass) return aPass - bPass;
-        const aMerit = a.summary.meritPosition ?? 9999;
-        const bMerit = b.summary.meritPosition ?? 9999;
-        if (aMerit !== bMerit) return aMerit - bMerit;
-        return b.summary.totalMarks - a.summary.totalMarks || a.roll - b.roll;
-      });
-  }, [db, selectedExam, locale]);
+  const { data: sectionsData = [] } = useGetSectionsQuery(
+    { classId: activeExam?.classId },
+    { skip: !activeExam?.classId }
+  );
+
+  const {
+    data: tabulationRes,
+    isLoading: loadingTabulation,
+    isFetching: fetchingTabulation,
+  } = useGetTabulationSheetQuery(
+    { examId: activeExam?.id ?? '' },
+    { skip: !activeExam?.id }
+  );
+
+  const schoolProfile: SchoolProfile = db?.schoolProfile ?? FALLBACK_SCHOOL_PROFILE;
+
+  const sectionOptions = useMemo(() => {
+    const fromApi = sectionsData.filter((s) => s.isActive).map((s) => s.name);
+    const fromTabulation = (tabulationRes?.tabulation ?? []).map((r) => r.section);
+    return Array.from(new Set([...fromApi, ...fromTabulation])).sort((a, b) =>
+      a.localeCompare(b)
+    );
+  }, [sectionsData, tabulationRes?.tabulation]);
+
+  const sortedRows = useMemo(() => {
+    const rows = [...(tabulationRes?.tabulation ?? [])];
+    return rows.sort((a, b) => {
+      const aPass = a.resultStatus === ResultStatus.PASS ? 0 : a.resultStatus === ResultStatus.FAIL ? 1 : 2;
+      const bPass = b.resultStatus === ResultStatus.PASS ? 0 : b.resultStatus === ResultStatus.FAIL ? 1 : 2;
+      if (aPass !== bPass) return aPass - bPass;
+      const aMerit = a.meritPosition ?? 9999;
+      const bMerit = b.meritPosition ?? 9999;
+      if (aMerit !== bMerit) return aMerit - bMerit;
+      return b.totalMarks - a.totalMarks || a.roll - b.roll;
+    });
+  }, [tabulationRes?.tabulation]);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return enrichedRows.filter((row) => {
-      if (sectionFilter !== 'ALL' && row.enrollment?.sectionId !== sectionFilter) return false;
-      if (groupFilter !== 'ALL' && row.enrollment?.groupId !== groupFilter) return false;
-      if (statusFilter === 'PASS' && row.summary.resultStatus !== ResultStatus.PASS) return false;
-      if (statusFilter === 'FAIL' && row.summary.resultStatus !== ResultStatus.FAIL) return false;
+    return sortedRows.filter((row) => {
+      if (sectionFilter !== 'ALL' && row.section !== sectionFilter) return false;
+      if (statusFilter === 'PASS' && row.resultStatus !== ResultStatus.PASS) return false;
+      if (statusFilter === 'FAIL' && row.resultStatus !== ResultStatus.FAIL) return false;
+      if (statusFilter === 'INCOMPLETE' && row.resultStatus !== ResultStatus.INCOMPLETE) return false;
       if (q) {
-        const hay = `${row.studentNameEn} ${row.studentNameBn} ${row.studentId} ${row.roll}`.toLowerCase();
+        const hay = `${row.name} ${row.nameBn ?? ''} ${row.studentId} ${row.roll}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [enrichedRows, sectionFilter, groupFilter, statusFilter, search]);
+  }, [sortedRows, sectionFilter, statusFilter, search]);
 
   const stats = useMemo(() => {
     const total = filteredRows.length;
-    const passed = filteredRows.filter((r) => r.summary.resultStatus === ResultStatus.PASS).length;
-    const failed = filteredRows.filter((r) => r.summary.resultStatus === ResultStatus.FAIL).length;
+    const passed = filteredRows.filter((r) => r.resultStatus === ResultStatus.PASS).length;
+    const failed = filteredRows.filter((r) => r.resultStatus === ResultStatus.FAIL).length;
+    const maxGpa = tabulationRes?.examination?.maxGpa ?? 5.0;
     const gpa5 = filteredRows.filter(
-      (r) => r.summary.resultStatus === ResultStatus.PASS && (r.summary.gpa ?? 0) >= 5.0
+      (r) => r.resultStatus === ResultStatus.PASS && (r.gpa ?? 0) >= maxGpa
     ).length;
     const passRate = total > 0 ? Math.round((passed / total) * 100) : 0;
     return { total, passed, failed, gpa5, passRate };
-  }, [filteredRows]);
+  }, [filteredRows, tabulationRes?.examination?.maxGpa]);
+
+  const subjectFullMarksMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const s of tabulationRes?.subjectsList ?? []) {
+      map.set(s.id, s.fullMarks);
+    }
+    return map;
+  }, [tabulationRes?.subjectsList]);
+
+  const buildRowMarksheetProps = useMemo(() => {
+    return (row: TabulationRow): PrintableMarksheetProps | null => {
+      if (!activeExam || !tabulationRes) return null;
+      return {
+        school: schoolProfile,
+        examName: tabulationRes.examination.name,
+        student: {
+          studentId: row.studentId,
+          nameEn: row.name,
+          nameBn: row.nameBn,
+          roll: row.roll,
+          className: tabulationRes.examination.class,
+          classNameBn: activeClass?.nameBn || tabulationRes.examination.class,
+          sectionName: row.section,
+          academicYear: tabulationRes.examination.academicYear,
+        },
+        summary: {
+          totalFullMarks: row.totalFullMarks,
+          totalMarks: row.totalMarks,
+          gpa: row.gpa,
+          gpaWithoutOptional: row.gpaWithoutOptional,
+          letterGrade: row.letterGrade,
+          meritPosition: row.meritPosition,
+          sectionMeritPosition: row.sectionMeritPosition,
+          failedSubjectCount: row.failedSubjectCount,
+          resultStatus: row.resultStatus,
+          publishedAt: tabulationRes.examination.publishedAt,
+        },
+        subjects: row.subjects.map((sub) => ({
+          subjectCode: sub.code ?? '—',
+          subjectName: sub.subjectName,
+          subjectNameBn: sub.subjectName,
+          fullMarks: subjectFullMarksMap.get(sub.examSubjectId) ?? 100,
+          writtenMarks: 0,
+          mcqMarks: 0,
+          practicalMarks: 0,
+          totalMarks: sub.totalMarks,
+          letterGrade: sub.letterGrade,
+          gradePoint: sub.gradePoint,
+          isPassed: sub.isPassed,
+          isOptional: sub.isOptional,
+          bonusGradePoint: 0,
+          isAbsent: sub.isAbsent,
+        })),
+      };
+    };
+  }, [activeExam, tabulationRes, schoolProfile, activeClass, subjectFullMarksMap]);
 
   const tabulationData = useMemo(() => {
-    if (!db || !selectedExam) return { subjects: [], rows: [] };
-    const examSubs = db.examSubjects
-      .filter((es) => es.examId === selectedExam.id)
-      .filter((es) => groupFilter === 'ALL' || !es.groupId || es.groupId === groupFilter)
-      .sort((a, b) => a.displayOrder - b.displayOrder);
-
-    const subjects = examSubs.map((es) => {
-      const sub = db.subjects.find((s) => s.id === es.subjectId);
-      return {
-        id: es.id,
-        code: sub?.officialCode ?? '—',
-        nameBn: sub?.nameBn ?? sub?.name ?? 'বিষয়',
-        nameEn: sub?.name ?? 'Subject',
-        fullMarks: es.fullMarks,
-      };
-    });
+    if (!tabulationRes) return { subjects: [], rows: [] };
+    const subjects = tabulationRes.subjectsList.map((s) => ({
+      id: s.id,
+      code: s.code ?? '—',
+      nameBn: s.name,
+      nameEn: s.name,
+      fullMarks: s.fullMarks,
+    }));
 
     const rows = filteredRows.map((row) => {
       const subjectMarks: Record<
         string,
         { total: number; grade: string; isAbsent?: boolean; isPassed?: boolean }
       > = {};
-      if (row.enrollment) {
-        const ssrList = db.studentSubjectResults.filter(
-          (r) => r.examId === selectedExam.id && r.studentEnrollmentId === row.enrollment!.id
-        );
-        ssrList.forEach((ssr) => {
-          subjectMarks[ssr.examSubjectId] = {
-            total: ssr.totalMarks,
-            grade: ssr.letterGrade ?? 'F',
-            isAbsent: ssr.isAbsent,
-            isPassed: ssr.isPassed,
-          };
-        });
+      for (const sr of row.subjects) {
+        subjectMarks[sr.examSubjectId] = {
+          total: sr.totalMarks,
+          grade: sr.letterGrade ?? 'F',
+          isAbsent: sr.isAbsent,
+          isPassed: sr.isPassed,
+        };
       }
       return {
         roll: row.roll,
         studentId: row.studentId,
-        studentName: row.studentName,
-        sectionName: row.sectionName,
-        groupName: row.groupName,
+        studentName: locale === 'bn' ? row.nameBn || row.name : row.name,
+        sectionName: row.section,
+        groupName: null,
         subjectMarks,
-        totalMarks: row.summary.totalMarks,
-        totalFullMarks: row.summary.totalFullMarks,
-        gpa: row.summary.gpa ?? null,
-        gpaWithoutOptional: row.summary.gpaWithoutOptional ?? null,
-        letterGrade: row.summary.letterGrade ?? null,
-        meritPosition: row.summary.meritPosition ?? null,
-        resultStatus: row.summary.resultStatus,
+        totalMarks: row.totalMarks,
+        totalFullMarks: row.totalFullMarks,
+        gpa: row.gpa ?? null,
+        gpaWithoutOptional: row.gpaWithoutOptional ?? null,
+        letterGrade: row.letterGrade ?? null,
+        meritPosition: row.meritPosition ?? null,
+        resultStatus: row.resultStatus,
       };
     });
 
     return { subjects, rows };
-  }, [db, selectedExam, filteredRows, groupFilter]);
+  }, [tabulationRes, filteredRows, locale]);
 
   const bulkMarksheetItems = useMemo(() => {
-    if (!db || !selectedExam || !showBulkMarksheets) return [];
+    if (!showBulkMarksheets) return [];
     return filteredRows
-      .map((r) => buildStudentMarksheetProps(db, selectedExam, r.summary, locale))
+      .map((r) => buildRowMarksheetProps(r))
       .filter((item): item is PrintableMarksheetProps => item !== null);
-  }, [db, selectedExam, filteredRows, locale, showBulkMarksheets]);
+  }, [showBulkMarksheets, filteredRows, buildRowMarksheetProps]);
 
   const activeSectionLabel = useMemo(() => {
-    const parts: string[] = [];
-    if (sectionFilter !== 'ALL') {
-      const sec = classSections.find((s) => s.id === sectionFilter);
-      if (sec) parts.push(`${pick('শাখা', 'Sec')}: ${sec.name}`);
-    }
-    if (groupFilter !== 'ALL') {
-      const grp = classGroups.find((g) => g.id === groupFilter);
-      if (grp) parts.push(locale === 'bn' ? grp.nameBn : grp.name);
-    }
-    return parts.length > 0 ? parts.join(' · ') : pick('সকল শাখা', 'All Sections');
-  }, [sectionFilter, groupFilter, classSections, classGroups, locale, pick]);
-
-  const handleOpenRemark = (row: (typeof enrichedRows)[number]) => {
-    setRemarkTarget({
-      resultSummaryId: row.summary.id,
-      studentName: row.studentName,
-      roll: row.roll,
-      currentRemark: row.summary.teacherRemarks ?? '',
-    });
-    setRemarkDraft(row.summary.teacherRemarks ?? '');
-  };
-
-  const handleSaveRemark = async () => {
-    if (!remarkTarget) return;
-    try {
-      await saveRemark({
-        resultSummaryId: remarkTarget.resultSummaryId,
-        teacherRemarks: remarkDraft.trim(),
-      }).unwrap();
-      toast.success(pick('শ্রেণি শিক্ষকের মন্তব্য সংরক্ষিত হয়েছে।', 'Class teacher remarks saved.'));
-      setRemarkTarget(null);
-    } catch {
-      toast.error(pick('মন্তব্য সংরক্ষণ করা যায়নি।', 'Failed to save remarks.'));
-    }
-  };
+    return sectionFilter !== 'ALL'
+      ? `${pick('শাখা', 'Sec')}: ${sectionFilter}`
+      : pick('সকল শাখা', 'All Sections');
+  }, [sectionFilter, pick]);
 
   const handleExportCsv = () => {
-    if (!selectedExam || filteredRows.length === 0) return;
+    if (!activeExam || filteredRows.length === 0) return;
     const csvRows = filteredRows.map((r) => ({
-      ClassMerit: r.summary.meritPosition ?? '—',
-      SectionMerit: r.summary.sectionMeritPosition ?? '—',
+      ClassMerit: r.meritPosition ?? '—',
+      SectionMerit: r.sectionMeritPosition ?? '—',
       Roll: r.roll,
       StudentID: r.studentId,
-      StudentName: r.studentNameEn,
-      StudentNameBn: r.studentNameBn,
-      Section: r.sectionName,
-      Group: r.groupName ?? '',
-      TotalMarks: r.summary.totalMarks,
-      FullMarks: r.summary.totalFullMarks,
-      GPA: r.summary.gpa !== null && r.summary.gpa !== undefined ? r.summary.gpa.toFixed(2) : '0.00',
+      StudentName: r.name,
+      StudentNameBn: r.nameBn ?? '',
+      Section: r.section,
+      TotalMarks: r.totalMarks,
+      FullMarks: r.totalFullMarks,
+      GPA: r.gpa !== null && r.gpa !== undefined ? r.gpa.toFixed(2) : '0.00',
       GPAWithout4th:
-        r.summary.gpaWithoutOptional !== null && r.summary.gpaWithoutOptional !== undefined
-          ? r.summary.gpaWithoutOptional.toFixed(2)
+        r.gpaWithoutOptional !== null && r.gpaWithoutOptional !== undefined
+          ? r.gpaWithoutOptional.toFixed(2)
           : '',
-      Grade: r.summary.letterGrade ?? 'F',
-      FailedSubjects: r.summary.failedSubjectCount,
-      Status: r.summary.resultStatus,
-      TeacherRemarks: r.summary.teacherRemarks ?? '',
+      Grade: r.letterGrade ?? 'F',
+      FailedSubjects: r.failedSubjectCount,
+      Status: r.resultStatus,
     }));
-    exportToCsv(csvRows, `merit-list-${selectedExam.id}.csv`);
+    exportToCsv(csvRows, `merit-list-${activeExam.id}.csv`);
     toast.success(pick('মেধাতালিকা CSV ডাউনলোড হয়েছে।', 'Merit list CSV exported.'));
   };
 
-  if (isLoading || !db) return <LoadingSkeleton rows={8} />;
+  if (loadingExams) return <LoadingSkeleton rows={8} />;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={pick('মেধাতালিকা, মার্কশিট ও ট্যাবুলেশন শিট', 'Merit List, Marksheets & Tabulation Sheet')}
         description={pick(
-          'শ্রেণি ও শাখাভিত্তিক মেধাক্রম, শ্রেণি শিক্ষকের মন্তব্য, বাল্ক একাডেমিক ট্রান্সক্রিপ্ট এবং ল্যান্ডস্কেপ A4 ট্যাবুলেশন শিট।',
-          'Class & section merit rankings, editable class teacher remarks, bulk academic transcripts, and landscape A4 tabulation sheets.'
+          'শ্রেণি ও শাখাভিত্তিক মেধাক্রম, বাল্ক একাডেমিক ট্রান্সক্রিপ্ট এবং ল্যান্ডস্কেপ A4 ট্যাবুলেশন শিট।',
+          'Class & section merit rankings, bulk academic transcripts, and landscape A4 tabulation sheets.'
         )}
         actions={
           <>
@@ -368,24 +380,38 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
       {/* Exam & Filter Toolbar */}
       <Card className="p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-          <div className="sm:col-span-2 lg:col-span-4">
+          <div className="sm:col-span-2 lg:col-span-3">
             <FormField label={pick('পরীক্ষা নির্বাচন করুন', 'Select Examination')}>
               <Select
-                value={activeExamId}
+                value={resolvedExamName}
                 onChange={(e) => {
-                  setSelectedExamId(e.target.value);
+                  setSelectedExamName(e.target.value);
                   setSectionFilter('ALL');
-                  setGroupFilter('ALL');
                 }}
               >
-                {standardExams.map((ex) => {
-                  const cls = db.classes.find((c) => c.id === ex.classId);
-                  return (
-                    <option key={ex.id} value={ex.id}>
-                      {ex.name} — {locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name}
-                    </option>
-                  );
-                })}
+                {examNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+          </div>
+
+          <div className="sm:col-span-1 lg:col-span-2">
+            <FormField label={pick('শ্রেণি', 'Class')}>
+              <Select
+                value={resolvedClassId}
+                onChange={(e) => {
+                  setSelectedClassId(e.target.value);
+                  setSectionFilter('ALL');
+                }}
+              >
+                {activeClasses.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {locale === 'bn' ? cls.nameBn || cls.name : cls.name}
+                  </option>
+                ))}
               </Select>
             </FormField>
           </div>
@@ -394,44 +420,32 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
             <FormField label={pick('শাখা', 'Section')}>
               <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
                 <option value="ALL">{pick('সকল শাখা', 'All Sections')}</option>
-                {classSections.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
+                {sectionOptions.map((secName) => (
+                  <option key={secName} value={secName}>
+                    {secName}
                   </option>
                 ))}
               </Select>
             </FormField>
           </div>
 
-          {classGroups.length > 0 && (
-            <div className="sm:col-span-1 lg:col-span-2">
-              <FormField label={pick('বিভাগ (Group)', 'Academic Group')}>
-                <Select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
-                  <option value="ALL">{pick('সকল বিভাগ', 'All Groups')}</option>
-                  {classGroups.map((g) => (
-                    <option key={g.id} value={g.id}>
-                      {locale === 'bn' ? g.nameBn : g.name}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
-            </div>
-          )}
-
           <div className="sm:col-span-1 lg:col-span-2">
             <FormField label={pick('ফলাফলের অবস্থা', 'Result Status')}>
               <Select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as 'ALL' | 'PASS' | 'FAIL')}
+                onChange={(e) =>
+                  setStatusFilter(e.target.value as 'ALL' | 'PASS' | 'FAIL' | 'INCOMPLETE')
+                }
               >
                 <option value="ALL">{pick('সকল শিক্ষার্থী', 'All Students')}</option>
                 <option value="PASS">{pick('শুধুমাত্র উত্তীর্ণ', 'Passed Only')}</option>
                 <option value="FAIL">{pick('শুধুমাত্র অনুত্তীর্ণ', 'Failed Only')}</option>
+                <option value="INCOMPLETE">{pick('অসম্পূর্ণ নম্বর', 'Incomplete')}</option>
               </Select>
             </FormField>
           </div>
 
-          <div className={classGroups.length > 0 ? 'sm:col-span-1 lg:col-span-2' : 'sm:col-span-2 lg:col-span-4'}>
+          <div className="sm:col-span-1 lg:col-span-3">
             <FormField label={pick('খুঁজুন (নাম / রোল / আইডি)', 'Search (Name / Roll / ID)')}>
               <div className="relative">
                 <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -468,7 +482,9 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-success">
             {formatNumber(stats.passed, locale)}{' '}
-            <span className="text-sm font-semibold text-muted-foreground">({formatNumber(stats.passRate, locale)}%)</span>
+            <span className="text-sm font-semibold text-muted-foreground">
+              ({formatNumber(stats.passRate, locale)}%)
+            </span>
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {pick(
@@ -522,7 +538,21 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
 
       {/* Main Merit List Table */}
       <Card className="overflow-hidden">
-        {enrichedRows.length === 0 ? (
+        {loadingTabulation || fetchingTabulation ? (
+          <div className="p-6">
+            <LoadingSkeleton rows={6} />
+          </div>
+        ) : !activeExam ? (
+          <div className="p-6">
+            <EmptyState
+              title={pick('এই শ্রেণির কোনো পরীক্ষা পাওয়া যায়নি', 'No Exam Found for This Class')}
+              description={pick(
+                'অনুগ্রহ করে অন্য পরীক্ষা বা শ্রেণি নির্বাচন করুন।',
+                'Please select another examination or class.'
+              )}
+            />
+          </div>
+        ) : sortedRows.length === 0 ? (
           <div className="p-6">
             <EmptyState
               title={pick('এই পরীক্ষার ফলাফল এখনো হিসাব করা হয়নি', 'No Processed Results Yet')}
@@ -544,8 +574,8 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
             <EmptyState
               title={pick('ফিল্টারের সাথে কোনো ফলাফল মেলেনি', 'No Matching Results')}
               description={pick(
-                'অনুগ্রহ করে শাখা, বিভাগ বা অনুসন্ধান শর্ত পরিবর্তন করে চেষ্টা করুন।',
-                'Try adjusting your section, academic group, status, or search filter.'
+                'অনুগ্রহ করে শাখা, অবস্থা বা অনুসন্ধান শর্ত পরিবর্তন করে চেষ্টা করুন।',
+                'Try adjusting your section, status, or search filter.'
               )}
             />
           </div>
@@ -567,62 +597,53 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
               </thead>
               <tbody className="divide-y divide-border tabular-nums">
                 {filteredRows.map((row) => {
-                  const isPass = row.summary.resultStatus === ResultStatus.PASS;
+                  const isPass = row.resultStatus === ResultStatus.PASS;
+                  const isIncomplete = row.resultStatus === ResultStatus.INCOMPLETE;
+                  const studentName = locale === 'bn' ? row.nameBn || row.name : row.name;
                   const pct =
-                    row.summary.totalFullMarks > 0
-                      ? ((row.summary.totalMarks / row.summary.totalFullMarks) * 100).toFixed(1)
+                    row.totalFullMarks > 0
+                      ? ((row.totalMarks / row.totalFullMarks) * 100).toFixed(1)
                       : '0.0';
                   return (
-                    <tr key={row.summary.id} className="hover:bg-surface-muted/40 transition-colors">
+                    <tr key={row.enrollmentId} className="hover:bg-surface-muted/40 transition-colors">
                       <td className="px-4 py-3 text-center">
-                        {row.summary.meritPosition ? (
+                        {row.meritPosition ? (
                           <span
                             className={`inline-flex items-center justify-center min-w-[2.2rem] px-2 py-0.5 rounded text-xs font-semibold ${
-                              row.summary.meritPosition <= 3
+                              row.meritPosition <= 3
                                 ? 'bg-warning/15 text-warning border border-warning/30'
                                 : 'bg-surface-muted text-foreground'
                             }`}
                           >
-                            #{formatNumber(row.summary.meritPosition, locale)}
+                            #{formatNumber(row.meritPosition, locale)}
                           </span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
                       <td className="px-3 py-3 text-center text-muted-foreground font-medium">
-                        {row.summary.sectionMeritPosition
-                          ? `#${formatNumber(row.summary.sectionMeritPosition, locale)}`
+                        {row.sectionMeritPosition
+                          ? `#${formatNumber(row.sectionMeritPosition, locale)}`
                           : '—'}
                       </td>
                       <td className="px-3 py-3 text-center font-medium text-foreground">
                         {formatNumber(row.roll, locale)}
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-semibold text-foreground">{row.studentName}</div>
+                        <div className="font-semibold text-foreground">{studentName}</div>
                         <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-1.5 mt-0.5">
                           <span className="font-mono">{row.studentId}</span>
                           <span>·</span>
                           <span>
-                            {pick('শাখা', 'Sec')}: {row.sectionName}
+                            {pick('শাখা', 'Sec')}: {row.section}
                           </span>
-                          {row.groupName && (
-                            <>
-                              <span>·</span>
-                              <span className="text-primary font-medium">{row.groupName}</span>
-                            </>
-                          )}
                         </div>
-                        {row.summary.teacherRemarks && (
-                          <p className="text-xs text-muted-foreground italic mt-1 line-clamp-1">
-                            “{row.summary.teacherRemarks}”
-                          </p>
-                        )}
                       </td>
                       <td className="px-3 py-3 text-right">
                         <div className="font-medium text-foreground">
-                          {formatNumber(row.summary.totalMarks, locale)}
+                          {formatNumber(row.totalMarks, locale)}
                           <span className="text-xs font-normal text-muted-foreground">
-                            /{formatNumber(row.summary.totalFullMarks, locale)}
+                            /{formatNumber(row.totalFullMarks, locale)}
                           </span>
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -631,16 +652,16 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                       </td>
                       <td className="px-3 py-3 text-right">
                         <div className="font-semibold text-foreground">
-                          {row.summary.gpa !== null && row.summary.gpa !== undefined
-                            ? formatNumber(row.summary.gpa, locale, 2)
+                          {row.gpa !== null && row.gpa !== undefined
+                            ? formatNumber(row.gpa, locale, 2)
                             : '—'}
                         </div>
-                        {row.summary.gpaWithoutOptional !== null &&
-                          row.summary.gpaWithoutOptional !== undefined &&
-                          row.summary.gpaWithoutOptional !== row.summary.gpa && (
+                        {row.gpaWithoutOptional !== null &&
+                          row.gpaWithoutOptional !== undefined &&
+                          row.gpaWithoutOptional !== row.gpa && (
                             <div className="text-xs text-muted-foreground">
                               {pick('৪র্থ ছাড়া:', 'w/o 4th:')}{' '}
-                              {formatNumber(row.summary.gpaWithoutOptional, locale, 2)}
+                              {formatNumber(row.gpaWithoutOptional, locale, 2)}
                             </div>
                           )}
                       </td>
@@ -648,53 +669,45 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                         <span
                           className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-bold border ${
                             isPass
-                              ? row.summary.letterGrade === 'A+'
+                              ? row.letterGrade === 'A+'
                                 ? 'bg-success/10 text-success border-success/25'
                                 : 'bg-primary/10 text-primary border-primary/25'
-                              : 'bg-destructive/10 text-destructive border-destructive/25'
+                              : isIncomplete
+                                ? 'bg-warning/10 text-warning border-warning/25'
+                                : 'bg-destructive/10 text-destructive border-destructive/25'
                           }`}
                         >
-                          {row.summary.letterGrade ?? 'F'}
+                          {row.letterGrade ?? 'F'}
                         </span>
                       </td>
                       <td className="px-3 py-3 text-center">
                         <StatusBadge
-                          value={row.summary.resultStatus}
-                          customTone={isPass ? 'success' : 'destructive'}
+                          value={row.resultStatus}
+                          customTone={isPass ? 'success' : isIncomplete ? 'warning' : 'destructive'}
                           customLabel={
                             isPass
                               ? pick('উত্তীর্ণ', 'PASS')
-                              : pick(
-                                  `অনুত্তীর্ণ (${formatNumber(row.summary.failedSubjectCount, locale)})`,
-                                  `FAIL (${row.summary.failedSubjectCount})`
-                                )
+                              : isIncomplete
+                                ? pick('অসম্পূর্ণ', 'INCOMPLETE')
+                                : pick(
+                                    `অনুত্তীর্ণ (${formatNumber(row.failedSubjectCount, locale)})`,
+                                    `FAIL (${row.failedSubjectCount})`
+                                  )
                           }
                         />
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1.5">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleOpenRemark(row)}
-                            title={pick('শ্রেণি শিক্ষকের মন্তব্য সম্পাদনা', 'Edit Class Teacher Remarks')}
-                          >
-                            <MessageSquareText className="w-3.5 h-3.5" />
-                            {pick('মন্তব্য', 'Remark')}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              if (!selectedExam) return;
-                              const props = buildStudentMarksheetProps(db, selectedExam, row.summary, locale);
-                              if (props) setPreviewMarksheet(props);
-                            }}
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                            {pick('মার্কশিট', 'Marksheet')}
-                          </Button>
-                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const props = buildRowMarksheetProps(row);
+                            if (props) setPreviewMarksheet(props);
+                          }}
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          {pick('মার্কশিট', 'Marksheet')}
+                        </Button>
                       </td>
                     </tr>
                   );
@@ -704,61 +717,6 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           </div>
         )}
       </Card>
-
-      {/* Edit Class Teacher Remarks Modal */}
-      <Modal
-        open={!!remarkTarget}
-        onClose={() => setRemarkTarget(null)}
-        title={pick('শ্রেণি শিক্ষকের মন্তব্য সংরক্ষণ', 'Class Teacher Remarks')}
-        description={
-          remarkTarget
-            ? `${remarkTarget.studentName} · ${pick('রোল', 'Roll')}: ${formatNumber(remarkTarget.roll, locale)}`
-            : undefined
-        }
-        maxWidth="max-w-lg"
-      >
-        <div className="space-y-4">
-          <FormField label={pick('মার্কশিটে প্রদর্শিত মন্তব্য', 'Remarks Printed on Official Marksheet')}>
-            <Textarea
-              rows={3}
-              placeholder={pick(
-                'শিক্ষার্থীর একাডেমিক অগ্রগতি ও পরামর্শ লিখুন...',
-                'Write personalized academic feedback for the student transcript...'
-              )}
-              value={remarkDraft}
-              onChange={(e) => setRemarkDraft(e.target.value)}
-            />
-          </FormField>
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground mb-2">
-              {pick('দ্রুত মন্তব্য টেমপ্লেট:', 'Quick Preset Remarks:')}
-            </p>
-            <div className="space-y-1.5">
-              {REMARK_PRESETS.map((preset, idx) => {
-                const text = locale === 'bn' ? preset.bn : preset.en;
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setRemarkDraft(text)}
-                    className="w-full text-left text-xs px-3 py-2 rounded-md border border-border hover:border-primary hover:bg-primary/5 text-foreground transition-colors cursor-pointer"
-                  >
-                    {text}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
-            <Button variant="outline" onClick={() => setRemarkTarget(null)}>
-              {pick('বাতিল', 'Cancel')}
-            </Button>
-            <Button variant="primary" disabled={savingRemark} onClick={handleSaveRemark}>
-              {pick('মন্তব্য সংরক্ষণ করুন', 'Save Remarks')}
-            </Button>
-          </div>
-        </div>
-      </Modal>
 
       {/* Single Institutional Marksheet Preview & Print Modal */}
       <Modal
@@ -793,7 +751,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           `বাল্ক মার্কশিট প্রিন্ট (${formatNumber(bulkMarksheetItems.length, locale)}টি)`,
           `Bulk Marksheets Print (${formatNumber(bulkMarksheetItems.length, locale)} transcripts)`
         )}
-        description={`${selectedExam?.name ?? ''} · ${activeSectionLabel}`}
+        description={`${activeExam?.name ?? ''} · ${activeSectionLabel}`}
         maxWidth="max-w-5xl"
       >
         <div className="space-y-4">
@@ -817,10 +775,10 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
         open={showTabulation}
         onClose={() => setShowTabulation(false)}
         title={pick('শ্রেণিভিত্তিক ট্যাবুলেশন শিট (ল্যান্ডস্কেপ A4)', 'Official Class Tabulation Sheet (Landscape A4)')}
-        description={`${selectedExam?.name ?? ''} · ${locale === 'bn' ? selectedClass?.nameBn : selectedClass?.name} · ${activeSectionLabel}`}
+        description={`${activeExam?.name ?? ''} · ${locale === 'bn' ? activeClass?.nameBn : activeClass?.name} · ${activeSectionLabel}`}
         maxWidth="max-w-6xl"
       >
-        {selectedExam && (
+        {activeExam && tabulationRes && (
           <div className="space-y-4">
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setShowTabulation(false)}>
@@ -833,11 +791,15 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
             </div>
             <div className="overflow-x-auto pb-2">
               <PrintableTabulationSheet
-                school={db.schoolProfile}
-                examName={selectedExam.name}
-                className={locale === 'bn' ? selectedClass?.nameBn || selectedClass?.name || '' : selectedClass?.name || ''}
+                school={schoolProfile}
+                examName={tabulationRes.examination.name}
+                className={
+                  locale === 'bn'
+                    ? activeClass?.nameBn || tabulationRes.examination.class
+                    : tabulationRes.examination.class
+                }
                 sectionLabel={activeSectionLabel}
-                academicYear={selectedYear?.name ?? '2026'}
+                academicYear={tabulationRes.examination.academicYear}
                 subjects={tabulationData.subjects}
                 rows={tabulationData.rows}
               />

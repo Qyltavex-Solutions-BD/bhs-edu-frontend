@@ -159,6 +159,73 @@ export interface BulkCreateMarkResult {
   updatedCount: number;
 }
 
+export interface ProcessResultPayload {
+  examId: string;
+  forceRecalculate?: boolean;
+  lockExamOnProcess?: boolean;
+  allowIncomplete?: boolean;
+}
+
+export interface TabulationSubjectScore {
+  examSubjectId: string;
+  subjectName: string;
+  code: string | null;
+  totalMarks: number;
+  letterGrade: string;
+  gradePoint: number;
+  isPassed: boolean;
+  isOptional: boolean;
+  isAbsent: boolean;
+}
+
+export interface TabulationRow {
+  enrollmentId: string;
+  studentId: string;
+  roll: number;
+  name: string;
+  nameBn: string | null;
+  section: string;
+  subjects: TabulationSubjectScore[];
+  totalMarks: number;
+  totalFullMarks: number;
+  gpa: number;
+  gpaWithoutOptional: number;
+  letterGrade: string;
+  meritPosition: number | null;
+  sectionMeritPosition: number | null;
+  failedSubjectCount: number;
+  resultStatus: string;
+}
+
+export interface TabulationSheetResponse {
+  examination: {
+    id: string;
+    name: string;
+    examType: string;
+    class: string;
+    academicYear: string;
+    resultStatus: string;
+    publishedAt: string | null;
+    gradingScale: string;
+    maxGpa: number;
+  };
+  subjectsList: Array<{
+    id: string;
+    name: string;
+    code: string | null;
+    fullMarks: number;
+    passMarks: number;
+    isOptional: boolean;
+  }>;
+  summary: {
+    totalStudents: number;
+    passedCount: number;
+    failedCount: number;
+    passPercentage: number;
+  };
+  tabulation: TabulationRow[];
+}
+
 export const examinationsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getExams: builder.query<
@@ -466,6 +533,43 @@ export const examinationsApi = baseApi.injectEndpoints({
       transformResponse: (res: any) => res?.data ?? res,
       invalidatesTags: ['Results', 'Audit'],
     }),
+    processExamResultsLive: builder.mutation<any, ProcessResultPayload>({
+      query: ({ examId, ...body }) => ({
+        url: `/examination/results/process/${examId}`,
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      invalidatesTags: ['Results', 'Exams', 'Audit'],
+    }),
+    getTabulationSheet: builder.query<
+      TabulationSheetResponse,
+      { examId: string; sectionId?: string; resultStatus?: string; search?: string }
+    >({
+      query: ({ examId, ...params }) => ({
+        url: `/examination/results/tabulation-sheet/${examId}`,
+        method: 'GET',
+        params,
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      providesTags: (_result, _error, { examId }) => [{ type: 'Results', id: examId }],
+    }),
+    publishExamResults: builder.mutation<any, string>({
+      query: (examId) => ({
+        url: `/examination/results/publish/${examId}`,
+        method: 'PATCH',
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      invalidatesTags: ['Results', 'Exams', 'Audit'],
+    }),
+    withholdExamResults: builder.mutation<any, string>({
+      query: (examId) => ({
+        url: `/examination/results/withhold/${examId}`,
+        method: 'PATCH',
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      invalidatesTags: ['Results', 'Exams', 'Audit'],
+    }),
     saveMarksBatch: builder.mutation<
       { savedCount: number },
       {
@@ -584,6 +688,10 @@ export const {
   useSaveBulkMarksMutation,
   useToggleMarkLockMutation,
   useBulkToggleMarkLockMutation,
+  useProcessExamResultsLiveMutation,
+  useGetTabulationSheetQuery,
+  usePublishExamResultsMutation,
+  useWithholdExamResultsMutation,
   useSaveMarksBatchMutation,
   useProcessExamResultsMutation,
   useUpsertExamSubjectMutation,
