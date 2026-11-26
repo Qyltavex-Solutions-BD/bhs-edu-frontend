@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import {
   ArrowUpRight,
-  Download,
   Eye,
   Lock,
   Pencil,
@@ -15,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
-import { cn, exportToCsv } from '@/src/lib/utils/cn';
+import { cn } from '@/src/lib/utils/cn';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
@@ -215,10 +214,15 @@ export function StudentEnrollments({
     });
     return sortedClasses.map((cls) => ({
       id: cls.id,
+      numericValue: cls.numericValue,
       label: locale === 'bn' ? cls.nameBn || cls.name : cls.name,
       count: counts.get(cls.id) ?? 0,
     }));
   }, [sessionEnrollments, sortedClasses, locale]);
+
+  const selectedClassObj = sortedClasses.find((c) => c.id === classId);
+  const showStreamFilter = (selectedClassObj?.numericValue ?? 0) >= 9;
+  const showStreamColumn = classId === 'ALL' || showStreamFilter;
 
   const availableSections = useMemo(
     () => sections.filter((item) => classId === 'ALL' || item.classId === classId),
@@ -263,26 +267,6 @@ export function StudentEnrollments({
     setSectionId('ALL');
     setGroupId('ALL');
     setStatusFilter('ALL');
-  };
-
-  const handleExportCsv = () => {
-    exportToCsv(
-      rows.map((r) => ({
-        session: yearObj?.name ?? yearId,
-        roll: r.roll,
-        studentId: r.studentCode,
-        nameBn: r.studentNameBn,
-        nameEn: r.studentNameEn,
-        class: r.classLabel,
-        section: r.sectionLabel,
-        stream: r.groupLabel || '—',
-        optionalSubject: r.optionalSubjectLabel || '—',
-        repeater: r.isRepeater ? 'Yes' : 'No',
-        readmission: r.isReadmission ? 'Yes' : 'No',
-        status: r.status,
-      })),
-      `enrollments-${yearObj?.name ?? yearId}.csv`
-    );
   };
 
   const startEdit = (row: EnrichedEnrollment) => {
@@ -433,6 +417,7 @@ export function StudentEnrollments({
             onClick={() => {
               setClassId('ALL');
               setSectionId('ALL');
+              setGroupId('ALL');
             }}
             className={cn(
               'px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
@@ -456,6 +441,9 @@ export function StudentEnrollments({
                 onClick={() => {
                   setClassId(cls.id);
                   setSectionId('ALL');
+                  if (cls.numericValue < 9) {
+                    setGroupId('ALL');
+                  }
                 }}
                 className={cn(
                   'px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
@@ -472,15 +460,15 @@ export function StudentEnrollments({
         </div>
 
         <div className="p-4 space-y-3">
-          <div className="flex flex-col xl:flex-row xl:items-center gap-2.5">
-            <div className="relative flex-1 min-w-[240px]">
+          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+            <div className="relative w-full xl:w-72 shrink-0">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={pick(
-                  'শিক্ষার্থীর নাম, আইডি, রোল বা শাখা দিয়ে খুঁজুন...',
-                  'Search student name, ID, roll, or section...'
+                  'নাম, আইডি বা রোল খুঁজুন...',
+                  'Search name, ID or roll...'
                 )}
                 className="pl-9 pr-9 h-9 text-sm"
               />
@@ -496,11 +484,11 @@ export function StudentEnrollments({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2.5">
               <Select
                 value={sectionId}
                 onChange={(e) => setSectionId(e.target.value)}
-                className="w-32 h-9 text-sm"
+                className="w-auto min-w-[128px] h-9 text-sm"
                 aria-label={pick('শাখা', 'Section')}
               >
                 <option value="ALL">{pick('সকল শাখা', 'All sections')}</option>
@@ -511,19 +499,21 @@ export function StudentEnrollments({
                 ))}
               </Select>
 
-              <Select
-                value={groupId}
-                onChange={(e) => setGroupId(e.target.value)}
-                className="w-auto min-w-[140px] h-9 text-sm"
-                aria-label={pick('বিভাগ', 'Stream')}
-              >
-                <option value="ALL">{pick('সকল বিভাগ', 'All streams')}</option>
-                {academicGroups.map((grp) => (
-                  <option key={grp.id} value={grp.id}>
-                    {locale === 'bn' ? grp.nameBn || grp.name : grp.name}
-                  </option>
-                ))}
-              </Select>
+              {showStreamFilter && (
+                <Select
+                  value={groupId}
+                  onChange={(e) => setGroupId(e.target.value)}
+                  className="w-auto min-w-[144px] h-9 text-sm"
+                  aria-label={pick('বিভাগ', 'Stream')}
+                >
+                  <option value="ALL">{pick('সকল বিভাগ', 'All streams')}</option>
+                  {academicGroups.map((grp) => (
+                    <option key={grp.id} value={grp.id}>
+                      {locale === 'bn' ? grp.nameBn || grp.name : grp.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
 
               <Select
                 value={statusFilter}
@@ -539,17 +529,6 @@ export function StudentEnrollments({
                   {pick('স্থানান্তরিত', 'Transferred')}
                 </option>
               </Select>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9"
-                onClick={handleExportCsv}
-                disabled={rows.length === 0}
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>{pick('এক্সপোর্ট CSV', 'Export CSV')}</span>
-              </Button>
             </div>
           </div>
 
@@ -649,6 +628,16 @@ export function StudentEnrollments({
                   <span className="block text-xs font-mono text-muted-foreground truncate">
                     {row.original.studentCode}
                   </span>
+                  {(row.original.isRepeater || row.original.isReadmission) && (
+                    <span className="inline-block mt-0.5 text-[11px] font-medium text-warning">
+                      {[
+                        row.original.isRepeater ? pick('পুনরাবৃত্তি', 'Repeater') : null,
+                        row.original.isReadmission ? pick('পুনঃভর্তি', 'Readmission') : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
+                  )}
                 </div>
               </div>
             ),
@@ -663,43 +652,26 @@ export function StudentEnrollments({
               </div>
             ),
           },
-          {
-            accessorKey: 'groupLabel',
-            header: pick('বিভাগ ও ৪র্থ বিষয়', 'Stream & Optional'),
-            cell: ({ row }) => (
-              <div className="whitespace-nowrap">
-                <span className="text-foreground">
-                  {row.original.groupLabel || pick('সাধারণ', 'General')}
-                </span>
-                {row.original.optionalSubjectLabel && (
-                  <span className="block text-xs text-muted-foreground mt-0.5">
-                    {pick('৪র্থ:', '4th:')} {row.original.optionalSubjectLabel}
-                  </span>
-                )}
-              </div>
-            ),
-          },
-          {
-            id: 'flags',
-            header: pick('ধরন', 'Category'),
-            enableSorting: false,
-            cell: ({ row }) => {
-              const tags = [
-                row.original.isRepeater ? pick('পুনরাবৃত্তি', 'Repeater') : null,
-                row.original.isReadmission ? pick('পুনঃভর্তি', 'Readmission') : null,
-              ].filter(Boolean);
-              return (
-                <div className="text-xs text-muted-foreground whitespace-nowrap">
-                  <span>{tags.length ? tags.join(' · ') : pick('নিয়মিত', 'Regular')}</span>
-                  {row.original.remarks && (
-                    <span className="block max-w-[160px] truncate text-xs opacity-80">
-                      {row.original.remarks}
-                    </span>
-                  )}
-                </div>
-              );
-            },
-          },
+          ...(showStreamColumn
+            ? [
+                {
+                  accessorKey: 'groupLabel',
+                  header: pick('বিভাগ ও ৪র্থ বিষয়', 'Stream & Optional'),
+                  cell: ({ row }: { row: { original: EnrichedEnrollment } }) => (
+                    <div className="whitespace-nowrap">
+                      <span className="text-foreground">
+                        {row.original.groupLabel || '—'}
+                      </span>
+                      {row.original.optionalSubjectLabel && (
+                        <span className="block text-xs text-muted-foreground mt-0.5">
+                          {pick('৪র্থ:', '4th:')} {row.original.optionalSubjectLabel}
+                        </span>
+                      )}
+                    </div>
+                  ),
+                },
+              ]
+            : []),
           {
             accessorKey: 'status',
             header: pick('অবস্থা', 'Status'),
