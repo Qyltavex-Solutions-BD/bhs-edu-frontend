@@ -27,6 +27,14 @@ export interface DataTableProps<T extends object> {
   emptyAction?: React.ReactNode;
   pageSize?: number;
   hideToolbar?: boolean;
+  server?: {
+    search: string;
+    onSearch: (value: string) => void;
+    meta?: { page: number; total: number; totalPages: number; hasNextPage: boolean; hasPreviousPage: boolean };
+    onPage: (page: number) => void;
+    onExport?: () => void;
+    exporting?: boolean;
+  };
   renderMobileCard?: (row: T) => React.ReactNode;
 }
 
@@ -47,6 +55,7 @@ export function DataTable<T extends object>({
   pageSize = 10,
   hideToolbar = false,
   renderMobileCard,
+  server,
 }: DataTableProps<T>) {
   const { t, locale, pick } = useI18n();
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -89,9 +98,10 @@ export function DataTable<T extends object>({
   const safePageIndex = Math.min(pageIndex, pageCount - 1);
 
   const pagedRows = useMemo(() => {
+    if (server) return data;
     const start = safePageIndex * pageSize;
     return sortedData.slice(start, start + pageSize);
-  }, [sortedData, safePageIndex, pageSize]);
+  }, [server, data, sortedData, safePageIndex, pageSize]);
 
   const handleToggleSort = (key: string) => {
     if (sortKey === key) {
@@ -103,6 +113,7 @@ export function DataTable<T extends object>({
   };
 
   const handleExport = () => {
+    if (server) return server.onExport?.();
     exportToCsv(
       sortedData.map((r) => r as Record<string, unknown>),
       exportFilename ?? 'export.csv'
@@ -110,13 +121,20 @@ export function DataTable<T extends object>({
   };
 
   const paginationSummary = useMemo(() => {
+    if (server?.meta) {
+      const { total, page, totalPages } = server.meta;
+      return pick(
+        `মোট ${formatNumber(total, 'bn')} টি তথ্য · পৃষ্ঠা ${formatNumber(page, 'bn')} / ${formatNumber(Math.max(1, totalPages), 'bn')}`,
+        `${total} records · Page ${page} of ${Math.max(1, totalPages)}`,
+      );
+    }
     return pick(
       `মোট ${formatNumber(totalFiltered, 'bn')} টি তথ্য · পৃষ্ঠা ${formatNumber(safePageIndex + 1, 'bn')} / ${formatNumber(pageCount, 'bn')}`,
       `Showing ${totalFiltered} records · Page ${safePageIndex + 1} of ${pageCount}`
     );
-  }, [totalFiltered, safePageIndex, pageCount, pick]);
+  }, [server, totalFiltered, safePageIndex, pageCount, pick]);
 
-  if (isLoading) return <LoadingSkeleton rows={6} />;
+  if (isLoading && !server) return <LoadingSkeleton rows={6} />;
 
   return (
     <div className="space-y-4">
@@ -125,8 +143,11 @@ export function DataTable<T extends object>({
           <div className="relative w-full sm:max-w-xs">
             <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <Input
-              value={globalFilter}
+              aria-label={searchPlaceholder ?? t('cta.search')}
+              maxLength={server ? 150 : undefined}
+              value={server ? server.search : globalFilter}
               onChange={(e) => {
+                if (server) { server.onSearch(e.target.value); return; }
                 setGlobalFilter(e.target.value);
                 setPageIndex(0);
               }}
@@ -137,7 +158,7 @@ export function DataTable<T extends object>({
           <div className="flex flex-wrap items-center gap-2">
             {toolbarExtra}
             {exportFilename && (
-              <Button variant="outline" size="sm" onClick={handleExport} disabled={totalFiltered === 0}>
+              <Button variant="outline" size="sm" onClick={handleExport} disabled={server ? (server.exporting || !server.meta?.total) : totalFiltered === 0}>
                 <Download className="w-3.5 h-3.5" />
                 {t('cta.exportCsv')}
               </Button>
@@ -146,7 +167,7 @@ export function DataTable<T extends object>({
         </div>
       )}
 
-      {pagedRows.length === 0 ? (
+      {isLoading ? <LoadingSkeleton rows={6} /> : pagedRows.length === 0 ? (
         <EmptyState title={emptyTitle} action={emptyAction} />
       ) : (
         <>
@@ -175,7 +196,7 @@ export function DataTable<T extends object>({
                 <tr>
                   {columns.map((col, idx) => {
                     const colId = col.id ?? col.accessorKey ?? `col-${idx}`;
-                    const canSort = Boolean(col.accessorKey) && col.enableSorting !== false;
+                    const canSort = !server && Boolean(col.accessorKey) && col.enableSorting !== false;
                     const headerContent =
                       typeof col.header === 'function' ? col.header() : col.header;
                     return (
@@ -226,8 +247,8 @@ export function DataTable<T extends object>({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setPageIndex((p) => Math.max(0, p - 1))}
-                disabled={safePageIndex <= 0}
+                onClick={() => server?.meta ? server.onPage(server.meta.page - 1) : setPageIndex((p) => Math.max(0, p - 1))}
+                disabled={server ? !server.meta?.hasPreviousPage : safePageIndex <= 0}
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
                 {locale === 'bn' ? 'পূর্ববর্তী' : 'Prev'}
@@ -235,8 +256,8 @@ export function DataTable<T extends object>({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setPageIndex((p) => Math.min(pageCount - 1, p + 1))}
-                disabled={safePageIndex >= pageCount - 1}
+                onClick={() => server?.meta ? server.onPage(server.meta.page + 1) : setPageIndex((p) => Math.min(pageCount - 1, p + 1))}
+                disabled={server ? !server.meta?.hasNextPage : safePageIndex >= pageCount - 1}
               >
                 {locale === 'bn' ? 'পরবর্তী' : 'Next'}
                 <ChevronRight className="w-3.5 h-3.5" />

@@ -31,8 +31,8 @@ export function StaffProfile({ staffId }: { staffId: string }) {
     </div>
   );
 
-  const classDuties = member.sectionClassTeachers.filter((duty) => duty.academicYear.isActive);
-  const subjects = member.teacherAssignments.filter((duty) => duty.isActive && duty.academicYear.isActive);
+  const classDuties = member.sectionClassTeachers;
+  const subjects = member.teacherAssignments;
 
   return (
     <div className="space-y-4">
