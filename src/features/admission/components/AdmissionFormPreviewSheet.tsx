@@ -63,9 +63,9 @@ export function buildAdmissionFormPrintData(
   return {
     school: db.schoolProfile ?? ({
       id: 'default',
-      name: 'Bojeshwar High School',
+      name: 'Bhojeshwar High School',
       nameBn: 'বজেশ্বর উচ্চ বিদ্যালয়',
-      nameEn: 'Bojeshwar High School',
+      nameEn: 'Bhojeshwar High School',
       eiin: '113587',
       address: 'নড়িয়া, শরীয়তপুর',
       createdAt: '',

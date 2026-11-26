@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useParams } from '@/src/lib/navigation';
 import { useGetBootstrapQuery } from '@/src/store/api';
+import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
 import { useAcademicYearSelection } from '@/src/views/admin/AcademicFoundation';
 import { useI18n } from '@/src/lib/i18n';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
@@ -54,14 +55,18 @@ export function AdminStudentsPage({
   const { id } = useParams<{ id?: string }>();
   const pathname = usePathname();
   const section: SectionKey = id ? 'profile' : TAB_SECTION[defaultTab] ?? 'directory';
-  const isCreateSection = section === 'create';
+  const usesLiveApi = section === 'create' || section === 'directory';
   const { data: db, isLoading } = useGetBootstrapQuery(undefined, {
-    skip: isCreateSection,
+    skip: usesLiveApi,
   });
+  const { data: liveYears = [], isLoading: loadingYears } =
+    useGetAcademicYearsQuery(undefined, { skip: !usesLiveApi });
   const { pick } = useI18n();
-  const year = useAcademicYearSelection(db?.academicYears);
+  const academicYears = usesLiveApi ? liveYears : db?.academicYears;
+  const year = useAcademicYearSelection(academicYears);
 
-  if (!isCreateSection && (isLoading || !db || !year)) return <LoadingSkeleton />;
+  if (usesLiveApi && loadingYears) return <LoadingSkeleton />;
+  if (!usesLiveApi && (isLoading || !db || !year)) return <LoadingSkeleton />;
 
   const copy: Record<SectionKey, { title: string; description: string; year: boolean }> = {
     directory: {
@@ -165,14 +170,14 @@ export function AdminStudentsPage({
       title={page.title}
       description={page.description}
       actions={headerActions}
-      years={db?.academicYears ?? []}
+      years={academicYears ?? []}
       selectedYear={year ?? { id: '', name: '', startDate: '', endDate: '', isActive: true, createdAt: '', updatedAt: '' }}
       showYear={page.year}
     >
       {section === 'create' && <StudentRegister yearId={year?.id} />}
+      {section === 'directory' && <StudentDirectory yearId={year?.id ?? ''} />}
       {db && year && (
         <>
-          {section === 'directory' && <StudentDirectory db={db} yearId={year.id} />}
           {section === 'admissions' && <StudentAdmissionInbox db={db} yearId={year.id} />}
           {section === 'enrollments' && <StudentEnrollments db={db} yearId={year.id} />}
           {section === 'promotions' && <StudentPromotions db={db} yearId={year.id} />}
