@@ -485,6 +485,7 @@ export function UnifiedAdmissionForm({
 
                 {step < 4 ? (
                   <Button
+                    key="next-step-btn"
                     type="button"
                     variant="primary"
                     className="rounded-xl h-11 px-5 text-base font-semibold shadow-sm"
@@ -495,6 +496,7 @@ export function UnifiedAdmissionForm({
                   </Button>
                 ) : (
                   <Button
+                    key="submit-admission-btn"
                     type="submit"
                     variant="primary"
                     className="rounded-xl h-11 px-6 text-base font-semibold shadow-sm"

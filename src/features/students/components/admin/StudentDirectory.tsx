@@ -7,7 +7,6 @@ import {
   ArrowUpRight,
   Check,
   Copy,
-  Download,
   Eye,
   Pencil,
   Phone,
@@ -17,15 +16,27 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
-import { cn, exportToCsv } from '@/src/lib/utils/cn';
+import { cn } from '@/src/lib/utils/cn';
+import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Card, Input, Select } from '@/src/components/ui/primitives';
 import { AttendanceStatus, Gender, StudentStatus } from '@/src/types/enums';
 import type { MockDatabase } from '@/src/mocks/seed';
-import { classLabel, studentInitials } from './studentShared';
+import { useGetStudentsQuery } from '@/src/features/students/api/students.api';
+import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
+import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
+import { useGetSectionsQuery } from '@/src/services/academic/section.api';
+import { useGetAcademicGroupsQuery } from '@/src/services/academic/group.api';
+import { studentInitials } from './studentShared';
 
-export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: string }) {
+export function StudentDirectory({
+  db,
+  yearId,
+}: {
+  db?: MockDatabase;
+  yearId: string;
+}) {
   const { locale, pick } = useI18n();
   const [classId, setClassId] = useState('ALL');
   const [sectionId, setSectionId] = useState('ALL');
@@ -35,11 +46,25 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const yearObj = db.academicYears.find((y) => y.id === yearId);
+  const { data: studentsRes, isLoading: loadingStudents } = useGetStudentsQuery(
+    { academicYearId: yearId, limit: 100 },
+    { skip: !yearId }
+  );
+  const { data: liveYears = [] } = useGetAcademicYearsQuery();
+  const { data: liveClasses = [] } = useGetSchoolClassesQuery({ isActive: true });
+  const { data: liveSections = [] } = useGetSectionsQuery({ isActive: true });
+  const { data: liveGroups = [] } = useGetAcademicGroupsQuery();
+
+  const academicYears = liveYears.length ? liveYears : db?.academicYears ?? [];
+  const classes = liveClasses.length ? liveClasses : db?.classes ?? [];
+  const sections = liveSections.length ? liveSections : db?.sections ?? [];
+  const academicGroups = liveGroups.length ? liveGroups : db?.academicGroups ?? [];
+
+  const yearObj = academicYears.find((y) => y.id === yearId);
 
   const sortedClasses = useMemo(
-    () => [...db.classes].sort((a, b) => a.numericValue - b.numericValue),
-    [db.classes]
+    () => [...classes].sort((a, b) => a.numericValue - b.numericValue),
+    [classes]
   );
 
   const copyText = (text: string, label: string) => {
@@ -54,7 +79,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
   // Pre-aggregate attendance rates by enrollmentId in O(N) for fast table rendering
   const attendanceByEnrollment = useMemo(() => {
     const stats = new Map<string, { attended: number; total: number }>();
-    for (const mark of db.attendances) {
+    for (const mark of db?.attendances ?? []) {
       const current = stats.get(mark.studentEnrollmentId) ?? { attended: 0, total: 0 };
       current.total += 1;
       if (
@@ -66,18 +91,101 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
       stats.set(mark.studentEnrollmentId, current);
     }
     return stats;
-  }, [db.attendances]);
+  }, [db?.attendances]);
 
   const enrolled = useMemo(() => {
+    const apiStudents = studentsRes?.items;
+    if (apiStudents) {
+      return apiStudents
+        .map((raw) => {
+          const student = raw as unknown as {
+            id: string;
+            studentId: string;
+            nameBn?: string | null;
+            nameEn: string;
+            gender: Gender;
+            status: StudentStatus;
+            enrollments?: Array<{
+              id: string;
+              classId: string;
+              sectionId: string;
+              groupId?: string | null;
+              roll: number;
+              schoolClass?: { id: string; name: string; nameBn?: string | null; numericValue: number };
+              section?: { id: string; name: string };
+              group?: { id: string; name: string; nameBn?: string | null } | null;
+            }>;
+            parents?: Array<{
+              isPrimary?: boolean;
+              parent?: { name: string; nameBn?: string | null; phone?: string | null };
+            }>;
+          };
+          const enrollment = student.enrollments?.[0];
+          if (!enrollment) return null;
+
+          const cls =
+            classes.find((item) => item.id === enrollment.classId) ??
+            enrollment.schoolClass;
+          const sec =
+            sections.find((item) => item.id === enrollment.sectionId) ??
+            enrollment.section;
+          const grp =
+            (enrollment.groupId
+              ? academicGroups.find((item) => item.id === enrollment.groupId)
+              : null) ?? enrollment.group;
+
+          const sortedParents = [...(student.parents ?? [])].sort(
+            (a, b) => Number(Boolean(b.isPrimary)) - Number(Boolean(a.isPrimary))
+          );
+          const guardian = sortedParents[0]?.parent;
+          const guardianPhone =
+            guardian?.phone && !guardian.phone.startsWith('unused-')
+              ? guardian.phone
+              : '—';
+
+          return {
+            id: student.id,
+            enrollmentId: enrollment.id,
+            studentId: student.studentId,
+            nameBn: student.nameBn || student.nameEn,
+            nameEn: student.nameEn,
+            gender: student.gender,
+            classId: enrollment.classId,
+            classNumeric: cls?.numericValue ?? 99,
+            sectionId: enrollment.sectionId,
+            groupId: enrollment.groupId ?? '',
+            classLabel: cls
+              ? locale === 'bn'
+                ? cls.nameBn || cls.name
+                : cls.name
+              : '—',
+            sectionLabel: sec?.name ?? '—',
+            groupLabel: grp
+              ? locale === 'bn'
+                ? grp.nameBn || grp.name
+                : grp.name
+              : '',
+            roll: enrollment.roll,
+            guardianName: guardian ? guardian.nameBn || guardian.name : '—',
+            guardianPhone,
+            attendanceRate: null as number | null,
+            attendanceDays: 0,
+            status: student.status,
+          };
+        })
+        .filter((row): row is NonNullable<typeof row> => Boolean(row));
+    }
+
+    if (!db) return [];
     return db.enrollments
       .filter((enrollment) => enrollment.academicYearId === yearId)
       .map((enrollment) => {
         const student = db.students.find((item) => item.id === enrollment.studentId);
         if (!student) return null;
-        const cls = db.classes.find((item) => item.id === enrollment.classId);
-        const section = db.sections.find((item) => item.id === enrollment.sectionId);
+        const cls = classes.find((item) => item.id === enrollment.classId);
+        const section = sections.find((item) => item.id === enrollment.sectionId);
         const group = enrollment.groupId
-          ? db.academicGroups.find((item) => item.id === enrollment.groupId)
+          ? academicGroups.find((item) => item.id === enrollment.groupId)
           : null;
         const guardianLink = db.parentStudents
           .filter((link) => link.studentId === student.id)
@@ -104,7 +212,11 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
           classNumeric: cls?.numericValue ?? 99,
           sectionId: enrollment.sectionId,
           groupId: enrollment.groupId ?? '',
-          classLabel: classLabel(db, enrollment.classId, locale),
+          classLabel: cls
+            ? locale === 'bn'
+              ? cls.nameBn || cls.name
+              : cls.name
+            : '—',
           sectionLabel: section?.name ?? '—',
           groupLabel: group ? (locale === 'bn' ? group.nameBn || group.name : group.name) : '',
           roll: enrollment.roll,
@@ -116,7 +228,16 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
         };
       })
       .filter((row): row is NonNullable<typeof row> => Boolean(row));
-  }, [db, yearId, locale, attendanceByEnrollment]);
+  }, [
+    studentsRes?.items,
+    db,
+    yearId,
+    locale,
+    classes,
+    sections,
+    academicGroups,
+    attendanceByEnrollment,
+  ]);
 
   // Institutional KPI metrics for selected academic session
   const totalEnrolled = enrolled.length;
@@ -137,7 +258,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
       : null;
   const lowAttendanceCount = attendanceTracked.filter((r) => (r.attendanceRate ?? 100) < 75).length;
 
-  const pendingAdmissions = db.onlineAdmissions.filter(
+  const pendingAdmissions = (db?.onlineAdmissions ?? []).filter(
     (app) => app.status === 'NEW' || app.status === 'UNDER_REVIEW'
   ).length;
 
@@ -149,14 +270,18 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
     });
     return sortedClasses.map((cls) => ({
       id: cls.id,
+      numericValue: cls.numericValue,
       label: locale === 'bn' ? cls.nameBn || cls.name : cls.name,
       count: counts.get(cls.id) ?? 0,
     }));
   }, [enrolled, sortedClasses, locale]);
 
+  const selectedClassObj = sortedClasses.find((c) => c.id === classId);
+  const showStreamFilter = (selectedClassObj?.numericValue ?? 0) >= 9;
+
   const availableSections = useMemo(
-    () => db.sections.filter((item) => classId === 'ALL' || item.classId === classId),
-    [db.sections, classId]
+    () => sections.filter((item) => classId === 'ALL' || item.classId === classId),
+    [sections, classId]
   );
 
   // Filtered and numerically ordered rows
@@ -170,7 +295,11 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
       .filter((row) => (status === 'ALL' ? true : row.status === status))
       .filter((row) => {
         if (!q) return true;
-        return (
+        if (loadingStudents && !studentsRes) {
+    return <LoadingSkeleton />;
+  }
+
+  return (
           row.nameBn.toLowerCase().includes(q) ||
           row.nameEn.toLowerCase().includes(q) ||
           row.studentId.toLowerCase().includes(q) ||
@@ -204,25 +333,9 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
     setStatus('ALL');
   };
 
-  const handleExportCsv = () => {
-    exportToCsv(
-      rows.map((r) => ({
-        roll: r.roll,
-        studentId: r.studentId,
-        nameBn: r.nameBn,
-        nameEn: r.nameEn,
-        gender: r.gender,
-        class: r.classLabel,
-        section: r.sectionLabel,
-        stream: r.groupLabel || '—',
-        attendanceRate: r.attendanceRate !== null ? `${r.attendanceRate}%` : '—',
-        guardian: r.guardianName,
-        guardianPhone: r.guardianPhone,
-        status: r.status,
-      })),
-      `students-${yearObj?.name ?? yearId}.csv`
-    );
-  };
+  if (loadingStudents && !studentsRes) {
+    return <LoadingSkeleton />;
+  }
 
   return (
     <div className="space-y-5">
@@ -325,8 +438,8 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
           >
             <span>
               {pick(
-                `আবেদন তালিকা (${formatNumber(db.onlineAdmissions.length, locale)})`,
-                `Review applications (${db.onlineAdmissions.length})`
+                `আবেদন তালিকা (${formatNumber((db?.onlineAdmissions ?? []).length, locale)})`,
+                `Review applications (${(db?.onlineAdmissions ?? []).length})`
               )}
             </span>
             <ArrowUpRight className="w-4 h-4" />
@@ -349,6 +462,7 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
             onClick={() => {
               setClassId('ALL');
               setSectionId('ALL');
+              setGroupId('ALL');
             }}
             className={cn(
               'px-4 py-2.5 text-base font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
@@ -372,6 +486,9 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
                 onClick={() => {
                   setClassId(cls.id);
                   setSectionId('ALL');
+                  if (cls.numericValue < 9) {
+                    setGroupId('ALL');
+                  }
                 }}
                 className={cn(
                   'px-4 py-2.5 text-base font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
@@ -428,19 +545,21 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
                 ))}
               </Select>
 
-              <Select
-                value={groupId}
-                onChange={(event) => setGroupId(event.target.value)}
-                className="w-34 h-10 text-sm font-medium"
-                aria-label={pick('বিভাগ', 'Stream')}
-              >
-                <option value="ALL">{pick('সকল বিভাগ', 'All streams')}</option>
-                {db.academicGroups.map((grp) => (
-                  <option key={grp.id} value={grp.id}>
-                    {locale === 'bn' ? grp.nameBn || grp.name : grp.name}
-                  </option>
-                ))}
-              </Select>
+              {showStreamFilter && (
+                <Select
+                  value={groupId}
+                  onChange={(event) => setGroupId(event.target.value)}
+                  className="w-34 h-10 text-sm font-medium"
+                  aria-label={pick('বিভাগ', 'Stream')}
+                >
+                  <option value="ALL">{pick('সকল বিভাগ', 'All streams')}</option>
+                  {academicGroups.map((grp) => (
+                    <option key={grp.id} value={grp.id}>
+                      {locale === 'bn' ? grp.nameBn || grp.name : grp.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
 
               <Select
                 value={genderFilter}
@@ -465,17 +584,6 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
                 <option value={StudentStatus.TRANSFERRED}>{pick('স্থানান্তরিত', 'Transferred')}</option>
                 <option value={StudentStatus.GRADUATED}>{pick('উত্তীর্ণ', 'Graduated')}</option>
               </Select>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-10 text-sm font-semibold"
-                onClick={handleExportCsv}
-                disabled={rows.length === 0}
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>{pick('এক্সপোর্ট CSV', 'Export CSV')}</span>
-              </Button>
             </div>
           </div>
 
@@ -529,19 +637,31 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
         }
         columns={[
           {
-            accessorKey: 'roll',
-            header: pick('রোল', 'Roll'),
+            accessorKey: 'studentId',
+            header: pick('শিক্ষার্থী আইডি', 'Student ID'),
             cell: ({ row }) => (
-              <span className="font-mono text-base font-medium text-foreground tabular-nums">
-                {String(row.original.roll).padStart(2, '0')}
-              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  copyText(row.original.studentId, pick('শিক্ষার্থী আইডি', 'Student ID'))
+                }
+                className="inline-flex items-center gap-1.5 font-mono text-sm font-semibold text-foreground hover:text-primary transition-colors cursor-pointer tabular-nums"
+                title={pick('আইডি কপি করুন', 'Copy student ID')}
+              >
+                <span>{row.original.studentId}</span>
+                {copiedId === row.original.studentId ? (
+                  <Check className="w-3.5 h-3.5 text-success" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 opacity-50" />
+                )}
+              </button>
             ),
           },
           {
             accessorKey: 'nameBn',
-            header: pick('শিক্ষার্থী ও আইডি', 'Student & ID'),
+            header: pick('শিক্ষার্থী', 'Student'),
             cell: ({ row }) => (
-              <div className="flex items-center gap-3 min-w-[220px]">
+              <div className="flex items-center gap-3 min-w-[200px]">
                 <div
                   className={cn(
                     'w-10 h-10 rounded-xl flex items-center justify-center font-semibold text-sm shrink-0 border border-border',
@@ -559,25 +679,9 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
                   >
                     {row.original.nameBn}
                   </Link>
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
-                    <span className="truncate max-w-[140px]">{row.original.nameEn}</span>
-                    <span aria-hidden="true">·</span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        copyText(row.original.studentId, pick('শিক্ষার্থী আইডি', 'Student ID'))
-                      }
-                      className="inline-flex items-center gap-1 font-mono text-xs hover:text-foreground transition-colors cursor-pointer shrink-0"
-                      title={pick('আইডি কপি করুন', 'Copy student ID')}
-                    >
-                      <span>{row.original.studentId}</span>
-                      {copiedId === row.original.studentId ? (
-                        <Check className="w-3.5 h-3.5 text-success" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5 opacity-60" />
-                      )}
-                    </button>
-                  </div>
+                  <p className="text-sm text-muted-foreground mt-0.5 truncate max-w-[200px]">
+                    {row.original.nameEn}
+                  </p>
                 </div>
               </div>
             ),
@@ -617,7 +721,11 @@ export function StudentDirectory({ db, yearId }: { db: MockDatabase; yearId: str
                   : rate >= 75
                     ? 'bg-warning'
                     : 'bg-destructive';
-              return (
+              if (loadingStudents && !studentsRes) {
+    return <LoadingSkeleton />;
+  }
+
+  return (
                 <div className="min-w-[84px] space-y-1">
                   <div className="flex items-baseline justify-between gap-2 tabular-nums">
                     <span className={cn('text-base font-semibold', tone)}>
