@@ -1,387 +1,318 @@
-'use client';
+﻿'use client';
 
-import React, { useMemo, useState } from 'react';
-import Link from 'next/link';
-import { toast } from 'sonner';
+import React, { useState } from 'react';
 import {
   AlertTriangle,
-  Check,
+  Clock,
   CreditCard,
   Edit3,
-  Minus,
+  MessageSquare,
+  Save,
+  ShieldCheck,
 } from 'lucide-react';
-import { useUpdateAttendanceConfigMutation } from '@/src/store/api';
+import { toast } from 'sonner';
+import { AttendanceMethod } from '@/src/types/enums';
 import { useI18n } from '@/src/lib/i18n';
-import { formatNumber } from '@/src/lib/formatters';
-import { cn } from '@/src/lib/utils/cn';
-import { Button, Card, FormField, Input, Modal, Select, Switch } from '@/src/components/ui/primitives';
+import { Button, Card, Input, Modal, Select } from '@/src/components/ui/primitives';
 import {
-  AttendanceMethod,
-  CardStatus,
-  EnrollmentStatus,
-  StudentStatus,
-} from '@/src/types/enums';
-import type { MockDatabase } from '@/src/mocks/seed';
-import type { ClassAttendanceMethodConfig } from '@/src/types/proposed/future';
-import { errorMessage } from './attendanceShared';
+  useGetAttendanceConfigsQuery,
+  useUpdateAttendanceConfigMutation,
+  type AttendanceConfigItem,
+} from '../api/attendance.api';
+import { errorMessage, ToneBadge } from './attendanceShared';
 
-export function AttendanceSettings({ db, yearId }: { db: MockDatabase; yearId: string }) {
-  const { locale, pick } = useI18n();
-  const [updateConfig, { isLoading }] = useUpdateAttendanceConfigMutation();
-  const [editing, setEditing] = useState<ClassAttendanceMethodConfig | null>(null);
+export function AttendanceSettings({ yearId }: { yearId: string }) {
+  const { pick } = useI18n();
+  const { data, isFetching } = useGetAttendanceConfigsQuery({ academicYearId: yearId });
+  const [updateConfig, { isLoading: saving }] = useUpdateAttendanceConfigMutation();
+  const [editing, setEditing] = useState<AttendanceConfigItem | null>(null);
 
-  const activeStudentsById = useMemo(
-    () =>
-      new Set(
-        db.students.filter((s) => s.status === StudentStatus.ACTIVE).map((s) => s.id)
-      ),
-    [db.students]
-  );
+  const items = data?.items ?? [];
+  const kpis = data?.kpis ?? {
+    totalClasses: 0,
+    rfidClasses: 0,
+    totalActiveStudents: 0,
+    studentsWithCard: 0,
+    studentsWithoutCard: 0,
+  };
 
-  const activeCardStudentIds = useMemo(
-    () =>
-      new Set(
-        db.rfidCards.filter((c) => c.status === CardStatus.ACTIVE).map((c) => c.studentId)
-      ),
-    [db.rfidCards]
-  );
-
-  const classRows = useMemo(() => {
-    return db.classes
-      .slice()
-      .sort((a, b) => a.numericValue - b.numericValue)
-      .map((cls) => {
-        const config: ClassAttendanceMethodConfig = db.classAttendanceConfigs.find(
-          (item) => item.classId === cls.id
-        ) ?? {
-          classId: cls.id,
-          method: AttendanceMethod.MANUAL,
-          autoSmsOnEntry: false,
-          autoSmsOnExit: false,
-          autoSmsOnAbsent: true,
-          lateThresholdTime: '10:15',
-        };
-        const classEnrollments = db.enrollments.filter(
-          (e) =>
-            e.academicYearId === yearId &&
-            e.classId === cls.id &&
-            e.status === EnrollmentStatus.ACTIVE &&
-            activeStudentsById.has(e.studentId)
-        );
-        const totalStudents = classEnrollments.length;
-        const studentsWithCards = classEnrollments.filter((e) =>
-          activeCardStudentIds.has(e.studentId)
-        ).length;
-
-        return {
-          cls,
-          classLabel: locale === 'bn' ? cls.nameBn || cls.name : cls.name,
-          config,
-          totalStudents,
-          studentsWithCards,
-          missingCards: Math.max(0, totalStudents - studentsWithCards),
-        };
-      });
-  }, [db.classes, db.classAttendanceConfigs, db.enrollments, yearId, activeStudentsById, activeCardStudentIds, locale]);
-
-  const summary = useMemo(() => {
-    const manualCount = classRows.filter((r) => r.config.method === AttendanceMethod.MANUAL).length;
-    const rfidCount = classRows.filter((r) => r.config.method === AttendanceMethod.RFID).length;
-    const totalStudents = classRows.reduce((s, r) => s + r.totalStudents, 0);
-    const totalCards = classRows.reduce((s, r) => s + r.studentsWithCards, 0);
-    const coverage = totalStudents > 0 ? Math.round((totalCards / totalStudents) * 100) : 0;
-    const autoAbsentCount = classRows.filter((r) => r.config.autoSmsOnAbsent).length;
-    return { manualCount, rfidCount, totalStudents, totalCards, coverage, autoAbsentCount };
-  }, [classRows]);
-
-  const editingRow = editing ? classRows.find((r) => r.cls.id === editing.classId) : null;
-
-  const handleSave = async () => {
+  async function saveEdit() {
     if (!editing) return;
     try {
-      await updateConfig(editing).unwrap();
-      toast.success(pick('শ্রেণির হাজিরা নিয়ম সংরক্ষিত হয়েছে।', 'Attendance rules updated.'));
+      await updateConfig({
+        classId: editing.classId,
+        method: editing.method,
+        lateThresholdTime: editing.lateThresholdTime,
+        autoSmsOnAbsent: editing.autoSmsOnAbsent,
+        autoSmsOnEntry: editing.autoSmsOnEntry,
+        autoSmsOnExit: editing.autoSmsOnExit,
+      }).unwrap();
+      toast.success(pick('হাজিরা নিয়ম সংরক্ষিত হয়েছে', 'Attendance rules saved'));
       setEditing(null);
     } catch (err) {
-      toast.error(errorMessage(err, pick('নিয়ম সংরক্ষণ করা যায়নি।', 'Could not update rules.')));
+      toast.error(errorMessage(err, pick('সংরক্ষণ ব্যর্থ হয়েছে', 'Save failed')));
     }
-  };
+  }
 
   return (
     <div className="space-y-5">
-      {/* 4-Column KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {pick('হাতে রেজিস্টার শ্রেণি', 'Manual Register Classes')}
-          </p>
-          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
-            {formatNumber(summary.manualCount, locale)}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {pick('শ্রেণি শিক্ষক দৈনিক হাজিরা নেবেন', 'Marked daily by class teacher')}
-          </p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="p-4">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>{pick('RFID শ্রেণি', 'RFID Classes')}</span>
+            <ShieldCheck className="h-4 w-4 text-primary" />
+          </div>
+          <div className="mt-1 text-2xl font-bold text-foreground">
+            {kpis.rfidClasses} / {kpis.totalClasses}
+          </div>
+          <div className="mt-0.5 text-sm text-muted-foreground">
+            {pick('অটোমেটেড গেট রিডার সক্রিয়', 'Automated gate reader active')}
+          </div>
         </Card>
 
-        <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {pick('RFID গেট শ্রেণি', 'RFID Gate Classes')}
-          </p>
-          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
-            {formatNumber(summary.rfidCount, locale)}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {pick('গেট রিডার স্ক্যানে স্বয়ংক্রিয় হাজিরা', 'Auto-marked on gate card scan')}
-          </p>
+        <Card className="p-4">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>{pick('সক্রিয় RFID কার্ড', 'Active RFID Cards')}</span>
+            <CreditCard className="h-4 w-4 text-success" />
+          </div>
+          <div className="mt-1 text-2xl font-bold text-foreground">
+            {kpis.studentsWithCard} / {kpis.totalActiveStudents}
+          </div>
+          <div className="mt-0.5 text-sm text-muted-foreground">
+            {kpis.totalActiveStudents > 0
+              ? `${Math.round((kpis.studentsWithCard / kpis.totalActiveStudents) * 100)}%`
+              : '0%'}{' '}
+            {pick('শিক্ষার্থী কভার্ড', 'students covered')}
+          </div>
         </Card>
 
-        <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {pick('RFID কার্ড কাভারেজ', 'RFID Card Coverage')}
-          </p>
-          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
-            {formatNumber(summary.coverage, locale)}%
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `${formatNumber(summary.totalCards, 'bn')}/${formatNumber(summary.totalStudents, 'bn')} শিক্ষার্থীর সক্রিয় কার্ড`,
-              `${summary.totalCards}/${summary.totalStudents} students have active cards`
-            )}
-          </p>
+        <Card className="p-4">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>{pick('কার্ডবিহীন শিক্ষার্থী', 'Missing RFID Cards')}</span>
+            <AlertTriangle className="h-4 w-4 text-warning" />
+          </div>
+          <div className="mt-1 text-2xl font-bold text-foreground">
+            {kpis.studentsWithoutCard}
+          </div>
+          <div className="mt-0.5 text-sm text-muted-foreground">
+            {pick('ম্যানুয়াল হাজিরা প্রয়োজন হতে পারে', 'May require manual marking')}
+          </div>
         </Card>
 
-        <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {pick('স্বয়ংক্রিয় অনুপস্থিতি SMS', 'Auto-Absent SMS Active')}
-          </p>
-          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-success">
-            {formatNumber(summary.autoAbsentCount, locale)} / {formatNumber(classRows.length, locale)}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {pick('অনুপস্থিত হলে অভিভাবককে SMS', 'Notifies guardian when absent')}
-          </p>
+        <Card className="p-4">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <span>{pick('SMS নীতি (খরচ সাশ্রয়)', 'SMS Policy')}</span>
+            <MessageSquare className="h-4 w-4 text-info" />
+          </div>
+          <div className="mt-1 text-lg font-bold text-foreground">
+            {pick('অনুপস্থিতি ডিফল্ট', 'Absent-Only Default')}
+          </div>
+          <div className="mt-0.5 text-sm text-muted-foreground">
+            {pick('প্রবেশ/প্রস্থান ঐচ্ছিক', 'Entry/Exit optional per class')}
+          </div>
         </Card>
       </div>
 
-      {/* Rules Table */}
-      <Card className="p-0 overflow-hidden">
-        <div className="px-4 py-3 border-b border-border flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">
-              {pick('শ্রেণিভিত্তিক হাজিরা পদ্ধতি ও এসএমএস নীতিমালা', 'Class-Wise Attendance Method & SMS Policies')}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {pick(
-                'প্রতিটি শ্রেণির জন্য হাতে বা RFID পদ্ধতি, দেরির সময়সীমা ও স্বয়ংক্রিয় SMS নিয়ম নির্ধারণ করুন।',
-                'Configure manual vs RFID attendance, late cutoff time, and guardian SMS triggers per class.'
-              )}
-            </p>
-          </div>
-          <Link
-            href="/admin/students/rfid-cards"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
-          >
-            <CreditCard className="w-3.5 h-3.5" />
-            {pick('RFID কার্ড ব্যবস্থাপনা', 'Manage RFID cards')}
-          </Link>
+      <Card className="overflow-hidden p-0">
+        <div className="border-b border-border/70 px-5 py-4">
+          <h3 className="text-lg font-semibold text-foreground">
+            {pick('শ্রেণিভিত্তিক হাজিরা ও SMS নিয়ম', 'Class Attendance & SMS Rules')}
+          </h3>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {isFetching
+              ? pick('লোড হচ্ছে...', 'Loading...')
+              : pick(
+                  'প্রতিটি শ্রেণির দেরির সময়সীমা (Cutoff) ও অভিভাবক SMS টগল কনফিগার করুন',
+                  'Configure late arrival cutoff and guardian SMS triggers per class'
+                )}
+          </p>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-surface-muted/60 text-left text-xs font-semibold text-muted-foreground">
-                <th className="py-3 px-4">{pick('শ্রেণি', 'Class')}</th>
-                <th className="py-3 px-4">{pick('RFID কার্ড প্রস্তুতি', 'RFID Readiness')}</th>
-                <th className="py-3 px-4">{pick('পদ্ধতি', 'Method')}</th>
-                <th className="py-3 px-4">{pick('দেরির সীমা', 'Late After')}</th>
-                <th className="py-3 px-4 text-center">{pick('অনুপস্থিতি SMS', 'Absent SMS')}</th>
-                <th className="py-3 px-4 text-center">{pick('প্রবেশ SMS', 'Entry SMS')}</th>
-                <th className="py-3 px-4 text-center">{pick('প্রস্থান SMS', 'Exit SMS')}</th>
-                <th className="py-3 px-4 text-right">{pick('সম্পাদনা', 'Action')}</th>
+          <table className="w-full text-left text-base">
+            <thead className="border-b border-border/70 bg-muted/40 text-sm font-semibold text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3">{pick('শ্রেণি', 'Class')}</th>
+                <th className="px-4 py-3">{pick('মোড', 'Mode')}</th>
+                <th className="px-4 py-3">{pick('দেরির সময়সীমা', 'Late Cutoff')}</th>
+                <th className="px-4 py-3">{pick('RFID কার্ড প্রস্তুতি', 'RFID Readiness')}</th>
+                <th className="px-4 py-3">{pick('SMS ট্রিগার', 'SMS Triggers')}</th>
+                <th className="px-4 py-3 text-right">{pick('অ্যাকশন', 'Action')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
-              {classRows.map((row) => {
-                const isRfid = row.config.method === AttendanceMethod.RFID;
-                const hasCardGap = isRfid && row.missingCards > 0;
-                return (
-                  <tr key={row.cls.id} className="hover:bg-surface-muted/30">
-                    <td className="py-3 px-4 font-semibold text-foreground">{row.classLabel}</td>
-                    <td className="py-3 px-4 text-sm sm:text-base tabular-nums">
-                      <span className={cn('font-medium', hasCardGap ? 'text-warning' : 'text-foreground')}>
-                        {formatNumber(row.studentsWithCards, locale)} /{' '}
-                        {formatNumber(row.totalStudents, locale)}
-                      </span>{' '}
-                      <span className="text-muted-foreground">{pick('কার্ড', 'cards')}</span>
-                      {hasCardGap && (
-                        <span className="block text-xs text-warning">
-                          {pick(
-                            `${formatNumber(row.missingCards, 'bn')} জনের কার্ড নেই`,
-                            `${row.missingCards} student(s) missing card`
-                          )}
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={cn(
-                          'inline-flex items-center px-2 py-0.5 rounded-[var(--radius)] text-xs font-medium border',
-                          isRfid
-                            ? 'border-primary/30 bg-primary/10 text-primary'
-                            : 'border-border bg-surface-muted text-foreground'
-                        )}
-                      >
-                        {isRfid ? pick('RFID গেট', 'RFID Gate') : pick('হাতে রেজিস্টার', 'Manual')}
+            <tbody className="divide-y divide-border/60">
+              {items.map((row) => (
+                <tr key={row.classId} className="hover:bg-muted/20">
+                  <td className="px-4 py-3 font-semibold text-foreground">{row.className}</td>
+                  <td className="px-4 py-3">
+                    <ToneBadge tone={row.method === AttendanceMethod.RFID ? 'primary' : 'neutral'}>
+                      {row.method}
+                    </ToneBadge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="inline-flex items-center gap-1.5 font-mono text-sm">
+                      <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                      {row.lateThresholdTime}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-sm font-medium">
+                      {row.studentsWithCard} / {row.totalStudents}
+                    </span>
+                    {row.totalStudents > row.studentsWithCard && (
+                      <span className="ml-2 text-sm text-warning">
+                        ({row.totalStudents - row.studentsWithCard} {pick('বাকি', 'missing')})
                       </span>
-                    </td>
-                    <td className="py-3 px-4 font-mono text-xs font-medium tabular-nums text-foreground">
-                      {row.config.lateThresholdTime}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <SmsToggleIndicator enabled={row.config.autoSmsOnAbsent} />
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <SmsToggleIndicator enabled={row.config.autoSmsOnEntry} />
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <SmsToggleIndicator enabled={row.config.autoSmsOnExit} />
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setEditing({ ...row.config })}
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        {pick('পরিবর্তন', 'Edit')}
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1.5">
+                      <ToneBadge tone={row.autoSmsOnAbsent ? 'danger' : 'neutral'}>
+                        {pick('অনুপস্থিত', 'Absent')}: {row.autoSmsOnAbsent ? 'ON' : 'OFF'}
+                      </ToneBadge>
+                      {row.autoSmsOnEntry && (
+                        <ToneBadge tone="success">{pick('প্রবেশ', 'Entry')}</ToneBadge>
+                      )}
+                      {row.autoSmsOnExit && (
+                        <ToneBadge tone="info">{pick('প্রস্থান', 'Exit')}</ToneBadge>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Button size="sm" variant="outline" onClick={() => setEditing(row)}>
+                      <Edit3 className="h-3.5 w-3.5" />
+                      {pick('সম্পাদনা', 'Edit')}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </Card>
 
-      {/* Edit Modal */}
       <Modal
         open={Boolean(editing)}
         onClose={() => setEditing(null)}
         title={
-          editingRow
-            ? pick(`${editingRow.classLabel} — হাজিরা নিয়ম`, `${editingRow.classLabel} — Attendance Rules`)
-            : pick('হাজিরা নিয়ম পরিবর্তন', 'Edit Attendance Rules')
+          editing
+            ? `${editing.className} — ${pick('হাজিরা নিয়ম সম্পাদনা', 'Edit Attendance Rules')}`
+            : ''
         }
-        maxWidth="max-w-md"
+        size="md"
       >
         {editing && (
           <div className="space-y-4">
-            <FormField label={pick('হাজিরা গ্রহণ পদ্ধতি', 'Attendance Method')} required>
-              <Select
-                value={editing.method}
-                onChange={(e) => {
-                  const nextMethod = e.target.value as AttendanceMethod;
-                  setEditing({
-                    ...editing,
-                    method: nextMethod,
-                    autoSmsOnEntry:
-                      nextMethod === AttendanceMethod.RFID ? editing.autoSmsOnEntry : false,
-                    autoSmsOnExit:
-                      nextMethod === AttendanceMethod.RFID ? editing.autoSmsOnExit : false,
-                  });
-                }}
-              >
-                <option value={AttendanceMethod.MANUAL}>
-                  {pick('হাতে রেজিস্টার (Manual)', 'Manual Register')}
-                </option>
-                <option value={AttendanceMethod.RFID}>
-                  {pick('RFID গেট কার্ড স্ক্যান (RFID)', 'RFID Gate Card Scan')}
-                </option>
-              </Select>
-            </FormField>
-
-            {editing.method === AttendanceMethod.RFID &&
-              editingRow &&
-              editingRow.missingCards > 0 && (
-                <div className="rounded-[var(--radius)] border border-warning/40 bg-warning/10 p-3 text-xs text-foreground flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-warning shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <p>
-                      {pick(
-                        `এই শ্রেণির ${formatNumber(editingRow.missingCards, 'bn')} জন সক্রিয় শিক্ষার্থীর এখনো সক্রিয় RFID কার্ড নেই (${formatNumber(editingRow.studentsWithCards, 'bn')}/${formatNumber(editingRow.totalStudents, 'bn')})।`,
-                        `${editingRow.missingCards} active student(s) in this class do not have an active RFID card yet (${editingRow.studentsWithCards}/${editingRow.totalStudents}).`
-                      )}
-                    </p>
-                    <Link
-                      href="/admin/students/rfid-cards"
-                      className="text-primary font-medium hover:underline inline-block"
-                    >
-                      {pick('কার্ড ইস্যু পৃষ্ঠায় যান →', 'Go to RFID Card Management →')}
-                    </Link>
-                  </div>
-                </div>
-              )}
-
-            <FormField
-              label={pick('দেরির সময়সীমা (Late Cutoff)', 'Late Threshold Time')}
-              hint={pick('এই সময়ের পর প্রবেশ করলে "দেরি" হিসেবে গণ্য হবে।', 'Arrivals after this time are automatically marked Late.')}
-              required
-            >
-              <Input
-                type="time"
-                value={editing.lateThresholdTime}
-                onChange={(e) => setEditing({ ...editing, lateThresholdTime: e.target.value })}
-                className="tabular-nums"
-              />
-            </FormField>
-
-            <div className="space-y-3 pt-2 border-t border-border">
-              <p className="text-xs font-semibold text-muted-foreground">
-                {pick('অভিভাবক এসএমএস ট্রিগার', 'Guardian SMS Triggers')}
-              </p>
-              <Switch
-                checked={editing.autoSmsOnAbsent}
-                onChange={(checked) => setEditing({ ...editing, autoSmsOnAbsent: checked })}
-                label={pick('অনুপস্থিত হলে স্বয়ংক্রিয় SMS পাঠান', 'Auto-SMS when marked Absent')}
-              />
-              <Switch
-                checked={editing.autoSmsOnEntry}
-                disabled={editing.method !== AttendanceMethod.RFID}
-                onChange={(checked) => setEditing({ ...editing, autoSmsOnEntry: checked })}
-                label={pick('RFID গেটে প্রবেশের সময় SMS পাঠান', 'Auto-SMS on RFID Gate Entry')}
-              />
-              <Switch
-                checked={editing.autoSmsOnExit}
-                disabled={editing.method !== AttendanceMethod.RFID}
-                onChange={(checked) => setEditing({ ...editing, autoSmsOnExit: checked })}
-                label={pick('RFID গেট থেকে প্রস্থানের সময় SMS পাঠান', 'Auto-SMS on RFID Gate Exit')}
-              />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  {pick('ডিফল্ট হাজিরা পদ্ধতি', 'Default Method')}
+                </label>
+                <Select
+                  value={editing.method}
+                  onChange={(e) =>
+                    setEditing({ ...editing, method: e.target.value as AttendanceMethod })
+                  }
+                >
+                  <option value={AttendanceMethod.RFID}>RFID (Gate Automated)</option>
+                  <option value={AttendanceMethod.MANUAL}>MANUAL (Roll Call)</option>
+                  <option value={AttendanceMethod.BIOMETRIC}>BIOMETRIC (Future)</option>
+                </Select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  {pick('দেরির সময়সীমা (HH:mm)', 'Late Cutoff Time (HH:mm)')}
+                </label>
+                <Input
+                  type="time"
+                  value={editing.lateThresholdTime}
+                  onChange={(e) =>
+                    setEditing({ ...editing, lateThresholdTime: e.target.value })
+                  }
+                />
+              </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-border">
+            {editing.totalStudents > editing.studentsWithCard && (
+              <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
+                {pick(
+                  `সতর্কতা: এই শ্রেণির ${editing.totalStudents - editing.studentsWithCard} জন শিক্ষার্থীর সক্রিয় RFID কার্ড নেই।`,
+                  `Warning: ${editing.totalStudents - editing.studentsWithCard} students in this class have no active RFID card.`
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2 rounded-lg border border-border p-3">
+              <label className="flex items-center justify-between gap-3 text-base">
+                <span>
+                  <strong className="block">{pick('অনুপস্থিতিতে অটো SMS', 'Auto SMS on Absent')}</strong>
+                  <span className="text-sm text-muted-foreground">
+                    {pick(
+                      'প্রস্তাবিত: অনুপস্থিত চিহ্নিত হলে অভিভাবককে SMS পাঠাবে',
+                      'Recommended: Alert guardians when marked absent'
+                    )}
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={editing.autoSmsOnAbsent}
+                  onChange={(e) =>
+                    setEditing({ ...editing, autoSmsOnAbsent: e.target.checked })
+                  }
+                  className="h-4 w-4 accent-primary"
+                />
+              </label>
+
+              <label className="flex items-center justify-between gap-3 border-t border-border/60 pt-2 text-base">
+                <span>
+                  <strong className="block">{pick('প্রবেশে অটো SMS', 'Auto SMS on Gate Entry')}</strong>
+                  <span className="text-sm text-muted-foreground">
+                    {pick(
+                      'প্রতিদিন প্রতি শিক্ষার্থীর জন্য অতিরিক্ত SMS খরচ হবে',
+                      'Incurs daily SMS cost per student'
+                    )}
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={editing.autoSmsOnEntry}
+                  onChange={(e) =>
+                    setEditing({ ...editing, autoSmsOnEntry: e.target.checked })
+                  }
+                  className="h-4 w-4 accent-primary"
+                />
+              </label>
+
+              <label className="flex items-center justify-between gap-3 border-t border-border/60 pt-2 text-base">
+                <span>
+                  <strong className="block">{pick('প্রস্থানে অটো SMS', 'Auto SMS on Gate Exit')}</strong>
+                  <span className="text-sm text-muted-foreground">
+                    {pick('গেট দিয়ে বের হওয়ার সময় SMS পাঠাবে', 'Send SMS when student scans out')}
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={editing.autoSmsOnExit}
+                  onChange={(e) =>
+                    setEditing({ ...editing, autoSmsOnExit: e.target.checked })
+                  }
+                  className="h-4 w-4 accent-primary"
+                />
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-border/70 pt-3">
               <Button variant="outline" onClick={() => setEditing(null)}>
                 {pick('বাতিল', 'Cancel')}
               </Button>
-              <Button variant="primary" disabled={isLoading} onClick={handleSave}>
-                {isLoading ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save Rules')}
+              <Button onClick={saveEdit} disabled={saving}>
+                <Save className="h-4 w-4" />
+                {saving ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save Rules')}
               </Button>
             </div>
           </div>
         )}
       </Modal>
     </div>
-  );
-}
-
-function SmsToggleIndicator({ enabled }: { enabled: boolean }) {
-  return enabled ? (
-    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-success/10 text-success">
-      <Check className="w-3.5 h-3.5" />
-    </span>
-  ) : (
-    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-surface-muted text-muted-foreground">
-      <Minus className="w-3.5 h-3.5" />
-    </span>
   );
 }

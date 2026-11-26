@@ -117,11 +117,10 @@ export const ADMIN_NAV_GROUPS: NavGroup[] = [
         labelEn: 'Attendance & SMS',
         icon: ClipboardCheck,
         children: [
-          { to: '/admin/attendance/daily', labelBn: 'দৈনিক হাজিরা', labelEn: 'Daily register' },
-          { to: '/admin/attendance/gate', labelBn: 'RFID গেট মনিটর', labelEn: 'RFID gate monitor' },
+          { to: '/admin/attendance/daily', labelBn: 'দৈনিক হাজিরা', labelEn: 'Daily attendance' },
           { to: '/admin/attendance/reports', labelBn: 'মাসিক রিপোর্ট', labelEn: 'Monthly report' },
           { to: '/admin/attendance/sms-logs', labelBn: 'এসএমএস লগ', labelEn: 'SMS logs' },
-          { to: '/admin/attendance/settings', labelBn: 'পদ্ধতি ও নিয়ম', labelEn: 'Method & rules' },
+          { to: '/admin/attendance/settings', labelBn: 'নিয়ম ও সময়সীমা', labelEn: 'Rules & cutoff' },
         ],
       },
       {
