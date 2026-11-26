@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Eye, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
+import { AlertTriangle, Eye, KeyRound, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
@@ -12,6 +12,7 @@ import type { Staff } from '@/src/types/entities';
 import { StaffFormModal } from './StaffFormModal';
 import { StaffViewModal } from './StaffViewModal';
 import {
+  useCreateStaffPortalAccountMutation,
   useDeleteStaffMutation,
   useGetStaffPageQuery,
   useGetStaffStatisticsQuery,
@@ -87,6 +88,29 @@ export function StaffDirectory({
   } = useGetStaffPageQuery(queryParams);
   const { data: stats } = useGetStaffStatisticsQuery();
   const [deleteStaff, { isLoading: deleting }] = useDeleteStaffMutation();
+  const [createPortalAccount, { isLoading: creatingPortal }] = useCreateStaffPortalAccountMutation();
+
+  const handleGrantPortalAccess = async (member: Staff) => {
+    try {
+      await createPortalAccount({
+        id: member.id,
+        portalRole: member.staffType === StaffType.OFFICER ? 'ACCOUNTANT' : 'TEACHER',
+      }).unwrap();
+      toast.success(
+        pick(
+          `${member.name}-এর জন্য পোর্টাল লগইন অ্যাকাউন্ট তৈরি হয়েছে।`,
+          `Portal account created for ${member.name}.`
+        )
+      );
+    } catch (err: unknown) {
+      const e = err as { data?: { message?: string }; message?: string };
+      toast.error(
+        e?.data?.message ||
+          e?.message ||
+          pick('পোর্টাল অ্যাকাউন্ট তৈরি করা যায়নি।', 'Could not create portal account.')
+      );
+    }
+  };
 
   const confirmDelete = async () => {
     if (!deletingMember) return;
@@ -323,10 +347,33 @@ export function StaffDirectory({
                       )}
                     </td>
                     <td className="p-3.5 whitespace-nowrap">
-                      <StatusBadge enumName="StaffStatus" value={member.status} />
+                      <div className="flex flex-col gap-1 items-start">
+                        <StatusBadge enumName="StaffStatus" value={member.status} />
+                        {(member as any).user ? (
+                          <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                            {(member as any).user.mustSetPassword
+                              ? pick('পোর্টাল: পাসওয়ার্ড বাকি', 'Portal: Pending Setup')
+                              : pick('পোর্টাল: সক্রিয়', 'Portal: Active')}
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="p-3.5 text-right whitespace-nowrap">
                       <div className="inline-flex items-center gap-1.5">
+                        {!(member as any).userId &&
+                          member.status === StaffStatus.ACTIVE &&
+                          (member.email || member.phone) && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={creatingPortal}
+                              onClick={() => handleGrantPortalAccess(member)}
+                              title={pick('পোর্টাল অ্যাক্সেস দিন', 'Grant Portal Access')}
+                            >
+                              <KeyRound className="w-4 h-4 text-emerald-600" />
+                            </Button>
+                          )}
                         <Button
                           type="button"
                           size="sm"

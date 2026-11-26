@@ -133,6 +133,18 @@ export const staffApi = baseApi.injectEndpoints({
       query: (id) => ({ url: `/staff/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Staff', 'Audit'],
     }),
+    createStaffPortalAccount: builder.mutation<
+      Staff,
+      { id: string; portalRole?: 'TEACHER' | 'ACCOUNTANT' }
+    >({
+      query: ({ id, portalRole }) => ({
+        url: `/staff/${id}/portal-account`,
+        method: 'POST',
+        body: portalRole ? { portalRole } : {},
+      }),
+      transformResponse: (response: Envelope<Staff>) => response.data,
+      invalidatesTags: ['Staff', 'Audit'],
+    }),
     saveDepartment: builder.mutation<Department, Partial<Department>>({
       query: ({ id, ...body }) => ({
         url: id ? `/staff/departments/${id}` : '/staff/departments',
@@ -166,6 +178,7 @@ export const {
   useCreateStaffMutation,
   useUpdateStaffMutation,
   useDeleteStaffMutation,
+  useCreateStaffPortalAccountMutation,
   useSaveDepartmentMutation,
   useRemoveDepartmentMutation,
   useSaveStaffStructureMutation,

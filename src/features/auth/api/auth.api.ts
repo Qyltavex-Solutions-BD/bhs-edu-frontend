@@ -1,6 +1,25 @@
 import { baseApi } from '@/src/lib/api/base-api';
 
 export interface LoginPayload { email: string; password: string }
+export interface PortalInitiatePayload { identifier: string }
+export interface PortalInitiateResponseData {
+  nextStep: 'SET_PASSWORD' | 'ENTER_PASSWORD';
+  identifier: string;
+  name: string;
+  maskedPhone?: string | null;
+  maskedEmail?: string | null;
+}
+export interface PortalSetupPasswordPayload {
+  identifier: string;
+  otp: string;
+  password: string;
+  confirmPassword: string;
+}
+export interface AdminLoginPayload {
+  email: string;
+  password: string;
+  accessKey: string;
+}
 export interface LoginResponseData {
   accessToken: string;
   refreshToken?: string;
@@ -114,6 +133,20 @@ export const authApi = baseApi.injectEndpoints({
       transformResponse: unwrap<LoginResponseData>,
       invalidatesTags: ['Bootstrap', 'AuthProfile', 'AuthSessions'],
     }),
+    portalInitiate: builder.mutation<PortalInitiateResponseData, PortalInitiatePayload>({
+      query: (body) => ({ url: '/auth/portal/initiate', method: 'POST', body }),
+      transformResponse: unwrap<PortalInitiateResponseData>,
+    }),
+    portalSetupPassword: builder.mutation<LoginResponseData, PortalSetupPasswordPayload>({
+      query: (body) => ({ url: '/auth/portal/setup-password', method: 'POST', body }),
+      transformResponse: unwrap<LoginResponseData>,
+      invalidatesTags: ['Bootstrap', 'AuthProfile', 'AuthSessions'],
+    }),
+    adminLogin: builder.mutation<LoginResponseData, AdminLoginPayload>({
+      query: (body) => ({ url: '/auth/admin/login', method: 'POST', body }),
+      transformResponse: unwrap<LoginResponseData>,
+      invalidatesTags: ['Bootstrap', 'AuthProfile', 'AuthSessions'],
+    }),
     refreshSession: builder.mutation<LoginResponseData, void>({
       query: () => ({ url: '/auth/refresh', method: 'POST', body: {} }),
       transformResponse: unwrap<LoginResponseData>,
@@ -181,6 +214,9 @@ export const authApi = baseApi.injectEndpoints({
 
 export const {
   useLoginUserMutation,
+  usePortalInitiateMutation,
+  usePortalSetupPasswordMutation,
+  useAdminLoginMutation,
   useRefreshSessionMutation,
   useLogoutUserMutation,
   useGetAuthProfileQuery,
