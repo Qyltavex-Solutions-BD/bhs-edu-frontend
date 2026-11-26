@@ -40,6 +40,21 @@ export const admissionApi = baseApi.injectEndpoints({
       transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ['Admissions', 'Notifications'],
     }),
+    getAdminAdmissions: builder.query<
+      OnlineAdmissionApplication[],
+      { status?: string; targetClassId?: string; search?: string } | void
+    >({
+      query: (params) => ({
+        url: '/admin/admissions',
+        method: 'GET',
+        params: params || undefined,
+      }),
+      transformResponse: (response: any) => {
+        const raw = response?.data ?? response;
+        return Array.isArray(raw) ? raw : [];
+      },
+      providesTags: ['Admissions'],
+    }),
     updateAdmissionStatus: builder.mutation<
       OnlineAdmissionApplication,
       AdmissionStatusUpdate
@@ -49,6 +64,7 @@ export const admissionApi = baseApi.injectEndpoints({
         method: 'POST',
         body,
       }),
+      transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ['Admissions', 'Students', 'Audit'],
     }),
   }),
@@ -56,6 +72,7 @@ export const admissionApi = baseApi.injectEndpoints({
 
 export const {
   useGetPublicAdmissionCatalogQuery,
+  useGetAdminAdmissionsQuery,
   useSubmitAdmissionApplicationMutation,
   useUpdateAdmissionStatusMutation,
 } = admissionApi;

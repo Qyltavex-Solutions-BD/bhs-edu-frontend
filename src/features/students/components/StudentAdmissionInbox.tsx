@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
   CheckCircle2,
@@ -12,26 +12,79 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useUpdateAdmissionStatusMutation } from '@/src/store/api';
+import { useGetAdminAdmissionsQuery } from '@/src/features/admission/api/admission.api';
+import { useGetNextSuggestedRollQuery } from '@/src/features/students/api/students.api';
+import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
+import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
+import { useGetSectionsQuery } from '@/src/services/academic/section.api';
+import { useGetAcademicGroupsQuery } from '@/src/services/academic/group.api';
+import { useGetClassSubjectsQuery } from '@/src/services/academic/class-subject.api';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
+import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Card, FormField, Input, Modal, Select } from '@/src/components/ui/primitives';
 import {
+  type AdmissionCatalogData,
   UnifiedAdmissionForm,
   type AdminAdmissionResult,
   ADMISSION_TYPE_META,
   getNextSuggestedRoll,
   getRequiredDocumentChecklist,
 } from '@/src/features/admission';
-import { classLabel, errorMessage } from './admin/studentShared';
+import { errorMessage } from './admin/studentShared';
 import { AdmissionConfirmationView } from './AdmissionConfirmationView';
 import type { MockDatabase } from '@/src/mocks/seed';
 import type { OnlineAdmissionApplication } from '@/src/types/proposed/future';
 
-export function StudentAdmissionInbox({ db, yearId }: { db: MockDatabase; yearId: string }) {
+export function StudentAdmissionInbox({
+  db,
+  yearId,
+}: {
+  db?: MockDatabase;
+  yearId: string;
+}) {
   const { locale, pick } = useI18n();
   const [updateStatus, { isLoading }] = useUpdateAdmissionStatusMutation();
+  const { data: liveAdmissions, isLoading: loadingApps } =
+    useGetAdminAdmissionsQuery();
+  const { data: liveYears = [] } = useGetAcademicYearsQuery();
+  const { data: liveClasses = [] } = useGetSchoolClassesQuery({ isActive: true });
+  const { data: liveSections = [] } = useGetSectionsQuery({ isActive: true });
+  const { data: liveGroups = [] } = useGetAcademicGroupsQuery();
+  const { data: liveClassSubjects = [] } = useGetClassSubjectsQuery({ isActive: true });
+
+  const academicYears = liveYears.length ? liveYears : db?.academicYears ?? [];
+  const classes = liveClasses.length ? liveClasses : db?.classes ?? [];
+  const sections = liveSections.length ? liveSections : db?.sections ?? [];
+  const academicGroups = liveGroups.length ? liveGroups : db?.academicGroups ?? [];
+  const classSubjects = liveClassSubjects.length
+    ? liveClassSubjects
+    : db?.classSubjects ?? [];
+  const onlineAdmissions = liveAdmissions ?? db?.onlineAdmissions ?? [];
+
+  const liveCatalog: AdmissionCatalogData = useMemo(
+    () => ({
+      academicYears,
+      classes,
+      sections,
+      academicGroups,
+      classSubjects,
+      schoolProfile: db?.schoolProfile,
+      admissionContent: db?.admissionContent,
+    }),
+    [
+      academicYears,
+      classes,
+      sections,
+      academicGroups,
+      classSubjects,
+      db?.schoolProfile,
+      db?.admissionContent,
+    ]
+  );
+
   const [openId, setOpenId] = useState<string | null>(null);
   const [sectionId, setSectionId] = useState('');
   const [roll, setRoll] = useState('');
@@ -40,14 +93,30 @@ export function StudentAdmissionInbox({ db, yearId }: { db: MockDatabase; yearId
   const [fullFormApp, setFullFormApp] = useState<OnlineAdmissionApplication | null>(null);
   const [admittedResult, setAdmittedResult] = useState<AdminAdmissionResult | null>(null);
 
-  const app = db.onlineAdmissions.find((item) => item.id === openId) ?? null;
+  const { data: nextRollData } = useGetNextSuggestedRollQuery(
+    { academicYearId: yearId, sectionId },
+    { skip: !yearId || !sectionId }
+  );
+
+  useEffect(() => {
+    if (openId && nextRollData?.nextRoll) {
+      setRoll(String(nextRollData.nextRoll));
+    }
+  }, [openId, nextRollData?.nextRoll]);
+
+  const app = onlineAdmissions.find((item) => item.id === openId) ?? null;
 
   const open = (id: string) => {
-    const found = db.onlineAdmissions.find((item) => item.id === id);
+    const found = onlineAdmissions.find((item) => item.id === id);
     const section =
-      db.sections.find((item) => found && item.classId === found.targetClassId && found.preferredSection && item.name === found.preferredSection) ||
-      db.sections.find((item) => item.classId === found?.targetClassId);
-    const nextRoll = section ? getNextSuggestedRoll(db, yearId, section.id) : 1;
+      sections.find(
+        (item) =>
+          found &&
+          item.classId === found.targetClassId &&
+          found.preferredSection &&
+          item.name === found.preferredSection
+      ) || sections.find((item) => item.classId === found?.targetClassId);
+    const nextRoll = section ? getNextSuggestedRoll(liveCatalog, yearId, section.id) : 1;
     setOpenId(id);
     setSectionId(section?.id ?? '');
     setRoll(String(nextRoll));
@@ -57,7 +126,7 @@ export function StudentAdmissionInbox({ db, yearId }: { db: MockDatabase; yearId
 
   const handleSectionChange = (nextSectionId: string) => {
     setSectionId(nextSectionId);
-    setRoll(String(getNextSuggestedRoll(db, yearId, nextSectionId)));
+    setRoll(String(getNextSuggestedRoll(liveCatalog, yearId, nextSectionId)));
   };
 
   const act = async (status: 'APPROVED' | 'REJECTED' | 'ADMITTED') => {
@@ -86,36 +155,50 @@ export function StudentAdmissionInbox({ db, yearId }: { db: MockDatabase; yearId
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'ADMITTED' | 'REJECTED'>('ALL');
   const [classFilter, setClassFilter] = useState<string>('ALL');
 
-  const totalCount = db.onlineAdmissions.length;
-  const pendingCount = db.onlineAdmissions.filter(
+  const totalCount = onlineAdmissions.length;
+  const pendingCount = onlineAdmissions.filter(
     (item) => item.status === 'NEW' || item.status === 'UNDER_REVIEW'
   ).length;
-  const admittedCount = db.onlineAdmissions.filter(
+  const admittedCount = onlineAdmissions.filter(
     (item) => item.status === 'ADMITTED' || item.status === 'APPROVED'
   ).length;
-  const rejectedCount = db.onlineAdmissions.filter(
+  const rejectedCount = onlineAdmissions.filter(
     (item) => item.status === 'REJECTED'
   ).length;
 
   const availableClasses = useMemo(() => {
-    return [...db.classes].sort((a, b) => a.numericValue - b.numericValue);
-  }, [db.classes]);
+    return [...classes].sort((a, b) => a.numericValue - b.numericValue);
+  }, [classes]);
 
   const rows = useMemo(() => {
-    return db.onlineAdmissions.map((item) => {
-      const grp = db.academicGroups.find((g) => g.id === item.targetGroupId);
+    return onlineAdmissions.map((item) => {
+      const cls =
+        classes.find((c) => c.id === item.targetClassId) ??
+        (item as OnlineAdmissionApplication & {
+          targetClass?: { name: string; nameBn?: string };
+        }).targetClass;
+      const grp =
+        academicGroups.find((g) => g.id === item.targetGroupId) ??
+        (item as OnlineAdmissionApplication & {
+          targetGroup?: { name: string; nameBn?: string };
+        }).targetGroup;
+      const clsName = cls
+        ? locale === 'bn'
+          ? cls.nameBn || cls.name
+          : cls.name
+        : '—';
       const typeKey = item.admissionType ?? (item.isReadmission ? 'READMISSION' : 'NEW');
       return {
         ...item,
         classLabel:
-          classLabel(db, item.targetClassId, locale) +
-          (grp ? ` · ${locale === 'bn' ? grp.nameBn : grp.name}` : ''),
+          clsName +
+          (grp ? ` · ${locale === 'bn' ? grp.nameBn || grp.name : grp.name}` : ''),
         typeLabel:
           locale === 'bn' ? ADMISSION_TYPE_META[typeKey].bn : ADMISSION_TYPE_META[typeKey].en,
-        when: formatDateShort(item.submittedAt, (locale === 'bn' ? 'bn' : 'en')),
+        when: formatDateShort(item.submittedAt, locale === 'bn' ? 'bn' : 'en'),
       };
     });
-  }, [db, locale]);
+  }, [onlineAdmissions, classes, academicGroups, locale]);
 
   const filteredRows = useMemo(() => {
     return rows.filter((item) => {
@@ -135,10 +218,14 @@ export function StudentAdmissionInbox({ db, yearId }: { db: MockDatabase; yearId
     });
   }, [rows, statusFilter, classFilter]);
 
+  if (loadingApps && !liveAdmissions) {
+    return <LoadingSkeleton />;
+  }
+
   if (admittedResult) {
     return (
       <AdmissionConfirmationView
-        db={db}
+        db={liveCatalog}
         result={admittedResult}
         onAdmitAnother={() => {
           setAdmittedResult(null);
@@ -152,7 +239,7 @@ export function StudentAdmissionInbox({ db, yearId }: { db: MockDatabase; yearId
     return (
       <UnifiedAdmissionForm
         mode="admin"
-        db={db}
+        db={liveCatalog}
         yearId={yearId}
         prefillApplication={fullFormApp}
         onAdminSuccess={(result) => {
@@ -164,8 +251,8 @@ export function StudentAdmissionInbox({ db, yearId }: { db: MockDatabase; yearId
     );
   }
 
-  const appClass = app ? db.classes.find((c) => c.id === app.targetClassId) : undefined;
-  const appGroup = app ? db.academicGroups.find((g) => g.id === app.targetGroupId) : undefined;
+  const appClass = app ? classes.find((c) => c.id === app.targetClassId) : undefined;
+  const appGroup = app ? academicGroups.find((g) => g.id === app.targetGroupId) : undefined;
   const appType = app ? (app.admissionType ?? (app.isReadmission ? 'READMISSION' : 'NEW')) : 'NEW';
   const appChecklist = app
     ? getRequiredDocumentChecklist(
@@ -373,7 +460,11 @@ export function StudentAdmissionInbox({ db, yearId }: { db: MockDatabase; yearId
         open={Boolean(app)}
         onClose={() => setOpenId(null)}
         title={app ? `${app.applicationNumber} · ${app.studentNameBn}` : ''}
-        description={app ? `${classLabel(db, app.targetClassId, locale)} · ${locale === 'bn' ? ADMISSION_TYPE_META[appType].bn : ADMISSION_TYPE_META[appType].en}` : undefined}
+        description={
+          app
+            ? `${appClass ? (locale === 'bn' ? appClass.nameBn || appClass.name : appClass.name) : '—'} · ${locale === 'bn' ? ADMISSION_TYPE_META[appType].bn : ADMISSION_TYPE_META[appType].en}`
+            : undefined
+        }
         maxWidth="max-w-2xl"
       >
         {app && (
@@ -452,7 +543,7 @@ export function StudentAdmissionInbox({ db, yearId }: { db: MockDatabase; yearId
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <FormField label={pick(' শাখা', 'Section')} required>
                     <Select value={sectionId} onChange={(event) => handleSectionChange(event.target.value)}>
-                      {db.sections
+                      {sections
                         .filter((item) => item.classId === app.targetClassId)
                         .map((item) => (
                           <option key={item.id} value={item.id}>
