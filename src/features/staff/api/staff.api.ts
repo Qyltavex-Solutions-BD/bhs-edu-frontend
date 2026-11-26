@@ -145,6 +145,18 @@ export const staffApi = baseApi.injectEndpoints({
       transformResponse: (response: Envelope<Staff>) => response.data,
       invalidatesTags: ['Staff', 'Audit'],
     }),
+    toggleStaffPortalAccess: builder.mutation<
+      Staff,
+      { id: string; isActive: boolean }
+    >({
+      query: ({ id, isActive }) => ({
+        url: `/staff/${id}/portal-access`,
+        method: 'PATCH',
+        body: { isActive },
+      }),
+      transformResponse: (response: Envelope<Staff>) => response.data,
+      invalidatesTags: ['Staff', 'Audit'],
+    }),
     saveDepartment: builder.mutation<Department, Partial<Department>>({
       query: ({ id, ...body }) => ({
         url: id ? `/staff/departments/${id}` : '/staff/departments',
@@ -179,6 +191,7 @@ export const {
   useUpdateStaffMutation,
   useDeleteStaffMutation,
   useCreateStaffPortalAccountMutation,
+  useToggleStaffPortalAccessMutation,
   useSaveDepartmentMutation,
   useRemoveDepartmentMutation,
   useSaveStaffStructureMutation,

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, Eye, KeyRound, Pencil, Plus, Search, Trash2, Users, X } from 'lucide-react';
+import { AlertTriangle, Eye, KeyRound, Pencil, Plus, Search, ShieldCheck, ShieldOff, Trash2, Users, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
@@ -16,6 +16,7 @@ import {
   useDeleteStaffMutation,
   useGetStaffPageQuery,
   useGetStaffStatisticsQuery,
+  useToggleStaffPortalAccessMutation,
   type StaffQueryParams,
 } from '../api/staff.api';
 
@@ -89,6 +90,34 @@ export function StaffDirectory({
   const { data: stats } = useGetStaffStatisticsQuery();
   const [deleteStaff, { isLoading: deleting }] = useDeleteStaffMutation();
   const [createPortalAccount, { isLoading: creatingPortal }] = useCreateStaffPortalAccountMutation();
+  const [togglePortalAccess, { isLoading: togglingPortal }] = useToggleStaffPortalAccessMutation();
+
+  const handleTogglePortalAccess = async (member: Staff) => {
+    const user = (member as any).user as { isActive: boolean } | undefined;
+    if (!user) return;
+    const nextState = !user.isActive;
+    try {
+      await togglePortalAccess({ id: member.id, isActive: nextState }).unwrap();
+      toast.success(
+        nextState
+          ? pick(
+              `${member.name}-এর পোর্টাল অ্যাক্সেস চালু হয়েছে।`,
+              `Portal access enabled for ${member.name}.`
+            )
+          : pick(
+              `${member.name}-এর পোর্টাল অ্যাক্সেস বন্ধ করা হয়েছে।`,
+              `Portal access disabled for ${member.name}.`
+            )
+      );
+    } catch (err: unknown) {
+      const e = err as { data?: { message?: string }; message?: string };
+      toast.error(
+        e?.data?.message ||
+          e?.message ||
+          pick('পোর্টাল অ্যাক্সেস পরিবর্তন করা যায়নি।', 'Could not update portal access.')
+      );
+    }
+  };
 
   const handleGrantPortalAccess = async (member: Staff) => {
     try {
@@ -350,17 +379,47 @@ export function StaffDirectory({
                       <div className="flex flex-col gap-1 items-start">
                         <StatusBadge enumName="StaffStatus" value={member.status} />
                         {(member as any).user ? (
-                          <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
-                            {(member as any).user.mustSetPassword
-                              ? pick('পোর্টাল: পাসওয়ার্ড বাকি', 'Portal: Pending Setup')
-                              : pick('পোর্টাল: সক্রিয়', 'Portal: Active')}
+                          <span
+                            className={`text-xs font-medium ${
+                              !(member as any).user.isActive
+                                ? 'text-destructive'
+                                : (member as any).user.mustSetPassword
+                                  ? 'text-amber-700 dark:text-amber-300'
+                                  : 'text-emerald-700 dark:text-emerald-300'
+                            }`}
+                          >
+                            {!(member as any).user.isActive
+                              ? pick('পোর্টাল: বন্ধ রয়েছে', 'Portal: Disabled')
+                              : (member as any).user.mustSetPassword
+                                ? pick('পোর্টাল: পাসওয়ার্ড বাকি', 'Portal: Pending Setup')
+                                : pick('পোর্টাল: সক্রিয়', 'Portal: Active')}
                           </span>
                         ) : null}
                       </div>
                     </td>
                     <td className="p-3.5 text-right whitespace-nowrap">
                       <div className="inline-flex items-center gap-1.5">
-                        {!(member as any).userId &&
+                        {(member as any).user ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={togglingPortal}
+                            onClick={() => handleTogglePortalAccess(member)}
+                            title={
+                              (member as any).user.isActive
+                                ? pick('পোর্টাল অ্যাক্সেস বন্ধ করুন', 'Disable Portal Access')
+                                : pick('পোর্টাল অ্যাক্সেস চালু করুন', 'Enable Portal Access')
+                            }
+                          >
+                            {(member as any).user.isActive ? (
+                              <ShieldOff className="w-4 h-4 text-amber-600" />
+                            ) : (
+                              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                            )}
+                          </Button>
+                        ) : (
+                          !(member as any).userId &&
                           member.status === StaffStatus.ACTIVE &&
                           (member.email || member.phone) && (
                             <Button
@@ -373,7 +432,8 @@ export function StaffDirectory({
                             >
                               <KeyRound className="w-4 h-4 text-emerald-600" />
                             </Button>
-                          )}
+                          )
+                        )}
                         <Button
                           type="button"
                           size="sm"

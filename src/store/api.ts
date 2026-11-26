@@ -54,12 +54,13 @@ export {
 } from '@/src/features/academic/api/academic.api';
 
 export {
-  useSaveParentMutation,
+  useGetParentsQuery,
+  useGetParentByIdQuery,
+  useGetParentCoverageQuery,
   useUpdateParentMutation,
   useRemoveParentMutation,
-  useLinkParentMutation,
   useUpdateParentLinkMutation,
-  useUnlinkParentMutation,
+  useCreateParentPortalAccountMutation,
 } from '@/src/features/parents/api/parents.api';
 
 export {

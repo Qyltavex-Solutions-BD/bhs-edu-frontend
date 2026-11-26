@@ -32,6 +32,9 @@ export interface DataTableProps<T extends object> {
     onSearch: (value: string) => void;
     meta?: { page: number; total: number; totalPages: number; hasNextPage: boolean; hasPreviousPage: boolean };
     onPage: (page: number) => void;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+    onSort?: (key: string) => void;
     onExport?: () => void;
     exporting?: boolean;
   };
@@ -104,6 +107,10 @@ export function DataTable<T extends object>({
   }, [server, data, sortedData, safePageIndex, pageSize]);
 
   const handleToggleSort = (key: string) => {
+    if (server?.onSort) {
+      server.onSort(key);
+      return;
+    }
     if (sortKey === key) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {
@@ -196,7 +203,7 @@ export function DataTable<T extends object>({
                 <tr>
                   {columns.map((col, idx) => {
                     const colId = col.id ?? col.accessorKey ?? `col-${idx}`;
-                    const canSort = !server && Boolean(col.accessorKey) && col.enableSorting !== false;
+                    const canSort = (!server || Boolean(server.onSort)) && Boolean(col.accessorKey) && col.enableSorting !== false;
                     const headerContent =
                       typeof col.header === 'function' ? col.header() : col.header;
                     return (
