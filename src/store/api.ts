@@ -68,7 +68,6 @@ export {
   useSaveDepartmentMutation,
   useRemoveDepartmentMutation,
   useSaveStaffStructureMutation,
-  useUpdateRfidCardStatusMutation,
 } from '@/src/features/staff/api/staff.api';
 
 export {
@@ -77,6 +76,7 @@ export {
   useUpdateEnrollmentMutation,
   useImportStudentsMutation,
   useIssueRfidCardMutation,
+  useUpdateRfidCardStatusMutation,
   useReplaceRfidCardMutation,
   useIssueTransferCertificateMutation,
   useIssueTestimonialMutation,

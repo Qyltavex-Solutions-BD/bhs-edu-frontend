@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -22,6 +22,7 @@ import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { DataTable } from '@/src/components/shared/DataTable';
+import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { PrintableIdCardSheet } from '@/src/components/print/PrintDocuments';
 import {
@@ -34,22 +35,31 @@ import {
   Textarea,
 } from '@/src/components/ui/primitives';
 import {
+  useGetRfidCardsQuery,
+  useGetUnassignedRfidStudentsQuery,
   useIssueRfidCardMutation,
   useReplaceRfidCardMutation,
   useUpdateRfidCardStatusMutation,
-} from '@/src/store/api';
-import { CardStatus, EnrollmentStatus, Gender, StudentStatus } from '@/src/types/enums';
-import type { MockDatabase } from '@/src/mocks/seed';
-import type { StudentRFIDcard } from '@/src/types/entities';
-import { classLabel, errorMessage, studentInitials } from './studentShared';
+} from '@/src/features/students/api/students.api';
+import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
+import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
+import { CardStatus, Gender, StudentStatus } from '@/src/types/enums';
+import { errorMessage, resolveSchoolProfile, studentInitials } from './studentShared';
 
-interface EnrichedCard extends StudentRFIDcard {
+interface EnrichedCard {
+  id: string;
+  studentId: string;
+  cardNumber: string;
+  status: CardStatus;
+  issuedAt: string;
+  remarks?: string | null;
   studentNameBn: string;
   studentNameEn: string;
   studentCode: string;
   studentStatus: StudentStatus;
   studentGender: Gender;
   bloodGroup?: string | null;
+  photo?: string | null;
   classId: string;
   classNumeric: number;
   classLabel: string;
@@ -71,23 +81,15 @@ interface UnassignedStudentRow {
   sectionLabel: string;
   roll: number;
   guardianPhone: string;
-  lastCard: StudentRFIDcard | null;
+  lastCard: { id: string; cardNumber: string; status: CardStatus } | null;
 }
 
-function suggestNextCardNumber(db: MockDatabase, classNumeric?: number): string {
+function formatSuggestedCardNumber(seq: number, classNumeric?: number): string {
   const prefix = classNumeric ? `RFID-${String(classNumeric).padStart(2, '0')}-` : 'RFID-26-';
-  let maxNum = 8840;
-  db.rfidCards.forEach((c) => {
-    const match = c.cardNumber.match(/(\d+)$/);
-    if (match) {
-      const val = Number(match[1]);
-      if (Number.isFinite(val) && val > maxNum) maxNum = val;
-    }
-  });
-  return `${prefix}${maxNum + 1}`;
+  return `${prefix}${seq}`;
 }
 
-export function StudentRfidCards({ db }: { db: MockDatabase }) {
+export function StudentRfidCards() {
   const { locale, pick } = useI18n();
   const [issueCard, { isLoading: issuing }] = useIssueRfidCardMutation();
   const [updateCardStatus, { isLoading: updating }] = useUpdateRfidCardStatusMutation();
@@ -95,9 +97,21 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
 
   const [activeTab, setActiveTab] = useState<'registry' | 'unassigned'>('registry');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [classId, setClassId] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | CardStatus>('ALL');
+  const [registryPage, setRegistryPage] = useState(1);
+  const [unassignedPage, setUnassignedPage] = useState(1);
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchQuery.trim());
+      setRegistryPage(1);
+      setUnassignedPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
   // Modals state
   const [issueOpen, setIssueOpen] = useState(false);
@@ -116,179 +130,108 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
 
   const [printCardIds, setPrintCardIds] = useState<string[] | null>(null);
 
-  const activeYear = db.academicYears.find((y) => y.isActive) ?? db.academicYears[0];
+  const { data: liveYears = [] } = useGetAcademicYearsQuery();
+  const { data: liveClasses = [] } = useGetSchoolClassesQuery({ isActive: true });
+
+  const {
+    data: cardsRes,
+    isLoading: loadingCards,
+    isFetching: fetchingCards,
+  } = useGetRfidCardsQuery({
+    page: registryPage,
+    limit: 15,
+    search: debouncedSearch || undefined,
+    classId: classId !== 'ALL' ? classId : undefined,
+    status: statusFilter !== 'ALL' ? statusFilter : undefined,
+  });
+
+  const {
+    data: unassignedRes,
+    isLoading: loadingUnassigned,
+    isFetching: fetchingUnassigned,
+  } = useGetUnassignedRfidStudentsQuery({
+    page: activeTab === 'unassigned' ? unassignedPage : 1,
+    limit: activeTab === 'unassigned' ? 15 : 100,
+    search: activeTab === 'unassigned' ? debouncedSearch || undefined : undefined,
+    classId: activeTab === 'unassigned' && classId !== 'ALL' ? classId : undefined,
+  });
+
+  const activeYear = liveYears.find((y) => y.isActive) ?? liveYears[0];
   const sortedClasses = useMemo(
-    () => [...db.classes].sort((a, b) => a.numericValue - b.numericValue),
-    [db.classes]
+    () => [...liveClasses].sort((a, b) => a.numericValue - b.numericValue),
+    [liveClasses]
   );
 
-  // Helper to resolve latest/active enrollment and guardian phone for a student
-  const studentLookup = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        classId: string;
-        classNumeric: number;
-        classLabel: string;
-        sectionLabel: string;
-        roll: number;
-        guardianPhone: string;
-      }
-    >();
-
-    db.students.forEach((student) => {
-      const enrollment =
-        db.enrollments.find(
-          (e) => e.studentId === student.id && e.status === EnrollmentStatus.ACTIVE
-        ) ??
-        db.enrollments
-          .filter((e) => e.studentId === student.id)
-          .sort((a, b) => b.enrollmentDate.localeCompare(a.enrollmentDate))[0];
-
-      const cls = enrollment ? db.classes.find((c) => c.id === enrollment.classId) : null;
-      const sec = enrollment ? db.sections.find((s) => s.id === enrollment.sectionId) : null;
-      const link =
-        db.parentStudents.find((ps) => ps.studentId === student.id && ps.isPrimary) ??
-        db.parentStudents.find((ps) => ps.studentId === student.id);
-      const parent = link ? db.parents.find((p) => p.id === link.parentId) : null;
-
-      map.set(student.id, {
-        classId: enrollment?.classId ?? '',
-        classNumeric: cls?.numericValue ?? 99,
-        classLabel: enrollment ? classLabel(db, enrollment.classId, locale) : '—',
-        sectionLabel: sec?.name ?? '—',
-        roll: enrollment?.roll ?? 0,
-        guardianPhone: parent?.phone ?? '—',
-      });
-    });
-
-    return map;
-  }, [db, locale]);
-
-  // All enriched RFID cards
   const allCards = useMemo<EnrichedCard[]>(() => {
-    return db.rfidCards.map((card) => {
-      const student = db.students.find((s) => s.id === card.studentId);
-      const meta = studentLookup.get(card.studentId);
-      const hasOtherActiveCard = db.rfidCards.some(
-        (other) =>
-          other.id !== card.id &&
-          other.studentId === card.studentId &&
-          other.status === CardStatus.ACTIVE
-      );
+    return (cardsRes?.items ?? []).map((raw: any) => {
+      const student = raw.student ?? {};
+      const enr = student.enrollments?.[0];
+      const cls = enr?.schoolClass;
+      const sec = enr?.section;
+      const parent = student.parents?.[0]?.parent;
       return {
-        ...card,
-        studentNameBn: student?.nameBn || student?.nameEn || '—',
-        studentNameEn: student?.nameEn || '',
-        studentCode: student?.studentId ?? '—',
-        studentStatus: student?.status ?? StudentStatus.ACTIVE,
-        studentGender: student?.gender ?? Gender.MALE,
-        bloodGroup: student?.bloodGroup,
-        classId: meta?.classId ?? '',
-        classNumeric: meta?.classNumeric ?? 99,
-        classLabel: meta?.classLabel ?? '—',
-        sectionLabel: meta?.sectionLabel ?? '—',
-        roll: meta?.roll ?? 0,
-        guardianPhone: meta?.guardianPhone ?? '—',
-        hasOtherActiveCard,
+        id: raw.id,
+        studentId: raw.studentId,
+        cardNumber: raw.cardNumber,
+        status: raw.status as CardStatus,
+        issuedAt: raw.issuedAt,
+        remarks: raw.remarks,
+        studentNameBn: student.nameBn || student.nameEn || '—',
+        studentNameEn: student.nameEn || '',
+        studentCode: student.studentId ?? '—',
+        studentStatus: (student.status as StudentStatus) ?? StudentStatus.ACTIVE,
+        studentGender: (student.gender as Gender) ?? Gender.MALE,
+        bloodGroup: student.bloodGroup,
+        photo: student.photo ?? null,
+        classId: enr?.classId ?? '',
+        classNumeric: cls?.numericValue ?? 99,
+        classLabel: cls ? (locale === 'bn' ? cls.nameBn || cls.name : cls.name) : '—',
+        sectionLabel: sec?.name ?? '—',
+        roll: enr?.roll ?? 0,
+        guardianPhone: parent?.phone ?? '—',
+        hasOtherActiveCard: Boolean(raw.hasOtherActiveCard),
       };
     });
-  }, [db, studentLookup]);
+  }, [cardsRes?.items, locale]);
 
-  // Active students who do NOT currently hold an ACTIVE RFID card
   const unassignedStudents = useMemo<UnassignedStudentRow[]>(() => {
-    const activeCardStudentIds = new Set(
-      db.rfidCards.filter((c) => c.status === CardStatus.ACTIVE).map((c) => c.studentId)
-    );
+    return (unassignedRes?.items ?? []).map((s: any) => {
+      const enr = s.enrollments?.[0];
+      const cls = enr?.schoolClass;
+      const sec = enr?.section;
+      const parent = s.parents?.[0]?.parent;
+      const lastCard = s.rfidcards?.[0] ?? null;
+      return {
+        id: s.id,
+        studentCode: s.studentId,
+        nameBn: s.nameBn || s.nameEn,
+        nameEn: s.nameEn,
+        gender: (s.gender as Gender) ?? Gender.MALE,
+        classId: enr?.classId ?? '',
+        classNumeric: cls?.numericValue ?? 99,
+        classLabel: cls ? (locale === 'bn' ? cls.nameBn || cls.name : cls.name) : '—',
+        sectionLabel: sec?.name ?? '—',
+        roll: enr?.roll ?? 0,
+        guardianPhone: parent?.phone ?? '—',
+        lastCard,
+      };
+    });
+  }, [unassignedRes?.items, locale]);
 
-    return db.students
-      .filter((s) => s.status === StudentStatus.ACTIVE && !activeCardStudentIds.has(s.id))
-      .map((s) => {
-        const meta = studentLookup.get(s.id);
-        const previousCards = db.rfidCards
-          .filter((c) => c.studentId === s.id)
-          .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-        return {
-          id: s.id,
-          studentCode: s.studentId,
-          nameBn: s.nameBn || s.nameEn,
-          nameEn: s.nameEn,
-          gender: s.gender,
-          classId: meta?.classId ?? '',
-          classNumeric: meta?.classNumeric ?? 99,
-          classLabel: meta?.classLabel ?? '—',
-          sectionLabel: meta?.sectionLabel ?? '—',
-          roll: meta?.roll ?? 0,
-          guardianPhone: meta?.guardianPhone ?? '—',
-          lastCard: previousCards[0] ?? null,
-        };
-      })
-      .sort(
-        (a, b) =>
-          a.classNumeric - b.classNumeric ||
-          a.sectionLabel.localeCompare(b.sectionLabel) ||
-          a.roll - b.roll
-      );
-  }, [db, studentLookup]);
+  const summary = cardsRes?.summary ?? unassignedRes?.summary ?? {
+    totalActiveStudents: 0,
+    activeCardCount: 0,
+    lostOrDamagedCount: 0,
+    blockedCount: 0,
+    totalCardsCount: 0,
+    unassignedCount: 0,
+  };
+  const schoolProfile = resolveSchoolProfile(cardsRes?.school ?? unassignedRes?.school);
+  const suggestedSeq = cardsRes?.suggestedNextSeq ?? unassignedRes?.suggestedNextSeq ?? 8841;
 
-  // Summary KPIs
-  const totalActiveStudents = db.students.filter((s) => s.status === StudentStatus.ACTIVE).length;
-  const activeCardCount = allCards.filter((c) => c.status === CardStatus.ACTIVE).length;
-  const lostOrDamagedCount = allCards.filter(
-    (c) => c.status === CardStatus.LOST || c.status === CardStatus.DAMAGED
-  ).length;
-  const blockedCount = allCards.filter((c) => c.status === CardStatus.BLOCKED).length;
-  const coveragePct = totalActiveStudents
-    ? Math.round((activeCardCount / totalActiveStudents) * 100)
+  const coveragePct = summary.totalActiveStudents
+    ? Math.round((summary.activeCardCount / summary.totalActiveStudents) * 100)
     : 0;
-
-  // Filtered rows for active tab
-  const filteredCards = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return allCards
-      .filter((c) => (classId === 'ALL' ? true : c.classId === classId))
-      .filter((c) => (statusFilter === 'ALL' ? true : c.status === statusFilter))
-      .filter((c) => {
-        if (!q) return true;
-        return (
-          c.cardNumber.toLowerCase().includes(q) ||
-          c.studentNameBn.toLowerCase().includes(q) ||
-          c.studentNameEn.toLowerCase().includes(q) ||
-          c.studentCode.toLowerCase().includes(q) ||
-          c.classLabel.toLowerCase().includes(q)
-        );
-      })
-      .sort((a, b) => {
-        // Active first, then lost/damaged, then blocked
-        const order: Record<CardStatus, number> = {
-          [CardStatus.ACTIVE]: 0,
-          [CardStatus.LOST]: 1,
-          [CardStatus.DAMAGED]: 2,
-          [CardStatus.BLOCKED]: 3,
-        };
-        return (
-          order[a.status] - order[b.status] ||
-          a.classNumeric - b.classNumeric ||
-          a.roll - b.roll
-        );
-      });
-  }, [allCards, classId, statusFilter, searchQuery]);
-
-  const filteredUnassigned = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return unassignedStudents
-      .filter((s) => (classId === 'ALL' ? true : s.classId === classId))
-      .filter((s) => {
-        if (!q) return true;
-        return (
-          s.nameBn.toLowerCase().includes(q) ||
-          s.nameEn.toLowerCase().includes(q) ||
-          s.studentCode.toLowerCase().includes(q) ||
-          String(s.roll).includes(q) ||
-          s.classLabel.toLowerCase().includes(q)
-        );
-      });
-  }, [unassignedStudents, classId, searchQuery]);
 
   const hasActiveFilters =
     Boolean(searchQuery.trim()) ||
@@ -297,11 +240,13 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
 
   const resetFilters = () => {
     setSearchQuery('');
+    setDebouncedSearch('');
     setClassId('ALL');
     setStatusFilter('ALL');
+    setRegistryPage(1);
+    setUnassignedPage(1);
   };
 
-  // Selection helpers for batch ID card printing
   const toggleSelectCard = (id: string) => {
     setSelectedCardIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
@@ -309,8 +254,8 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
   };
 
   const allFilteredActiveIds = useMemo(
-    () => filteredCards.filter((c) => c.status === CardStatus.ACTIVE).map((c) => c.id),
-    [filteredCards]
+    () => allCards.filter((c) => c.status === CardStatus.ACTIVE).map((c) => c.id),
+    [allCards]
   );
 
   const toggleSelectAllFiltered = () => {
@@ -324,22 +269,17 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
     }
   };
 
-  // Open Issue Modal (optionally pre-selecting an unassigned student)
   const openIssueModal = (preselectStudentId?: string) => {
-    const meta = preselectStudentId ? studentLookup.get(preselectStudentId) : null;
+    const meta = preselectStudentId
+      ? unassignedStudents.find((s) => s.id === preselectStudentId)
+      : null;
     setIssueForm({
       studentId: preselectStudentId ?? '',
-      cardNumber: suggestNextCardNumber(db, meta?.classNumeric),
+      cardNumber: formatSuggestedCardNumber(suggestedSeq, meta?.classNumeric),
       remarks: '',
     });
     setIssueOpen(true);
   };
-
-  const duplicateIssueNumber = useMemo(() => {
-    const num = issueForm.cardNumber.trim().toLowerCase();
-    if (!num) return false;
-    return db.rfidCards.some((c) => c.cardNumber.trim().toLowerCase() === num);
-  }, [db.rfidCards, issueForm.cardNumber]);
 
   const handleIssueSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -347,12 +287,8 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
       toast.error(pick('একজন শিক্ষার্থী নির্বাচন করুন।', 'Select a student.'));
       return;
     }
-    if (!issueForm.cardNumber.trim() || duplicateIssueNumber) {
-      toast.error(
-        duplicateIssueNumber
-          ? pick('এই কার্ড নম্বরটি আগেই ব্যবহৃত হয়েছে।', 'This card number is already issued.')
-          : pick('কার্ড নম্বর দিন।', 'Card number is required.')
-      );
+    if (!issueForm.cardNumber.trim()) {
+      toast.error(pick('কার্ড নম্বর দিন।', 'Card number is required.'));
       return;
     }
     try {
@@ -370,7 +306,6 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
     }
   };
 
-  // Open Status Modal
   const openStatusModal = (card: EnrichedCard) => {
     setStatusTarget(card);
     setNextStatus(card.status);
@@ -392,7 +327,6 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
     }
   };
 
-  // Open Replace Modal
   const openReplaceModal = (card: EnrichedCard) => {
     setReplaceTarget(card);
     setReplaceOldStatus(
@@ -402,25 +336,15 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
           ? CardStatus.BLOCKED
           : CardStatus.LOST
     );
-    setReplaceNewNumber(suggestNextCardNumber(db, card.classNumeric));
+    setReplaceNewNumber(formatSuggestedCardNumber(suggestedSeq, card.classNumeric));
     setReplaceRemarks('');
   };
-
-  const duplicateReplaceNumber = useMemo(() => {
-    const num = replaceNewNumber.trim().toLowerCase();
-    if (!num) return false;
-    return db.rfidCards.some((c) => c.cardNumber.trim().toLowerCase() === num);
-  }, [db.rfidCards, replaceNewNumber]);
 
   const handleReplaceSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!replaceTarget) return;
-    if (!replaceNewNumber.trim() || duplicateReplaceNumber) {
-      toast.error(
-        duplicateReplaceNumber
-          ? pick('এই নতুন কার্ড নম্বরটি আগেই ব্যবহৃত হয়েছে।', 'This card number is already in use.')
-          : pick('নতুন কার্ড নম্বর দিন।', 'New card number is required.')
-      );
+    if (!replaceNewNumber.trim()) {
+      toast.error(pick('নতুন কার্ড নম্বর দিন।', 'New card number is required.'));
       return;
     }
     try {
@@ -442,10 +366,12 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
     }
   };
 
-  // Printable ID Cards payload
   const printableCards = useMemo(() => {
     if (!printCardIds || printCardIds.length === 0) return [];
-    const validUntil = `${activeYear?.name ?? '2026'}-12-31`;
+    const yearMatch = activeYear?.name?.match(/\d{4}/)?.[0];
+    const validUntil = activeYear?.endDate
+      ? String(activeYear.endDate).slice(0, 10)
+      : `${yearMatch ?? new Date().getFullYear()}-12-31`;
     return allCards
       .filter((c) => printCardIds.includes(c.id))
       .map((c) => ({
@@ -456,13 +382,20 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
         bloodGroup: c.bloodGroup,
         phone: c.guardianPhone,
         validUntil,
+        photo: c.photo,
+        studentIdCode: c.studentCode,
+        rfidNumber: c.cardNumber,
+        className: c.classLabel,
+        sectionName: c.sectionLabel,
+        roll: formatNumber(c.roll, locale),
+        guardianPhone: c.guardianPhone,
       }));
   }, [printCardIds, allCards, activeYear, locale, pick]);
 
   const handleExportCsv = () => {
     if (activeTab === 'registry') {
       exportToCsv(
-        filteredCards.map((c) => ({
+        allCards.map((c) => ({
           cardNumber: c.cardNumber,
           studentId: c.studentCode,
           nameBn: c.studentNameBn,
@@ -471,14 +404,14 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
           section: c.sectionLabel,
           roll: c.roll,
           status: c.status,
-          issuedAt: c.issuedAt.slice(0, 10),
+          issuedAt: String(c.issuedAt).slice(0, 10),
           remarks: c.remarks ?? '',
         })),
         'rfid-identity-cards.csv'
       );
     } else {
       exportToCsv(
-        filteredUnassigned.map((s) => ({
+        unassignedStudents.map((s) => ({
           studentId: s.studentCode,
           nameBn: s.nameBn,
           nameEn: s.nameEn,
@@ -493,11 +426,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
     }
   };
 
-  const statusOptions: Array<{
-    value: CardStatus;
-    label: string;
-    desc: string;
-  }> = [
+  const statusOptions: Array<{ value: CardStatus; label: string; desc: string }> = [
     {
       value: CardStatus.ACTIVE,
       label: pick('সক্রিয় (Active)', 'Active'),
@@ -520,9 +449,11 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
     },
   ];
 
+  if (loadingCards && !cardsRes) return <LoadingSkeleton rows={6} />;
+
   return (
     <div className="space-y-5">
-      {/* 1. 4-Column Hairline-Divided Coverage & Card Health Strip */}
+      {/* 1. 4-Column KPI Summary Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
@@ -530,10 +461,11 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
-              {formatNumber(activeCardCount, locale)}
+              {formatNumber(summary.activeCardCount, locale)}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
-              / {formatNumber(totalActiveStudents, locale)} {pick('সক্রিয় শিক্ষার্থী', 'active students')}
+              / {formatNumber(summary.totalActiveStudents, locale)}{' '}
+              {pick('সক্রিয় শিক্ষার্থী', 'active students')}
             </span>
           </div>
           <p className="text-sm text-muted-foreground tabular-nums">
@@ -550,7 +482,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(unassignedStudents.length, locale)}
+              {formatNumber(summary.unassignedCount, locale)}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
               {pick('জনের কার্ড বাকি', 'pending card')}
@@ -573,10 +505,10 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
             <span
               className={cn(
                 'text-2xl sm:text-3xl font-extrabold tracking-tight',
-                lostOrDamagedCount > 0 ? 'text-warning' : 'text-foreground'
+                summary.lostOrDamagedCount > 0 ? 'text-warning' : 'text-foreground'
               )}
             >
-              {formatNumber(lostOrDamagedCount, locale)}
+              {formatNumber(summary.lostOrDamagedCount, locale)}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি রিপ্লেসমেন্ট প্রয়োজন', 'need replacement')}
@@ -593,7 +525,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(blockedCount, locale)}
+              {formatNumber(summary.blockedCount, locale)}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
               {pick('টি নিষ্ক্রিয় রেকর্ড', 'deactivated records')}
@@ -618,14 +550,14 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
             aria-selected={activeTab === 'registry'}
             onClick={() => setActiveTab('registry')}
             className={cn(
-              'px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
+              'px-3.5 py-2.5 text-base font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
               activeTab === 'registry'
                 ? 'border-primary text-primary font-semibold'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
             {pick('ইস্যুকৃত কার্ড রেজিস্টার', 'Issued Card Registry')}{' '}
-            <span className="text-xs opacity-75">({formatNumber(allCards.length, locale)})</span>
+            <span className="text-sm opacity-75">({formatNumber(summary.totalCardsCount, locale)})</span>
           </button>
 
           <button
@@ -634,15 +566,15 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
             aria-selected={activeTab === 'unassigned'}
             onClick={() => setActiveTab('unassigned')}
             className={cn(
-              'px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
+              'px-3.5 py-2.5 text-base font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
               activeTab === 'unassigned'
                 ? 'border-primary text-primary font-semibold'
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
             {pick('কার্ডবিহীন শিক্ষার্থী', 'Unassigned Active Students')}{' '}
-            <span className="text-xs opacity-75">
-              ({formatNumber(unassignedStudents.length, locale)})
+            <span className="text-sm opacity-75">
+              ({formatNumber(summary.unassignedCount, locale)})
             </span>
           </button>
         </div>
@@ -656,16 +588,10 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={
                   activeTab === 'registry'
-                    ? pick(
-                        'কার্ড নং, নাম বা আইডি খুঁজুন...',
-                        'Search card no, name, or ID...'
-                      )
-                    : pick(
-                        'নাম, আইডি বা রোল খুঁজুন...',
-                        'Search name, ID, or roll...'
-                      )
+                    ? pick('কার্ড নং, নাম বা আইডি খুঁজুন...', 'Search card no, name, or ID...')
+                    : pick('নাম বা আইডি খুঁজুন...', 'Search name or ID...')
                 }
-                className="pl-9 pr-9 h-9 text-sm w-full"
+                className="pl-9 pr-9 h-10 text-base w-full"
               />
               {searchQuery && (
                 <button
@@ -682,8 +608,12 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
             <div className="flex flex-wrap items-center gap-2">
               <Select
                 value={classId}
-                onChange={(e) => setClassId(e.target.value)}
-                className="w-auto min-w-[130px] h-9 text-sm"
+                onChange={(e) => {
+                  setClassId(e.target.value);
+                  setRegistryPage(1);
+                  setUnassignedPage(1);
+                }}
+                className="w-auto min-w-[130px] h-10 text-base"
                 aria-label={pick('শ্রেণি', 'Class')}
               >
                 <option value="ALL">{pick('সকল শ্রেণি', 'All classes')}</option>
@@ -697,8 +627,11 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
               {activeTab === 'registry' && (
                 <Select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as 'ALL' | CardStatus)}
-                  className="w-auto min-w-[130px] h-9 text-sm"
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value as 'ALL' | CardStatus);
+                    setRegistryPage(1);
+                  }}
+                  className="w-auto min-w-[130px] h-10 text-base"
                   aria-label={pick('কার্ডের অবস্থা', 'Card status')}
                 >
                   <option value="ALL">{pick('সকল অবস্থা', 'All statuses')}</option>
@@ -714,9 +647,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                   variant="outline"
                   size="sm"
                   className="h-9"
-                  disabled={
-                    selectedCardIds.length === 0 && allFilteredActiveIds.length === 0
-                  }
+                  disabled={selectedCardIds.length === 0 && allFilteredActiveIds.length === 0}
                   onClick={() =>
                     setPrintCardIds(
                       selectedCardIds.length > 0 ? selectedCardIds : allFilteredActiveIds
@@ -742,8 +673,8 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                 onClick={handleExportCsv}
                 disabled={
                   activeTab === 'registry'
-                    ? filteredCards.length === 0
-                    : filteredUnassigned.length === 0
+                    ? allCards.length === 0
+                    : unassignedStudents.length === 0
                 }
               >
                 <Download className="w-3.5 h-3.5" />
@@ -755,7 +686,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                 size="sm"
                 className="h-9"
                 onClick={() => openIssueModal()}
-                disabled={unassignedStudents.length === 0}
+                disabled={summary.unassignedCount === 0}
               >
                 <Plus className="w-4 h-4" />
                 <span>{pick('নতুন কার্ড ইস্যু', 'Issue Card')}</span>
@@ -763,16 +694,16 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border text-sm text-muted-foreground">
             <span className="tabular-nums">
               {activeTab === 'registry'
                 ? pick(
-                    `মোট ${formatNumber(allCards.length, locale)}টি কার্ডের মধ্যে ${formatNumber(filteredCards.length, locale)}টি দেখানো হচ্ছে · প্রতি শিক্ষার্থীর জন্য সর্বোচ্চ ১টি সক্রিয় কার্ড অনুমোদিত`,
-                    `Showing ${filteredCards.length} of ${allCards.length} cards · Strictly 1 active card allowed per student`
+                    `মোট ${formatNumber(cardsRes?.meta.total ?? 0, locale)}টি কার্ড · প্রতি শিক্ষার্থীর জন্য সর্বোচ্চ ১টি সক্রিয় কার্ড অনুমোদিত`,
+                    `${cardsRes?.meta.total ?? 0} matching cards · Strictly 1 active card allowed per student`
                   )
                 : pick(
-                    `মোট ${formatNumber(unassignedStudents.length, locale)} জন সক্রিয় শিক্ষার্থীর এখনো কোনো সক্রিয় RFID কার্ড নেই`,
-                    `${unassignedStudents.length} active students currently have no active RFID card`
+                    `মোট ${formatNumber(unassignedRes?.meta.total ?? 0, locale)} জন সক্রিয় শিক্ষার্থীর এখনো কোনো সক্রিয় RFID কার্ড নেই`,
+                    `${unassignedRes?.meta.total ?? 0} active students currently have no active RFID card`
                   )}
             </span>
 
@@ -790,19 +721,25 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
         </div>
       </Card>
 
-      {/* 3. Tab Content Tables */}
+      {/* 3. Tab Content Tables with Server-Side Pagination */}
       {activeTab === 'registry' ? (
         <DataTable
-          data={filteredCards}
+          data={allCards}
           hideToolbar
-          pageSize={15}
+          isLoading={fetchingCards}
+          server={{
+            search: searchQuery,
+            onSearch: setSearchQuery,
+            meta: cardsRes?.meta,
+            onPage: setRegistryPage,
+          }}
           emptyTitle={
-            allCards.length === 0
+            summary.totalCardsCount === 0
               ? pick('এখনো কোনো RFID কার্ড ইস্যু করা হয়নি', 'No RFID cards issued yet')
               : pick('ফিল্টার অনুযায়ী কোনো কার্ড পাওয়া যায়নি', 'No matching RFID cards found')
           }
           emptyAction={
-            allCards.length === 0 ? (
+            summary.totalCardsCount === 0 ? (
               <Button variant="primary" size="sm" onClick={() => openIssueModal()}>
                 <Plus className="w-4 h-4" />
                 <span>{pick('প্রথম কার্ড ইস্যু করুন', 'Issue first card')}</span>
@@ -843,10 +780,10 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
               header: pick('কার্ড নম্বর ও ইস্যু', 'Card No. & Issued'),
               cell: ({ row }) => (
                 <div className="whitespace-nowrap tabular-nums">
-                  <span className="font-mono text-sm font-semibold text-foreground block">
+                  <span className="font-mono text-base font-semibold text-foreground block">
                     {row.original.cardNumber}
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-sm text-muted-foreground">
                     {formatDateShort(row.original.issuedAt, locale)}
                   </span>
                 </div>
@@ -859,7 +796,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                 <div className="flex items-center gap-3 min-w-[200px]">
                   <div
                     className={cn(
-                      'w-8 h-8 rounded-[var(--radius)] flex items-center justify-center font-semibold text-xs shrink-0 border border-border',
+                      'w-8 h-8 rounded-[var(--radius)] flex items-center justify-center font-semibold text-sm shrink-0 border border-border',
                       row.original.studentGender === Gender.FEMALE
                         ? 'bg-secondary/10 text-secondary'
                         : 'bg-primary/10 text-primary'
@@ -874,7 +811,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                     >
                       {row.original.studentNameBn}
                     </Link>
-                    <span className="block text-xs font-mono text-muted-foreground truncate">
+                    <span className="block text-sm font-mono text-muted-foreground truncate">
                       {row.original.studentCode}
                       {row.original.studentStatus !== StudentStatus.ACTIVE && (
                         <span className="font-sans text-warning">
@@ -908,7 +845,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                 <div className="space-y-1 max-w-[240px]">
                   <StatusBadge enumName="CardStatus" value={row.original.status} />
                   {row.original.remarks && (
-                    <span className="block text-xs text-muted-foreground truncate">
+                    <span className="block text-sm text-muted-foreground truncate">
                       {row.original.remarks}
                     </span>
                   )}
@@ -928,7 +865,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-8 px-2.5 text-xs"
+                      className="h-8 px-2.5 text-sm"
                       onClick={() => openStatusModal(row.original)}
                     >
                       <Settings2 className="w-3.5 h-3.5" />
@@ -944,7 +881,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                             ? 'primary'
                             : 'outline'
                         }
-                        className="h-8 px-2.5 text-xs"
+                        className="h-8 px-2.5 text-sm"
                         onClick={() => openReplaceModal(row.original)}
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
@@ -978,11 +915,17 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
         />
       ) : (
         <DataTable
-          data={filteredUnassigned}
+          data={unassignedStudents}
           hideToolbar
-          pageSize={15}
+          isLoading={loadingUnassigned || fetchingUnassigned}
+          server={{
+            search: searchQuery,
+            onSearch: setSearchQuery,
+            meta: unassignedRes?.meta,
+            onPage: setUnassignedPage,
+          }}
           emptyTitle={
-            unassignedStudents.length === 0
+            summary.unassignedCount === 0
               ? pick(
                   'সকল সক্রিয় শিক্ষার্থীর হাতে ইতিমধ্যে RFID কার্ড রয়েছে',
                   'All active students already hold an active RFID card'
@@ -1002,7 +945,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
               accessorKey: 'roll',
               header: pick('রোল', 'Roll'),
               cell: ({ row }) => (
-                <span className="font-mono text-sm font-semibold text-foreground tabular-nums">
+                <span className="font-mono text-base font-semibold text-foreground tabular-nums">
                   {String(row.original.roll).padStart(2, '0')}
                 </span>
               ),
@@ -1014,7 +957,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                 <div className="flex items-center gap-3 min-w-[200px]">
                   <div
                     className={cn(
-                      'w-8 h-8 rounded-[var(--radius)] flex items-center justify-center font-semibold text-xs shrink-0 border border-border',
+                      'w-8 h-8 rounded-[var(--radius)] flex items-center justify-center font-semibold text-sm shrink-0 border border-border',
                       row.original.gender === Gender.FEMALE
                         ? 'bg-secondary/10 text-secondary'
                         : 'bg-primary/10 text-primary'
@@ -1029,7 +972,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                     >
                       {row.original.nameBn}
                     </Link>
-                    <span className="block text-xs font-mono text-muted-foreground truncate">
+                    <span className="block text-sm font-mono text-muted-foreground truncate">
                       {row.original.studentCode}
                     </span>
                   </div>
@@ -1053,13 +996,13 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
               cell: ({ row }) =>
                 row.original.lastCard ? (
                   <div className="flex items-center gap-2 whitespace-nowrap">
-                    <span className="font-mono text-xs text-foreground">
+                    <span className="font-mono text-sm text-foreground">
                       {row.original.lastCard.cardNumber}
                     </span>
                     <StatusBadge enumName="CardStatus" value={row.original.lastCard.status} />
                   </div>
                 ) : (
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-sm text-muted-foreground">
                     {pick('কখনো ইস্যু হয়নি', 'Never issued')}
                   </span>
                 ),
@@ -1068,7 +1011,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
               accessorKey: 'guardianPhone',
               header: pick('অভিভাবক মোবাইল', 'Guardian Phone'),
               cell: ({ row }) => (
-                <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                <span className="font-mono text-sm text-muted-foreground tabular-nums">
                   {row.original.guardianPhone}
                 </span>
               ),
@@ -1082,7 +1025,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                   <Button
                     size="sm"
                     variant="primary"
-                    className="h-8 px-3 text-xs"
+                    className="h-8 px-3 text-sm"
                     onClick={() => openIssueModal(row.original.id)}
                   >
                     <CreditCard className="w-3.5 h-3.5" />
@@ -1111,11 +1054,12 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
               value={issueForm.studentId}
               onChange={(e) => {
                 const sid = e.target.value;
-                const meta = studentLookup.get(sid);
+                const meta = unassignedStudents.find((s) => s.id === sid);
                 setIssueForm((prev) => ({
                   ...prev,
                   studentId: sid,
-                  cardNumber: prev.cardNumber || suggestNextCardNumber(db, meta?.classNumeric),
+                  cardNumber:
+                    prev.cardNumber || formatSuggestedCardNumber(suggestedSeq, meta?.classNumeric),
                 }));
               }}
             >
@@ -1129,15 +1073,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
             </Select>
           </FormField>
 
-          <FormField
-            label={pick('RFID কার্ড নম্বর / UID', 'RFID Card Number / UID')}
-            required
-            error={
-              duplicateIssueNumber
-                ? pick('এই কার্ড নম্বরটি আগেই ব্যবহৃত হয়েছে।', 'This card number is already issued.')
-                : undefined
-            }
-          >
+          <FormField label={pick('RFID কার্ড নম্বর / UID', 'RFID Card Number / UID')} required>
             <div className="flex items-center gap-2">
               <Input
                 value={issueForm.cardNumber}
@@ -1151,10 +1087,12 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                 size="sm"
                 className="h-10 shrink-0"
                 onClick={() => {
-                  const meta = issueForm.studentId ? studentLookup.get(issueForm.studentId) : null;
+                  const meta = issueForm.studentId
+                    ? unassignedStudents.find((s) => s.id === issueForm.studentId)
+                    : null;
                   setIssueForm((prev) => ({
                     ...prev,
-                    cardNumber: suggestNextCardNumber(db, meta?.classNumeric),
+                    cardNumber: formatSuggestedCardNumber(suggestedSeq, meta?.classNumeric),
                   }));
                 }}
               >
@@ -1175,11 +1113,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
             <Button type="button" variant="outline" onClick={() => setIssueOpen(false)}>
               {pick('বাতিল', 'Cancel')}
             </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={issuing || !issueForm.studentId || duplicateIssueNumber}
-            >
+            <Button type="submit" variant="primary" disabled={issuing || !issueForm.studentId}>
               <CreditCard className="w-4 h-4" />
               <span>
                 {issuing ? pick('ইস্যু হচ্ছে...', 'Issuing...') : pick('কার্ড সক্রিয় করুন', 'Activate Card')}
@@ -1199,10 +1133,10 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
           <div className="space-y-4">
             <div className="p-3.5 rounded-[var(--radius)] bg-surface-muted/60 border border-border flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="font-mono text-sm font-semibold text-foreground">
+                <p className="font-mono text-base font-semibold text-foreground">
                   {statusTarget.cardNumber}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-sm text-muted-foreground mt-0.5">
                   {statusTarget.studentNameBn} · {statusTarget.classLabel} (
                   {statusTarget.sectionLabel}) · {statusTarget.studentCode}
                 </p>
@@ -1211,7 +1145,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
             </div>
 
             {statusTarget.studentStatus !== StudentStatus.ACTIVE && (
-              <div className="flex items-start gap-2 p-3 rounded-[var(--radius)] border border-warning/40 bg-warning/5 text-xs text-warning">
+              <div className="flex items-start gap-2 p-3 rounded-[var(--radius)] border border-warning/40 bg-warning/5 text-sm text-warning">
                 <ShieldOff className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
                   {pick(
@@ -1251,7 +1185,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
                         <span className="text-sm font-semibold text-foreground">{opt.label}</span>
                         {selected && <Check className="w-4 h-4 text-primary shrink-0" />}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 leading-snug">{opt.desc}</p>
+                      <p className="text-sm text-muted-foreground mt-1 leading-snug">{opt.desc}</p>
                     </button>
                   );
                 })}
@@ -1296,7 +1230,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
             <div className="p-3.5 rounded-[var(--radius)] bg-surface-muted/60 border border-border flex flex-wrap items-center justify-between gap-2 text-sm">
               <div>
                 <p className="font-semibold text-foreground">{replaceTarget.studentNameBn}</p>
-                <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                <p className="text-sm text-muted-foreground font-mono mt-0.5">
                   {pick('পূর্বের কার্ড:', 'Previous Card:')} {replaceTarget.cardNumber} ·{' '}
                   {replaceTarget.classLabel} ({replaceTarget.sectionLabel})
                 </p>
@@ -1319,15 +1253,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
               </Select>
             </FormField>
 
-            <FormField
-              label={pick('নতুন RFID কার্ড নম্বর', 'New RFID Card Number')}
-              required
-              error={
-                duplicateReplaceNumber
-                  ? pick('এই কার্ড নম্বরটি আগেই ব্যবহৃত হয়েছে।', 'This card number is already in use.')
-                  : undefined
-              }
-            >
+            <FormField label={pick('নতুন RFID কার্ড নম্বর', 'New RFID Card Number')} required>
               <Input
                 value={replaceNewNumber}
                 onChange={(e) => setReplaceNewNumber(e.target.value)}
@@ -1347,7 +1273,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
               />
             </FormField>
 
-            <div className="flex items-start gap-2 p-3 rounded-[var(--radius)] border border-border bg-surface-muted/40 text-xs text-muted-foreground">
+            <div className="flex items-start gap-2 p-3 rounded-[var(--radius)] border border-border bg-surface-muted/40 text-sm text-muted-foreground">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-warning" />
               <span>
                 {pick(
@@ -1364,7 +1290,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
               <Button
                 type="submit"
                 variant="primary"
-                disabled={replacing || !replaceNewNumber.trim() || duplicateReplaceNumber}
+                disabled={replacing || !replaceNewNumber.trim()}
               >
                 <RefreshCw className="w-4 h-4" />
                 <span>
@@ -1391,7 +1317,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
         {printableCards.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-2 pb-3 border-b border-border no-print">
-              <span className="text-xs text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 {pick(
                   'A4 পেপারে প্রিন্ট করার উপযোগী গ্রিড লেআউট।',
                   'A4 print-ready grid layout for laminated PVC / paper cards.'
@@ -1408,7 +1334,7 @@ export function StudentRfidCards({ db }: { db: MockDatabase }) {
               </div>
             </div>
             <PrintableIdCardSheet
-              school={db.schoolProfile}
+              school={schoolProfile}
               holderType="STUDENT"
               cards={printableCards}
             />

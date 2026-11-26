@@ -153,13 +153,6 @@ export const staffApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['Staff', 'Audit'],
     }),
-    updateRfidCardStatus: builder.mutation<
-      StudentRFIDcard,
-      { id: string; status: CardStatus; remarks?: string | null }
-    >({
-      query: (body) => ({ url: '/students/rfid/status', method: 'POST', body }),
-      invalidatesTags: ['Students', 'Audit'],
-    }),
   }),
 });
 
@@ -176,7 +169,6 @@ export const {
   useSaveDepartmentMutation,
   useRemoveDepartmentMutation,
   useSaveStaffStructureMutation,
-  useUpdateRfidCardStatusMutation,
 } = staffApi;
 
 export function resolveStaffPhotoUrl(photo?: string | null): string | null {

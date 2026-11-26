@@ -60,7 +60,10 @@ export function AdminStudentsPage({
     section === 'directory' ||
     section === 'profile' ||
     section === 'enrollments' ||
-    section === 'admissions';
+    section === 'admissions' ||
+    section === 'transfers' ||
+    section === 'testimonials' ||
+    section === 'cards';
   const { data: db, isLoading } = useGetBootstrapQuery(undefined, {
     skip: usesLiveApi,
   });
@@ -190,12 +193,12 @@ export function AdminStudentsPage({
           startEditing={pathname.endsWith('/edit')}
         />
       )}
+      {section === 'transfers' && <StudentTransfers />}
+      {section === 'testimonials' && <StudentTestimonials />}
+      {section === 'cards' && <StudentRfidCards />}
       {db && year && (
         <>
           {section === 'promotions' && <StudentPromotions db={db} yearId={year.id} />}
-          {section === 'transfers' && <StudentTransfers db={db} />}
-          {section === 'testimonials' && <StudentTestimonials db={db} />}
-          {section === 'cards' && <StudentRfidCards db={db} />}
           {section === 'import' && <StudentImporter db={db} yearId={year.id} />}
         </>
       )}
