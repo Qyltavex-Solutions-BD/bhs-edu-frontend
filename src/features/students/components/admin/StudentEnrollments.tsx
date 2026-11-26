@@ -16,6 +16,7 @@ import {
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { cn, exportToCsv } from '@/src/lib/utils/cn';
+import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import {
@@ -28,10 +29,16 @@ import {
   Textarea,
 } from '@/src/components/ui/primitives';
 import { useUpdateEnrollmentMutation } from '@/src/store/api';
+import { useGetEnrollmentsQuery } from '@/src/features/students/api/students.api';
+import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
+import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
+import { useGetSectionsQuery } from '@/src/services/academic/section.api';
+import { useGetAcademicGroupsQuery } from '@/src/services/academic/group.api';
+import { useGetClassSubjectsQuery } from '@/src/services/academic/class-subject.api';
 import { EnrollmentStatus, Gender } from '@/src/types/enums';
 import type { MockDatabase } from '@/src/mocks/seed';
 import type { StudentEnrollment } from '@/src/types/entities';
-import { classLabel, errorMessage, studentInitials } from './studentShared';
+import { errorMessage, studentInitials } from './studentShared';
 
 interface EnrichedEnrollment extends StudentEnrollment {
   studentNameBn: string;
@@ -45,9 +52,33 @@ interface EnrichedEnrollment extends StudentEnrollment {
   optionalSubjectLabel: string;
 }
 
-export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: string }) {
+export function StudentEnrollments({
+  db,
+  yearId,
+}: {
+  db?: MockDatabase;
+  yearId: string;
+}) {
   const { locale, pick } = useI18n();
   const [updateEnrollment, { isLoading }] = useUpdateEnrollmentMutation();
+  const { data: liveEnrollments, isLoading: loadingEnrollments } =
+    useGetEnrollmentsQuery({ academicYearId: yearId }, { skip: !yearId });
+  const { data: liveYears = [] } = useGetAcademicYearsQuery();
+  const { data: liveClasses = [] } = useGetSchoolClassesQuery();
+  const { data: liveSections = [] } = useGetSectionsQuery();
+  const { data: liveGroups = [] } = useGetAcademicGroupsQuery();
+  const { data: liveClassSubjects = [] } = useGetClassSubjectsQuery({
+    academicYearId: yearId,
+    isActive: true,
+  });
+
+  const academicYears = liveYears.length ? liveYears : db?.academicYears ?? [];
+  const classes = liveClasses.length ? liveClasses : db?.classes ?? [];
+  const sections = liveSections.length ? liveSections : db?.sections ?? [];
+  const academicGroups = liveGroups.length ? liveGroups : db?.academicGroups ?? [];
+  const classSubjects = liveClassSubjects.length
+    ? liveClassSubjects
+    : db?.classSubjects ?? [];
 
   const [classId, setClassId] = useState('ALL');
   const [sectionId, setSectionId] = useState('ALL');
@@ -66,46 +97,92 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
     remarks: '',
   });
 
-  const yearObj = db.academicYears.find((y) => y.id === yearId);
+  const yearObj = academicYears.find((y) => y.id === yearId);
   const sortedClasses = useMemo(
-    () => [...db.classes].sort((a, b) => a.numericValue - b.numericValue),
-    [db.classes]
+    () => [...classes].sort((a, b) => a.numericValue - b.numericValue),
+    [classes]
   );
 
   // All enrollments for selected academic year
   const sessionEnrollments = useMemo<EnrichedEnrollment[]>(() => {
-    return db.enrollments
-      .filter((item) => item.academicYearId === yearId)
-      .map((item) => {
-        const student = db.students.find((row) => row.id === item.studentId);
-        const cls = db.classes.find((row) => row.id === item.classId);
-        const section = db.sections.find((row) => row.id === item.sectionId);
-        const group = item.groupId
-          ? db.academicGroups.find((row) => row.id === item.groupId)
-          : null;
-        const optCs = item.optionalClassSubjectId
-          ? db.classSubjects.find((row) => row.id === item.optionalClassSubjectId)
-          : null;
-        const optSub = optCs ? db.subjects.find((row) => row.id === optCs.subjectId) : null;
+    const source =
+      liveEnrollments ??
+      (db?.enrollments ?? []).filter((item) => item.academicYearId === yearId);
 
-        return {
-          ...item,
-          studentNameBn: student?.nameBn || student?.nameEn || '—',
-          studentNameEn: student?.nameEn || '',
-          studentCode: student?.studentId ?? '',
-          studentGender: student?.gender ?? Gender.MALE,
-          classNumeric: cls?.numericValue ?? 99,
-          classLabel: classLabel(db, item.classId, locale),
-          sectionLabel: section?.name ?? '—',
-          groupLabel: group ? (locale === 'bn' ? group.nameBn || group.name : group.name) : '',
-          optionalSubjectLabel: optSub
-            ? locale === 'bn'
-              ? optSub.nameBn || optSub.name
-              : optSub.name
-            : '',
+    return source.map((raw) => {
+      const item = raw as StudentEnrollment & {
+        student?: {
+          id: string;
+          studentId: string;
+          nameEn: string;
+          nameBn?: string | null;
+          gender: Gender;
         };
-      });
-  }, [db, yearId, locale]);
+        schoolClass?: {
+          id: string;
+          name: string;
+          nameBn?: string | null;
+          numericValue: number;
+        };
+        section?: { id: string; name: string };
+        group?: { id: string; name: string; nameBn?: string | null } | null;
+        optionalClassSubject?: {
+          subject?: { id: string; name: string; nameBn?: string | null };
+        } | null;
+      };
+      const student =
+        item.student ?? db?.students.find((row) => row.id === item.studentId);
+      const cls =
+        classes.find((row) => row.id === item.classId) ?? item.schoolClass;
+      const section =
+        sections.find((row) => row.id === item.sectionId) ?? item.section;
+      const group =
+        (item.groupId
+          ? academicGroups.find((row) => row.id === item.groupId)
+          : null) ?? item.group;
+      const optCs = item.optionalClassSubjectId
+        ? classSubjects.find((row) => row.id === item.optionalClassSubjectId)
+        : null;
+      const optSub =
+        item.optionalClassSubject?.subject ??
+        optCs?.subject ??
+        (optCs ? db?.subjects.find((row) => row.id === optCs.subjectId) : null);
+
+      return {
+        ...item,
+        studentNameBn: student?.nameBn || student?.nameEn || '—',
+        studentNameEn: student?.nameEn || '',
+        studentCode: student?.studentId ?? '',
+        studentGender: student?.gender ?? Gender.MALE,
+        classNumeric: cls?.numericValue ?? 99,
+        classLabel: cls
+          ? locale === 'bn'
+            ? cls.nameBn || cls.name
+            : cls.name
+          : '—',
+        sectionLabel: section?.name ?? '—',
+        groupLabel: group
+          ? locale === 'bn'
+            ? group.nameBn || group.name
+            : group.name
+          : '',
+        optionalSubjectLabel: optSub
+          ? locale === 'bn'
+            ? optSub.nameBn || optSub.name
+            : optSub.name
+          : '',
+      };
+    });
+  }, [
+    liveEnrollments,
+    db,
+    yearId,
+    locale,
+    classes,
+    sections,
+    academicGroups,
+    classSubjects,
+  ]);
 
   // Summary metrics
   const totalCount = sessionEnrollments.length;
@@ -123,12 +200,12 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
     sessionEnrollments.forEach((r) => {
       if (r.groupId) map.set(r.groupId, (map.get(r.groupId) ?? 0) + 1);
     });
-    return db.academicGroups.map((g) => ({
+    return academicGroups.map((g) => ({
       id: g.id,
       label: locale === 'bn' ? g.nameBn || g.name : g.name,
       count: map.get(g.id) ?? 0,
     }));
-  }, [sessionEnrollments, db.academicGroups, locale]);
+  }, [sessionEnrollments, academicGroups, locale]);
 
   // Class counts sorted 6 -> 10
   const classCounts = useMemo(() => {
@@ -144,8 +221,8 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
   }, [sessionEnrollments, sortedClasses, locale]);
 
   const availableSections = useMemo(
-    () => db.sections.filter((item) => classId === 'ALL' || item.classId === classId),
-    [db.sections, classId]
+    () => sections.filter((item) => classId === 'ALL' || item.classId === classId),
+    [sections, classId]
   );
 
   const rows = useMemo(() => {
@@ -243,7 +320,7 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
   };
 
   const editingNeedsGroup = (editing?.classNumeric ?? 0) >= 9;
-  const editingOptionals = db.classSubjects.filter(
+  const editingOptionals = classSubjects.filter(
     (row) =>
       editing &&
       row.isOptional &&
@@ -252,6 +329,10 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
       row.classId === editing.classId &&
       (!row.groupId || row.groupId === form.groupId)
   );
+
+  if (loadingEnrollments && !liveEnrollments) {
+    return <LoadingSkeleton />;
+  }
 
   return (
     <div className="space-y-5">
@@ -433,11 +514,11 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
               <Select
                 value={groupId}
                 onChange={(e) => setGroupId(e.target.value)}
-                className="w-34 h-9 text-sm"
+                className="w-auto min-w-[140px] h-9 text-sm"
                 aria-label={pick('বিভাগ', 'Stream')}
               >
                 <option value="ALL">{pick('সকল বিভাগ', 'All streams')}</option>
-                {db.academicGroups.map((grp) => (
+                {academicGroups.map((grp) => (
                   <option key={grp.id} value={grp.id}>
                     {locale === 'bn' ? grp.nameBn || grp.name : grp.name}
                   </option>
@@ -447,7 +528,7 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
               <Select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-36 h-9 text-sm"
+                className="w-auto min-w-[136px] h-9 text-sm"
                 aria-label={pick('এনরোলমেন্ট অবস্থা', 'Enrollment status')}
               >
                 <option value="ALL">{pick('সকল অবস্থা', 'All statuses')}</option>
@@ -700,7 +781,7 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
                   value={form.sectionId}
                   onChange={(event) => setForm({ ...form, sectionId: event.target.value })}
                 >
-                  {db.sections
+                  {sections
                     .filter((item) => item.classId === editing.classId)
                     .map((item) => (
                       <option key={item.id} value={item.id}>
@@ -732,7 +813,7 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
                     }
                   >
                     <option value="">{pick('নির্বাচন করুন', 'Select stream')}</option>
-                    {db.academicGroups.map((item) => (
+                    {academicGroups.map((item) => (
                       <option key={item.id} value={item.id}>
                         {locale === 'bn' ? item.nameBn || item.name : item.name}
                       </option>
@@ -750,7 +831,9 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
                 >
                   <option value="">{pick('নেই', 'None')}</option>
                   {editingOptionals.map((row) => {
-                    const subject = db.subjects.find((item) => item.id === row.subjectId);
+                    const subject =
+                      row.subject ??
+                      db?.subjects.find((item) => item.id === row.subjectId);
                     return (
                       <option key={row.id} value={row.id}>
                         {locale === 'bn'
