@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import {
   ArrowUpRight,
-  Download,
   Eye,
   Lock,
   Pencil,
@@ -15,7 +14,8 @@ import {
 } from 'lucide-react';
 import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
-import { cn, exportToCsv } from '@/src/lib/utils/cn';
+import { cn } from '@/src/lib/utils/cn';
+import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { DataTable } from '@/src/components/shared/DataTable';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import {
@@ -28,10 +28,16 @@ import {
   Textarea,
 } from '@/src/components/ui/primitives';
 import { useUpdateEnrollmentMutation } from '@/src/store/api';
+import { useGetEnrollmentsQuery } from '@/src/features/students/api/students.api';
+import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
+import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
+import { useGetSectionsQuery } from '@/src/services/academic/section.api';
+import { useGetAcademicGroupsQuery } from '@/src/services/academic/group.api';
+import { useGetClassSubjectsQuery } from '@/src/services/academic/class-subject.api';
 import { EnrollmentStatus, Gender } from '@/src/types/enums';
 import type { MockDatabase } from '@/src/mocks/seed';
 import type { StudentEnrollment } from '@/src/types/entities';
-import { classLabel, errorMessage, studentInitials } from './studentShared';
+import { errorMessage, studentInitials } from './studentShared';
 
 interface EnrichedEnrollment extends StudentEnrollment {
   studentNameBn: string;
@@ -45,9 +51,33 @@ interface EnrichedEnrollment extends StudentEnrollment {
   optionalSubjectLabel: string;
 }
 
-export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: string }) {
+export function StudentEnrollments({
+  db,
+  yearId,
+}: {
+  db?: MockDatabase;
+  yearId: string;
+}) {
   const { locale, pick } = useI18n();
   const [updateEnrollment, { isLoading }] = useUpdateEnrollmentMutation();
+  const { data: liveEnrollments, isLoading: loadingEnrollments } =
+    useGetEnrollmentsQuery({ academicYearId: yearId }, { skip: !yearId });
+  const { data: liveYears = [] } = useGetAcademicYearsQuery();
+  const { data: liveClasses = [] } = useGetSchoolClassesQuery();
+  const { data: liveSections = [] } = useGetSectionsQuery();
+  const { data: liveGroups = [] } = useGetAcademicGroupsQuery();
+  const { data: liveClassSubjects = [] } = useGetClassSubjectsQuery({
+    academicYearId: yearId,
+    isActive: true,
+  });
+
+  const academicYears = liveYears.length ? liveYears : db?.academicYears ?? [];
+  const classes = liveClasses.length ? liveClasses : db?.classes ?? [];
+  const sections = liveSections.length ? liveSections : db?.sections ?? [];
+  const academicGroups = liveGroups.length ? liveGroups : db?.academicGroups ?? [];
+  const classSubjects = liveClassSubjects.length
+    ? liveClassSubjects
+    : db?.classSubjects ?? [];
 
   const [classId, setClassId] = useState('ALL');
   const [sectionId, setSectionId] = useState('ALL');
@@ -66,46 +96,92 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
     remarks: '',
   });
 
-  const yearObj = db.academicYears.find((y) => y.id === yearId);
+  const yearObj = academicYears.find((y) => y.id === yearId);
   const sortedClasses = useMemo(
-    () => [...db.classes].sort((a, b) => a.numericValue - b.numericValue),
-    [db.classes]
+    () => [...classes].sort((a, b) => a.numericValue - b.numericValue),
+    [classes]
   );
 
   // All enrollments for selected academic year
   const sessionEnrollments = useMemo<EnrichedEnrollment[]>(() => {
-    return db.enrollments
-      .filter((item) => item.academicYearId === yearId)
-      .map((item) => {
-        const student = db.students.find((row) => row.id === item.studentId);
-        const cls = db.classes.find((row) => row.id === item.classId);
-        const section = db.sections.find((row) => row.id === item.sectionId);
-        const group = item.groupId
-          ? db.academicGroups.find((row) => row.id === item.groupId)
-          : null;
-        const optCs = item.optionalClassSubjectId
-          ? db.classSubjects.find((row) => row.id === item.optionalClassSubjectId)
-          : null;
-        const optSub = optCs ? db.subjects.find((row) => row.id === optCs.subjectId) : null;
+    const source =
+      liveEnrollments ??
+      (db?.enrollments ?? []).filter((item) => item.academicYearId === yearId);
 
-        return {
-          ...item,
-          studentNameBn: student?.nameBn || student?.nameEn || '—',
-          studentNameEn: student?.nameEn || '',
-          studentCode: student?.studentId ?? '',
-          studentGender: student?.gender ?? Gender.MALE,
-          classNumeric: cls?.numericValue ?? 99,
-          classLabel: classLabel(db, item.classId, locale),
-          sectionLabel: section?.name ?? '—',
-          groupLabel: group ? (locale === 'bn' ? group.nameBn || group.name : group.name) : '',
-          optionalSubjectLabel: optSub
-            ? locale === 'bn'
-              ? optSub.nameBn || optSub.name
-              : optSub.name
-            : '',
+    return source.map((raw) => {
+      const item = raw as StudentEnrollment & {
+        student?: {
+          id: string;
+          studentId: string;
+          nameEn: string;
+          nameBn?: string | null;
+          gender: Gender;
         };
-      });
-  }, [db, yearId, locale]);
+        schoolClass?: {
+          id: string;
+          name: string;
+          nameBn?: string | null;
+          numericValue: number;
+        };
+        section?: { id: string; name: string };
+        group?: { id: string; name: string; nameBn?: string | null } | null;
+        optionalClassSubject?: {
+          subject?: { id: string; name: string; nameBn?: string | null };
+        } | null;
+      };
+      const student =
+        item.student ?? db?.students.find((row) => row.id === item.studentId);
+      const cls =
+        classes.find((row) => row.id === item.classId) ?? item.schoolClass;
+      const section =
+        sections.find((row) => row.id === item.sectionId) ?? item.section;
+      const group =
+        (item.groupId
+          ? academicGroups.find((row) => row.id === item.groupId)
+          : null) ?? item.group;
+      const optCs = item.optionalClassSubjectId
+        ? classSubjects.find((row) => row.id === item.optionalClassSubjectId)
+        : null;
+      const optSub =
+        item.optionalClassSubject?.subject ??
+        optCs?.subject ??
+        (optCs ? db?.subjects.find((row) => row.id === optCs.subjectId) : null);
+
+      return {
+        ...item,
+        studentNameBn: student?.nameBn || student?.nameEn || '—',
+        studentNameEn: student?.nameEn || '',
+        studentCode: student?.studentId ?? '',
+        studentGender: student?.gender ?? Gender.MALE,
+        classNumeric: cls?.numericValue ?? 99,
+        classLabel: cls
+          ? locale === 'bn'
+            ? cls.nameBn || cls.name
+            : cls.name
+          : '—',
+        sectionLabel: section?.name ?? '—',
+        groupLabel: group
+          ? locale === 'bn'
+            ? group.nameBn || group.name
+            : group.name
+          : '',
+        optionalSubjectLabel: optSub
+          ? locale === 'bn'
+            ? optSub.nameBn || optSub.name
+            : optSub.name
+          : '',
+      };
+    });
+  }, [
+    liveEnrollments,
+    db,
+    yearId,
+    locale,
+    classes,
+    sections,
+    academicGroups,
+    classSubjects,
+  ]);
 
   // Summary metrics
   const totalCount = sessionEnrollments.length;
@@ -117,18 +193,26 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
 
   const populatedClasses = new Set(sessionEnrollments.map((r) => r.classId)).size;
   const populatedSections = new Set(sessionEnrollments.map((r) => r.sectionId)).size;
+  const avgPerSection =
+    populatedSections > 0 ? Math.round(totalCount / populatedSections) : 0;
+  const seniorTotalCount = sessionEnrollments.filter(
+    (r) => r.classNumeric >= 9
+  ).length;
+  const readmissionCount = sessionEnrollments.filter((r) => r.isReadmission).length;
+  const repeaterCount = sessionEnrollments.filter((r) => r.isRepeater).length;
+  const regularNewCount = totalCount - readmissionCount - repeaterCount;
 
   const streamCounts = useMemo(() => {
     const map = new Map<string, number>();
     sessionEnrollments.forEach((r) => {
       if (r.groupId) map.set(r.groupId, (map.get(r.groupId) ?? 0) + 1);
     });
-    return db.academicGroups.map((g) => ({
+    return academicGroups.map((g) => ({
       id: g.id,
       label: locale === 'bn' ? g.nameBn || g.name : g.name,
       count: map.get(g.id) ?? 0,
     }));
-  }, [sessionEnrollments, db.academicGroups, locale]);
+  }, [sessionEnrollments, academicGroups, locale]);
 
   // Class counts sorted 6 -> 10
   const classCounts = useMemo(() => {
@@ -138,14 +222,19 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
     });
     return sortedClasses.map((cls) => ({
       id: cls.id,
+      numericValue: cls.numericValue,
       label: locale === 'bn' ? cls.nameBn || cls.name : cls.name,
       count: counts.get(cls.id) ?? 0,
     }));
   }, [sessionEnrollments, sortedClasses, locale]);
 
+  const selectedClassObj = sortedClasses.find((c) => c.id === classId);
+  const showStreamFilter = (selectedClassObj?.numericValue ?? 0) >= 9;
+  const showStreamColumn = classId === 'ALL' || showStreamFilter;
+
   const availableSections = useMemo(
-    () => db.sections.filter((item) => classId === 'ALL' || item.classId === classId),
-    [db.sections, classId]
+    () => sections.filter((item) => classId === 'ALL' || item.classId === classId),
+    [sections, classId]
   );
 
   const rows = useMemo(() => {
@@ -188,26 +277,6 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
     setStatusFilter('ALL');
   };
 
-  const handleExportCsv = () => {
-    exportToCsv(
-      rows.map((r) => ({
-        session: yearObj?.name ?? yearId,
-        roll: r.roll,
-        studentId: r.studentCode,
-        nameBn: r.studentNameBn,
-        nameEn: r.studentNameEn,
-        class: r.classLabel,
-        section: r.sectionLabel,
-        stream: r.groupLabel || '—',
-        optionalSubject: r.optionalSubjectLabel || '—',
-        repeater: r.isRepeater ? 'Yes' : 'No',
-        readmission: r.isReadmission ? 'Yes' : 'No',
-        status: r.status,
-      })),
-      `enrollments-${yearObj?.name ?? yearId}.csv`
-    );
-  };
-
   const startEdit = (row: EnrichedEnrollment) => {
     setEditing(row);
     setForm({
@@ -228,9 +297,11 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
       await updateEnrollment({
         id: editing.id,
         sectionId: form.sectionId,
-        groupId: form.groupId || null,
+        groupId: editingNeedsGroup ? form.groupId || null : null,
         roll: Number(form.roll),
-        optionalClassSubjectId: form.optionalClassSubjectId || null,
+        optionalClassSubjectId: editingNeedsGroup
+          ? form.optionalClassSubjectId || null
+          : null,
         isRepeater: form.isRepeater,
         isReadmission: form.isReadmission,
         remarks: form.remarks,
@@ -243,7 +314,7 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
   };
 
   const editingNeedsGroup = (editing?.classNumeric ?? 0) >= 9;
-  const editingOptionals = db.classSubjects.filter(
+  const editingOptionals = classSubjects.filter(
     (row) =>
       editing &&
       row.isOptional &&
@@ -253,90 +324,100 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
       (!row.groupId || row.groupId === form.groupId)
   );
 
+  if (loadingEnrollments && !liveEnrollments) {
+    return <LoadingSkeleton />;
+  }
+
   return (
     <div className="space-y-5">
       {/* 1. 4-Column Session Placement Summary Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <Card className="p-5 flex flex-col justify-between gap-3">
-          <span className="text-base font-bold text-foreground">
+      <Card className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden">
+        <div className="p-4 sm:p-5 flex flex-col gap-1.5">
+          <span className="text-sm font-bold text-foreground">
             {pick('সেশন এনরোলমেন্ট', 'Session Enrollments')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(totalCount, locale)}
             </span>
-            <span className="text-sm font-semibold text-muted-foreground">
+            <span className="text-sm font-medium text-muted-foreground">
               {pick(`সেশন ${yearObj?.name ?? ''}`, `Session ${yearObj?.name ?? ''}`)}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground tabular-nums">
+          <p className="text-xs sm:text-sm text-muted-foreground tabular-nums">
             {pick(
-              `সক্রিয় ${formatNumber(activeCount, locale)} · উত্তীর্ণ ${formatNumber(promotedCount, locale)} · সমাপ্ত/অন্যান্য ${formatNumber(completedOrOtherCount, locale)}`,
+              `সক্রিয় ${formatNumber(activeCount, locale)} · উত্তীর্ণ ${formatNumber(promotedCount, locale)} · অন্যান্য ${formatNumber(completedOrOtherCount, locale)}`,
               `${activeCount} active · ${promotedCount} promoted · ${completedOrOtherCount} other`
             )}
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-5 flex flex-col justify-between gap-3">
-          <span className="text-base font-bold text-foreground">
-            {pick('শ্রেণি ও শাখা কভারেজ', 'Class & Section Coverage')}
+        <div className="p-4 sm:p-5 flex flex-col gap-1.5">
+          <span className="text-sm font-bold text-foreground">
+            {pick('শ্রেণি ও শাখা বিন্যাস', 'Classes & Sections')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
               {formatNumber(populatedSections, locale)}
             </span>
-            <span className="text-sm font-semibold text-muted-foreground">
+            <span className="text-sm font-medium text-muted-foreground">
               {pick('টি সক্রিয় শাখা', 'active sections')}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground tabular-nums">
+          <p className="text-xs sm:text-sm text-muted-foreground tabular-nums">
             {pick(
-              `মোট ${formatNumber(populatedClasses, locale)}টি শ্রেণিতে শিক্ষার্থী বিন্যস্ত`,
-              `Distributed across ${populatedClasses} classes`
+              `${formatNumber(populatedClasses, locale)}টি শ্রেণিতে · গড়ে ${formatNumber(avgPerSection, locale)} জন/শাখা`,
+              `${populatedClasses} classes · ~${avgPerSection} per section`
             )}
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-5 flex flex-col justify-between gap-3">
-          <span className="text-base font-bold text-foreground">
+        <div className="p-4 sm:p-5 flex flex-col gap-1.5">
+          <span className="text-sm font-bold text-foreground">
             {pick('বিভাগ বণ্টন (৯ম–১০ম)', 'Streams (Classes 9–10)')}
           </span>
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1.5 tabular-nums pt-0.5">
+          <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1 tabular-nums py-0.5">
             {streamCounts.map((st) => (
               <div key={st.id} className="text-sm">
-                <span className="text-lg font-bold text-foreground">
+                <span className="text-xl font-extrabold text-foreground">
                   {formatNumber(st.count, locale)}
                 </span>{' '}
                 <span className="text-muted-foreground font-medium">{st.label}</span>
               </div>
             ))}
           </div>
-          <p className="text-sm text-muted-foreground">
-            {pick('বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা', 'Science, Humanities & Business')}
+          <p className="text-xs sm:text-sm text-muted-foreground tabular-nums">
+            {pick(
+              `৯ম ও ১০ম শ্রেণিতে মোট ${formatNumber(seniorTotalCount, locale)} জন`,
+              `${seniorTotalCount} students in Classes 9–10`
+            )}
           </p>
-        </Card>
+        </div>
 
-        <Card className="p-5 flex flex-col justify-between gap-3">
-          <span className="text-base font-bold text-foreground">
-            {pick('বছর শেষে শ্রেণি উত্তরণ', 'Year-End Promotion')}
+        <div className="p-4 sm:p-5 flex flex-col gap-1.5">
+          <span className="text-sm font-bold text-foreground">
+            {pick('ভর্তির ধরন ও প্রমোশন', 'Admission Type & Promotion')}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
-            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
-              {formatNumber(activeCount, locale)}
+            <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
+              {formatNumber(regularNewCount, locale)}
             </span>
-            <span className="text-sm font-semibold text-muted-foreground">
-              {pick('জন উত্তরণের উপযোগী', 'active eligible')}
+            <span className="text-sm font-medium text-muted-foreground">
+              {pick(
+                `নতুন · পুনঃভর্তি ${formatNumber(readmissionCount, locale)} · রিপিটার ${formatNumber(repeaterCount, locale)}`,
+                `new · ${readmissionCount} readm · ${repeaterCount} rep`
+              )}
             </span>
           </div>
           <Link
             href="/admin/students/promotions"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline w-fit"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline w-fit"
           >
             <span>{pick('প্রমোশন কনসোলে যান', 'Open promotion console')}</span>
             <ArrowUpRight className="w-4 h-4" />
           </Link>
-        </Card>
-      </div>
+        </div>
+      </Card>
 
       {/* 2. Class Tabs & Filter Bar */}
       <Card className="overflow-hidden">
@@ -352,6 +433,7 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
             onClick={() => {
               setClassId('ALL');
               setSectionId('ALL');
+              setGroupId('ALL');
             }}
             className={cn(
               'px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
@@ -375,6 +457,9 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
                 onClick={() => {
                   setClassId(cls.id);
                   setSectionId('ALL');
+                  if (cls.numericValue < 9) {
+                    setGroupId('ALL');
+                  }
                 }}
                 className={cn(
                   'px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap shrink-0 cursor-pointer tabular-nums',
@@ -391,15 +476,15 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
         </div>
 
         <div className="p-4 space-y-3">
-          <div className="flex flex-col xl:flex-row xl:items-center gap-2.5">
-            <div className="relative flex-1 min-w-[240px]">
+          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+            <div className="relative w-full xl:w-72 shrink-0">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={pick(
-                  'শিক্ষার্থীর নাম, আইডি, রোল বা শাখা দিয়ে খুঁজুন...',
-                  'Search student name, ID, roll, or section...'
+                  'নাম, আইডি বা রোল খুঁজুন...',
+                  'Search name, ID or roll...'
                 )}
                 className="pl-9 pr-9 h-9 text-sm"
               />
@@ -415,11 +500,11 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2.5">
               <Select
                 value={sectionId}
                 onChange={(e) => setSectionId(e.target.value)}
-                className="w-32 h-9 text-sm"
+                className="w-auto min-w-[128px] h-9 text-sm"
                 aria-label={pick('শাখা', 'Section')}
               >
                 <option value="ALL">{pick('সকল শাখা', 'All sections')}</option>
@@ -430,24 +515,26 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
                 ))}
               </Select>
 
-              <Select
-                value={groupId}
-                onChange={(e) => setGroupId(e.target.value)}
-                className="w-34 h-9 text-sm"
-                aria-label={pick('বিভাগ', 'Stream')}
-              >
-                <option value="ALL">{pick('সকল বিভাগ', 'All streams')}</option>
-                {db.academicGroups.map((grp) => (
-                  <option key={grp.id} value={grp.id}>
-                    {locale === 'bn' ? grp.nameBn || grp.name : grp.name}
-                  </option>
-                ))}
-              </Select>
+              {showStreamFilter && (
+                <Select
+                  value={groupId}
+                  onChange={(e) => setGroupId(e.target.value)}
+                  className="w-auto min-w-[144px] h-9 text-sm"
+                  aria-label={pick('বিভাগ', 'Stream')}
+                >
+                  <option value="ALL">{pick('সকল বিভাগ', 'All streams')}</option>
+                  {academicGroups.map((grp) => (
+                    <option key={grp.id} value={grp.id}>
+                      {locale === 'bn' ? grp.nameBn || grp.name : grp.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
 
               <Select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-36 h-9 text-sm"
+                className="w-auto min-w-[136px] h-9 text-sm"
                 aria-label={pick('এনরোলমেন্ট অবস্থা', 'Enrollment status')}
               >
                 <option value="ALL">{pick('সকল অবস্থা', 'All statuses')}</option>
@@ -458,17 +545,6 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
                   {pick('স্থানান্তরিত', 'Transferred')}
                 </option>
               </Select>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9"
-                onClick={handleExportCsv}
-                disabled={rows.length === 0}
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>{pick('এক্সপোর্ট CSV', 'Export CSV')}</span>
-              </Button>
             </div>
           </div>
 
@@ -568,6 +644,16 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
                   <span className="block text-xs font-mono text-muted-foreground truncate">
                     {row.original.studentCode}
                   </span>
+                  {(row.original.isRepeater || row.original.isReadmission) && (
+                    <span className="inline-block mt-0.5 text-[11px] font-medium text-warning">
+                      {[
+                        row.original.isRepeater ? pick('পুনরাবৃত্তি', 'Repeater') : null,
+                        row.original.isReadmission ? pick('পুনঃভর্তি', 'Readmission') : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
+                  )}
                 </div>
               </div>
             ),
@@ -582,43 +668,26 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
               </div>
             ),
           },
-          {
-            accessorKey: 'groupLabel',
-            header: pick('বিভাগ ও ৪র্থ বিষয়', 'Stream & Optional'),
-            cell: ({ row }) => (
-              <div className="whitespace-nowrap">
-                <span className="text-foreground">
-                  {row.original.groupLabel || pick('সাধারণ', 'General')}
-                </span>
-                {row.original.optionalSubjectLabel && (
-                  <span className="block text-xs text-muted-foreground mt-0.5">
-                    {pick('৪র্থ:', '4th:')} {row.original.optionalSubjectLabel}
-                  </span>
-                )}
-              </div>
-            ),
-          },
-          {
-            id: 'flags',
-            header: pick('ধরন', 'Category'),
-            enableSorting: false,
-            cell: ({ row }) => {
-              const tags = [
-                row.original.isRepeater ? pick('পুনরাবৃত্তি', 'Repeater') : null,
-                row.original.isReadmission ? pick('পুনঃভর্তি', 'Readmission') : null,
-              ].filter(Boolean);
-              return (
-                <div className="text-xs text-muted-foreground whitespace-nowrap">
-                  <span>{tags.length ? tags.join(' · ') : pick('নিয়মিত', 'Regular')}</span>
-                  {row.original.remarks && (
-                    <span className="block max-w-[160px] truncate text-xs opacity-80">
-                      {row.original.remarks}
-                    </span>
-                  )}
-                </div>
-              );
-            },
-          },
+          ...(showStreamColumn
+            ? [
+                {
+                  accessorKey: 'groupLabel',
+                  header: pick('বিভাগ ও ৪র্থ বিষয়', 'Stream & Optional'),
+                  cell: ({ row }: { row: { original: EnrichedEnrollment } }) => (
+                    <div className="whitespace-nowrap">
+                      <span className="text-foreground">
+                        {row.original.groupLabel || '—'}
+                      </span>
+                      {row.original.optionalSubjectLabel && (
+                        <span className="block text-xs text-muted-foreground mt-0.5">
+                          {pick('৪র্থ:', '4th:')} {row.original.optionalSubjectLabel}
+                        </span>
+                      )}
+                    </div>
+                  ),
+                },
+              ]
+            : []),
           {
             accessorKey: 'status',
             header: pick('অবস্থা', 'Status'),
@@ -628,7 +697,9 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
           },
           {
             id: 'actions',
-            header: '',
+            header: () => (
+              <div className="text-right">{pick('কাজ', 'Actions')}</div>
+            ),
             enableSorting: false,
             cell: ({ row }) => {
               const editable = row.original.status === EnrollmentStatus.ACTIVE;
@@ -642,7 +713,7 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
                       onClick={() => startEdit(row.original)}
                     >
                       <Pencil className="w-3.5 h-3.5" />
-                      <span>{pick('প্লেসমেন্ট সম্পাদনা', 'Adjust')}</span>
+                      <span>{pick('সম্পাদনা', 'Edit')}</span>
                     </Button>
                   ) : (
                     <span
@@ -700,7 +771,7 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
                   value={form.sectionId}
                   onChange={(event) => setForm({ ...form, sectionId: event.target.value })}
                 >
-                  {db.sections
+                  {sections
                     .filter((item) => item.classId === editing.classId)
                     .map((item) => (
                       <option key={item.id} value={item.id}>
@@ -720,47 +791,51 @@ export function StudentEnrollments({ db, yearId }: { db: MockDatabase; yearId: s
               </FormField>
 
               {editingNeedsGroup && (
-                <FormField label={pick('বিভাগ (স্ট্রিম)', 'Academic Stream')} required>
-                  <Select
-                    value={form.groupId}
-                    onChange={(event) =>
-                      setForm({
-                        ...form,
-                        groupId: event.target.value,
-                        optionalClassSubjectId: '',
-                      })
-                    }
-                  >
-                    <option value="">{pick('নির্বাচন করুন', 'Select stream')}</option>
-                    {db.academicGroups.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {locale === 'bn' ? item.nameBn || item.name : item.name}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField>
-              )}
+                <>
+                  <FormField label={pick('বিভাগ (স্ট্রিম)', 'Academic Stream')} required>
+                    <Select
+                      value={form.groupId}
+                      onChange={(event) =>
+                        setForm({
+                          ...form,
+                          groupId: event.target.value,
+                          optionalClassSubjectId: '',
+                        })
+                      }
+                    >
+                      <option value="">{pick('নির্বাচন করুন', 'Select stream')}</option>
+                      {academicGroups.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {locale === 'bn' ? item.nameBn || item.name : item.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormField>
 
-              <FormField label={pick('৪র্থ / ঐচ্ছিক বিষয়', 'Optional Subject')}>
-                <Select
-                  value={form.optionalClassSubjectId}
-                  onChange={(event) =>
-                    setForm({ ...form, optionalClassSubjectId: event.target.value })
-                  }
-                >
-                  <option value="">{pick('নেই', 'None')}</option>
-                  {editingOptionals.map((row) => {
-                    const subject = db.subjects.find((item) => item.id === row.subjectId);
-                    return (
-                      <option key={row.id} value={row.id}>
-                        {locale === 'bn'
-                          ? subject?.nameBn || subject?.name
-                          : subject?.name}
-                      </option>
-                    );
-                  })}
-                </Select>
-              </FormField>
+                  <FormField label={pick('৪র্থ / ঐচ্ছিক বিষয়', 'Optional Subject')}>
+                    <Select
+                      value={form.optionalClassSubjectId}
+                      onChange={(event) =>
+                        setForm({ ...form, optionalClassSubjectId: event.target.value })
+                      }
+                    >
+                      <option value="">{pick('নেই', 'None')}</option>
+                      {editingOptionals.map((row) => {
+                        const subject =
+                          row.subject ??
+                          db?.subjects.find((item) => item.id === row.subjectId);
+                        return (
+                          <option key={row.id} value={row.id}>
+                            {locale === 'bn'
+                              ? subject?.nameBn || subject?.name
+                              : subject?.name}
+                          </option>
+                        );
+                      })}
+                    </Select>
+                  </FormField>
+                </>
+              )}
 
               <div className="sm:col-span-2 flex flex-wrap items-center gap-6 pt-1">
                 <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer">

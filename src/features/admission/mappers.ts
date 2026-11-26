@@ -256,20 +256,23 @@ export function toPublicAdmissionPayload(
       rules.showPreviousGpa && values.prevExamGpa.trim()
         ? Number(normalizeDigits(values.prevExamGpa))
         : undefined,
-    transferCertificateNo: values.transferCertificateNo.trim() || null,
-    transferCertificateDate: values.transferCertificateDate.trim() || null,
+    transferCertificateNo: values.transferCertificateNo.trim() || undefined,
+    transferCertificateDate: values.transferCertificateDate.trim() || undefined,
     boardRegistrationNo: values.boardRegistrationNo.trim()
       ? normalizeDigits(values.boardRegistrationNo.trim())
-      : null,
-    boardRegistrationSession: values.boardRegistrationSession.trim() || null,
+      : undefined,
+    boardRegistrationSession: values.boardRegistrationSession.trim() || undefined,
 
     admissionType: values.admissionType,
     isReadmission: values.admissionType === 'READMISSION',
     targetClassId: values.targetClassId,
     preferredSection: undefined,
-    targetGroupId: rules.requiresGroup ? values.targetGroupId || null : null,
-    optionalClassSubjectId: rules.requiresOptionalSubject ? values.optionalClassSubjectId || null : null,
-    optionalSubjectName: rules.requiresOptionalSubject ? chosenOptional?.nameBn ?? null : null,
+    targetGroupId: rules.requiresGroup && values.targetGroupId ? values.targetGroupId : undefined,
+    optionalClassSubjectId:
+      rules.requiresOptionalSubject && values.optionalClassSubjectId
+        ? values.optionalClassSubjectId
+        : undefined,
+    optionalSubjectName: rules.requiresOptionalSubject ? chosenOptional?.nameBn ?? undefined : undefined,
     attachments: values.attachments ?? null,
     declarationAccepted: values.declarationAccepted,
     remarks: values.remarks.trim() || undefined,

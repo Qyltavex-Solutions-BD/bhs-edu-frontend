@@ -55,7 +55,12 @@ export function AdminStudentsPage({
   const { id } = useParams<{ id?: string }>();
   const pathname = usePathname();
   const section: SectionKey = id ? 'profile' : TAB_SECTION[defaultTab] ?? 'directory';
-  const usesLiveApi = section === 'create' || section === 'directory';
+  const usesLiveApi =
+    section === 'create' ||
+    section === 'directory' ||
+    section === 'profile' ||
+    section === 'enrollments' ||
+    section === 'admissions';
   const { data: db, isLoading } = useGetBootstrapQuery(undefined, {
     skip: usesLiveApi,
   });
@@ -176,16 +181,22 @@ export function AdminStudentsPage({
     >
       {section === 'create' && <StudentRegister yearId={year?.id} />}
       {section === 'directory' && <StudentDirectory yearId={year?.id ?? ''} />}
+      {section === 'enrollments' && <StudentEnrollments yearId={year?.id ?? ''} />}
+      {section === 'admissions' && <StudentAdmissionInbox yearId={year?.id ?? ''} />}
+      {section === 'profile' && (
+        <StudentProfile
+          studentId={id ?? ''}
+          yearId={year?.id ?? ''}
+          startEditing={pathname.endsWith('/edit')}
+        />
+      )}
       {db && year && (
         <>
-          {section === 'admissions' && <StudentAdmissionInbox db={db} yearId={year.id} />}
-          {section === 'enrollments' && <StudentEnrollments db={db} yearId={year.id} />}
           {section === 'promotions' && <StudentPromotions db={db} yearId={year.id} />}
           {section === 'transfers' && <StudentTransfers db={db} />}
           {section === 'testimonials' && <StudentTestimonials db={db} />}
           {section === 'cards' && <StudentRfidCards db={db} />}
           {section === 'import' && <StudentImporter db={db} yearId={year.id} />}
-          {section === 'profile' && <StudentProfile db={db} studentId={id ?? ''} yearId={year.id} startEditing={pathname.endsWith('/edit')} />}
         </>
       )}
     </StudentsShell>

@@ -56,20 +56,57 @@ export const studentsApi = baseApi.injectEndpoints({
       }),
       transformResponse: (response: any) => response?.data ?? response ?? {},
     }),
+    getStudentById: builder.query<Student, string>({
+      query: (id) => ({
+        url: `/academic/students/${id}`,
+        method: 'GET',
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      providesTags: (_result, _error, id) => [{ type: 'Students', id }, 'Students'],
+    }),
     createStudent: builder.mutation<unknown, Record<string, unknown>>({
       query: (body) => ({ url: '/academic/students', method: 'POST', body }),
       transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ['Students', 'Admissions', 'Audit'],
     }),
     updateStudent: builder.mutation<Student, Partial<Student> & { id: string }>({
-      query: (body) => ({ url: '/students/update', method: 'POST', body }),
-      invalidatesTags: ['Students', 'Audit'],
+      query: ({ id, ...body }) => ({
+        url: `/academic/students/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Students', id },
+        'Students',
+        'Audit',
+      ],
+    }),
+    getEnrollments: builder.query<
+      StudentEnrollment[],
+      { academicYearId?: string } | void
+    >({
+      query: (params) => ({
+        url: '/academic/students/enrollments',
+        method: 'GET',
+        params: params || undefined,
+      }),
+      transformResponse: (response: any) => {
+        const raw = response?.data ?? response;
+        return Array.isArray(raw) ? raw : [];
+      },
+      providesTags: ['Students'],
     }),
     updateEnrollment: builder.mutation<
       StudentEnrollment,
       Partial<StudentEnrollment> & { id: string }
     >({
-      query: (body) => ({ url: '/students/enrollments', method: 'POST', body }),
+      query: ({ id, ...body }) => ({
+        url: `/academic/students/enrollments/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ['Students', 'Audit'],
     }),
     importStudents: builder.mutation<
@@ -148,6 +185,8 @@ export const studentsApi = baseApi.injectEndpoints({
 
 export const {
   useGetStudentsQuery,
+  useGetStudentByIdQuery,
+  useGetEnrollmentsQuery,
   useGetNextSuggestedRollQuery,
   useCheckStudentDuplicateQuery,
   useCreateStudentMutation,

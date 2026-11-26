@@ -12,7 +12,9 @@ import {
   FileText,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useGetBootstrapQuery } from '@/src/store/api';
+import { useGetPublicAdmissionCatalogQuery } from '@/src/features/admission/api/admission.api';
+import type { AdmissionCatalogData } from '@/src/features/admission/rules';
+import type { SchoolProfile } from '@/src/types/entities';
 import { useI18n } from '@/src/lib/i18n';
 import { formatBdt, formatDateLong } from '@/src/lib/formatters';
 import { LoadingSkeleton, PageHeader, SchoolEmblem } from '@/src/components/shared/Feedback';
@@ -34,14 +36,14 @@ import {
 import { buildDefaultAdmissionValues } from '@/src/features/admission/mappers';
 
 export function AdmissionApplyPage() {
-  const { data: db, isLoading } = useGetBootstrapQuery();
+  const { data: catalogData, isLoading } = useGetPublicAdmissionCatalogQuery();
   const { locale, pick } = useI18n();
   const [submittedApp, setSubmittedApp] = useState<OnlineAdmissionApplication | null>(null);
   const [docTab, setDocTab] = useState<'form' | 'admit'>('form');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const submittedDocRef = useRef<HTMLDivElement | null>(null);
 
-  if (isLoading || !db) {
+  if (isLoading || !catalogData) {
     return (
       <div className="max-w-[1440px] mx-auto p-6">
         <LoadingSkeleton />
@@ -49,13 +51,42 @@ export function AdmissionApplyPage() {
     );
   }
 
-  const cycleStatus = db.admissionContent.admissionStatus ?? 'OPEN';
+  const schoolProfile: SchoolProfile =
+    catalogData.schoolProfile ??
+    ({
+      id: 'default',
+      name: 'Bhojeshwar High School',
+      nameBn: 'বজেশ্বর উচ্চ বিদ্যালয়',
+      nameEn: 'Bhojeshwar High School',
+      eiin: '113587',
+      address: 'নড়িয়া, শরীয়তপুর',
+      createdAt: '',
+      updatedAt: '',
+    } as SchoolProfile);
+
+  const db: AdmissionCatalogData = {
+    academicYears: catalogData.academicYears ?? [],
+    classes: catalogData.classes ?? [],
+    sections: catalogData.sections ?? [],
+    academicGroups: catalogData.academicGroups ?? [],
+    classSubjects: catalogData.classSubjects ?? [],
+    admissionContent: catalogData.admissionContent ?? {
+      admissionStatus: 'OPEN',
+      academicSession: '২০২৭',
+      schoolNameBn: 'বজেশ্বর উচ্চ বিদ্যালয়',
+      schoolNameEn: 'Bhojeshwar High School',
+    },
+    schoolProfile,
+  };
+
+  const admissionContent = db.admissionContent ?? {};
+  const cycleStatus = admissionContent.admissionStatus ?? 'OPEN';
   if (cycleStatus !== 'OPEN') {
     return (
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-12 space-y-6">
         <PageHeader
           title={pick('অনলাইন ভর্তি আবেদন', 'Online Admission Application')}
-          description={`${db.admissionContent.schoolNameBn} · ${pick('শিক্ষাবর্ষ:', 'Session:')} ${db.admissionContent.academicSession}`}
+          description={`${admissionContent.schoolNameBn ?? 'বজেশ্বর উচ্চ বিদ্যালয়'} · ${pick('শিক্ষাবর্ষ:', 'Session:')} ${admissionContent.academicSession ?? '২০২৭'}`}
         />
         <Card className="p-6 sm:p-8 space-y-4">
           <h2 className="text-lg font-bold text-foreground">
@@ -66,8 +97,8 @@ export function AdmissionApplyPage() {
           <p className="text-base text-muted-foreground leading-relaxed">
             {cycleStatus === 'UPCOMING'
               ? pick(
-                  `নির্ধারিত তারিখ (${formatDateLong(db.admissionContent.startDate, locale)}) থেকে অনলাইন আবেদন গ্রহণ শুরু হবে। ইতোমধ্যে ভর্তি নির্দেশিকা ও প্রয়োজনীয় কাগজপত্রের তালিকা দেখে নিতে পারেন।`,
-                  `Online applications will open on ${formatDateLong(db.admissionContent.startDate, locale)}. You can review guidelines and required documents in the meantime.`
+                  `নির্ধারিত তারিখ (${formatDateLong(admissionContent.startDate ?? '', locale)}) থেকে অনলাইন আবেদন গ্রহণ শুরু হবে। ইতোমধ্যে ভর্তি নির্দেশিকা ও প্রয়োজনীয় কাগজপত্রের তালিকা দেখে নিতে পারেন।`,
+                  `Online applications will open on ${formatDateLong(admissionContent.startDate ?? '', locale)}. You can review guidelines and required documents in the meantime.`
                 )
               : pick(
                   'চলমান শিক্ষাবর্ষের আবেদন গ্রহণের সময়সীমা শেষ হয়েছে। পূর্বে জমাকৃত আবেদনের অবস্থা জানতে স্ট্যাটাস যাচাই পেজ ব্যবহার করুন অথবা বিদ্যালয় অফিসে যোগাযোগ করুন।',
@@ -119,7 +150,7 @@ export function AdmissionApplyPage() {
           }
         : {
             kind: 'ADMIT_CARD',
-            school: db.schoolProfile,
+            school: schoolProfile,
             application: submittedApp,
             targetClassName: locale === 'bn' ? cls?.nameBn ?? '' : cls?.name ?? '',
             groupName: grp ? (locale === 'bn' ? grp.nameBn : grp.name) : null,
@@ -264,7 +295,7 @@ export function AdmissionApplyPage() {
             />
           ) : (
             <PrintableAdmissionAdmitCard
-              school={db.schoolProfile}
+              school={schoolProfile}
               application={submittedApp}
               targetClassName={locale === 'bn' ? cls?.nameBn ?? '' : cls?.name ?? ''}
               groupName={grp ? (locale === 'bn' ? grp.nameBn : grp.name) : null}
@@ -280,8 +311,8 @@ export function AdmissionApplyPage() {
       <PageHeader
         title={pick('অনলাইন ভর্তি আবেদন ফরম (৬ষ্ঠ – ১০ম শ্রেণি)', 'Online Admission Application (Classes 6–10)')}
         description={pick(
-          `${db.admissionContent.schoolNameBn} · শিক্ষাবর্ষ ${db.admissionContent.academicSession} · জন্ম নিবন্ধন ও এনআইডি অনুযায়ী তথ্য পূরণ করুন।`,
-          `${db.admissionContent.schoolNameEn || db.schoolProfile.nameEn} · Session ${db.admissionContent.academicSession} · Complete accurately per Birth Certificate & NID.`
+          `${admissionContent.schoolNameBn ?? 'বজেশ্বর উচ্চ বিদ্যালয়'} · শিক্ষাবর্ষ ${admissionContent.academicSession ?? '২০২৭'} · জন্ম নিবন্ধন ও এনআইডি অনুযায়ী তথ্য পূরণ করুন।`,
+          `${admissionContent.schoolNameEn || schoolProfile.nameEn} · Session ${admissionContent.academicSession ?? '2027'} · Complete accurately per Birth Certificate & NID.`
         )}
       />
 

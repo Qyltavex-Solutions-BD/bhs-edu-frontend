@@ -506,17 +506,17 @@ export function StudentDirectory({
 
         {/* Search + Filter Controls Row */}
         <div className="p-4 space-y-3">
-          <div className="flex flex-col xl:flex-row xl:items-center gap-2.5">
-            <div className="relative flex-1 min-w-[240px]">
+          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+            <div className="relative w-full xl:w-72 shrink-0">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={pick(
-                  'শিক্ষার্থীর নাম, রোল, আইডি, অভিভাবকের নাম বা মোবাইল নম্বর খুঁজুন...',
-                  'Search student name, roll, ID, guardian or phone...'
+                  'নাম, আইডি বা ফোন খুঁজুন...',
+                  'Search name, ID or phone...'
                 )}
-                className="pl-9 pr-9 h-10 text-base"
+                className="pl-9 pr-9 h-10 text-sm"
               />
               {searchQuery && (
                 <button
@@ -530,11 +530,11 @@ export function StudentDirectory({
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2.5">
               <Select
                 value={sectionId}
                 onChange={(event) => setSectionId(event.target.value)}
-                className="w-32 h-10 text-sm font-medium"
+                className="w-auto min-w-[128px] h-10 text-sm font-medium"
                 aria-label={pick('শাখা', 'Section')}
               >
                 <option value="ALL">{pick('সকল শাখা', 'All sections')}</option>
@@ -549,7 +549,7 @@ export function StudentDirectory({
                 <Select
                   value={groupId}
                   onChange={(event) => setGroupId(event.target.value)}
-                  className="w-34 h-10 text-sm font-medium"
+                  className="w-auto min-w-[144px] h-10 text-sm font-medium"
                   aria-label={pick('বিভাগ', 'Stream')}
                 >
                   <option value="ALL">{pick('সকল বিভাগ', 'All streams')}</option>
@@ -564,7 +564,7 @@ export function StudentDirectory({
               <Select
                 value={genderFilter}
                 onChange={(event) => setGenderFilter(event.target.value)}
-                className="w-28 h-10 text-sm font-medium"
+                className="w-auto min-w-[124px] h-10 text-sm font-medium"
                 aria-label={pick('লিঙ্গ', 'Gender')}
               >
                 <option value="ALL">{pick('সকল লিঙ্গ', 'All')}</option>
@@ -575,7 +575,7 @@ export function StudentDirectory({
               <Select
                 value={status}
                 onChange={(event) => setStatus(event.target.value)}
-                className="w-32 h-10 text-sm font-medium"
+                className="w-auto min-w-[136px] h-10 text-sm font-medium"
                 aria-label={pick('অবস্থা', 'Status')}
               >
                 <option value="ALL">{pick('সকল অবস্থা', 'All statuses')}</option>
