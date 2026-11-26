@@ -196,6 +196,7 @@ export const ENUM_LABELS: Record<string, Record<string, EnumMeta>> = {
     ACTIVE: { bn: 'কর্মরত', en: 'Active', tone: 'success' },
     RESIGNED: { bn: 'পদত্যাগ', en: 'Resigned', tone: 'warning' },
     RETIRED: { bn: 'অবসরপ্রাপ্ত', en: 'Retired', tone: 'neutral' },
+    TRANSFERRED: { bn: 'বদলিজনিত', en: 'Transferred', tone: 'info' },
     TERMINATED: { bn: 'অব্যাহতিপ্রাপ্ত', en: 'Terminated', tone: 'destructive' },
   },
   StaffType: {

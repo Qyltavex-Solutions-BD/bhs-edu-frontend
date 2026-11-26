@@ -89,11 +89,6 @@ export const ADMIN_NAV_GROUPS: NavGroup[] = [
         labelBn: 'শিক্ষক ও কর্মচারী',
         labelEn: 'Staff & Teachers',
         icon: Users,
-        children: [
-          { to: '/admin/staff', labelBn: 'সকল স্টাফ', labelEn: 'All staff' },
-          { to: '/admin/staff/departments', labelBn: 'বিভাগসমূহ', labelEn: 'Departments' },
-          { to: '/admin/staff/structures', labelBn: 'অনুমোদিত পদ', labelEn: 'Sanctioned posts' },
-        ],
       },
     ],
   },
