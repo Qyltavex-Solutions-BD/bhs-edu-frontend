@@ -10,6 +10,43 @@ export const loginSchema = z.object({
 
 export type LoginFormValues = z.infer<typeof loginSchema>;
 
+export const portalInitiateSchema = z.object({
+  identifier: z
+    .string()
+    .trim()
+    .min(3, 'নিবন্ধিত ইমেইল অথবা মোবাইল নম্বর দিন'),
+});
+
+export type PortalInitiateFormValues = z.infer<typeof portalInitiateSchema>;
+
+export const portalSetupPasswordSchema = z
+  .object({
+    otp: z
+      .string()
+      .trim()
+      .length(6, '৬-সংখ্যার ওটিপি কোড দিন'),
+    password: z
+      .string()
+      .min(8, 'নতুন পাসওয়ার্ড কমপক্ষে ৮ অক্ষরের হতে হবে')
+      .max(72, 'নতুন পাসওয়ার্ড ৭২ অক্ষরের বেশি হতে পারবে না')
+      .regex(/^(?=.*[A-Za-z])(?=.*\d).+$/, 'পাসওয়ার্ডে অন্তত একটি ইংরেজি অক্ষর এবং একটি সংখ্যা থাকতে হবে'),
+    confirmPassword: z.string().min(1, 'পুনরায় পাসওয়ার্ড দিন'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'পাসওয়ার্ড এবং নিশ্চিতকরণ পাসওয়ার্ড মেলেনি',
+    path: ['confirmPassword'],
+  });
+
+export type PortalSetupPasswordFormValues = z.infer<typeof portalSetupPasswordSchema>;
+
+export const adminLoginSchema = z.object({
+  identifier: z.string().trim().min(3, 'অ্যাডমিন ইমেইল অথবা মোবাইল নম্বর দিন'),
+  password: z.string().min(6, 'পাসওয়ার্ড আবশ্যক'),
+  accessKey: z.string().trim().min(4, 'নিরাপত্তা অ্যাক্সেস কী আবশ্যক'),
+});
+
+export type AdminLoginFormValues = z.infer<typeof adminLoginSchema>;
+
 const BD_PHONE_REGEX = /^(\+?880|0)1[3-9]\d{8}$/;
 
 export const passwordChangeSchema = z

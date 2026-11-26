@@ -5,7 +5,7 @@ import { GraduationCap, Loader2, ShieldCheck, Users } from 'lucide-react';
 import { useI18n } from '@/src/lib/i18n';
 
 export interface DemoAccount {
-  key: 'ADMIN' | 'TEACHER' | 'PARENT';
+  key: 'TEACHER' | 'PARENT';
   labelBn: string;
   labelEn: string;
   descBn: string;
@@ -17,17 +17,6 @@ export interface DemoAccount {
 }
 
 export const DEMO_ACCOUNTS: DemoAccount[] = [
-  {
-    key: 'ADMIN',
-    labelBn: 'অ্যাডমিন',
-    labelEn: 'Admin',
-    descBn: 'অ্যাডমিন প্যানেল',
-    descEn: 'Admin Portal',
-    email: process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL || 'admin@example.com',
-    password: process.env.NEXT_PUBLIC_DEMO_ADMIN_PASSWORD || 'adminpassword',
-    icon: ShieldCheck,
-    accentClass: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20',
-  },
   {
     key: 'TEACHER',
     labelBn: 'শিক্ষক',
@@ -82,7 +71,7 @@ export function DemoLoginCards({
         <div className="h-px flex-1 bg-border" />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
         {DEMO_ACCOUNTS.map((account) => {
           const Icon = account.icon;
           const isThisLoading = isLoading && activeRole === account.key;

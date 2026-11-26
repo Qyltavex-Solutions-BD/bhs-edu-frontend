@@ -21,13 +21,24 @@ import {
   ShieldCheck,
   Users,
 } from 'lucide-react';
-import { loginSchema, type LoginFormValues } from '../schemas';
+import {
+  adminLoginSchema,
+  portalInitiateSchema,
+  portalSetupPasswordSchema,
+  type AdminLoginFormValues,
+  type PortalInitiateFormValues,
+  type PortalSetupPasswordFormValues,
+} from '../schemas';
 import { useAppDispatch } from '@/src/store/hooks';
 import { setCredentials } from '@/src/store/slices/authSlice';
 import {
+  useAdminLoginMutation,
   useLoginUserMutation,
+  usePortalInitiateMutation,
+  usePortalSetupPasswordMutation,
   useForgotPasswordMutation,
   useResetPasswordMutation,
+  type LoginResponseData,
 } from '../api/auth.api';
 import { useI18n } from '@/src/lib/i18n';
 import { SchoolEmblem } from '@/src/components/shared/Feedback';
@@ -38,69 +49,135 @@ export function LoginPage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { locale, pick } = useI18n();
+  const [step, setStep] = useState<'IDENTIFY' | 'ENTER_PASSWORD' | 'SET_PASSWORD'>('IDENTIFY');
+  const [verifiedIdentifier, setVerifiedIdentifier] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [maskedTarget, setMaskedTarget] = useState<string | null>(null);
+  const [passwordInput, setPasswordInput] = useState('');
   const [showPass, setShowPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [activeDemoRole, setActiveDemoRole] = useState<DemoAccount['key'] | null>(null);
 
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { identifier: '', password: '', rememberMe: true },
+  const identifyForm = useForm<PortalInitiateFormValues>({
+    resolver: zodResolver(portalInitiateSchema),
+    defaultValues: { identifier: '' },
   });
 
+  const setupForm = useForm<PortalSetupPasswordFormValues>({
+    resolver: zodResolver(portalSetupPasswordSchema),
+    defaultValues: { otp: '', password: '', confirmPassword: '' },
+  });
+
+  const [portalInitiateApi, { isLoading: isInitiating }] = usePortalInitiateMutation();
+  const [portalSetupPasswordApi, { isLoading: isSettingPassword }] = usePortalSetupPasswordMutation();
   const [loginApi, { isLoading: isLoggingIn }] = useLoginUserMutation();
 
-  const performLogin = async (email: string, password: string) => {
+  const completePortalSession = (res: LoginResponseData) => {
+    const roles = res.user?.roles || [];
+    if (roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')) {
+      toast.error(pick('এই পোর্টাল দিয়ে অ্যাডমিন প্রবেশ অনুমোদিত নয়।', 'Admin login is not permitted on this portal.'));
+      return;
+    }
+
+    const role = (['TEACHER', 'ACCOUNTANT', 'PARENT', 'STUDENT'] as const).find((candidate) =>
+      roles.includes(candidate)
+    );
+    if (!role) {
+      toast.error(pick('এই অ্যাকাউন্টের কোনো পোর্টাল অ্যাক্সেস নেই।', 'This account has no portal access.'));
+      return;
+    }
+
+    dispatch(
+      setCredentials({
+        accessToken: res.accessToken,
+        user: {
+          id: res.user.id,
+          name: res.user.name,
+          email: res.user.email,
+          phone: res.user.phone,
+          role: role as any,
+        },
+        role: role as any,
+        permissions: res.user.permissions ?? [],
+      })
+    );
+
+    toast.success(pick('লগইন সফল হয়েছে।', 'Login successful.'));
+
+    let redirectUrl = '/teacher/dashboard';
+    if (role === 'PARENT') redirectUrl = '/parent/dashboard';
+    else if (role === 'STUDENT') redirectUrl = '/student/dashboard';
+    else if (role === 'ACCOUNTANT') redirectUrl = '/teacher/dashboard';
+
+    router.push(redirectUrl);
+  };
+
+  const handleInitiateSubmit = async (values: PortalInitiateFormValues) => {
     try {
-      const res = await loginApi({
-        email: email.trim(),
-        password,
-      }).unwrap();
+      const res = await portalInitiateApi({ identifier: values.identifier.trim() }).unwrap();
+      setVerifiedIdentifier(res.identifier);
+      setAccountName(res.name);
+      setMaskedTarget(res.maskedPhone || res.maskedEmail || null);
 
-      const roles = res.user?.roles || [];
-      const role = roles.includes('ADMIN')
-        ? 'SUPER_ADMIN'
-        : (['TEACHER', 'PARENT', 'STUDENT'] as const).find((candidate) => roles.includes(candidate));
-      if (!role) {
-        toast.error('This account has no portal access.');
-        return;
-      }
-
-      dispatch(
-        setCredentials({
-          accessToken: res.accessToken,
-          user: {
-            id: res.user.id,
-            name: res.user.name,
-            email: res.user.email,
-            phone: res.user.phone,
-            role,
-          },
-          role,
-          permissions: res.user.permissions ?? [],
-        })
-      );
-
-      toast.success(pick('লগইন সফল হয়েছে।', 'Login successful.'));
-
-      let redirectUrl = '/admin';
-      if (role === 'TEACHER') redirectUrl = '/teacher/dashboard';
-      else if (role === 'PARENT') redirectUrl = '/parent/dashboard';
-      else if (role === 'STUDENT') redirectUrl = '/student/dashboard';
-
-      router.push(redirectUrl);
-    } catch (err: any) {
-      const errorMsg =
-        err?.data?.message ||
-        err?.message ||
-        pick(
-          'লগইন ব্যর্থ হয়েছে। সঠিক ইমেইল/ফোন ও পাসওয়ার্ড দিন।',
-          'Login failed. Please check your email/phone and password.'
+      if (res.nextStep === 'SET_PASSWORD') {
+        setupForm.reset({ otp: '', password: '', confirmPassword: '' });
+        setStep('SET_PASSWORD');
+        toast.info(
+          pick(
+            'প্রথমবার লগইনের জন্য কনসোলে (এসএমএস লগে) একটি ওটিপি পাঠানো হয়েছে। পাসওয়ার্ড সেট করুন।',
+            'OTP sent (check backend console SMS log). Please set your password.'
+          )
         );
-      toast.error(errorMsg);
+      } else {
+        setPasswordInput('');
+        setStep('ENTER_PASSWORD');
+      }
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message ||
+          err?.message ||
+          pick('অ্যাকাউন্ট যাচাই করা যায়নি। সঠিক ইমেইল বা মোবাইল নম্বর দিন।', 'Could not verify account.')
+      );
     }
   };
 
-  const onSubmit = async (values: LoginFormValues) => {
-    await performLogin(values.identifier, values.password);
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput.length < 6) {
+      toast.error(pick('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।', 'Password must be at least 6 characters.'));
+      return;
+    }
+    try {
+      const res = await loginApi({
+        email: verifiedIdentifier,
+        password: passwordInput,
+      }).unwrap();
+      completePortalSession(res);
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message ||
+          err?.message ||
+          pick('লগইন ব্যর্থ হয়েছে। সঠিক পাসওয়ার্ড দিন।', 'Login failed. Please check your password.')
+      );
+    }
+  };
+
+  const handleSetupPasswordSubmit = async (values: PortalSetupPasswordFormValues) => {
+    try {
+      const res = await portalSetupPasswordApi({
+        identifier: verifiedIdentifier,
+        otp: values.otp.trim(),
+        password: values.password,
+        confirmPassword: values.confirmPassword,
+      }).unwrap();
+      completePortalSession(res);
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message ||
+          err?.message ||
+          pick('পাসওয়ার্ড সেট করা যায়নি। ওটিপি ও তথ্য যাচাই করুন।', 'Failed to set password.')
+      );
+    }
   };
 
   const handleDemoLogin = async (
@@ -109,13 +186,20 @@ export function LoginPage() {
     roleKey: DemoAccount['key']
   ) => {
     setActiveDemoRole(roleKey);
-    form.setValue('identifier', email);
-    form.setValue('password', password);
     try {
-      await performLogin(email, password);
+      const res = await loginApi({ email: email.trim(), password }).unwrap();
+      completePortalSession(res);
+    } catch (err: any) {
+      toast.error(err?.data?.message || err?.message || pick('ডেমো লগইন ব্যর্থ হয়েছে।', 'Demo login failed.'));
     } finally {
       setActiveDemoRole(null);
     }
+  };
+
+  const resetToIdentify = () => {
+    setStep('IDENTIFY');
+    setPasswordInput('');
+    setupForm.reset();
   };
 
   return (
@@ -220,12 +304,392 @@ export function LoginPage() {
 
             <div className="space-y-1.5">
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                {pick('পোর্টাল সাইন ইন', 'Portal Sign In')}
+                {step === 'SET_PASSWORD'
+                  ? pick('নতুন পাসওয়ার্ড সেট করুন', 'Set Your Password')
+                  : pick('পোর্টাল সাইন ইন', 'Portal Sign In')}
+              </h2>
+              <p className="text-base text-muted-foreground leading-relaxed">
+                {step === 'IDENTIFY' &&
+                  pick(
+                    'পোর্টালে প্রবেশ করতে আপনার নিবন্ধিত ইমেইল বা মোবাইল নম্বর দিন।',
+                    'Enter your registered email address or mobile number to access Teacher, Accountant, or Parent portal.'
+                  )}
+                {step === 'ENTER_PASSWORD' &&
+                  pick(
+                    `স্বাগতম, ${accountName || verifiedIdentifier} — প্রবেশ করতে আপনার পাসওয়ার্ড দিন।`,
+                    `Welcome back, ${accountName || verifiedIdentifier} — enter your password to continue.`
+                  )}
+                {step === 'SET_PASSWORD' &&
+                  pick(
+                    `স্বাগতম, ${accountName || verifiedIdentifier} — প্রথমবার লগইনের জন্য ওটিপি যাচাই করে পাসওয়ার্ড সেট করুন।`,
+                    `Welcome, ${accountName || verifiedIdentifier} — verify OTP and set your password.`
+                  )}
+              </p>
+            </div>
+
+            <Card className="p-6 sm:p-7">
+              {step === 'IDENTIFY' && (
+                <form onSubmit={identifyForm.handleSubmit(handleInitiateSubmit)} className="space-y-4">
+                  <FormField
+                    label={pick('ইমেইল অথবা মোবাইল নম্বর', 'Email or Mobile Number')}
+                    required
+                    error={identifyForm.formState.errors.identifier?.message}
+                  >
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <Input
+                        {...identifyForm.register('identifier')}
+                        placeholder="teacher@example.com / 01700000000"
+                        className="pl-10"
+                      />
+                    </div>
+                  </FormField>
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={isInitiating}
+                    className="w-full h-11 text-base font-semibold mt-1"
+                  >
+                    <span>{isInitiating ? pick('যাচাই হচ্ছে...', 'Checking...') : pick('পরবর্তী ধাপে যান', 'Continue')}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </form>
+              )}
+
+              {step === 'ENTER_PASSWORD' && (
+                <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                  <div className="flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3.5 py-2.5 text-sm">
+                    <span className="font-medium text-foreground truncate">{verifiedIdentifier}</span>
+                    <button
+                      type="button"
+                      onClick={resetToIdentify}
+                      className="text-xs font-semibold text-primary hover:underline shrink-0 cursor-pointer"
+                    >
+                      {pick('পরিবর্তন করুন', 'Change')}
+                    </button>
+                  </div>
+
+                  <FormField label={pick('পাসওয়ার্ড', 'Password')} required>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <Input
+                        type={showPass ? 'text' : 'password'}
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        placeholder="••••••••"
+                        className="pl-10 pr-10"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPass((v) => !v)}
+                        aria-label={pick('পাসওয়ার্ড দেখুন বা লুকান', 'Toggle password visibility')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                      >
+                        {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </FormField>
+
+                  <div className="flex items-center justify-end text-sm pt-0.5">
+                    <Link
+                      href="/forgot-password"
+                      className="font-medium text-primary hover:underline whitespace-nowrap"
+                    >
+                      {pick('পাসওয়ার্ড ভুলে গেছেন?', 'Forgot password?')}
+                    </Link>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={isLoggingIn}
+                    className="w-full h-11 text-base font-semibold mt-1"
+                  >
+                    <span>{isLoggingIn ? pick('প্রবেশ করছে...', 'Signing in...') : pick('পোর্টালে প্রবেশ করুন', 'Sign In to Portal')}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </form>
+              )}
+
+              {step === 'SET_PASSWORD' && (
+                <form onSubmit={setupForm.handleSubmit(handleSetupPasswordSubmit)} className="space-y-4">
+                  <div className="flex items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-800 dark:text-emerald-200">
+                    <div>
+                      <p className="font-semibold">
+                        {pick('প্রথমবার লগইন যাচাইকরণ', 'First-Time Login Verification')}
+                      </p>
+                      <p className="opacity-90 mt-0.5">
+                        {maskedTarget
+                          ? pick(`ওটিপি পাঠানো হয়েছে: ${maskedTarget} (সার্ভার কনসোলে দেখুন)`, `OTP sent to ${maskedTarget} (check server console)`)
+                          : pick('সার্ভার কনসোল লগ থেকে ৬-সংখ্যার ওটিপি কোডটি দিন।', 'Enter the 6-digit OTP from server console log.')}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={resetToIdentify}
+                      className="font-semibold text-primary hover:underline shrink-0 cursor-pointer"
+                    >
+                      {pick('ফিরুন', 'Back')}
+                    </button>
+                  </div>
+
+                  <FormField
+                    label={pick('৬-সংখ্যার ওটিপি কোড', '6-Digit OTP Code')}
+                    required
+                    error={setupForm.formState.errors.otp?.message}
+                  >
+                    <Input
+                      {...setupForm.register('otp')}
+                      maxLength={6}
+                      placeholder="123456"
+                      className="tracking-widest text-center font-mono text-base"
+                    />
+                  </FormField>
+
+                  <FormField
+                    label={pick('নতুন পাসওয়ার্ড', 'New Password')}
+                    required
+                    error={setupForm.formState.errors.password?.message}
+                  >
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <Input
+                        type={showPass ? 'text' : 'password'}
+                        {...setupForm.register('password')}
+                        placeholder="কমপক্ষে ৮ অক্ষর (অক্ষর + সংখ্যা)"
+                        className="pl-10 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPass((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </FormField>
+
+                  <FormField
+                    label={pick('পাসওয়ার্ড নিশ্চিত করুন', 'Confirm Password')}
+                    required
+                    error={setupForm.formState.errors.confirmPassword?.message}
+                  >
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <Input
+                        type={showConfirmPass ? 'text' : 'password'}
+                        {...setupForm.register('confirmPassword')}
+                        placeholder="পুনরায় পাসওয়ার্ড দিন"
+                        className="pl-10 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPass((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                      >
+                        {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </FormField>
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={isSettingPassword}
+                    className="w-full h-11 text-base font-semibold mt-1"
+                  >
+                    <span>
+                      {isSettingPassword
+                        ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
+                        : pick('পাসওয়ার্ড সেট করে প্রবেশ করুন', 'Set Password & Sign In')}
+                    </span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </form>
+              )}
+            </Card>
+
+            <DemoLoginCards
+              onSelectAccount={handleDemoLogin}
+              isLoading={isLoggingIn}
+              activeRole={activeDemoRole}
+            />
+
+            <p className="text-center text-sm text-muted-foreground">
+              {pick('অ্যাকাউন্ট সহায়তার জন্য ', 'Need help signing in? ')}
+              <Link href="/contact" className="font-semibold text-primary hover:underline">
+                {pick('বিদ্যালয় অফিসে যোগাযোগ করুন', 'Contact School Office')}
+              </Link>
+            </p>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export function AdminGateLoginPage() {
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const { pick } = useI18n();
+  const [showPass, setShowPass] = useState(false);
+  const [showGateKey, setShowGateKey] = useState(false);
+  const [adminLoginApi, { isLoading }] = useAdminLoginMutation();
+
+  const form = useForm<AdminLoginFormValues>({
+    resolver: zodResolver(adminLoginSchema),
+    defaultValues: { identifier: '', password: '', accessKey: '' },
+  });
+
+  const onSubmit = async (values: AdminLoginFormValues) => {
+    try {
+      const res = await adminLoginApi({
+        email: values.identifier.trim(),
+        password: values.password,
+        accessKey: values.accessKey.trim(),
+      }).unwrap();
+
+      const roles = res.user?.roles || [];
+      if (!roles.includes('ADMIN') && !roles.includes('SUPER_ADMIN')) {
+        toast.error(pick('অ্যাডমিন অনুমতি পাওয়া যায়নি।', 'Admin authorization denied.'));
+        return;
+      }
+
+      dispatch(
+        setCredentials({
+          accessToken: res.accessToken,
+          user: {
+            id: res.user.id,
+            name: res.user.name,
+            email: res.user.email,
+            phone: res.user.phone,
+            role: 'SUPER_ADMIN',
+          },
+          role: 'SUPER_ADMIN',
+          permissions: res.user.permissions ?? [],
+        })
+      );
+
+      toast.success(pick('অ্যাডমিন পোর্টালে লগইন সফল হয়েছে।', 'Admin login successful.'));
+      router.push('/admin');
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message ||
+          err?.message ||
+          pick('অ্যাডমিন যাচাইকরণ ব্যর্থ হয়েছে।', 'Admin authentication failed.')
+      );
+    }
+  };
+
+  return (
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-background">
+      {/* Left Institutional Brand Panel (Aligned with Portal Theme) */}
+      <aside className="hidden lg:flex lg:col-span-6 xl:col-span-5 relative overflow-hidden bg-[#093B1F] text-white">
+        <img
+          src="/images/hero_campus_heritage_1795136893336.jpg"
+          alt={pick('ভোজেশ্বর উচ্চ বিদ্যালয় প্রাঙ্গণ', 'Bhojeshwar High School Campus')}
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 w-full h-full object-cover object-center"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-t from-[#052412]/95 via-[#08341B]/76 to-[#062915]/68"
+        />
+
+        <div className="relative z-10 flex flex-col justify-between w-full p-10 xl:p-12">
+          <div className="flex items-center justify-between gap-4">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 text-sm font-medium text-white/85 hover:text-white transition-colors whitespace-nowrap"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>{pick('পাবলিক ওয়েবসাইটে ফিরুন', 'Back to Website')}</span>
+            </Link>
+            <span className="text-xs font-medium text-white/80 tabular-nums whitespace-nowrap">
+              {pick('EIIN: ১১৩৫৮৭ · স্থাপিত ১৯৭৮', 'EIIN: 113587 · Est. 1978')}
+            </span>
+          </div>
+
+          <div className="space-y-6 my-auto py-8">
+            <div className="inline-flex p-1.5 rounded-full bg-white shadow-lg ring-1 ring-white/30">
+              <SchoolEmblem size={76} className="ring-0" />
+            </div>
+
+            <div className="space-y-2.5">
+              <p className="text-sm font-semibold text-white/85">
+                {pick('সুরক্ষিত প্রশাসনিক কন্ট্রোল প্যানেল', 'Restricted Administrative Control Panel')}
+              </p>
+              <h1 className="text-3xl xl:text-4xl font-bold leading-tight tracking-tight text-white">
+                {pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}
+              </h1>
+              <p className="text-base font-medium text-white/85">
+                {pick('“শিক্ষাই আলো, জ্ঞানই শক্তি” · অ্যাডমিন গেটওয়ে', '“Education is Light, Knowledge is Power” · Admin Gateway')}
+              </p>
+            </div>
+
+            <p className="text-base text-white/80 leading-relaxed max-w-md">
+              {pick(
+                'শুধুমাত্র অনুমোদিত সিস্টেম অ্যাডমিনিস্ট্রেটরদের জন্য সংরক্ষিত প্রবেশাধিকার — ইমেইল বা মোবাইল নম্বর, পাসওয়ার্ড এবং নিরাপত্তা অ্যাক্সেস কী দিয়ে প্রবেশ করুন।',
+                'Reserved exclusively for authorized system administrators — sign in using your email or phone, password, and security gate key.'
+              )}
+            </p>
+          </div>
+
+          <div className="pt-5 border-t border-white/15 flex items-center gap-3 text-xs text-white/75">
+            <ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0" />
+            <span>
+              {pick(
+                'বহু-স্তরীয় নিরাপত্তা ও অডিট লগ দ্বারা সুরক্ষিত',
+                'Protected by multi-layer authentication and audit logging'
+              )}
+            </span>
+          </div>
+        </div>
+      </aside>
+
+      {/* Right Sign-In Workspace */}
+      <main className="lg:col-span-6 xl:col-span-7 flex flex-col min-h-screen bg-background">
+        <div className="flex items-center justify-between gap-4 px-6 sm:px-10 py-5">
+          <Link
+            href="/"
+            className="lg:hidden inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>{pick('মূল ওয়েবসাইট', 'Home')}</span>
+          </Link>
+          <p className="hidden lg:block text-xs text-muted-foreground tabular-nums">
+            {pick('শিক্ষাবর্ষ ২০২৬ · প্রশাসনিক অ্যাক্সেস', 'Session 2026 · Administrative Access')}
+          </p>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center px-6 sm:px-10 pb-10 pt-2">
+          <div className="w-full max-w-[440px] space-y-7">
+            <div className="flex items-center gap-3.5 lg:hidden pb-2 border-b border-border">
+              <SchoolEmblem size={48} />
+              <div>
+                <p className="font-bold text-foreground text-base leading-snug">
+                  {pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}
+                </p>
+                <p className="text-xs text-muted-foreground tabular-nums">
+                  {pick('স্থাপিত ১৯৭৮ · EIIN: ১১৩৫৮৭', 'Est. 1978 · EIIN: 113587')}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>{pick('সুরক্ষিত অ্যাডমিন গেটওয়ে', 'Restricted Admin Gateway')}</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+                {pick('অ্যাডমিনিস্ট্রেটর সাইন ইন', 'Administrator Sign In')}
               </h2>
               <p className="text-base text-muted-foreground leading-relaxed">
                 {pick(
-                  'আপনার নিবন্ধিত ইমেইল বা মোবাইল নম্বর ও পাসওয়ার্ড দিয়ে প্রবেশ করুন।',
-                  'Sign in with your registered email address or mobile number.'
+                  'আপনার নিবন্ধিত ইমেইল বা মোবাইল নম্বর, পাসওয়ার্ড ও নিরাপত্তা অ্যাক্সেস কী প্রদান করুন।',
+                  'Enter your registered email or mobile number, password, and security gate key.'
                 )}
               </p>
             </div>
@@ -271,42 +735,45 @@ export function LoginPage() {
                   </div>
                 </FormField>
 
-                <div className="flex items-center justify-between gap-2 text-sm pt-0.5">
-                  <label className="inline-flex items-center gap-2 cursor-pointer text-muted-foreground select-none">
-                    <input
-                      type="checkbox"
-                      {...form.register('rememberMe')}
-                      className="w-4 h-4 accent-primary rounded cursor-pointer"
+                <FormField
+                  label={pick('নিরাপত্তা অ্যাক্সেস কী (Security Gate Key)', 'Security Gate Key')}
+                  required
+                  error={form.formState.errors.accessKey?.message}
+                >
+                  <div className="relative">
+                    <ShieldAlert className="w-4 h-4 text-primary absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <Input
+                      type={showGateKey ? 'text' : 'password'}
+                      {...form.register('accessKey')}
+                      placeholder="••••••••••••"
+                      className="pl-10 pr-10 font-mono"
                     />
-                    <span>{pick('আমাকে মনে রাখুন', 'Remember me')}</span>
-                  </label>
-                  <Link
-                    href="/forgot-password"
-                    className="font-medium text-primary hover:underline whitespace-nowrap"
-                  >
-                    {pick('পাসওয়ার্ড ভুলে গেছেন?', 'Forgot password?')}
-                  </Link>
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowGateKey((v) => !v)}
+                      aria-label={pick('অ্যাক্সেস কী দেখুন বা লুকান', 'Toggle gate key visibility')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                    >
+                      {showGateKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </FormField>
 
-                <Button type="submit" variant="primary" disabled={isLoggingIn} className="w-full h-11 text-base font-semibold mt-1">
-                  <span>{pick('পোর্টালে প্রবেশ করুন', 'Sign In to Portal')}</span>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={isLoading}
+                  className="w-full h-11 text-base font-semibold mt-1"
+                >
+                  <span>
+                    {isLoading
+                      ? pick('যাচাই চলছে...', 'Authenticating...')
+                      : pick('অ্যাডমিন প্যানেলে প্রবেশ করুন', 'Enter Admin Panel')}
+                  </span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </form>
             </Card>
-
-            <DemoLoginCards
-              onSelectAccount={handleDemoLogin}
-              isLoading={isLoggingIn}
-              activeRole={activeDemoRole}
-            />
-
-            <p className="text-center text-sm text-muted-foreground">
-              {pick('অ্যাকাউন্ট সহায়তার জন্য ', 'Need help signing in? ')}
-              <Link href="/contact" className="font-semibold text-primary hover:underline">
-                {pick('বিদ্যালয় অফিসে যোগাযোগ করুন', 'Contact School Office')}
-              </Link>
-            </p>
           </div>
         </div>
       </main>

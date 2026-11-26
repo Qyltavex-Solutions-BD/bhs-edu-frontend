@@ -66,6 +66,10 @@ export function StaffFormModal({
   };
 
   const [form, setForm] = useState(blank);
+  const [createAccount, setCreateAccount] = useState(defaultType !== StaffType.EMPLOYEE);
+  const [portalRole, setPortalRole] = useState<'TEACHER' | 'ACCOUNTANT'>(
+    defaultType === StaffType.OFFICER ? 'ACCOUNTANT' : 'TEACHER'
+  );
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
@@ -78,6 +82,8 @@ export function StaffFormModal({
     setPhotoFile(null);
     setLocalPreview(null);
     setRemovePhoto(false);
+    setCreateAccount(defaultType !== StaffType.EMPLOYEE);
+    setPortalRole(defaultType === StaffType.OFFICER ? 'ACCOUNTANT' : 'TEACHER');
     setForm(
       member
         ? {
@@ -193,6 +199,13 @@ export function StaffFormModal({
 
     if (photoFile) {
       body.append('file', photoFile);
+    }
+
+    if (!member) {
+      body.append('createAccount', String(createAccount));
+      if (createAccount) {
+        body.append('portalRole', portalRole);
+      }
     }
 
     try {
@@ -507,6 +520,47 @@ export function StaffFormModal({
             </FormField>
           </div>
         </div>
+
+        {!member && (
+          <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4 space-y-3">
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={createAccount}
+                onChange={(e) => setCreateAccount(e.target.checked)}
+                className="mt-0.5 w-4 h-4 accent-primary rounded cursor-pointer"
+              />
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {pick(
+                    'পোর্টাল লগইন অ্যাকাউন্ট তৈরি করুন (পাসওয়ার্ড ছাড়াই)',
+                    'Create Portal Login Account (Passwordless Onboarding)'
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {pick(
+                    'অ্যাডমিন থেকে কোনো পাসওয়ার্ড দিতে হবে না। প্রথমবার ইমেইল বা মোবাইল নম্বর দিয়ে লগইনের সময় তিনি নিজেই পাসওয়ার্ড সেট করতে পারবেন।',
+                    'No temporary password required. They will set their own password on first login using email or phone.'
+                  )}
+                </p>
+              </div>
+            </label>
+
+            {createAccount && (
+              <div className="pl-7 max-w-xs">
+                <FormField label={pick('পোর্টাল রোল', 'Portal Role')}>
+                  <Select
+                    value={portalRole}
+                    onChange={(e) => setPortalRole(e.target.value as 'TEACHER' | 'ACCOUNTANT')}
+                  >
+                    <option value="TEACHER">{pick('শিক্ষক (Teacher Portal)', 'Teacher')}</option>
+                    <option value="ACCOUNTANT">{pick('হিসাবরক্ষক (Accountant Portal)', 'Accountant')}</option>
+                  </Select>
+                </FormField>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-end gap-2 pt-3 border-t border-border">
           <Button type="button" variant="outline" onClick={onClose}>
