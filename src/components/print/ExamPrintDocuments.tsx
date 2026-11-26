@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { SCHOOL_LOGO_SRC, SchoolEmblem } from '@/src/components/shared/Feedback';
-import { formatDateLong, formatDateShort, formatNumber, formatTime } from '@/src/lib/formatters';
+import { formatDateLong, formatDateShort, formatNumber, formatTime, formatYear } from '@/src/lib/formatters';
 import type { GradeRange, SchoolProfile } from '@/src/types/entities';
 import { useI18n } from '@/src/lib/i18n';
 
@@ -118,7 +118,7 @@ export function FormalExamDocumentShell({
                   <p className="text-xs print:text-[11px] text-[#3F3F46] mt-0.5">{school.address}</p>
                   <p className="text-[11px] print:text-[10px] text-[#52525B] tabular-nums mt-0.5">
                     EIIN: {school.eiin ?? '113587'} &nbsp;|&nbsp;{' '}
-                    {pick('স্থাপিত:', 'Est:')} {formatNumber(school.establishedYear ?? 1978, locale)}
+                    {pick('স্থাপিত:', 'Est:')} {formatYear(school.establishedYear ?? 1978, locale)}
                     {school.schoolCode ? ` | ${pick('বিদ্যালয় কোড:', 'Code:')} ${school.schoolCode}` : ''}
                     {school.phone ? ` | ${pick('ফোন:', 'Phone:')} ${school.phone}` : ''}
                   </p>
@@ -357,7 +357,7 @@ export function PrintableMarksheet({
             <span className="col-span-8 font-bold">
               : {formatNumber(student.roll, locale)} &nbsp;&nbsp;|&nbsp;&nbsp;{' '}
               <span className="text-[#52525B] font-normal">{pick('শিক্ষাবর্ষ:', 'Session:')}</span>{' '}
-              {formatNumber(student.academicYear, locale)}
+              {formatYear(student.academicYear, locale)}
             </span>
           </div>
           {attendance && attendance.workingDays > 0 && (
@@ -717,51 +717,51 @@ export function PrintableTabulationSheet({
       ]}
     >
       <div className="overflow-x-auto">
-        <table className="w-full text-[11px] border border-[#18181B] border-collapse tabular-nums">
+        <table className="w-full text-[10px] border border-[#18181B] border-collapse tabular-nums">
           <thead>
             <tr className="bg-[#F4F4F5] text-[#111111]">
-              <th className="border border-[#18181B] px-1.5 py-1.5 text-center w-10">
+              <th className="border border-[#18181B] px-1 py-1 text-center w-9">
                 {pick('মেধা', 'Merit')}
               </th>
-              <th className="border border-[#18181B] px-1.5 py-1.5 text-center w-10">
+              <th className="border border-[#18181B] px-1 py-1 text-center w-9">
                 {pick('রোল', 'Roll')}
               </th>
-              <th className="border border-[#18181B] px-2 py-1.5 text-left min-w-[140px]">
+              <th className="border border-[#18181B] px-1.5 py-1 text-left min-w-[115px]">
                 {pick('শিক্ষার্থীর নাম ও শাখা', 'Student Name & Section')}
               </th>
               {subjects.map((sub) => (
-                <th key={sub.id} className="border border-[#18181B] px-1 py-1.5 text-center leading-tight">
+                <th key={sub.id} className="border border-[#18181B] px-1 py-1 text-center leading-tight">
                   <div className="font-bold">{locale === 'bn' ? sub.nameBn : sub.nameEn}</div>
-                  <div className="text-[10px] font-normal text-[#52525B]">
+                  <div className="text-[9px] font-normal text-[#52525B] whitespace-nowrap">
                     {sub.code} · ({formatNumber(sub.fullMarks, locale)})
                   </div>
                 </th>
               ))}
-              <th className="border border-[#18181B] px-1.5 py-1.5 text-right">{pick('মোট', 'Total')}</th>
-              <th className="border border-[#18181B] px-1.5 py-1.5 text-right">GPA</th>
-              <th className="border border-[#18181B] px-1.5 py-1.5 text-center">{pick('গ্রেড', 'Grade')}</th>
-              <th className="border border-[#18181B] px-1.5 py-1.5 text-center">{pick('অবস্থা', 'Status')}</th>
+              <th className="border border-[#18181B] px-1 py-1 text-right">{pick('মোট', 'Total')}</th>
+              <th className="border border-[#18181B] px-1 py-1 text-right">GPA</th>
+              <th className="border border-[#18181B] px-1 py-1 text-center">{pick('গ্রেড', 'Grade')}</th>
+              <th className="border border-[#18181B] px-1 py-1 text-center">{pick('অবস্থা', 'Status')}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.studentId}>
-                <td className="border border-[#52525B] px-1.5 py-1.5 text-center font-bold">
+                <td className="border border-[#52525B] px-1 py-1 text-center font-bold">
                   {r.meritPosition ? formatNumber(r.meritPosition, locale) : '—'}
                 </td>
-                <td className="border border-[#52525B] px-1.5 py-1.5 text-center font-semibold">
+                <td className="border border-[#52525B] px-1 py-1 text-center font-semibold">
                   {formatNumber(r.roll, locale)}
                 </td>
-                <td className="border border-[#52525B] px-2 py-1.5 font-medium whitespace-nowrap">
+                <td className="border border-[#52525B] px-1.5 py-1 font-medium whitespace-nowrap">
                   <span>{r.studentName}</span>{' '}
-                  <span className="text-[10px] text-[#52525B]">
+                  <span className="text-[9px] text-[#52525B]">
                     ({r.sectionName}{r.groupName ? `, ${r.groupName}` : ''})
                   </span>
                 </td>
                 {subjects.map((sub) => {
                   const cell = r.subjectMarks[sub.id];
                   return (
-                    <td key={sub.id} className="border border-[#52525B] px-1 py-1.5 text-center whitespace-nowrap">
+                    <td key={sub.id} className="border border-[#52525B] px-1 py-1 text-center whitespace-nowrap">
                       {!cell ? (
                         <span className="text-[#A1A1AA]">—</span>
                       ) : cell.isAbsent ? (
@@ -769,24 +769,36 @@ export function PrintableTabulationSheet({
                       ) : (
                         <span className={cell.grade === 'F' || cell.isPassed === false ? 'font-bold text-[#991B1B]' : ''}>
                           {formatNumber(cell.total, locale)}{' '}
-                          <span className="text-[10px]">({cell.grade})</span>
+                          <span className="text-[9px]">({cell.grade})</span>
                         </span>
                       )}
                     </td>
                   );
                 })}
-                <td className="border border-[#52525B] px-1.5 py-1.5 text-right font-bold">
+                <td className="border border-[#52525B] px-1 py-1 text-right font-bold">
                   {formatNumber(r.totalMarks, locale)}
                 </td>
-                <td className="border border-[#52525B] px-1.5 py-1.5 text-right font-bold">
+                <td className="border border-[#52525B] px-1 py-1 text-right font-bold">
                   {r.gpa !== null ? formatNumber(r.gpa, locale, 2) : '—'}
                 </td>
-                <td className="border border-[#52525B] px-1.5 py-1.5 text-center font-bold">
+                <td className="border border-[#52525B] px-1 py-1 text-center font-bold">
                   {r.letterGrade ?? '—'}
                 </td>
-                <td className="border border-[#52525B] px-1.5 py-1.5 text-center font-bold">
-                  <span className={r.resultStatus === 'PASS' ? 'text-[#111111]' : 'text-[#991B1B]'}>
-                    {r.resultStatus === 'PASS' ? pick('উত্তীর্ণ', 'PASS') : pick('অনুত্তীর্ণ', 'FAIL')}
+                <td className="border border-[#52525B] px-1 py-1 text-center font-bold whitespace-nowrap">
+                  <span
+                    className={
+                      r.resultStatus === 'PASS'
+                        ? 'text-[#111111]'
+                        : r.resultStatus === 'INCOMPLETE'
+                          ? 'text-[#B45309]'
+                          : 'text-[#991B1B]'
+                    }
+                  >
+                    {r.resultStatus === 'PASS'
+                      ? pick('উত্তীর্ণ', 'PASS')
+                      : r.resultStatus === 'INCOMPLETE'
+                        ? pick('অসম্পূর্ণ', 'INCOMPLETE')
+                        : pick('অনুত্তীর্ণ', 'FAIL')}
                   </span>
                 </td>
               </tr>
