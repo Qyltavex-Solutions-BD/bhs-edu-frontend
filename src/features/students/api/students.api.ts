@@ -56,14 +56,31 @@ export const studentsApi = baseApi.injectEndpoints({
       }),
       transformResponse: (response: any) => response?.data ?? response ?? {},
     }),
+    getStudentById: builder.query<Student, string>({
+      query: (id) => ({
+        url: `/academic/students/${id}`,
+        method: 'GET',
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      providesTags: (_result, _error, id) => [{ type: 'Students', id }, 'Students'],
+    }),
     createStudent: builder.mutation<unknown, Record<string, unknown>>({
       query: (body) => ({ url: '/academic/students', method: 'POST', body }),
       transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ['Students', 'Admissions', 'Audit'],
     }),
     updateStudent: builder.mutation<Student, Partial<Student> & { id: string }>({
-      query: (body) => ({ url: '/students/update', method: 'POST', body }),
-      invalidatesTags: ['Students', 'Audit'],
+      query: ({ id, ...body }) => ({
+        url: `/academic/students/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
+      invalidatesTags: (_result, _error, { id }) => [
+        { type: 'Students', id },
+        'Students',
+        'Audit',
+      ],
     }),
     updateEnrollment: builder.mutation<
       StudentEnrollment,
@@ -148,6 +165,7 @@ export const studentsApi = baseApi.injectEndpoints({
 
 export const {
   useGetStudentsQuery,
+  useGetStudentByIdQuery,
   useGetNextSuggestedRollQuery,
   useCheckStudentDuplicateQuery,
   useCreateStudentMutation,

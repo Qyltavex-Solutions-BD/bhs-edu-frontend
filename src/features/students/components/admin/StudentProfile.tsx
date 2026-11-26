@@ -19,6 +19,7 @@ import {
 import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { cn } from '@/src/lib/utils/cn';
+import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import {
   Button,
@@ -41,9 +42,14 @@ import {
   StudentStatus,
 } from '@/src/types/enums';
 import { useUpdateStudentMutation } from '@/src/store/api';
+import { useGetStudentByIdQuery } from '@/src/features/students/api/students.api';
+import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
+import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
+import { useGetSectionsQuery } from '@/src/services/academic/section.api';
+import { useGetAcademicGroupsQuery } from '@/src/services/academic/group.api';
 import type { MockDatabase } from '@/src/mocks/seed';
-import type { Attendance, Student } from '@/src/types/entities';
-import { BLOOD_LABEL, classLabel, errorMessage, studentInitials } from './studentShared';
+import type { Attendance, Parent, ParentStudent, Student, StudentEnrollment, StudentRFIDcard } from '@/src/types/entities';
+import { BLOOD_LABEL, errorMessage, studentInitials } from './studentShared';
 
 const WEEKDAYS = [
   { bn: 'রবি', en: 'Sun' },
@@ -218,43 +224,73 @@ export function StudentProfile({
   yearId,
   startEditing,
 }: {
-  db: MockDatabase;
+  db?: MockDatabase;
   studentId: string;
   yearId: string;
   startEditing: boolean;
 }) {
   const { locale, pick } = useI18n();
   const [updateStudent, { isLoading }] = useUpdateStudentMutation();
-  const student = db.students.find((item) => item.id === studentId);
+  const { data: liveStudent, isLoading: loadingStudent } = useGetStudentByIdQuery(
+    studentId,
+    { skip: !studentId }
+  );
+  const { data: liveYears = [] } = useGetAcademicYearsQuery();
+  const { data: liveClasses = [] } = useGetSchoolClassesQuery();
+  const { data: liveSections = [] } = useGetSectionsQuery();
+  const { data: liveGroups = [] } = useGetAcademicGroupsQuery();
 
-  const currentYearObj = db.academicYears.find((y) => y.id === yearId);
+  const academicYears = liveYears.length ? liveYears : db?.academicYears ?? [];
+  const classes = liveClasses.length ? liveClasses : db?.classes ?? [];
+  const sections = liveSections.length ? liveSections : db?.sections ?? [];
+  const academicGroups = liveGroups.length ? liveGroups : db?.academicGroups ?? [];
+
+  type LiveStudentShape = Student & {
+    enrollments?: Array<
+      StudentEnrollment & {
+        academicYear?: { id: string; name: string; isActive: boolean };
+        schoolClass?: { id: string; name: string; nameBn?: string | null; numericValue: number };
+        section?: { id: string; name: string };
+        group?: { id: string; name: string; nameBn?: string | null } | null;
+      }
+    >;
+    parents?: Array<ParentStudent & { parent?: Parent }>;
+    rfidcards?: StudentRFIDcard[];
+  };
+
+  const student = (liveStudent ??
+    db?.students.find((item) => item.id === studentId)) as LiveStudentShape | undefined;
+
+  const currentYearObj = academicYears.find((y) => y.id === yearId);
   // Deterministic initial reference date for SSR hydration safety, synced to local date on mount
   const fallbackRefDate = currentYearObj?.endDate?.slice(0, 10) || '2026-11-21';
   const [today, setToday] = useState<string>(fallbackRefDate);
   const [month, setMonth] = useState<string>(fallbackRefDate.slice(0, 7));
 
   const [open, setOpen] = useState(startEditing);
-  const [form, setForm] = useState<Partial<Student>>(() =>
-    student
-      ? {
-          nameEn: student.nameEn,
-          nameBn: student.nameBn ?? '',
-          dateOfBirth: student.dateOfBirth ?? '',
-          gender: student.gender,
-          bloodGroup: student.bloodGroup ?? undefined,
-          religion: student.religion ?? undefined,
-          birthCertificateNo: student.birthCertificateNo ?? '',
-          boardRegistrationNo: student.boardRegistrationNo ?? '',
-          presentAddress: student.presentAddress ?? '',
-          permanentAddress: student.permanentAddress ?? '',
-          previousSchoolName: student.previousSchoolName ?? '',
-          status: student.status,
-        }
-      : {}
-  );
+  const [form, setForm] = useState<Partial<Student>>({});
   const [activeTab, setActiveTab] = useState<ProfileTab>('overview');
   const [pickedDay, setPickedDay] = useState<string | null>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (student) {
+      setForm({
+        nameEn: student.nameEn,
+        nameBn: student.nameBn ?? '',
+        dateOfBirth: student.dateOfBirth ? student.dateOfBirth.slice(0, 10) : '',
+        gender: student.gender,
+        bloodGroup: student.bloodGroup ?? undefined,
+        religion: student.religion ?? undefined,
+        birthCertificateNo: student.birthCertificateNo ?? '',
+        boardRegistrationNo: student.boardRegistrationNo ?? '',
+        presentAddress: student.presentAddress ?? '',
+        permanentAddress: student.permanentAddress ?? '',
+        previousSchoolName: student.previousSchoolName ?? '',
+        status: student.status,
+      });
+    }
+  }, [student]);
 
   useEffect(() => {
     const clientToday = localToday();
@@ -273,6 +309,10 @@ export function StudentProfile({
       setTimeout(() => setCopiedText((prev) => (prev === text ? null : prev)), 1800);
     }
   };
+
+  if (loadingStudent && !student) {
+    return <LoadingSkeleton />;
+  }
 
   if (!student) {
     return (
@@ -300,61 +340,76 @@ export function StudentProfile({
   }
 
   // Academic & relational lookups
-  const enrollments = db.enrollments
-    .filter((item) => item.studentId === student.id)
+  const enrollments = (
+    student.enrollments ??
+    (db?.enrollments ?? []).filter((item) => item.studentId === student.id)
+  )
+    .slice()
     .sort((a, b) => {
-      const ya = db.academicYears.find((y) => y.id === a.academicYearId)?.name ?? '';
-      const yb = db.academicYears.find((y) => y.id === b.academicYearId)?.name ?? '';
+      const ya = academicYears.find((y) => y.id === a.academicYearId)?.name ?? '';
+      const yb = academicYears.find((y) => y.id === b.academicYearId)?.name ?? '';
       return yb.localeCompare(ya);
     });
-  const enrollment = enrollments.find((item) => item.academicYearId === yearId);
+  const enrollment =
+    enrollments.find((item) => item.academicYearId === yearId) ?? enrollments[0];
   const section = enrollment
-    ? db.sections.find((item) => item.id === enrollment.sectionId)
+    ? sections.find((item) => item.id === enrollment.sectionId) ??
+      (enrollment as { section?: { id: string; name: string } }).section
     : undefined;
   const group = enrollment?.groupId
-    ? db.academicGroups.find((item) => item.id === enrollment.groupId)
+    ? academicGroups.find((item) => item.id === enrollment.groupId) ??
+      (enrollment as { group?: { id: string; name: string; nameBn?: string | null } }).group
     : undefined;
 
-  const guardians = db.parentStudents
-    .filter((link) => link.studentId === student.id)
-    .map((link) => ({ link, parent: db.parents.find((item) => item.id === link.parentId) }))
+  const guardians = (
+    student.parents
+      ? student.parents.map((link) => ({ link, parent: link.parent }))
+      : (db?.parentStudents ?? [])
+          .filter((link) => link.studentId === student.id)
+          .map((link) => ({
+            link,
+            parent: db?.parents.find((item) => item.id === link.parentId),
+          }))
+  )
     .filter((g) => Boolean(g.parent))
     .sort((a, b) => Number(b.link.isPrimary) - Number(a.link.isPrimary));
   const primaryGuardian = guardians[0];
 
-  const cards = db.rfidCards.filter((item) => item.studentId === student.id);
+  const cards =
+    student.rfidcards ??
+    (db?.rfidCards ?? []).filter((item) => item.studentId === student.id);
   const activeCard = cards.find((item) => item.status === CardStatus.ACTIVE) ?? cards[0];
 
   // Class teacher & optional subject for current enrollment
-  const classTeacherLink = section
+  const classTeacherLink = section && db
     ? db.sectionClassTeachers.find(
         (row) => row.sectionId === section.id && row.academicYearId === yearId
       )
     : null;
-  const classTeacher = classTeacherLink
+  const classTeacher = classTeacherLink && db
     ? db.staff.find((st) => st.id === classTeacherLink.staffId)
     : null;
 
-  const optSubject = enrollment?.optionalClassSubjectId
+  const optSubject = enrollment?.optionalClassSubjectId && db
     ? db.classSubjects.find((cs) => cs.id === enrollment.optionalClassSubjectId)
     : null;
-  const optSubjectMaster = optSubject
+  const optSubjectMaster = optSubject && db
     ? db.subjects.find((s) => s.id === optSubject.subjectId)
     : null;
 
   // Attendance analytics
-  const todayClosed = closedDay(db, today, yearId);
-  const todayMark = enrollment
+  const todayClosed = db ? closedDay(db, today, yearId) : '';
+  const todayMark = enrollment && db
     ? db.attendances.find(
         (item) => item.studentEnrollmentId === enrollment.id && item.date === today
       )
     : undefined;
-  const method = enrollment
+  const method = enrollment && db
     ? db.classAttendanceConfigs.find((item) => item.classId === enrollment.classId)?.method
     : undefined;
-  const registerDate = todayClosed ? latestOpenDay(db, yearId, today) : today;
+  const registerDate = todayClosed && db ? latestOpenDay(db, yearId, today) : today;
 
-  const allMarks = enrollment
+  const allMarks = enrollment && db
     ? db.attendances.filter((item) => item.studentEnrollmentId === enrollment.id)
     : [];
   const totalPresent = allMarks.filter((item) => item.status === AttendanceStatus.PRESENT).length;
@@ -365,7 +420,7 @@ export function StudentProfile({
   const annualAttendanceRate =
     totalWorkingDays > 0 ? Math.round(((totalPresent + totalLate) / totalWorkingDays) * 100) : null;
 
-  const monthMarks = enrollment
+  const monthMarks = enrollment && db
     ? db.attendances
         .filter((item) => item.studentEnrollmentId === enrollment.id && item.date.startsWith(month))
         .sort((a, b) => b.date.localeCompare(a.date))
@@ -373,20 +428,26 @@ export function StudentProfile({
   const monthCount = (st: AttendanceStatus) =>
     monthMarks.filter((item) => item.status === st).length;
 
+  const resolveClassText = (cId: string) => {
+    const c = classes.find((item) => item.id === cId);
+    if (!c) return '—';
+    return locale === 'bn' ? c.nameBn || c.name : c.name;
+  };
+
   // Academic exam results across enrollments
   const enrollmentIds = new Set(enrollments.map((e) => e.id));
-  const examResults = db.resultSummaries
+  const examResults = (db?.resultSummaries ?? [])
     .filter((res) => enrollmentIds.has(res.studentEnrollmentId))
     .map((res) => {
-      const exam = db.exams.find((e) => e.id === res.examId);
+      const exam = db?.exams.find((e) => e.id === res.examId);
       const enr = enrollments.find((e) => e.id === res.studentEnrollmentId);
-      const yr = enr ? db.academicYears.find((y) => y.id === enr.academicYearId) : undefined;
+      const yr = enr ? academicYears.find((y) => y.id === enr.academicYearId) : undefined;
       return {
         ...res,
         examName: exam?.name ?? '—',
         examDate: exam?.startDate ?? res.createdAt,
         yearName: yr?.name ?? '—',
-        classText: enr ? classLabel(db, enr.classId, locale) : '—',
+        classText: enr ? resolveClassText(enr.classId) : '—',
       };
     })
     .sort((a, b) => b.examDate.localeCompare(a.examDate));
@@ -405,7 +466,7 @@ export function StudentProfile({
     setForm({
       nameEn: student.nameEn,
       nameBn: student.nameBn ?? '',
-      dateOfBirth: student.dateOfBirth ?? '',
+      dateOfBirth: student.dateOfBirth ? student.dateOfBirth.slice(0, 10) : '',
       gender: student.gender,
       bloodGroup: student.bloodGroup ?? undefined,
       religion: student.religion ?? undefined,
@@ -424,17 +485,17 @@ export function StudentProfile({
     try {
       await updateStudent({
         id: student.id,
-        nameEn: form.nameEn,
-        nameBn: form.nameBn,
-        dateOfBirth: form.dateOfBirth,
+        nameEn: form.nameEn?.trim() || undefined,
+        nameBn: form.nameBn?.trim() || undefined,
+        dateOfBirth: form.dateOfBirth ? form.dateOfBirth.slice(0, 10) : undefined,
         gender: form.gender,
         bloodGroup: form.bloodGroup || null,
         religion: form.religion || null,
-        birthCertificateNo: form.birthCertificateNo,
-        boardRegistrationNo: form.boardRegistrationNo,
-        presentAddress: form.presentAddress,
-        permanentAddress: form.permanentAddress,
-        previousSchoolName: form.previousSchoolName,
+        birthCertificateNo: form.birthCertificateNo?.trim() || undefined,
+        boardRegistrationNo: form.boardRegistrationNo?.trim() || undefined,
+        presentAddress: form.presentAddress?.trim() || undefined,
+        permanentAddress: form.permanentAddress?.trim() || undefined,
+        previousSchoolName: form.previousSchoolName?.trim() || undefined,
         status:
           form.status === StudentStatus.INACTIVE ? StudentStatus.INACTIVE : StudentStatus.ACTIVE,
       }).unwrap();
@@ -506,7 +567,7 @@ export function StudentProfile({
                 {enrollment ? (
                   <>
                     <span className="font-medium text-foreground">
-                      {classLabel(db, enrollment.classId, locale)} ({section?.name ?? '—'})
+                      {resolveClassText(enrollment.classId)} ({section?.name ?? '—'})
                     </span>
                     <span aria-hidden="true">·</span>
                     <span>
@@ -872,7 +933,7 @@ export function StudentProfile({
                   </dt>
                   <dd className="mt-1 font-medium text-foreground">
                     {enrollment
-                      ? `${classLabel(db, enrollment.classId, locale)} · ${section?.name ?? '—'}`
+                      ? `${resolveClassText(enrollment.classId)} · ${section?.name ?? '—'}`
                       : '—'}
                   </dd>
                 </div>
@@ -1290,10 +1351,10 @@ export function StudentProfile({
                 </thead>
                 <tbody className="divide-y divide-border">
                   {enrollments.map((enr) => {
-                    const y = db.academicYears.find((item) => item.id === enr.academicYearId);
-                    const s = db.sections.find((item) => item.id === enr.sectionId);
+                    const y = academicYears.find((item) => item.id === enr.academicYearId);
+                    const s = sections.find((item) => item.id === enr.sectionId);
                     const g = enr.groupId
-                      ? db.academicGroups.find((item) => item.id === enr.groupId)
+                      ? academicGroups.find((item) => item.id === enr.groupId)
                       : null;
                     const isCurrent = enr.academicYearId === yearId;
                     return (
@@ -1313,7 +1374,7 @@ export function StudentProfile({
                           )}
                         </td>
                         <td className="px-5 py-3 text-foreground">
-                          {classLabel(db, enr.classId, locale)}
+                          {resolveClassText(enr.classId)}
                         </td>
                         <td className="px-5 py-3 text-foreground">{s?.name ?? '—'}</td>
                         <td className="px-5 py-3 text-muted-foreground">
