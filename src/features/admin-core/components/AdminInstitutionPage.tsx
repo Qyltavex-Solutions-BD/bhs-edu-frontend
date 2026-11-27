@@ -23,7 +23,6 @@ import {
   useReorderCmsItemsMutation,
   useSaveSyllabusFileMutation,
   useToggleCmsItemMutation,
-  useToggleRolePermissionMutation,
   useUpdateSchoolProfileMutation,
 } from '@/src/store/api';
 import { PrintableIdCardSheet } from '@/src/components/print/PrintDocuments';
