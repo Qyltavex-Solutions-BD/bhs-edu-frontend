@@ -39,6 +39,7 @@ export interface AuditLogEntry {
   module: string;
   ipAddress: string | null;
   userAgent: string | null;
+  deviceName?: string;
   createdAt: string;
   user: {
     id: string;
