@@ -315,6 +315,62 @@ export const attendanceApi = baseApi.injectEndpoints({
       query: (body) => ({ url: '/attendance/config', method: 'PUT', body }),
       invalidatesTags: ['Attendance', 'Audit'],
     }),
+    getParentChildAttendance: builder.query<
+      {
+        summary: {
+          totalDays: number;
+          present: number;
+          late: number;
+          absent: number;
+          leave: number;
+          percentage: number;
+        };
+        records: Array<{
+          id: string;
+          date: string;
+          status: AttendanceStatus;
+          method: AttendanceMethod;
+          inTime: string | null;
+          outTime: string | null;
+          remarks: string | null;
+        }>;
+      },
+      { studentEnrollmentId: string; month?: string }
+    >({
+      query: ({ studentEnrollmentId, month }) => ({
+        url: '/attendance/parent/child-monthly',
+        method: 'GET',
+        params: { studentEnrollmentId, ...(month ? { month } : {}) },
+      }),
+      transformResponse: (res: Envelope<any>) => res.data,
+      providesTags: ['Attendance'],
+    }),
+    getParentSmsLogs: builder.query<
+      {
+        phone: string | null;
+        total: number;
+        items: Array<{
+          id: string;
+          smsType: 'ENTRY' | 'EXIT' | 'ABSENT';
+          phone: string;
+          message: string;
+          status: SmsStatus;
+          sentAt: string | null;
+          createdAt: string;
+          date: string;
+          studentName: string;
+        }>;
+      },
+      { page?: number; limit?: number } | void
+    >({
+      query: (params) => ({
+        url: '/attendance/parent/sms-logs',
+        method: 'GET',
+        params: params || undefined,
+      }),
+      transformResponse: (res: Envelope<any>) => res.data,
+      providesTags: ['Attendance'],
+    }),
   }),
 });
 
@@ -332,4 +388,6 @@ export const {
   useRetryAllAttendanceSmsMutation,
   useGetAttendanceConfigsQuery,
   useUpdateAttendanceConfigMutation,
+  useGetParentChildAttendanceQuery,
+  useGetParentSmsLogsQuery,
 } = attendanceApi;
