@@ -46,6 +46,16 @@ const FALLBACK_SCHOOL_PROFILE: SchoolProfile = {
   updatedAt: '',
 };
 
+function to12hDisplay(hhmm: string): string {
+  const [hStr, mStr] = hhmm.split(':');
+  const h = Number(hStr);
+  const m = Number(mStr);
+  if (Number.isNaN(h) || Number.isNaN(m)) return hhmm;
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${suffix}`;
+}
+
 function getTodayWeekDay(): WeekDay {
   const map: WeekDay[] = [
     WeekDay.SUNDAY,
@@ -187,36 +197,86 @@ export function ParentRoutinesPage() {
     });
   }, [routineData?.timetable, childGroupId]);
 
-  const periodColumns = useMemo(() => {
+  type RoutineColumn =
+    | {
+        kind: 'period';
+        key: string;
+        periodNumber: number;
+        label: string;
+        displayTime: string | null;
+        isBreak: boolean;
+      }
+    | {
+        kind: 'tiffin';
+        key: string;
+        label: string;
+        displayTime: string;
+      };
+
+  const periodColumns: RoutineColumn[] = useMemo(() => {
     const periodMeta = new Map<
       number,
-      { periodName?: string | null; displayTime?: string; isBreak?: boolean }
+      {
+        periodName?: string | null;
+        startTime?: string;
+        endTime?: string;
+        displayTime?: string;
+        isBreak?: boolean;
+      }
     >();
-    let maxPeriod = 6;
+
     for (const dayEntry of scheduleByDay) {
       for (const p of dayEntry.periods) {
-        if (p.periodNumber > maxPeriod) maxPeriod = p.periodNumber;
         if (!periodMeta.has(p.periodNumber)) {
           periodMeta.set(p.periodNumber, {
             periodName: p.periodName,
+            startTime: p.time?.startTime,
+            endTime: p.time?.endTime,
             displayTime: p.time?.displayTime,
             isBreak: p.isBreak,
           });
         }
       }
     }
-    return Array.from({ length: maxPeriod }, (_, idx) => {
-      const num = idx + 1;
-      const meta = periodMeta.get(num);
-      return {
+
+    const sortedNums = Array.from(periodMeta.keys()).sort((a, b) => a - b);
+    const cols: RoutineColumn[] = [];
+
+    for (let i = 0; i < sortedNums.length; i++) {
+      const num = sortedNums[i];
+      const meta = periodMeta.get(num)!;
+
+      if (i > 0) {
+        const prevMeta = periodMeta.get(sortedNums[i - 1])!;
+        if (
+          !prevMeta.isBreak &&
+          !meta.isBreak &&
+          prevMeta.endTime &&
+          meta.startTime &&
+          prevMeta.endTime < meta.startTime
+        ) {
+          cols.push({
+            kind: 'tiffin',
+            key: `tiffin-${sortedNums[i - 1]}-${num}`,
+            label: 'টিফিন বিরতি',
+            displayTime: `${to12hDisplay(prevMeta.endTime)} - ${to12hDisplay(meta.startTime)}`,
+          });
+        }
+      }
+
+      cols.push({
+        kind: 'period',
+        key: `period-${num}`,
         periodNumber: num,
         label:
-          meta?.periodName ||
-          (meta?.isBreak ? 'বিরতি' : `পিরিয়ড ${formatNumber(num, 'bn')}`),
-        displayTime: meta?.displayTime || null,
-        isBreak: Boolean(meta?.isBreak),
-      };
-    });
+          meta.periodName ||
+          (meta.isBreak ? 'টিফিন বিরতি' : `পিরিয়ড ${formatNumber(num, 'bn')}`),
+        displayTime: meta.displayTime || null,
+        isBreak: Boolean(meta.isBreak),
+      });
+    }
+
+    return cols;
   }, [scheduleByDay]);
 
   const visibleDays = useMemo(
@@ -393,8 +453,11 @@ export function ParentRoutinesPage() {
                           </th>
                           {periodColumns.map((col) => (
                             <th
-                              key={col.periodNumber}
-                              className="px-3 py-3 text-center min-w-[155px] border-r border-border last:border-r-0"
+                              key={col.key}
+                              className={cn(
+                                'px-3 py-3 text-center border-r border-border last:border-r-0',
+                                col.kind === 'tiffin' ? 'min-w-[125px] bg-amber-500/[0.06]' : 'min-w-[155px]'
+                              )}
                             >
                               <div className="font-bold text-foreground">{col.label}</div>
                               {col.displayTime && (
@@ -407,7 +470,7 @@ export function ParentRoutinesPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
-                        {visibleDays.map(({ day, periods }) => {
+                        {visibleDays.map(({ day, periods }, dayIdx) => {
                           const dayLabel = ENUM_LABELS.WeekDay?.[day]?.bn ?? day;
                           const isToday = day === todayDay;
                           const classCount = periods.filter(
@@ -444,12 +507,28 @@ export function ParentRoutinesPage() {
                               </td>
 
                               {periodColumns.map((col) => {
+                                if (col.kind === 'tiffin') {
+                                  if (dayIdx > 0) return null;
+                                  return (
+                                    <td
+                                      key={col.key}
+                                      rowSpan={visibleDays.length}
+                                      className="p-2 border-r border-border last:border-r-0 align-middle text-center bg-amber-500/[0.06]"
+                                    >
+                                      <div className="flex flex-col items-center justify-center gap-1.5 text-sm font-bold text-amber-700 dark:text-amber-400">
+                                        <Coffee className="w-4 h-4" />
+                                        <span>{'টিফিন'}</span>
+                                      </div>
+                                    </td>
+                                  );
+                                }
+
                                 const periodObj = byPeriod.get(col.periodNumber);
                                 const slots = periodObj?.slots ?? [];
 
                                 return (
                                   <td
-                                    key={col.periodNumber}
+                                    key={col.key}
                                     className="p-2 border-r border-border last:border-r-0"
                                   >
                                     {!periodObj || slots.length === 0 ? (
@@ -549,7 +628,7 @@ export function ParentRoutinesPage() {
                       </th>
                       {periodColumns.map((col) => (
                         <th
-                          key={col.periodNumber}
+                          key={`print-head-${col.key}`}
                           className="border border-[#18181B] px-2 py-1.5 text-center"
                         >
                           <div className="font-bold">{col.label}</div>
@@ -563,7 +642,7 @@ export function ParentRoutinesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {visibleDays.map(({ day, periods }) => {
+                    {visibleDays.map(({ day, periods }, dayIdx) => {
                       const dayLabel = ENUM_LABELS.WeekDay?.[day]?.bn ?? day;
                       const byPeriod = new Map<number, SectionTimetablePeriod>();
                       for (const p of periods) {
@@ -576,11 +655,24 @@ export function ParentRoutinesPage() {
                             {dayLabel}
                           </td>
                           {periodColumns.map((col) => {
+                            if (col.kind === 'tiffin') {
+                              if (dayIdx > 0) return null;
+                              return (
+                                <td
+                                  key={`print-${day}-${col.key}`}
+                                  rowSpan={visibleDays.length}
+                                  className="border border-[#18181B] px-2 py-2 align-middle text-center font-bold text-[#111111] bg-[#FAFAFA]"
+                                >
+                                  {'টিফিন'}
+                                </td>
+                              );
+                            }
+
                             const periodObj = byPeriod.get(col.periodNumber);
                             const slots = periodObj?.slots ?? [];
                             return (
                               <td
-                                key={`print-${day}-${col.periodNumber}`}
+                                key={`print-${day}-${col.key}`}
                                 className="border border-[#18181B] px-2 py-1.5 align-top"
                               >
                                 {!periodObj || slots.length === 0 ? (
