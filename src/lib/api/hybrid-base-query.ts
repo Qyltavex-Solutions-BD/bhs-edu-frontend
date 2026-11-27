@@ -164,7 +164,7 @@ export const hybridBaseQuery: BaseQueryFn<ApiRequest, unknown, ApiError> = async
     request.url.startsWith(path)
   );
 
-  const requireLiveApi = /^\/(?:notices|auth|academic|staff|attendance)(?:[/?]|$)/.test(request.url);
+  const requireLiveApi = /^\/(?:notices|auth|academic|staff|attendance|admin)(?:[/?]|$)/.test(request.url);
 
   if (!requireLiveApi && (useMockApi || request.url === '/bootstrap')) {
     const mockResult = await handleMockRequest(request.url, method, request.body);

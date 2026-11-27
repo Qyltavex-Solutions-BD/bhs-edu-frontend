@@ -95,7 +95,7 @@ export function PortalSidebar({
       </div>
 
       {/* Sidebar Links Navigation */}
-      <nav className="flex-1 overflow-y-auto px-2.5 py-2 space-y-3.5 scrollbar-thin relative z-10">
+      <nav className="flex-1 overflow-y-auto px-2.5 py-2 space-y-3.5 portal-sidebar-scroll relative z-10">
         {navGroups.map((group, groupIdx) => (
           <div
             key={group.id}
@@ -191,27 +191,6 @@ export function PortalSidebar({
           </div>
         ))}
       </nav>
-
-      {/* Mini Impact Widget Card (Admin Portal Only) */}
-      {portal === 'admin' && !sidebarCollapsed && (
-        <div className="mx-3 mb-2.5 p-3.5 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-xs text-white shrink-0 relative z-10">
-          <div className="flex items-center gap-1.5 text-sm text-white/90 font-medium mb-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#EBAF3E]" />
-            {'সাপ্তাহিক সারসংক্ষেপ'}
-          </div>
-          <p className="font-bold text-base leading-snug">
-            {'একাডেমিক অগ্রগতি ও\nদৈনিক উপস্থিতি ৯৪%'}
-          </p>
-          <Link href="/admin/reports" className="block mt-2">
-            <button
-              type="button"
-              className="w-full bg-white text-[#1C6440] hover:bg-white/90 text-sm font-semibold py-2 px-3 rounded-xl shadow-xs transition cursor-pointer"
-            >
-              {'রিপোর্ট দেখুন'}
-            </button>
-          </Link>
-        </div>
-      )}
 
       {/* Full-width Clickable Logout Section at Bottom */}
       <div className="px-3 pb-3 pt-1 shrink-0 relative z-10">
