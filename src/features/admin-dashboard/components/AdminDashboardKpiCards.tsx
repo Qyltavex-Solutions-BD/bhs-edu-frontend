@@ -24,8 +24,6 @@ interface AdminDashboardKpiCardsProps {
   unpublishedExams: number;
   smsSent: number;
   smsFailed: number;
-  locale: 'bn' | 'en';
-  pick: (bn: string, en: string) => string;
 }
 
 export function AdminDashboardKpiCards({
@@ -41,8 +39,8 @@ export function AdminDashboardKpiCards({
   unpublishedExams,
   smsSent,
   smsFailed,
-  locale,
-  pick,
+  
+  
 }: AdminDashboardKpiCardsProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -56,23 +54,23 @@ export function AdminDashboardKpiCards({
             <GraduationCap className="w-5.5 h-5.5" />
           </div>
           <span
-            className="px-3 py-1 rounded-full text-sm font-bold"
+            className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
             style={{ backgroundColor: TINT_GREEN, color: COLOR_PRIMARY }}
           >
-            ↑ 8.2%
+            ↑ ৮.২%
           </span>
         </div>
 
         <div className="mt-4 flex items-end justify-between">
           <div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
-              {formatNumber(activeStudentsCount, locale)}
+            <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
+              {formatNumber(activeStudentsCount, 'bn')}
             </p>
-            <p className="text-base text-foreground font-bold mt-1">
-              {pick('মোট সক্রিয় শিক্ষার্থী', 'Active Students')}
+            <p className="text-base text-foreground font-semibold mt-1">
+              {'মোট সক্রিয় শিক্ষার্থী'}
             </p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {pick(`৫টি শ্রেণি (৬ষ্ঠ–১০ম) · শিক্ষাবর্ষ ${activeYearName ?? '2026'}`, `5 classes (6–10) · Session ${activeYearName ?? '2026'}`)}
+            <p className="text-sm font-normal text-muted-foreground mt-0.5">
+              {`৫টি শ্রেণি (৬ষ্ঠ–১০ম) · শিক্ষাবর্ষ ${activeYearName ?? formatNumber(2026, 'bn')}`}
             </p>
           </div>
           <div className="w-20 h-9">
@@ -99,26 +97,23 @@ export function AdminDashboardKpiCards({
             <ClipboardCheck className="w-5.5 h-5.5" />
           </div>
           <span
-            className="px-3 py-1 rounded-full text-sm font-bold"
+            className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
             style={{ backgroundColor: TINT_BLUE, color: COLOR_BLUE }}
           >
-            {presentRate}% {pick('হার', 'Rate')}
+            {formatNumber(presentRate, 'bn')}% {'হার'}
           </span>
         </div>
 
         <div className="mt-4 flex items-end justify-between">
           <div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
-              {formatNumber(presentToday, locale)} / {formatNumber(todayAttTotal, locale)}
+            <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
+              {formatNumber(presentToday, 'bn')} / {formatNumber(todayAttTotal, 'bn')}
             </p>
-            <p className="text-base text-foreground font-bold mt-1">
-              {pick('আজকের উপস্থিতি', "Today's Attendance")}
+            <p className="text-base text-foreground font-semibold mt-1">
+              {'আজকের উপস্থিতি'}
             </p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {pick(
-                `বিলম্ব: ${formatNumber(lateToday, locale)} · অনুপস্থিত: ${formatNumber(absentToday, locale)}`,
-                `Late: ${lateToday} · Absent: ${absentToday}`
-              )}
+            <p className="text-sm font-normal text-muted-foreground mt-0.5">
+              {`বিলম্ব: ${formatNumber(lateToday, 'bn')} · অনুপস্থিত: ${formatNumber(absentToday, 'bn')}`}
             </p>
           </div>
           <div className="w-20 h-9">
@@ -145,23 +140,23 @@ export function AdminDashboardKpiCards({
             <UserCheck className="w-5.5 h-5.5" />
           </div>
           <span
-            className="px-3 py-1 rounded-full text-sm font-bold"
+            className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
             style={{ backgroundColor: TINT_GREEN, color: COLOR_PRIMARY }}
           >
-            ১০০% {pick('সক্রিয়', 'Active')}
+            ১০০% {'সক্রিয়'}
           </span>
         </div>
 
         <div className="mt-4 flex items-end justify-between">
           <div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
-              {formatNumber(teachersCount, locale)} / {formatNumber(otherStaffCount, locale)}
+            <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
+              {formatNumber(teachersCount, 'bn')} / {formatNumber(otherStaffCount, 'bn')}
             </p>
-            <p className="text-base text-foreground font-bold mt-1">
-              {pick('শিক্ষক ও কর্মচারী', 'Teachers & Staff')}
+            <p className="text-base text-foreground font-semibold mt-1">
+              {'শিক্ষক ও কর্মচারী'}
             </p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {pick('শিক্ষক / কর্মকর্তা-কর্মচারী', 'Teachers / Staff Officers')}
+            <p className="text-sm font-normal text-muted-foreground mt-0.5">
+              {'শিক্ষক / কর্মকর্তা-কর্মচারী'}
             </p>
           </div>
           <div className="w-20 h-9">
@@ -188,26 +183,23 @@ export function AdminDashboardKpiCards({
             <CheckCircle2 className="w-5.5 h-5.5" />
           </div>
           <span
-            className="px-3 py-1 rounded-full text-sm font-bold"
+            className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
             style={{ backgroundColor: TINT_CORAL, color: '#9E2F22' }}
           >
-            {formatNumber(unpublishedExams, locale)} {pick('অপ্রকাশিত', 'Pending')}
+            {formatNumber(unpublishedExams, 'bn')} {'অপ্রকাশিত'}
           </span>
         </div>
 
         <div className="mt-4 flex items-end justify-between">
           <div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
-              {formatNumber(unpublishedExams, locale)}
+            <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
+              {formatNumber(unpublishedExams, 'bn')}
             </p>
-            <p className="text-base text-foreground font-bold mt-1">
-              {pick('অপ্রকাশিত পরীক্ষা ও SMS', 'Unpublished Exams & SMS')}
+            <p className="text-base text-foreground font-semibold mt-1">
+              {'অপ্রকাশিত পরীক্ষা ও SMS'}
             </p>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {pick(
-                `SMS প্রেরিত: ${formatNumber(smsSent, locale)} · ব্যর্থ: ${formatNumber(smsFailed, locale)}`,
-                `SMS Sent: ${smsSent} · Failed: ${smsFailed}`
-              )}
+            <p className="text-sm font-normal text-muted-foreground mt-0.5">
+              {`SMS প্রেরিত: ${formatNumber(smsSent, 'bn')} · ব্যর্থ: ${formatNumber(smsFailed, 'bn')}`}
             </p>
           </div>
           <div className="w-20 h-9">

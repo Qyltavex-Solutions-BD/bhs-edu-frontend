@@ -20,7 +20,6 @@ import {
   X,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   getCampusPhoto,
@@ -41,7 +40,6 @@ import { triggerPrint } from '@/src/lib/utils/cn';
 export function PublicTeacherDetailPage() {
   const { id } = useParams();
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
 
   const teacher = db.staff.find((s) => s.id === id);
@@ -49,10 +47,10 @@ export function PublicTeacherDetailPage() {
     return (
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-12">
         <EmptyState
-          title={pick('শিক্ষকের তথ্য পাওয়া যায়নি', 'Teacher profile not found')}
+          title={'শিক্ষকের তথ্য পাওয়া যায়নি'}
           action={
             <Link href="/about/teachers">
-              <Button variant="outline">{pick('তালিকায় ফিরুন', 'Back to Directory')}</Button>
+              <Button variant="outline">{'তালিকায় ফিরুন'}</Button>
             </Link>
           }
         />
@@ -73,7 +71,7 @@ export function PublicTeacherDetailPage() {
       <div className="flex items-center justify-between gap-3">
         <Link href="/about/teachers" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
           <ArrowLeft className="w-4 h-4" />
-          {pick('শিক্ষকমণ্ডলীর তালিকায় ফিরুন', 'Back to Teachers Directory')}
+          {'শিক্ষকমণ্ডলীর তালিকায় ফিরুন'}
         </Link>
         <span className="text-sm text-muted-foreground tabular-nums">
           {db.schoolProfile.name}
@@ -112,15 +110,15 @@ export function PublicTeacherDetailPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-border text-sm">
                 {teacher.qualification && (
                   <div>
-                    <p className="text-xs text-muted-foreground">{pick('শিক্ষাগত যোগ্যতা', 'Qualification')}</p>
+                    <p className="text-sm text-muted-foreground">{'শিক্ষাগত যোগ্যতা'}</p>
                     <p className="font-semibold text-foreground mt-0.5">{teacher.qualification}</p>
                   </div>
                 )}
                 {teacher.joiningDate && (
                   <div className="tabular-nums">
-                    <p className="text-xs text-muted-foreground">{pick('যোগদানের তারিখ', 'Date of Joining')}</p>
+                    <p className="text-sm text-muted-foreground">{'যোগদানের তারিখ'}</p>
                     <p className="font-semibold text-foreground mt-0.5">
-                      {formatDateLong(teacher.joiningDate, locale)}
+                      {formatDateLong(teacher.joiningDate, 'bn')}
                     </p>
                   </div>
                 )}
@@ -156,7 +154,7 @@ export function PublicTeacherDetailPage() {
       {assignments.length > 0 && (
         <Card className="p-6 space-y-4">
           <h2 className="text-lg font-bold text-foreground">
-            {pick('বর্তমান পাঠদানকৃত শ্রেণি ও বিষয়', 'Assigned Classes & Subjects')}
+            {'বর্তমান পাঠদানকৃত শ্রেণি ও বিষয়'}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {assignments.map((a) => {
@@ -167,10 +165,10 @@ export function PublicTeacherDetailPage() {
               return (
                 <div key={a.id} className="p-3.5 border border-border rounded-xl bg-surface-muted/40 text-sm">
                   <p className="font-semibold text-foreground text-base">
-                    {locale === 'bn' ? sub?.nameBn ?? sub?.name : sub?.name}
+                    {sub?.nameBn ?? sub?.name}
                   </p>
                   <p className="text-muted-foreground mt-0.5">
-                    {locale === 'bn' ? cls?.nameBn : cls?.name} — {pick('শাখা', 'Section')} {sec?.name}
+                    {cls?.nameBn} — {'শাখা'} {sec?.name}
                   </p>
                 </div>
               );
@@ -184,10 +182,10 @@ export function PublicTeacherDetailPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-foreground">
-              {pick('অন্যান্য শিক্ষকমণ্ডলী', 'Other Faculty Members')}
+              {'অন্যান্য শিক্ষকমণ্ডলী'}
             </h2>
             <Link href="/about/teachers" className="text-sm font-semibold text-primary hover:underline">
-              {pick('সকল শিক্ষক দেখুন', 'View All')}
+              {'সকল শিক্ষক দেখুন'}
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -207,7 +205,7 @@ export function PublicTeacherDetailPage() {
                   <p className="text-sm font-bold text-foreground group-hover:text-primary transition-colors truncate">
                     {other.name}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                  <p className="text-sm text-muted-foreground truncate mt-0.5">
                     {other.designation}
                   </p>
                 </div>

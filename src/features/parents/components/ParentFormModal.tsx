@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { useI18n } from '@/src/lib/i18n';
 import { Button, FormField, Input, Modal, Textarea } from '@/src/components/ui/primitives';
 import { useUpdateParentMutation, type ParentDetailData } from '../api/parents.api';
 
@@ -36,7 +35,6 @@ export function ParentFormModal({
   onClose: () => void;
   parent: ParentDetailData | null;
 }) {
-  const { pick } = useI18n();
   const [updateParent, { isLoading: updating }] = useUpdateParentMutation();
   const [form, setForm] = useState(emptyParent);
   const [loadedId, setLoadedId] = useState<string | null>(null);
@@ -71,85 +69,85 @@ export function ParentFormModal({
         monthlyIncome: form.monthlyIncome ? Number(form.monthlyIncome) : null,
         address: form.address.trim() || undefined,
       }).unwrap();
-      toast.success(pick('অভিভাবকের তথ্য সংরক্ষিত হয়েছে।', 'Guardian saved.'));
+      toast.success('অভিভাবকের তথ্য সংরক্ষিত হয়েছে।');
       onClose();
     } catch (err) {
-      toast.error(errorMessage(err, pick('সংরক্ষণ হয়নি।', 'Could not save the guardian.')));
+      toast.error(errorMessage(err, 'সংরক্ষণ হয়নি।'));
     }
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={pick('অভিভাবক প্রোফাইল সম্পাদনা', 'Edit Guardian Profile')}>
+    <Modal open={open} onClose={onClose} title={'অভিভাবক প্রোফাইল সম্পাদনা'}>
       <form onSubmit={submit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FormField label={pick('ইংরেজি নাম', 'Name in English')} required>
+        <FormField label={'ইংরেজি নাম'} required>
           <Input
             required
             value={form.name}
-            placeholder={pick('যেমন: Md. Rafiqul Islam', 'e.g. Md. Rafiqul Islam')}
+            placeholder={'যেমন: Md. Rafiqul Islam'}
             onChange={(event) => setForm({ ...form, name: event.target.value })}
           />
         </FormField>
-        <FormField label={pick('বাংলা নাম', 'Name in Bangla')}>
+        <FormField label={'বাংলা নাম'}>
           <Input
             value={form.nameBn}
-            placeholder={pick('যেমন: মো. রফিকুল ইসলাম', 'e.g. মো. রফিকুল ইসলাম')}
+            placeholder={'যেমন: মো. রফিকুল ইসলাম'}
             onChange={(event) => setForm({ ...form, nameBn: event.target.value })}
           />
         </FormField>
-        <FormField label={pick('মোবাইল', 'Phone')} required>
+        <FormField label={'মোবাইল'} required>
           <Input
             required
             value={form.phone}
-            placeholder={pick('যেমন: 01711223344', 'e.g. 01711223344')}
+            placeholder={'যেমন: 01711223344'}
             onChange={(event) => setForm({ ...form, phone: event.target.value })}
           />
         </FormField>
-        <FormField label={pick('ইমেইল', 'Email')}>
+        <FormField label={'ইমেইল'}>
           <Input
             type="email"
             value={form.email}
-            placeholder={pick('যেমন: guardian@example.com', 'e.g. guardian@example.com')}
+            placeholder={'যেমন: guardian@example.com'}
             onChange={(event) => setForm({ ...form, email: event.target.value })}
           />
         </FormField>
-        <FormField label={pick('এনআইডি', 'NID')}>
+        <FormField label={'এনআইডি'}>
           <Input
             value={form.nid}
-            placeholder={pick('১০ বা ১৭ সংখ্যার এনআইডি নম্বর', '10 or 17 digit NID number')}
+            placeholder={'১০ বা ১৭ সংখ্যার এনআইডি নম্বর'}
             onChange={(event) => setForm({ ...form, nid: event.target.value })}
           />
         </FormField>
-        <FormField label={pick('পেশা', 'Occupation')}>
+        <FormField label={'পেশা'}>
           <Input
             value={form.occupation}
-            placeholder={pick('যেমন: ব্যবসা / চাকরি / শিক্ষকতা', 'e.g. Business / Service')}
+            placeholder={'যেমন: ব্যবসা / চাকরি / শিক্ষকতা'}
             onChange={(event) => setForm({ ...form, occupation: event.target.value })}
           />
         </FormField>
-        <FormField label={pick('মাসিক আয়', 'Monthly Income')}>
+        <FormField label={'মাসিক আয়'}>
           <Input
             type="number"
             min={0}
             value={form.monthlyIncome}
-            placeholder={pick('যেমন: 35000', 'e.g. 35000')}
+            placeholder={'যেমন: 35000'}
             onChange={(event) => setForm({ ...form, monthlyIncome: event.target.value })}
           />
         </FormField>
         <div className="sm:col-span-2">
-          <FormField label={pick('ঠিকানা', 'Address')}>
+          <FormField label={'ঠিকানা'}>
             <Textarea
               value={form.address}
-              placeholder={pick('গ্রাম/বাড়ি নং, ডাকঘর, উপজেলা, জেলা লিখুন...', 'Enter village/house, post office, upazila, district...')}
+              placeholder={'গ্রাম/বাড়ি নং, ডাকঘর, উপজেলা, জেলা লিখুন...'}
               onChange={(event) => setForm({ ...form, address: event.target.value })}
             />
           </FormField>
         </div>
         <div className="sm:col-span-2 flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onClose}>
-            {pick('বাতিল', 'Cancel')}
+            {'বাতিল'}
           </Button>
           <Button type="submit" variant="primary" disabled={updating}>
-            {updating ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('হালনাগাদ করুন', 'Update')}
+            {updating ? 'সংরক্ষণ হচ্ছে...' : 'হালনাগাদ করুন'}
           </Button>
         </div>
       </form>

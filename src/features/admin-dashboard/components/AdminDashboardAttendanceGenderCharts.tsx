@@ -29,8 +29,6 @@ interface AdminDashboardAttendanceGenderChartsProps {
   maleCount: number;
   femaleCount: number;
   activeYearName?: string;
-  locale: 'bn' | 'en';
-  pick: (bn: string, en: string) => string;
 }
 
 export function AdminDashboardAttendanceGenderCharts({
@@ -44,8 +42,8 @@ export function AdminDashboardAttendanceGenderCharts({
   maleCount,
   femaleCount,
   activeYearName,
-  locale,
-  pick,
+  
+  
 }: AdminDashboardAttendanceGenderChartsProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -54,10 +52,10 @@ export function AdminDashboardAttendanceGenderCharts({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
           <div>
             <h3 className="text-lg sm:text-xl font-bold text-foreground">
-              {pick('দৈনিক হাজিরা প্রবণতা (সাম্প্রতিক ১০ কর্মদিবস)', 'Daily Attendance Trend (Last 10 School Days)')}
+              {'দৈনিক হাজিরা প্রবণতা (সাম্প্রতিক ১০ কর্মদিবস)'}
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              {pick('উপস্থিত, বিলম্বিত ও অনুপস্থিত শিক্ষার্থীর সংখ্যা', 'Daily count of present, late, and absent students')}
+              {'উপস্থিত, বিলম্বিত ও অনুপস্থিত শিক্ষার্থীর সংখ্যা'}
             </p>
           </div>
 
@@ -75,7 +73,7 @@ export function AdminDashboardAttendanceGenderCharts({
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                {r === 'day' ? pick('দিন', 'Day') : r === 'week' ? pick('সপ্তাহ', 'Week') : pick('মাস', 'Month')}
+                {r === 'day' ? 'দিন' : r === 'week' ? 'সপ্তাহ' : 'মাস'}
               </button>
             ))}
           </div>
@@ -83,14 +81,14 @@ export function AdminDashboardAttendanceGenderCharts({
 
         {/* Metric Highlight */}
         <div className="flex items-center gap-3 my-3">
-          <span className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight tabular-nums">
-            {presentRate}% {pick('গড় উপস্থিতি', 'Avg Attendance')}
+          <span className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
+            {formatNumber(presentRate, 'bn')}% {'গড় উপস্থিতি'}
           </span>
           <span
-            className="px-3 py-1 rounded-full text-sm font-bold"
+            className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
             style={{ backgroundColor: TINT_GREEN, color: COLOR_PRIMARY }}
           >
-            ↑ ৪.৮% {pick('বিগত মাসের তুলনায়', 'vs last month')}
+            ↑ ৪.৮% {'বিগত মাসের তুলনায়'}
           </span>
         </div>
 
@@ -98,10 +96,10 @@ export function AdminDashboardAttendanceGenderCharts({
         <div className="h-64 sm:h-72 w-full mt-2 relative">
           <div className="absolute right-[8%] top-[20%] z-10 hidden sm:flex flex-col items-center pointer-events-none">
             <div className="bg-[#1C6440] text-white text-sm font-bold px-3.5 py-2 rounded-xl shadow-md border border-white/20 text-center leading-tight">
-              <span className="text-xs text-white/90 block font-normal mb-0.5">
-                {pick('আজকের উপস্থিতি', "Today's Attendance")}
+              <span className="text-sm text-white/90 block font-normal mb-0.5">
+                {'আজকের উপস্থিতি'}
               </span>
-              {formatNumber(presentToday, locale)} {pick('জন উপস্থিত', 'Present')}
+              {formatNumber(presentToday, 'bn')} {'জন উপস্থিত'}
             </div>
             <div className="w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-[#1C6440]" />
             <div className="w-2.5 h-2.5 rounded-full bg-[#1C6440] border-2 border-white mt-1 shadow-xs" />
@@ -133,16 +131,13 @@ export function AdminDashboardAttendanceGenderCharts({
                     return (
                       <div className="bg-surface border border-border rounded-xl px-3.5 py-2.5 shadow-lg text-sm space-y-1">
                         <p className="font-bold text-foreground">
-                          {pick(`তারিখ: ${data.date}`, `Date: ${data.date}`)}
+                          {`তারিখ: ${data.date}`}
                         </p>
                         <p className="font-semibold text-[#1C6440]">
-                          {pick(`উপস্থিত: ${data.present} জন`, `Present: ${data.present}`)}
+                          {`উপস্থিত: ${data.present} জন`}
                         </p>
-                        <p className="text-muted-foreground text-xs">
-                          {pick(
-                            `বিলম্ব: ${data.late} · অনুপস্থিত: ${data.absent}`,
-                            `Late: ${data.late} · Absent: ${data.absent}`
-                          )}
+                        <p className="text-muted-foreground text-sm">
+                          {`বিলম্ব: ${data.late} · অনুপস্থিত: ${data.absent}`}
                         </p>
                       </div>
                     );
@@ -168,14 +163,14 @@ export function AdminDashboardAttendanceGenderCharts({
         <div className="flex items-center justify-between pb-2">
           <div>
             <h3 className="text-lg sm:text-xl font-bold text-foreground">
-              {pick('ছাত্র-ছাত্রী অনুপাত', 'Gender Ratio')}
+              {'ছাত্র-ছাত্রী অনুপাত'}
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              {pick(`শিক্ষাবর্ষ ${activeYearName ?? '2026'}`, `Session ${activeYearName ?? '2026'}`)}
+              {`শিক্ষাবর্ষ ${activeYearName ?? '2026'}`}
             </p>
           </div>
           <span className="px-3 py-1 rounded-full text-sm font-medium text-muted-foreground bg-[#F4F6F4] border border-[#E0E7E2] tabular-nums">
-            {formatNumber(totalStudentsCount, locale)} {pick('মোট', 'total')}
+            {formatNumber(totalStudentsCount, 'bn')} {'মোট'}
           </span>
         </div>
 
@@ -201,10 +196,10 @@ export function AdminDashboardAttendanceGenderCharts({
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none leading-tight">
               <span className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
-                {formatNumber(totalStudentsCount, locale)}
+                {formatNumber(totalStudentsCount, 'bn')}
               </span>
               <span className="text-sm text-muted-foreground font-medium">
-                {pick('শিক্ষার্থী', 'students')}
+                {'শিক্ষার্থী'}
               </span>
             </div>
           </div>
@@ -220,10 +215,10 @@ export function AdminDashboardAttendanceGenderCharts({
                       className="w-3 h-3 rounded-full shrink-0"
                       style={{ backgroundColor: item.color }}
                     />
-                    <span className="font-semibold text-foreground">{item.name}</span>
+                    <span className="font-medium text-foreground">{item.name}</span>
                   </div>
-                  <span className="font-bold text-muted-foreground tabular-nums text-sm">
-                    {formatNumber(item.value, locale)} ({pct}%)
+                  <span className="font-semibold text-foreground tabular-nums text-base">
+                    {formatNumber(item.value, 'bn')} ({formatNumber(pct, 'bn')}%)
                   </span>
                 </div>
               );
@@ -232,14 +227,14 @@ export function AdminDashboardAttendanceGenderCharts({
         </div>
 
         <div className="pt-3 border-t border-border flex items-center justify-between text-base text-muted-foreground">
-          <span>{pick('ছাত্র ও ছাত্রী অনুপাত:', 'Gender Breakdown:')}</span>
-          <div className="flex items-center gap-2 font-bold">
+          <span className="font-normal">{'ছাত্র ও ছাত্রী অনুপাত:'}</span>
+          <div className="flex items-center gap-2 font-semibold">
             <span className="text-[#1C6440]">
-              {pick('ছাত্র', 'Male')}: {Math.round((maleCount / (totalStudentsCount || 1)) * 100)}%
+              {'ছাত্র'}: {formatNumber(Math.round((maleCount / (totalStudentsCount || 1)) * 100), 'bn')}%
             </span>
             <span className="text-muted-foreground/60">·</span>
             <span className="text-[#124B96]">
-              {pick('ছাত্রী', 'Female')}: {Math.round((femaleCount / (totalStudentsCount || 1)) * 100)}%
+              {'ছাত্রী'}: {formatNumber(Math.round((femaleCount / (totalStudentsCount || 1)) * 100), 'bn')}%
             </span>
           </div>
         </div>

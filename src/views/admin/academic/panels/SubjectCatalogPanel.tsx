@@ -17,7 +17,7 @@ import { SubjectCategory } from '@/src/types/enums';
 import type { Subject } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
 import { errorMessage } from './shared';
-import { CATEGORY_LABELS, useAcademicI18n } from '../academic.i18n';
+import { CATEGORY_LABELS } from '../academic.labels';
 import { subjectSchema, type SubjectFormValues } from '../academic.schema';
 
 const defaultValues: SubjectFormValues = {
@@ -30,7 +30,6 @@ const defaultValues: SubjectFormValues = {
 };
 
 export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
-  const { isBn, t, dict } = useAcademicI18n();
 
   const { data: realSubjects, isLoading } = useGetSubjectsQuery();
   const subjectList: Subject[] =
@@ -98,7 +97,7 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
           description: values.description.trim() || undefined,
           isActive: values.isActive,
         }).unwrap();
-        toast.success(t(dict.catalog.updateSuccess));
+        toast.success('বিষয় সফলভাবে আপডেট হয়েছে।');
       } else {
         await createSubject({
           name: values.name.trim(),
@@ -108,11 +107,11 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
           description: values.description.trim() || undefined,
           isActive: values.isActive,
         }).unwrap();
-        toast.success(t(dict.catalog.createSuccess));
+        toast.success('নতুন বিষয় ক্যাটালগে যুক্ত হয়েছে।');
       }
       close();
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.catalog.saveFailed)));
+      toast.error(errorMessage(err, 'বিষয় সংরক্ষণ করা যায়নি।'));
     }
   };
 
@@ -122,21 +121,21 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
         id: subject.id,
         isActive: !subject.isActive,
       }).unwrap();
-      toast.success(t(dict.catalog.updateSuccess));
+      toast.success('বিষয় সফলভাবে আপডেট হয়েছে।');
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.catalog.saveFailed)));
+      toast.error(errorMessage(err, 'বিষয় সংরক্ষণ করা যায়নি।'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm(isBn ? 'আপনি কি নিশ্চিতভাবে এই বিষয়টি মুছতে চান?' : 'Are you sure you want to delete this subject?')) {
+    if (!window.confirm('আপনি কি নিশ্চিতভাবে এই বিষয়টি মুছতে চান?')) {
       return;
     }
     try {
       await deleteSubject(id).unwrap();
-      toast.success(t(dict.catalog.deleteSuccess));
+      toast.success('বিষয় ক্যাটালগ থেকে মুছে ফেলা হয়েছে।');
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.catalog.deleteFailed)));
+      toast.error(errorMessage(err, 'বিষয় মোছা যায়নি।'));
     }
   };
 
@@ -148,33 +147,31 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button type="button" variant="primary" onClick={startCreate}>
-          <Plus className="w-4 h-4" /> {t(dict.catalog.newSubjectButton)}
+          <Plus className="w-4 h-4" /> {'নতুন বিষয়'}
         </Button>
       </div>
 
       <Card className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-base">
           <thead className="bg-surface-muted text-muted-foreground">
             <tr>
-              <th className="p-3 text-left">{t(dict.catalog.codeColumn)}</th>
-              <th className="p-3 text-left">{t(dict.catalog.subjectColumn)}</th>
-              <th className="p-3 text-left">{t(dict.catalog.categoryColumn)}</th>
-              <th className="p-3 text-left">{t(dict.catalog.statusColumn)}</th>
-              <th className="p-3 text-right">{t(dict.catalog.actionsColumn)}</th>
+              <th className="p-3 text-left">{'কোড'}</th>
+              <th className="p-3 text-left">{'বিষয়'}</th>
+              <th className="p-3 text-left">{'ধরন'}</th>
+              <th className="p-3 text-left">{'অবস্থা'}</th>
+              <th className="p-3 text-right">{'কাজ'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {sortedSubjects.length === 0 ? (
               <tr>
                 <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                  {isLoading ? t(dict.common.loading) : t(dict.catalog.emptyCatalog)}
+                  {isLoading ? 'লোড হচ্ছে...' : 'কোনো বিষয় পাওয়া যায়নি।'}
                 </td>
               </tr>
             ) : (
               sortedSubjects.map((subject) => {
-                const displayName = isBn
-                  ? subject.nameBn || subject.name
-                  : subject.name;
+                const displayName = subject.nameBn || subject.name;
                 const secondaryName =
                   subject.nameBn && subject.nameBn !== displayName
                     ? ` (${subject.nameBn})`
@@ -182,9 +179,7 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
                       ? ` (${subject.name})`
                       : '';
                 const categoryLabel = CATEGORY_LABELS[subject.category]
-                  ? isBn
-                    ? CATEGORY_LABELS[subject.category].bn
-                    : CATEGORY_LABELS[subject.category].en
+                  ? CATEGORY_LABELS[subject.category]
                   : subject.category;
 
                 return (
@@ -195,7 +190,7 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
                     <td className="p-3 font-medium">
                       <span className="text-foreground">{displayName}</span>
                       {secondaryName && (
-                        <span className="text-xs text-muted-foreground ml-1">
+                        <span className="text-sm text-muted-foreground ml-1">
                           {secondaryName}
                         </span>
                       )}
@@ -209,15 +204,15 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
                       <button
                         type="button"
                         onClick={() => handleToggleActive(subject)}
-                        title={isBn ? 'অবস্থা পরিবর্তন করুন' : 'Toggle status'}
+                        title={'অবস্থা পরিবর্তন করুন'}
                         className="cursor-pointer"
                       >
                         <StatusBadge
                           value={subject.isActive ? 'ACTIVE' : 'INACTIVE'}
                           customLabel={
                             subject.isActive
-                              ? t(dict.common.active)
-                              : t(dict.common.inactive)
+                              ? 'সক্রিয়'
+                              : 'বন্ধ'
                           }
                           customTone={subject.isActive ? 'success' : 'neutral'}
                         />
@@ -231,7 +226,7 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
                         onClick={() => startEdit(subject)}
                       >
                         <Pencil className="w-4 h-4" />
-                        {t(dict.common.edit)}
+                        {'সম্পাদনা'}
                       </Button>
                       <Button
                         type="button"
@@ -255,71 +250,71 @@ export function SubjectCatalogPanel({ db }: { db?: MockDatabase }) {
       <Modal
         open={open}
         onClose={close}
-        title={editingId ? t(dict.catalog.editTitle) : t(dict.catalog.newTitle)}
-        description={t(dict.catalog.modalDescription)}
+        title={editingId ? 'বিষয় সম্পাদনা' : 'নতুন বিষয়'}
+        description={'বিষয় তৈরি করার পর তা শ্রেণির পাঠ্যক্রমে বসাতে হবে। ব্যবহৃত বিষয় মুছা যায় না।'}
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label={t(dict.catalog.nameEnLabel)} required error={errors.name?.message}>
+            <FormField label={'ইংরেজি নাম'} required error={errors.name?.message}>
               <Input
                 {...register('name')}
-                placeholder={t(dict.catalog.nameEnPlaceholder)}
+                placeholder={'যেমন: Physics, General Mathematics'}
               />
             </FormField>
 
-            <FormField label={t(dict.catalog.nameBnLabel)} required error={errors.nameBn?.message}>
+            <FormField label={'বাংলা নাম'} required error={errors.nameBn?.message}>
               <Input
                 {...register('nameBn')}
-                placeholder={t(dict.catalog.nameBnPlaceholder)}
+                placeholder={'যেমন: পদার্থবিজ্ঞান, সাধারণ গণিত'}
               />
             </FormField>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label={t(dict.catalog.codeLabel)} error={errors.officialCode?.message}>
+            <FormField label={'বোর্ড কোড'} error={errors.officialCode?.message}>
               <Input
                 {...register('officialCode')}
-                placeholder={t(dict.catalog.codePlaceholder)}
+                placeholder={'যেমন: 101, 109, 136'}
               />
             </FormField>
 
-            <FormField label={t(dict.catalog.categoryLabel)} required error={errors.category?.message}>
+            <FormField label={'ধরন / ক্যাটাগরি'} required error={errors.category?.message}>
               <Select
                 value={selectedCategory}
                 onChange={(e) => setValue('category', e.target.value as SubjectCategory, { shouldValidate: true })}
               >
                 {Object.values(SubjectCategory).map((cat) => (
                   <option key={cat} value={cat}>
-                    {CATEGORY_LABELS[cat] ? (isBn ? CATEGORY_LABELS[cat].bn : CATEGORY_LABELS[cat].en) : cat}
+                    {CATEGORY_LABELS[cat] ? (CATEGORY_LABELS[cat]) : cat}
                   </option>
                 ))}
               </Select>
             </FormField>
           </div>
 
-          <FormField label={t(dict.catalog.descLabel)} error={errors.description?.message}>
+          <FormField label={'বিবরণ'} error={errors.description?.message}>
             <Textarea
               {...register('description')}
-              placeholder={t(dict.catalog.descPlaceholder)}
+              placeholder={'বিষয়ের সংক্ষিপ্ত বিবরণ...'}
             />
           </FormField>
 
           <Switch
             checked={isActive}
             onChange={(val) => setValue('isActive', val)}
-            label={t(dict.common.active)}
+            label={'সক্রিয়'}
           />
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={close}>
-              {t(dict.common.cancel)}
+              {'বাতিল'}
             </Button>
             <Button type="submit" variant="primary" disabled={saving}>
               {saving
-                ? t(dict.common.saving)
+                ? 'সংরক্ষণ হচ্ছে...'
                 : editingId
-                  ? t(dict.common.update)
-                  : t(dict.common.save)}
+                  ? 'হালনাগাদ করুন'
+                  : 'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>

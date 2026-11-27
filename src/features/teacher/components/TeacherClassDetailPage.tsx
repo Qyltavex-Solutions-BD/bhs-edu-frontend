@@ -32,7 +32,6 @@ import {
   useSaveMarksBatchMutation,
 } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -85,12 +84,10 @@ export function TeacherClassDetailPage() {
   const { id } = useParams();
   const { data: db, isLoading } = useGetBootstrapQuery();
   const teacher = useCurrentTeacher(db);
-  const { locale, pick } = useI18n();
-
   if (isLoading || !db || !teacher) return <LoadingSkeleton />;
   const sec = db.sections.find((s) => s.id === id);
   if (!sec) {
-    return <EmptyState title={pick('শাখা পাওয়া যায়নি', 'Section not found')} />;
+    return <EmptyState title={'শাখা পাওয়া যায়নি'} />;
   }
   const cls = db.classes.find((c) => c.id === sec.classId);
   const enrollments = db.enrollments
@@ -103,15 +100,12 @@ export function TeacherClassDetailPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`${locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name} — ${pick('শাখা', 'Section')} ${sec.name}`}
-        description={pick(
-          'শিক্ষার্থী তালিকা, অভিভাবক যোগাযোগ ও প্রকাশিত পরীক্ষার মেধাক্রম',
-          'Section roster, parent contacts, and published exam standing'
-        )}
+        title={`${cls?.nameBn || cls?.name} — ${'শাখা'} ${sec.name}`}
+        description={'শিক্ষার্থী তালিকা, অভিভাবক যোগাযোগ ও প্রকাশিত পরীক্ষার মেধাক্রম'}
         actions={
           <Link href="/teacher/classes">
             <Button variant="outline" size="sm">
-              {pick('সব শ্রেণি', 'Back to Classes')}
+              {'সব শ্রেণি'}
             </Button>
           </Link>
         }
@@ -119,14 +113,14 @@ export function TeacherClassDetailPage() {
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead className="bg-surface-muted/70 text-sm text-muted-foreground border-b border-border">
               <tr>
-                <th className="px-4 py-3 text-left">{pick('রোল', 'Roll')}</th>
-                <th className="px-4 py-3 text-left">{pick('শিক্ষার্থী', 'Student')}</th>
-                <th className="px-4 py-3 text-left">{pick('অভিভাবক ও ফোন', 'Parent Contact')}</th>
-                <th className="px-4 py-3 text-right">{pick('সর্বশেষ জিপিএ', 'Latest GPA')}</th>
-                <th className="px-4 py-3 text-right">{pick('মেধা স্থান', 'Merit')}</th>
+                <th className="px-4 py-3 text-left">{'রোল'}</th>
+                <th className="px-4 py-3 text-left">{'শিক্ষার্থী'}</th>
+                <th className="px-4 py-3 text-left">{'অভিভাবক ও ফোন'}</th>
+                <th className="px-4 py-3 text-right">{'সর্বশেষ জিপিএ'}</th>
+                <th className="px-4 py-3 text-right">{'মেধা স্থান'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border tabular-nums">
@@ -141,22 +135,22 @@ export function TeacherClassDetailPage() {
                   : null;
                 return (
                   <tr key={enr.id}>
-                    <td className="px-4 py-3 font-semibold">{formatNumber(enr.roll, locale)}</td>
+                    <td className="px-4 py-3 font-semibold">{formatNumber(enr.roll, 'bn')}</td>
                     <td className="px-4 py-3">
-                      <p className="font-medium">{locale === 'bn' ? stu?.nameBn || stu?.nameEn : stu?.nameEn}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{stu?.studentId}</p>
+                      <p className="font-medium">{stu?.nameBn || stu?.nameEn}</p>
+                      <p className="text-sm text-muted-foreground font-mono">{stu?.studentId}</p>
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <p className="font-medium">{parent?.name ?? '—'}</p>
-                      <p className="text-xs text-muted-foreground">{parent?.phone ?? '—'}</p>
+                      <p className="text-sm text-muted-foreground">{parent?.phone ?? '—'}</p>
                     </td>
                     <td className="px-4 py-3 text-right font-semibold text-primary">
                       {summary?.gpa !== null && summary?.gpa !== undefined
-                        ? formatNumber(summary.gpa, locale, 2)
+                        ? formatNumber(summary.gpa, 'bn', 2)
                         : '—'}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {summary?.meritPosition ? `#${formatNumber(summary.meritPosition, locale)}` : '—'}
+                      {summary?.meritPosition ? `#${formatNumber(summary.meritPosition, 'bn')}` : '—'}
                     </td>
                   </tr>
                 );

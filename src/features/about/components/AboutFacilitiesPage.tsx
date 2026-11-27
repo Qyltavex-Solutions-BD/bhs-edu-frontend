@@ -20,7 +20,6 @@ import {
   X,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   getCampusPhoto,
@@ -40,17 +39,13 @@ import { triggerPrint } from '@/src/lib/utils/cn';
 
 export function AboutFacilitiesPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { pick } = useI18n();
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-8">
       <PageHeader
-        title={pick('অবকাঠামো ও ক্যাম্পাস সুবিধা', 'Facilities & Infrastructure')}
-        description={pick(
-          'কনফিগারকৃত বিজ্ঞানাগার, কম্পিউটার ল্যাব, গ্রন্থাগার, মাল্টিমিডিয়া শ্রেণিকক্ষ ও খেলার মাঠ।',
-          'Configured laboratories, digital classrooms, library, and playground facilities.'
-        )}
+        title={'অবকাঠামো ও ক্যাম্পাস সুবিধা'}
+        description={'কনফিগারকৃত বিজ্ঞানাগার, কম্পিউটার ল্যাব, গ্রন্থাগার, মাল্টিমিডিয়া শ্রেণিকক্ষ ও খেলার মাঠ।'}
       />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {db.facilities

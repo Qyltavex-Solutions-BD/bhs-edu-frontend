@@ -27,7 +27,6 @@ import {
   useUpdateSchoolProfileMutation,
 } from '@/src/store/api';
 import { PrintableIdCardSheet } from '@/src/components/print/PrintDocuments';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import {
@@ -89,7 +88,6 @@ export function AdminInstitutionPage({
   const [updateProfile, { isLoading: saving }] = useUpdateSchoolProfileMutation();
   const [toggleCms] = useToggleCmsItemMutation();
   const [reorderCms] = useReorderCmsItemsMutation();
-  const { pick } = useI18n();
   const [tab, setTab] = useState(defaultTab);
   const [dragQuickLinkId, setDragQuickLinkId] = useState<string | null>(null);
 
@@ -121,29 +119,29 @@ export function AdminInstitutionPage({
     e.preventDefault();
     try {
       await updateProfile({ name, eiin, schoolCode, phone, email, address, mission, vision }).unwrap();
-      toast.success(pick('প্রতিষ্ঠানের তথ্য সফলভাবে সংরক্ষিত হয়েছে।', 'School profile updated successfully.'));
+      toast.success('প্রতিষ্ঠানের তথ্য সফলভাবে সংরক্ষিত হয়েছে।');
     } catch {
-      toast.error(pick('তথ্য সংরক্ষণে ত্রুটি হয়েছে।', 'Failed to update profile.'));
+      toast.error('তথ্য সংরক্ষণে ত্রুটি হয়েছে।');
     }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('প্রতিষ্ঠান ব্যবস্থাপনা', 'Institution Management')}
-        description={pick('বিদ্যালয়ের অফিসিয়াল প্রোফাইল, ইতিহাস, সুবিধা, কমিটি ও দ্রুত লিংক।', 'Manage school profile, facilities, administrators, managing committee, and quick links.')}
+        title={'প্রতিষ্ঠান ব্যবস্থাপনা'}
+        description={'বিদ্যালয়ের অফিসিয়াল প্রোফাইল, ইতিহাস, সুবিধা, কমিটি ও দ্রুত লিংক।'}
       />
 
       <SegmentedTabs
         value={tab}
         onChange={setTab}
         items={[
-          { value: 'profile', label: pick('প্রোফাইল', 'School Profile') },
-          { value: 'content', label: pick('ইতিহাস ও কনটেন্ট', 'Content') },
-          { value: 'facilities', label: pick('সুবিধাসমূহ', 'Facilities') },
-          { value: 'administrators', label: pick('প্রশাসকবৃন্দ', 'Administrators') },
-          { value: 'committee', label: pick('ম্যানেজিং কমিটি', 'Committee') },
-          { value: 'quick-links', label: pick('দ্রুত লিংক', 'Quick Links') },
+          { value: 'profile', label: 'প্রোফাইল' },
+          { value: 'content', label: 'ইতিহাস ও কনটেন্ট' },
+          { value: 'facilities', label: 'সুবিধাসমূহ' },
+          { value: 'administrators', label: 'প্রশাসকবৃন্দ' },
+          { value: 'committee', label: 'ম্যানেজিং কমিটি' },
+          { value: 'quick-links', label: 'দ্রুত লিংক' },
         ]}
       />
 
@@ -155,38 +153,38 @@ export function AdminInstitutionPage({
               <div>
                 <p className="font-bold text-base text-foreground">{db.schoolProfile.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {pick('অফিসিয়াল BHS মনোগ্রাম (হেডার, পোর্টাল ও সকল A4 প্রিন্ট ডকুমেন্টে ব্যবহৃত)', 'Official BHS Emblem (used across header, portals & A4 print documents)')}
+                  {'অফিসিয়াল BHS মনোগ্রাম (হেডার, পোর্টাল ও সকল A4 প্রিন্ট ডকুমেন্টে ব্যবহৃত)'}
                 </p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label={pick('বিদ্যালয়ের নাম', 'School Name')} required>
-                <Input value={name} onChange={(e) => setName(e.target.value)} />
+              <FormField label={'বিদ্যালয়ের নাম'} required>
+                <Input placeholder="বিদ্যালয়ের নাম লিখুন" value={name} onChange={(e) => setName(e.target.value)} />
               </FormField>
               <FormField label="EIIN">
-                <Input value={eiin} onChange={(e) => setEiin(e.target.value)} />
+                <Input placeholder="EIIN লিখুন" value={eiin} onChange={(e) => setEiin(e.target.value)} />
               </FormField>
-              <FormField label={pick('বিদ্যালয় কোড', 'School Code')}>
-                <Input value={schoolCode} onChange={(e) => setSchoolCode(e.target.value)} />
+              <FormField label={'বিদ্যালয় কোড'}>
+                <Input placeholder="বিদ্যালয় কোড লিখুন" value={schoolCode} onChange={(e) => setSchoolCode(e.target.value)} />
               </FormField>
-              <FormField label={pick('ফোন নম্বর', 'Phone')}>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+              <FormField label={'ফোন নম্বর'}>
+                <Input placeholder="মোবাইল নম্বর লিখুন (যেমন: 017XXXXXXXX)" value={phone} onChange={(e) => setPhone(e.target.value)} />
               </FormField>
-              <FormField label={pick('ইমেইল', 'Email')}>
-                <Input value={email} onChange={(e) => setEmail(e.target.value)} />
+              <FormField label={'ইমেইল'}>
+                <Input placeholder="ইমেইল ঠিকানা লিখুন" value={email} onChange={(e) => setEmail(e.target.value)} />
               </FormField>
-              <FormField label={pick('ঠিকানা', 'Address')} required>
-                <Input value={address} onChange={(e) => setAddress(e.target.value)} />
+              <FormField label={'ঠিকানা'} required>
+                <Input placeholder="ঠিকানা লিখুন" value={address} onChange={(e) => setAddress(e.target.value)} />
               </FormField>
-              <FormField label={pick('লক্ষ্য (Mission)', 'Mission')}>
-                <Textarea value={mission} onChange={(e) => setMission(e.target.value)} />
+              <FormField label={'লক্ষ্য (Mission)'}>
+                <Textarea placeholder="লক্ষ্য (Mission) লিখুন..." value={mission} onChange={(e) => setMission(e.target.value)} />
               </FormField>
-              <FormField label={pick('দৃষ্টিভঙ্গি (Vision)', 'Vision')}>
-                <Textarea value={vision} onChange={(e) => setVision(e.target.value)} />
+              <FormField label={'দৃষ্টিভঙ্গি (Vision)'}>
+                <Textarea placeholder="দৃষ্টিভঙ্গি (Vision) লিখুন..." value={vision} onChange={(e) => setVision(e.target.value)} />
               </FormField>
             </div>
             <Button type="submit" variant="primary" disabled={saving}>
-              {saving ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('পরিবর্তন সংরক্ষণ করুন', 'Save Profile')}
+              {saving ? 'সংরক্ষণ হচ্ছে...' : 'পরিবর্তন সংরক্ষণ করুন'}
             </Button>
           </form>
         </Card>
@@ -234,12 +232,12 @@ export function AdminInstitutionPage({
 
       {tab === 'committee' && (
         <Card className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead className="bg-surface-muted text-sm text-muted-foreground">
               <tr>
-                <th className="p-3 text-left">{pick('নাম', 'Name')}</th>
-                <th className="p-3 text-left">{pick('পদবি', 'Designation')}</th>
-                <th className="p-3 text-left">{pick('ফোন', 'Phone')}</th>
+                <th className="p-3 text-left">{'নাম'}</th>
+                <th className="p-3 text-left">{'পদবি'}</th>
+                <th className="p-3 text-left">{'ফোন'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -273,15 +271,12 @@ export function AdminInstitutionPage({
           const [moved] = next.splice(fromIdx, 1);
           next.splice(toIdx, 0, moved);
           await reorderCms({ collection: 'quickLinks', orderedIds: next.map((x) => x.id) }).unwrap();
-          toast.success(pick('দ্রুত লিংকের ক্রম হালনাগাদ হয়েছে।', 'Quick link order updated.'));
+          toast.success('দ্রুত লিংকের ক্রম হালনাগাদ হয়েছে।');
         };
         return (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
-              {pick(
-                'ড্র্যাগ-অ্যান্ড-ড্রপ অথবা তীর বাটন ব্যবহার করে হোমপেজ দ্রুত লিংকের ক্রম পরিবর্তন করুন।',
-                'Drag and drop rows or use arrow controls to reorder homepage quick links.'
-              )}
+              {'ড্র্যাগ-অ্যান্ড-ড্রপ অথবা তীর বাটন ব্যবহার করে হোমপেজ দ্রুত লিংকের ক্রম পরিবর্তন করুন।'}
             </p>
             <Card className="divide-y divide-border">
               {sortedLinks.map((ql, idx) => (
@@ -329,7 +324,7 @@ export function AdminInstitutionPage({
                       onChange={() =>
                         toggleCms({ collection: 'quickLinks', id: ql.id, field: 'isActive' })
                       }
-                      label={ql.isActive ? pick('সক্রিয়', 'Active') : pick('বন্ধ', 'Hidden')}
+                      label={ql.isActive ? 'সক্রিয়' : 'বন্ধ'}
                     />
                   </div>
                 </div>

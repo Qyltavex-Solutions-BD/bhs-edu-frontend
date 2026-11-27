@@ -27,7 +27,6 @@ import {
   Users,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatNumber, formatTime12h } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -57,7 +56,7 @@ import { SYLLABUS_TERM_LABELS } from '../model/syllabus';
 function getWeekdayLabel(dateStr: string, locale: 'bn' | 'en'): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     weekday: 'long',
   }).format(d);
 }
@@ -66,7 +65,7 @@ function getMonthLabel(yearMonth: string, locale: 'bn' | 'en'): string {
   const [y, m] = yearMonth.split('-').map(Number);
   if (!y || !m) return yearMonth;
   const d = new Date(y, m - 1, 1);
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     month: 'long',
   }).format(d);
 }
@@ -212,7 +211,6 @@ const STRUCTURED_DOC_SECTIONS: Record<AcademicDocumentType, StructuredDocSection
 
 export function PublicSyllabusPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [searchParams] = useSearchParams();
 
   const initialTab = searchParams.get('tab') === 'guidelines' ? 'guidelines' : 'syllabus';
@@ -283,11 +281,8 @@ export function PublicSyllabusPage() {
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <div className="no-print space-y-5">
         <PageHeader
-          title={pick('সিলেবাস ও বিদ্যালয় নীতিমালা', 'Syllabus & Institutional Policies')}
-          description={pick(
-            '২০২৬ শিক্ষাবর্ষের শ্রেণি ও পরীক্ষাভিত্তিক অধ্যায়-তালিকা, অফিসিয়াল সিলেবাস পিডিএফ ডাউনলোড এবং বিদ্যালয়ের আচরণবিধি ও ড্রেস কোড।',
-            'Class and exam-wise 2026 chapter syllabus, official downloadable syllabus PDFs, student discipline rules, and uniform code.'
-          )}
+          title={'সিলেবাস ও বিদ্যালয় নীতিমালা'}
+          description={'২০২৬ শিক্ষাবর্ষের শ্রেণি ও পরীক্ষাভিত্তিক অধ্যায়-তালিকা, অফিসিয়াল সিলেবাস পিডিএফ ডাউনলোড এবং বিদ্যালয়ের আচরণবিধি ও ড্রেস কোড।'}
         />
 
         {/* Top 2-Tab Navigation */}
@@ -301,7 +296,7 @@ export function PublicSyllabusPage() {
                 : 'bg-surface text-foreground border-border hover:border-primary/40'
             }`}
           >
-            {pick('শ্রেণি ও পরীক্ষাভিত্তিক সিলেবাস (২০২৬)', 'Class & Exam Syllabus (2026)')}
+            {'শ্রেণি ও পরীক্ষাভিত্তিক সিলেবাস (২০২৬)'}
           </button>
           <button
             type="button"
@@ -312,7 +307,7 @@ export function PublicSyllabusPage() {
                 : 'bg-surface text-foreground border-border hover:border-primary/40'
             }`}
           >
-            {pick('বিদ্যালয় নীতিমালা ও ড্রেস কোড', 'School Rules & Dress Code')}
+            {'বিদ্যালয় নীতিমালা ও ড্রেস কোড'}
           </button>
         </div>
       </div>
@@ -324,7 +319,7 @@ export function PublicSyllabusPage() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
               <div className="md:col-span-3">
                 <label className="block text-sm font-medium text-foreground mb-1.5">
-                  {pick('শ্রেণি নির্বাচন করুন', 'Select Class')}
+                  {'শ্রেণি নির্বাচন করুন'}
                 </label>
                 <Select
                   value={activeClass?.id ?? 'cls-10'}
@@ -332,7 +327,7 @@ export function PublicSyllabusPage() {
                 >
                   {sortedClasses.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {locale === 'bn' ? c.nameBn ?? c.name : c.name}
+                      {c.nameBn ?? c.name}
                     </option>
                   ))}
                 </Select>
@@ -341,13 +336,13 @@ export function PublicSyllabusPage() {
               {supportsGroups && (
                 <div className="md:col-span-3">
                   <label className="block text-sm font-medium text-foreground mb-1.5">
-                    {pick('বিভাগ (৯ম–১০ম)', 'Academic Stream')}
+                    {'বিভাগ (৯ম–১০ম)'}
                   </label>
                   <Select value={effectiveGroup} onChange={(e) => setGroupFilter(e.target.value)}>
-                    <option value="ALL">{pick('সকল বিভাগ', 'All Streams')}</option>
+                    <option value="ALL">{'সকল বিভাগ'}</option>
                     {db.academicGroups.map((g) => (
                       <option key={g.id} value={g.id}>
-                        {locale === 'bn' ? g.nameBn ?? g.name : g.name}
+                        {g.nameBn ?? g.name}
                       </option>
                     ))}
                   </Select>
@@ -356,7 +351,7 @@ export function PublicSyllabusPage() {
 
               <div className={supportsGroups ? 'md:col-span-6' : 'md:col-span-9'}>
                 <label className="block text-sm font-medium text-foreground mb-1.5">
-                  {pick('পরীক্ষার পর্ব', 'Examination Term')}
+                  {'পরীক্ষার পর্ব'}
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
                   {availableTerms.map((term) => {
@@ -373,7 +368,7 @@ export function PublicSyllabusPage() {
                             : 'bg-surface text-muted-foreground border-border hover:text-foreground hover:border-primary/40'
                         }`}
                       >
-                        {pick(label.bn, label.en)}
+                        {label.bn}
                       </button>
                     );
                   })}
@@ -399,29 +394,29 @@ export function PublicSyllabusPage() {
                         <FileText className="w-5 h-5" />
                       </div>
                       <div className="min-w-0 space-y-1">
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground tabular-nums">
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground tabular-nums">
                           <span className="font-semibold text-primary">
                             {file.fileType === 'PDF'
-                              ? pick('অফিসিয়াল সিলেবাস PDF', 'Official Syllabus PDF')
-                              : pick('সিলেবাস সংযুক্তি (ছবি)', 'Syllabus Image')}
+                              ? 'অফিসিয়াল সিলেবাস PDF'
+                              : 'সিলেবাস সংযুক্তি (ছবি)'}
                           </span>
                           <span aria-hidden="true">·</span>
                           <span>{file.fileSize}</span>
                           <span aria-hidden="true">·</span>
                           <span>
-                            {pick('প্রকাশ:', 'Published:')} {formatDateLong(file.publishedAt, locale)}
+                            {'প্রকাশ:'} {formatDateLong(file.publishedAt, 'bn')}
                           </span>
                           {fileGroup && (
                             <>
                               <span aria-hidden="true">·</span>
-                              <span>{locale === 'bn' ? fileGroup.nameBn : fileGroup.name}</span>
+                              <span>{fileGroup.nameBn}</span>
                             </>
                           )}
                         </div>
                         <h2 className="text-base font-bold text-foreground leading-snug">
                           {file.title}
                         </h2>
-                        <p className="text-xs font-mono text-muted-foreground truncate">
+                        <p className="text-sm font-mono text-muted-foreground truncate">
                           {file.fileName}
                         </p>
                       </div>
@@ -437,12 +432,12 @@ export function PublicSyllabusPage() {
                             className="whitespace-nowrap"
                           >
                             <Eye className="w-4 h-4" />
-                            {pick('প্রিভিউ দেখুন', 'Preview')}
+                            {'প্রিভিউ দেখুন'}
                           </Button>
                           <a href={file.fileUrl} download={file.fileName}>
                             <Button variant="primary" size="sm" className="whitespace-nowrap">
                               <Download className="w-4 h-4" />
-                              {pick('ফাইল ডাউনলোড', 'Download File')}
+                              {'ফাইল ডাউনলোড'}
                             </Button>
                           </a>
                         </>
@@ -454,7 +449,7 @@ export function PublicSyllabusPage() {
                           className="whitespace-nowrap"
                         >
                           <Printer className="w-4 h-4" />
-                          {pick('পিডিএফ ডাউনলোড / প্রিন্ট', 'Save PDF / Print')}
+                          {'পিডিএফ ডাউনলোড / প্রিন্ট'}
                         </Button>
                       )}
                     </div>
@@ -472,19 +467,16 @@ export function PublicSyllabusPage() {
                 <SchoolEmblem size={48} />
                 <div>
                   <p className="text-base font-bold text-foreground">
-                    {locale === 'bn' ? db.schoolProfile.name : db.schoolProfile.nameEn}
+                    {db.schoolProfile.name}
                   </p>
-                  <p className="text-xs text-muted-foreground tabular-nums">
-                    {pick(
-                      `স্থাপিত: ${formatNumber(db.schoolProfile.establishedYear, 'bn')} · EIIN: ${db.schoolProfile.eiin} · ${db.schoolProfile.address}`,
-                      `Est. ${db.schoolProfile.establishedYear} · EIIN: ${db.schoolProfile.eiin} · Bhojeshwar, Noria, Shariatpur`
-                    )}
+                  <p className="text-sm text-muted-foreground tabular-nums">
+                    {`স্থাপিত: ${formatNumber(db.schoolProfile.establishedYear, 'bn')} · EIIN: ${db.schoolProfile.eiin} · ${db.schoolProfile.address}`}
                   </p>
                 </div>
               </div>
               <Button variant="outline" size="sm" onClick={triggerPrint} className="no-print whitespace-nowrap">
                 <Printer className="w-4 h-4" />
-                {pick('প্রিন্ট / পিডিএফ', 'Print / PDF')}
+                {'প্রিন্ট / পিডিএফ'}
               </Button>
             </div>
 
@@ -492,27 +484,19 @@ export function PublicSyllabusPage() {
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
               <div className="space-y-1">
                 <h2 className="text-xl sm:text-2xl font-bold text-foreground leading-snug">
-                  {locale === 'bn'
-                    ? `${activeClass?.nameBn ?? activeClass?.name} — ${SYLLABUS_TERM_LABELS[effectiveTerm].bn} সিলেবাস ২০২৬`
-                    : `${activeClass?.name} — ${SYLLABUS_TERM_LABELS[effectiveTerm].en} Syllabus 2026`}
+                  {`${activeClass?.nameBn ?? activeClass?.name} — ${SYLLABUS_TERM_LABELS[effectiveTerm].bn} সিলেবাস ২০২৬`}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground tabular-nums">
                   <span>
                     {activeGroupObj
-                      ? pick(
-                          `বিভাগ: ${activeGroupObj.nameBn ?? activeGroupObj.name}`,
-                          `Stream: ${activeGroupObj.name}`
-                        )
+                      ? `বিভাগ: ${activeGroupObj.nameBn ?? activeGroupObj.name}`
                       : supportsGroups
-                        ? pick('সকল বিভাগ (আবশ্যিক ও বিভাগীয় বিষয়)', 'All Streams (Compulsory & Group Subjects)')
-                        : pick('সাধারণ মাধ্যমিক পাঠ্যক্রম (এনসিটিবি)', 'General Secondary Curriculum (NCTB)')}
+                        ? 'সকল বিভাগ (আবশ্যিক ও বিভাগীয় বিষয়)'
+                        : 'সাধারণ মাধ্যমিক পাঠ্যক্রম (এনসিটিবি)'}
                   </span>
                   <span aria-hidden="true">·</span>
                   <span>
-                    {pick(
-                      `মোট তালিকাভুক্ত বিষয়: ${formatNumber(matchingEntries.length, 'bn')}টি`,
-                      `Total Listed Subjects: ${matchingEntries.length}`
-                    )}
+                    {`মোট তালিকাভুক্ত বিষয়: ${formatNumber(matchingEntries.length, 'bn')}টি`}
                   </span>
                 </div>
               </div>
@@ -521,28 +505,25 @@ export function PublicSyllabusPage() {
             {/* Chapter-wise Syllabus Table */}
             {matchingEntries.length === 0 ? (
               <EmptyState
-                title={pick('এই শ্রেণি ও পরীক্ষার সিলেবাস এখনও যুক্ত করা হয়নি', 'No syllabus chapters listed yet')}
-                description={pick(
-                  'অ্যাডমিন প্যানেল থেকে অধ্যায়ভিত্তিক সিলেবাস অথবা অফিসিয়াল পিডিএফ আপলোড করা হলে এখানে প্রদর্শিত হবে।',
-                  'Syllabus entries or official PDFs uploaded from the Admin Panel will appear here.'
-                )}
+                title={'এই শ্রেণি ও পরীক্ষার সিলেবাস এখনও যুক্ত করা হয়নি'}
+                description={'অ্যাডমিন প্যানেল থেকে অধ্যায়ভিত্তিক সিলেবাস অথবা অফিসিয়াল পিডিএফ আপলোড করা হলে এখানে প্রদর্শিত হবে।'}
               />
             ) : (
               <div className="overflow-x-auto border border-border rounded-[var(--radius)]">
-                <table className="w-full text-sm border-collapse">
+                <table className="w-full text-base border-collapse">
                   <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border">
                     <tr>
                       <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">
-                        {pick('বোর্ড কোড', 'Board Code')}
+                        {'বোর্ড কোড'}
                       </th>
                       <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">
-                        {pick('বিষয়ের নাম', 'Subject')}
+                        {'বিষয়ের নাম'}
                       </th>
                       <th className="px-4 py-3 text-left font-semibold">
-                        {pick('নির্ধারিত অধ্যায় ও পাঠ্যসীমা', 'Prescribed Chapters & Scope')}
+                        {'নির্ধারিত অধ্যায় ও পাঠ্যসীমা'}
                       </th>
                       <th className="px-4 py-3 text-left font-semibold whitespace-nowrap">
-                        {pick('মানবণ্টন ও মূল্যায়ন', 'Marks Breakdown')}
+                        {'মানবণ্টন ও মূল্যায়ন'}
                       </th>
                     </tr>
                   </thead>
@@ -559,19 +540,19 @@ export function PublicSyllabusPage() {
                           </td>
                           <td className="px-4 py-3.5 min-w-[180px]">
                             <p className="font-semibold text-foreground">
-                              {locale === 'bn' ? sub?.nameBn ?? sub?.name : sub?.name ?? entry.subjectId}
+                              {sub?.nameBn ?? sub?.name}
                             </p>
-                            <p className="text-xs text-muted-foreground mt-0.5">
+                            <p className="text-sm text-muted-foreground mt-0.5">
                               {grp
-                                ? pick(`${grp.nameBn ?? grp.name} বিভাগ`, `${grp.name} Stream`)
-                                : pick('আবশ্যিক বিষয়', 'Compulsory Subject')}
+                                ? `${grp.nameBn ?? grp.name} বিভাগ`
+                                : 'আবশ্যিক বিষয়'}
                             </p>
                           </td>
                           <td className="px-4 py-3.5 text-sm text-foreground leading-relaxed min-w-[280px]">
-                            {locale === 'bn' ? entry.chaptersBn : entry.chaptersEn}
+                            {entry.chaptersBn}
                           </td>
                           <td className="px-4 py-3.5 text-sm text-muted-foreground tabular-nums whitespace-nowrap">
-                            {locale === 'bn' ? entry.marksBreakdownBn : entry.marksBreakdownEn}
+                            {entry.marksBreakdownBn}
                           </td>
                         </tr>
                       );
@@ -584,17 +565,14 @@ export function PublicSyllabusPage() {
             {/* Footer Authorization Line */}
             <div className="pt-5 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm text-muted-foreground">
               <span>
-                {pick(
-                  'অনুমোদনক্রমে: প্রধান শিক্ষক, ভোজেশ্বর উচ্চ বিদ্যালয় · এনসিটিবি অনুমোদিত পাঠ্যসূচি',
-                  'Approved by: Head Teacher, Bhojeshwar High School · NCTB Curriculum'
-                )}
+                {'অনুমোদনক্রমে: প্রধান শিক্ষক, ভোজেশ্বর উচ্চ বিদ্যালয় · এনসিটিবি অনুমোদিত পাঠ্যসূচি'}
               </span>
               <div className="flex flex-wrap items-center gap-4 no-print">
                 <Link href="/academics/subjects" className="font-semibold text-primary hover:underline whitespace-nowrap">
-                  {pick('বিষয় ও বোর্ড কোড', 'Subjects & Codes')}
+                  {'বিষয় ও বোর্ড কোড'}
                 </Link>
                 <Link href="/academics/examination" className="font-semibold text-primary hover:underline whitespace-nowrap">
-                  {pick('পরীক্ষার রুটিন ও গ্রেডিং →', 'Exam Routine & Grading →')}
+                  {'পরীক্ষার রুটিন ও গ্রেডিং →'}
                 </Link>
               </div>
             </div>
@@ -640,18 +618,15 @@ export function PublicSyllabusPage() {
                     <SchoolEmblem size={48} />
                     <div>
                       <p className="text-base font-bold text-foreground">
-                        {locale === 'bn' ? db.schoolProfile.name : db.schoolProfile.nameEn}
+                        {db.schoolProfile.name}
                       </p>
-                      <p className="text-xs text-muted-foreground tabular-nums">
-                        {pick(
-                          `স্থাপিত: ${formatNumber(db.schoolProfile.establishedYear, 'bn')} · EIIN: ${db.schoolProfile.eiin} · ${db.schoolProfile.address}`,
-                          `Est. ${db.schoolProfile.establishedYear} · EIIN: ${db.schoolProfile.eiin} · Bhojeshwar, Noria, Shariatpur`
-                        )}
+                      <p className="text-sm text-muted-foreground tabular-nums">
+                        {`স্থাপিত: ${formatNumber(db.schoolProfile.establishedYear, 'bn')} · EIIN: ${db.schoolProfile.eiin} · ${db.schoolProfile.address}`}
                       </p>
                     </div>
                   </div>
                   <Button variant="outline" size="sm" onClick={triggerPrint} className="no-print whitespace-nowrap">
-                    <Printer className="w-4 h-4" /> {pick('প্রিন্ট / পিডিএফ সংরক্ষণ', 'Print / Save PDF')}
+                    <Printer className="w-4 h-4" /> {'প্রিন্ট / পিডিএফ সংরক্ষণ'}
                   </Button>
                 </div>
 
@@ -659,8 +634,8 @@ export function PublicSyllabusPage() {
                 <div className="space-y-2.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <StatusBadge enumName="AcademicDocumentType" value={activeDoc.type} />
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {pick('কার্যকর শিক্ষাবর্ষ: ২০২৬', 'Effective Session: 2026')}
+                    <span className="text-sm text-muted-foreground tabular-nums">
+                      {'কার্যকর শিক্ষাবর্ষ: ২০২৬'}
                     </span>
                   </div>
                   <h2 className="text-xl sm:text-2xl font-bold text-foreground leading-snug">
@@ -679,10 +654,10 @@ export function PublicSyllabusPage() {
                       className="p-5 rounded-[var(--radius)] bg-surface-muted/40 border border-border space-y-3"
                     >
                       <h3 className="text-base font-bold text-foreground">
-                        {pick(sec.headingBn, sec.headingEn)}
+                        {sec.headingBn}
                       </h3>
                       <ul className="space-y-2.5">
-                        {(locale === 'bn' ? sec.pointsBn : sec.pointsEn).map((pt, i) => (
+                        {(sec.pointsBn).map((pt, i) => (
                           <li key={i} className="flex items-start gap-2.5 text-base text-foreground/90 leading-relaxed">
                             <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-1" />
                             <span>{pt}</span>
@@ -696,13 +671,10 @@ export function PublicSyllabusPage() {
                 {/* Footer Authorization Line */}
                 <div className="pt-5 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm text-muted-foreground">
                   <span>
-                    {pick(
-                      'অনুমোদনক্রমে: প্রধান শিক্ষক, ভোজেশ্বর উচ্চ বিদ্যালয়',
-                      'Approved by: Head Teacher, Bhojeshwar High School'
-                    )}
+                    {'অনুমোদনক্রমে: প্রধান শিক্ষক, ভোজেশ্বর উচ্চ বিদ্যালয়'}
                   </span>
                   <Link href="/academics/classes" className="font-semibold text-primary hover:underline no-print">
-                    {pick('শ্রেণিভিত্তিক বিষয় ও পাঠ্যবই দেখুন →', 'View Class-wise Subjects & Textbooks →')}
+                    {'শ্রেণিভিত্তিক বিষয় ও পাঠ্যবই দেখুন →'}
                   </Link>
                 </div>
               </Card>
@@ -715,18 +687,18 @@ export function PublicSyllabusPage() {
       <Modal
         open={Boolean(previewFile)}
         onClose={() => setPreviewFile(null)}
-        title={previewFile?.title ?? pick('সিলেবাস প্রিভিউ', 'Syllabus Preview')}
+        title={previewFile?.title ?? 'সিলেবাস প্রিভিউ'}
         maxWidth="max-w-4xl"
       >
         {previewFile && (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border text-sm text-muted-foreground">
-              <span className="font-mono text-xs">{previewFile.fileName} · {previewFile.fileSize}</span>
+              <span className="font-mono text-sm">{previewFile.fileName} · {previewFile.fileSize}</span>
               {previewFile.fileUrl && (
                 <a href={previewFile.fileUrl} download={previewFile.fileName}>
                   <Button variant="primary" size="sm">
                     <Download className="w-4 h-4" />
-                    {pick('ডাউনলোড করুন', 'Download')}
+                    {'ডাউনলোড করুন'}
                   </Button>
                 </a>
               )}

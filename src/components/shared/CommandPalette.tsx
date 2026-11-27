@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Search, ArrowRight } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import { setCommandPaletteOpen } from '@/src/store/slices/uiSlice';
-import { useI18n } from '@/src/lib/i18n';
-
 interface CommandItem {
   labelBn: string;
   labelEn: string;
@@ -37,7 +35,6 @@ export function CommandPalette() {
   const open = useAppSelector((s) => s.ui.commandPaletteOpen);
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const { locale, pick } = useI18n();
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -81,7 +78,7 @@ export function CommandPalette() {
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={pick('পৃষ্ঠা বা মডিউল খুঁজুন...', 'Jump to any page or module...')}
+            placeholder={'পৃষ্ঠা বা মডিউল খুঁজুন...'}
             className="w-full bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
           <kbd className="text-xs font-mono text-muted-foreground border border-border rounded px-1.5 py-0.5">
@@ -91,7 +88,7 @@ export function CommandPalette() {
         <div className="max-h-80 overflow-y-auto divide-y divide-border/60">
           {filtered.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              {pick('কোনো ফলাফল পাওয়া যায়নি', 'No matching routes')}
+              {'কোনো ফলাফল পাওয়া যায়নি'}
             </div>
           ) : (
             filtered.map((item) => (
@@ -107,10 +104,10 @@ export function CommandPalette() {
               >
                 <div>
                   <p className="text-sm font-medium text-foreground">
-                    {locale === 'bn' ? item.labelBn : item.labelEn}
+                    {item.labelBn}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {locale === 'bn' ? item.groupBn : item.groupEn} · {item.to}
+                  <p className="text-sm text-muted-foreground">
+                    {item.groupBn} · {item.to}
                   </p>
                 </div>
                 <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />

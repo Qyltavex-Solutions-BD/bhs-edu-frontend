@@ -20,7 +20,6 @@ import {
   X,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   getCampusPhoto,
@@ -40,7 +39,6 @@ import { triggerPrint } from '@/src/lib/utils/cn';
 
 export function AboutCommitteePage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
 
   const members = db.managingCommittee;
@@ -52,12 +50,12 @@ export function AboutCommitteePage() {
   const getExecutiveLink = (memberId: string, idx: number) => {
     if (memberId === 'mc-1' || idx === 0) {
       return chairmanMsg
-        ? { to: `/about/leadership/${chairmanMsg.id}`, label: pick('সভাপতির বাণী পড়ুন', "Read Chairman's Message") }
+        ? { to: `/about/leadership/${chairmanMsg.id}`, label: 'সভাপতির বাণী পড়ুন' }
         : null;
     }
     if (memberId === 'mc-2' || idx === 1) {
       return principalMsg
-        ? { to: `/about/leadership/${principalMsg.id}`, label: pick('প্রধান শিক্ষকের বাণী পড়ুন', "Read Headteacher's Message") }
+        ? { to: `/about/leadership/${principalMsg.id}`, label: 'প্রধান শিক্ষকের বাণী পড়ুন' }
         : null;
     }
     return null;
@@ -66,21 +64,18 @@ export function AboutCommitteePage() {
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-10">
       <PageHeader
-        title={pick('বিদ্যালয় ম্যানেজিং কমিটি', 'Managing Committee')}
-        description={pick(
-          'ভোজেশ্বর উচ্চ বিদ্যালয় পরিচালনা পর্ষদ · প্রতিষ্ঠানের সুশাসন, একাডেমিক মানোন্নয়ন ও অবকাঠামোগত অগ্রযাত্রায় নিবেদিতপ্রাণ কার্যনির্বাহী পরিষদ।',
-          'Governing body of Bhojeshwar High School overseeing institutional governance, academic quality, and campus development.'
-        )}
+        title={'বিদ্যালয় ম্যানেজিং কমিটি'}
+        description={'ভোজেশ্বর উচ্চ বিদ্যালয় পরিচালনা পর্ষদ · প্রতিষ্ঠানের সুশাসন, একাডেমিক মানোন্নয়ন ও অবকাঠামোগত অগ্রযাত্রায় নিবেদিতপ্রাণ কার্যনির্বাহী পরিষদ।'}
         actions={
           <>
             <Link href="/about/leadership">
               <Button variant="outline" size="sm">
-                {pick('নেতৃত্বের বাণী', 'Leadership Messages')}
+                {'নেতৃত্বের বাণী'}
               </Button>
             </Link>
             <Link href="/about/teachers">
               <Button variant="outline" size="sm">
-                {pick('শিক্ষকমণ্ডলী', 'Faculty Directory')}
+                {'শিক্ষকমণ্ডলী'}
               </Button>
             </Link>
           </>
@@ -92,10 +87,10 @@ export function AboutCommitteePage() {
         <section className="space-y-4">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-xl font-bold text-foreground tracking-tight">
-              {pick('পরিচালনা পর্ষদের প্রধান নেতৃত্ব', 'Executive Leadership')}
+              {'পরিচালনা পর্ষদের প্রধান নেতৃত্ব'}
             </h2>
             <p className="text-sm text-muted-foreground tabular-nums">
-              {pick('কার্যনির্বাহী সদস্য:', 'Total Members:')} {formatNumber(members.length, locale)}
+              {'কার্যনির্বাহী সদস্য:'} {formatNumber(members.length, 'bn')}
             </p>
           </div>
 
@@ -105,8 +100,8 @@ export function AboutCommitteePage() {
               const execLink = getExecutiveLink(member.id, idx);
               const roleKicker =
                 idx === 0
-                  ? pick('সভাপতি · পরিচালনা পর্ষদ', 'Chairman · Governing Body')
-                  : pick('সদস্য সচিব · প্রধান শিক্ষক', 'Member Secretary · Headteacher');
+                  ? 'সভাপতি · পরিচালনা পর্ষদ'
+                  : 'সদস্য সচিব · প্রধান শিক্ষক';
               return (
                 <article
                   key={member.id}
@@ -124,7 +119,7 @@ export function AboutCommitteePage() {
 
                   <div className="sm:col-span-7 p-6 flex flex-col justify-between gap-5">
                     <div className="space-y-3">
-                      <p className="text-xs font-semibold text-primary">
+                      <p className="text-sm font-semibold text-primary">
                         {roleKicker}
                       </p>
                       <div className="space-y-1">
@@ -141,7 +136,7 @@ export function AboutCommitteePage() {
                           <p className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-primary shrink-0" />
                             <span>
-                              {pick('মেয়াদ:', 'Term:')} {formatDateLong(member.startDate, locale)} – {formatDateLong(member.endDate, locale)}
+                              {'মেয়াদ:'} {formatDateLong(member.startDate, 'bn')} – {formatDateLong(member.endDate, 'bn')}
                             </span>
                           </p>
                         )}
@@ -181,13 +176,10 @@ export function AboutCommitteePage() {
         <section className="space-y-4">
           <div className="space-y-1">
             <h2 className="text-xl font-bold text-foreground tracking-tight">
-              {pick('সম্মানিত সদস্যবৃন্দ', 'Committee Members')}
+              {'সম্মানিত সদস্যবৃন্দ'}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {pick(
-                'শিক্ষানুরাগী ও নির্বাচিত অভিভাবক প্রতিনিধি সদস্যবৃন্দ।',
-                'Education patrons and elected guardian representatives.'
-              )}
+              {'শিক্ষানুরাগী ও নির্বাচিত অভিভাবক প্রতিনিধি সদস্যবৃন্দ।'}
             </p>
           </div>
 
@@ -228,7 +220,7 @@ export function AboutCommitteePage() {
                       <p className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-primary shrink-0" />
                         <span>
-                          {formatDateLong(member.startDate, locale)} – {formatDateLong(member.endDate, locale)}
+                          {formatDateLong(member.startDate, 'bn')} – {formatDateLong(member.endDate, 'bn')}
                         </span>
                       </p>
                     )}
@@ -253,25 +245,22 @@ export function AboutCommitteePage() {
       <Card className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <h3 className="text-base font-bold text-foreground">
-            {pick('পরিচালনা পর্ষদ ও বিদ্যালয় প্রশাসনের সাথে যোগাযোগ', 'Contact Governing Body & School Office')}
+            {'পরিচালনা পর্ষদ ও বিদ্যালয় প্রশাসনের সাথে যোগাযোগ'}
           </h3>
           <p className="text-sm text-muted-foreground">
-            {pick(
-              'বিদ্যালয়ের নীতিগত বিষয়, অবকাঠামো উন্নয়ন অথবা অভিভাবক পরামর্শের জন্য প্রধান শিক্ষকের কার্যালয়ে যোগাযোগ করুন।',
-              'For governance inquiries, campus development proposals, or guardian consultations, please contact the school office.'
-            )}
+            {'বিদ্যালয়ের নীতিগত বিষয়, অবকাঠামো উন্নয়ন অথবা অভিভাবক পরামর্শের জন্য প্রধান শিক্ষকের কার্যালয়ে যোগাযোগ করুন।'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <Link href="/contact">
             <Button variant="primary" size="sm">
-              {pick('যোগাযোগ করুন', 'Contact Office')}
+              {'যোগাযোগ করুন'}
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
           <Link href="/about">
             <Button variant="outline" size="sm">
-              {pick('বিদ্যালয় পরিচিতি', 'About School')}
+              {'বিদ্যালয় পরিচিতি'}
             </Button>
           </Link>
         </div>

@@ -348,10 +348,10 @@ export function getCurrentNavContext(
           for (const child of item.children) {
             if (pathname === child.to) {
               return {
-                groupLabel: locale === 'bn' ? group.labelBn : group.labelEn,
-                parentLabel: locale === 'bn' ? item.labelBn : item.labelEn,
+                groupLabel: group.labelBn,
+                parentLabel: item.labelBn,
                 parentTo: item.to,
-                pageTitle: locale === 'bn' ? child.labelBn : child.labelEn,
+                pageTitle: child.labelBn,
               };
             }
           }
@@ -359,20 +359,20 @@ export function getCurrentNavContext(
           for (const child of item.children) {
             if (child.to !== item.to && pathname.startsWith(`${child.to}/`)) {
               return {
-                groupLabel: locale === 'bn' ? group.labelBn : group.labelEn,
-                parentLabel: locale === 'bn' ? item.labelBn : item.labelEn,
+                groupLabel: group.labelBn,
+                parentLabel: item.labelBn,
                 parentTo: item.to,
-                pageTitle: locale === 'bn' ? child.labelBn : child.labelEn,
+                pageTitle: child.labelBn,
               };
             }
           }
         }
         if (item.end ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`)) {
           return {
-            groupLabel: locale === 'bn' ? group.labelBn : group.labelEn,
-            parentLabel: locale === 'bn' ? item.labelBn : item.labelEn,
+            groupLabel: group.labelBn,
+            parentLabel: item.labelBn,
             parentTo: item.to,
-            pageTitle: locale === 'bn' ? item.labelBn : item.labelEn,
+            pageTitle: item.labelBn,
           };
         }
       }
@@ -382,10 +382,10 @@ export function getCurrentNavContext(
     const match = list.find((it) => it.end ? pathname === it.to : pathname === it.to || pathname.startsWith(`${it.to}/`));
     if (match) {
       return {
-        groupLabel: pick('পোর্টাল', 'Portal'),
-        parentLabel: locale === 'bn' ? match.labelBn : match.labelEn,
+        groupLabel: 'পোর্টাল',
+        parentLabel: match.labelBn,
         parentTo: match.to,
-        pageTitle: locale === 'bn' ? match.labelBn : match.labelEn,
+        pageTitle: match.labelBn,
       };
     }
   }

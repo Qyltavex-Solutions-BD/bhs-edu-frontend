@@ -18,7 +18,6 @@ import {
 } from '@/src/services/academic';
 import { ConfirmDialog } from '@/src/components/shared/Feedback';
 import { useGetStaffQuery } from '@/src/features/staff/api/staff.api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { Button, Card, FormField, Input, Modal, SegmentedTabs, Select } from '@/src/components/ui/primitives';
 import { Search, Plus, Trash2, BookOpen, CheckCircle2, RotateCcw, Pencil, Save } from 'lucide-react';
@@ -42,7 +41,6 @@ export function AcademicStaffing({
   db: MockDatabase;
   year: AcademicYear;
 }) {
-  const { locale, pick } = useI18n();
   const { data: realStaff } = useGetStaffQuery({
     staffType: StaffType.TEACHER,
     status: StaffStatus.ACTIVE,
@@ -66,7 +64,7 @@ export function AcademicStaffing({
 
   const classLabel = (classId: string) => {
     const schoolClass = classes.find((item) => item.id === classId);
-    return locale === 'bn' ? schoolClass?.nameBn || schoolClass?.name : schoolClass?.name;
+    return schoolClass?.nameBn || schoolClass?.name;
   };
   const teacherName = (staffId: string) =>
     teachers.find((member) => member.id === staffId)?.name ?? '—';
@@ -80,11 +78,11 @@ export function AcademicStaffing({
           items={[
             {
               value: 'assignments',
-              label: pick('বিষয় শিক্ষক বণ্টন', 'Subject Teachers'),
+              label: 'বিষয় শিক্ষক বণ্টন',
             },
             {
               value: 'class-teachers',
-              label: pick('শ্রেণি শিক্ষক', 'Class Teachers'),
+              label: 'শ্রেণি শিক্ষক',
             },
           ]}
         />
@@ -132,7 +130,6 @@ function ClassTeachers({
   classLabel: (classId: string) => string | undefined;
   teacherName: (staffId: string) => string;
 }) {
-  const { pick } = useI18n();
   const { data: realClassTeachers, isLoading: loadingClassTeachers } =
     useGetClassTeachersQuery(isUuid(year?.id) ? { academicYearId: year.id } : undefined, {
       skip: !isUuid(year?.id),
@@ -177,19 +174,19 @@ function ClassTeachers({
         sectionId,
         staffId,
       }).unwrap();
-      toast.success(pick('শ্রেণি শিক্ষক বসানো হয়েছে।', 'Class teacher saved.'));
+      toast.success('শ্রেণি শিক্ষক বসানো হয়েছে।');
       setOpen(false);
     } catch (err) {
-      toast.error(errorMessage(err, pick('শ্রেণি শিক্ষক বসানো যায়নি।', 'Could not save the class teacher.')));
+      toast.error(errorMessage(err, 'শ্রেণি শিক্ষক বসানো যায়নি।'));
     }
   };
 
   const handleRemove = async (id: string) => {
     try {
       await removeClassTeacher(id).unwrap();
-      toast.success(pick('শ্রেণি শিক্ষক সরানো হয়েছে।', 'Class teacher removed.'));
+      toast.success('শ্রেণি শিক্ষক সরানো হয়েছে।');
     } catch (err) {
-      toast.error(errorMessage(err, pick('সরানো যায়নি।', 'Could not remove the class teacher.')));
+      toast.error(errorMessage(err, 'সরানো যায়নি।'));
     }
   };
 
@@ -197,24 +194,21 @@ function ClassTeachers({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-base text-muted-foreground max-w-2xl">
-          {pick(
-            `${year.name} সালে এক শাখায় একজন শ্রেণি শিক্ষক। একজন শিক্ষক একই বছরে একটি শাখার শ্রেণি শিক্ষক হতে পারবেন।`,
-            `In ${year.name}, each section has one class teacher. A teacher can hold only one section that year.`
-          )}
+          {`${year.name} সালে এক শাখায় একজন শ্রেণি শিক্ষক। একজন শিক্ষক একই বছরে একটি শাখার শ্রেণি শিক্ষক হতে পারবেন।`}
         </p>
         <Button type="button" variant="primary" onClick={() => setOpen(true)}>
-          {pick('শ্রেণি শিক্ষক বসান', 'Assign class teacher')}
+          {'শ্রেণি শিক্ষক বসান'}
         </Button>
       </div>
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={pick('শ্রেণি শিক্ষক', 'Class teacher')}
-        description={pick('শাখায় আগে থেকে কেউ থাকলে সেই জায়গায় নতুন শিক্ষক বসবে।', 'If the section already has a class teacher, this replaces them.')}
+        title={'শ্রেণি শিক্ষক'}
+        description={'শাখায় আগে থেকে কেউ থাকলে সেই জায়গায় নতুন শিক্ষক বসবে।'}
         maxWidth="max-w-lg"
       >
         <form onSubmit={handleSave} className="space-y-3">
-          <FormField label={pick('শাখা', 'Section')}>
+          <FormField label={'শাখা'}>
             <Select value={sectionId} onChange={(event) => setSectionId(event.target.value)}>
               {sections.map((section) => (
                 <option key={section.id} value={section.id}>
@@ -223,7 +217,7 @@ function ClassTeachers({
               ))}
             </Select>
           </FormField>
-          <FormField label={pick('শিক্ষক', 'Teacher')}>
+          <FormField label={'শিক্ষক'}>
             <Select value={staffId} onChange={(event) => setStaffId(event.target.value)}>
               {teachers.map((teacher) => (
                 <option key={teacher.id} value={teacher.id}>
@@ -233,9 +227,9 @@ function ClassTeachers({
             </Select>
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{pick('বাতিল', 'Cancel')}</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{'বাতিল'}</Button>
             <Button type="submit" variant="primary" disabled={saving || !sectionId || !staffId}>
-              {saving ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save')}
+              {saving ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -244,10 +238,10 @@ function ClassTeachers({
         <table className="w-full text-base">
           <thead className="bg-surface-muted text-sm text-muted-foreground">
             <tr>
-              <th className="p-3.5 text-left font-semibold">{pick('শ্রেণি', 'Class')}</th>
-              <th className="p-3.5 text-left font-semibold">{pick('শাখা', 'Section')}</th>
-              <th className="p-3.5 text-left font-semibold">{pick('শ্রেণি শিক্ষক', 'Class teacher')}</th>
-              <th className="p-3.5 text-right font-semibold">{pick('কাজ', 'Action')}</th>
+              <th className="p-3.5 text-left font-semibold">{'শ্রেণি'}</th>
+              <th className="p-3.5 text-left font-semibold">{'শাখা'}</th>
+              <th className="p-3.5 text-left font-semibold">{'শ্রেণি শিক্ষক'}</th>
+              <th className="p-3.5 text-right font-semibold">{'কাজ'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -276,7 +270,7 @@ function ClassTeachers({
                     <td className="p-3.5 text-right">
                       {assignment && (
                         <Button type="button" variant="outline" size="sm" disabled={removing} onClick={() => handleRemove(assignment.id)}>
-                          {pick('সরান', 'Remove')}
+                          {'সরান'}
                         </Button>
                       )}
                     </td>
@@ -308,7 +302,6 @@ function SubjectTeachers({
   classLabel: (classId: string) => string | undefined;
   teacherName: (staffId: string) => string;
 }) {
-  const { locale, pick } = useI18n();
   const [assignTeacher, { isLoading: saving }] = useAssignTeacherMutation();
   const [updateAssignment, { isLoading: updating }] = useUpdateTeacherAssignmentMutation();
   const [releaseAssignment, { isLoading: removing }] = useReleaseTeacherAssignmentMutation();
@@ -400,15 +393,15 @@ function SubjectTeachers({
   const subjectLabel = (classSubjectIdValue: string, row?: TeacherAssignmentItem) => {
     if (row?.classSubject?.subject) {
       const sub = row.classSubject.subject;
-      return locale === 'bn' ? sub.nameBn || sub.name : sub.name;
+      return sub.nameBn || sub.name;
     }
     const classSubject = classSubjectsList.find((item) => item.id === classSubjectIdValue);
     const subject = classSubject?.subject ?? db.subjects.find((item) => item.id === classSubject?.subjectId);
     const group = classSubject?.groupId
       ? groupsList.find((item) => item.id === classSubject.groupId)
       : undefined;
-    const name = locale === 'bn' ? subject?.nameBn || subject?.name : subject?.name;
-    const groupName = group ? (locale === 'bn' ? group.nameBn || group.name : group.name) : '';
+    const name = subject?.nameBn || subject?.name;
+    const groupName = group ? (group.nameBn || group.name) : '';
     return groupName ? `${name} · ${groupName}` : name ?? '—';
   };
 
@@ -479,7 +472,7 @@ function SubjectTeachers({
 
   const handleSaveMatrix = async () => {
     if (dirtyMatrixEntries.length === 0) {
-      toast.info(pick('কোনো নতুন পরিবর্তন নেই।', 'No new changes to save.'));
+      toast.info('কোনো নতুন পরিবর্তন নেই।');
       setMatrixOpen(false);
       return;
     }
@@ -528,9 +521,7 @@ function SubjectTeachers({
 
     if (successCount > 0) {
       toast.success(
-        locale === 'bn'
-          ? `${formatNumber(successCount, 'bn')}টি শিক্ষক বণ্টন সংরক্ষণ করা হয়েছে।`
-          : `${successCount} assignment(s) saved.`
+        `${formatNumber(successCount, 'bn')}টি শিক্ষক বণ্টন সংরক্ষণ করা হয়েছে।`
       );
       if (failedKeys.length === 0) {
         setMatrixOpen(false);
@@ -538,9 +529,7 @@ function SubjectTeachers({
     }
     if (failedKeys.length > 0) {
       toast.error(
-        locale === 'bn'
-          ? `${formatNumber(failedKeys.length, 'bn')}টি বণ্টন সংরক্ষণ করা যায়নি।`
-          : `${failedKeys.length} assignment(s) failed to save.`
+        `${formatNumber(failedKeys.length, 'bn')}টি বণ্টন সংরক্ষণ করা যায়নি।`
       );
     }
   };
@@ -650,13 +639,13 @@ function SubjectTeachers({
     setSavingGroupEdit(false);
     if (failed === 0) {
       if (changed > 0) {
-        toast.success(pick('বিষয় শিক্ষক বণ্টন হালনাগাদ হয়েছে।', 'Subject teacher assignment updated.'));
+        toast.success('বিষয় শিক্ষক বণ্টন হালনাগাদ হয়েছে।');
       } else {
-        toast.info(pick('কোনো নতুন পরিবর্তন নেই।', 'No new changes to save.'));
+        toast.info('কোনো নতুন পরিবর্তন নেই।');
       }
       setEditGroup(null);
     } else {
-      toast.error(pick('কিছু শাখার বণ্টন হালনাগাদ করা যায়নি।', 'Some section updates failed.'));
+      toast.error('কিছু শাখার বণ্টন হালনাগাদ করা যায়নি।');
     }
   };
 
@@ -666,10 +655,10 @@ function SubjectTeachers({
       for (const item of removeGroupTarget.assignments) {
         await releaseAssignment({ id: item.id }).unwrap();
       }
-      toast.success(pick('বণ্টন সরানো হয়েছে।', 'Assignment released.'));
+      toast.success('বণ্টন সরানো হয়েছে।');
       setRemoveGroupTarget(null);
     } catch (err) {
-      toast.error(errorMessage(err, pick('বণ্টন সরানো যায়নি।', 'Could not remove the assignment.')));
+      toast.error(errorMessage(err, 'বণ্টন সরানো যায়নি।'));
     }
   };
 
@@ -747,9 +736,9 @@ function SubjectTeachers({
 
     return Array.from(groups.values()).sort((a, b) => {
       if (a.classNumeric !== b.classNumeric) return a.classNumeric - b.classNumeric;
-      return a.subjectTitle.localeCompare(b.subjectTitle, locale);
+      return a.subjectTitle.localeCompare(b.subjectTitle, 'bn');
     });
-  }, [allAssignments, classFilter, sectionFilter, debouncedSearch, classes, sections, teachers, locale]);
+  }, [allAssignments, classFilter, sectionFilter, debouncedSearch, classes, sections, teachers, 'bn']);
 
   const pageSize = 15;
   const totalGrouped = groupedRows.length;
@@ -765,34 +754,34 @@ function SubjectTeachers({
       {/* 1. Top 3 Simple Full-Width KPI Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-surface border border-border rounded-[var(--radius)] p-4 sm:p-5 shadow-xs">
-          <p className="text-sm font-medium text-muted-foreground">{pick('মোট বিষয়', 'Total Subjects')}</p>
+          <p className="text-sm font-medium text-muted-foreground">{'মোট বিষয়'}</p>
           <p className="text-2xl sm:text-3xl font-bold text-foreground tabular-nums mt-1.5">
-            {formatNumber(relevantClassSubjects.length, locale)}
+            {formatNumber(relevantClassSubjects.length, 'bn')}
           </p>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            {pick('পাঠ্যক্রমের সক্রিয় বিষয়', 'Active curriculum subjects')}
+          <p className="text-sm text-muted-foreground mt-1">
+            {'পাঠ্যক্রমের সক্রিয় বিষয়'}
           </p>
         </div>
 
         <div className="bg-surface border border-border rounded-[var(--radius)] p-4 sm:p-5 shadow-xs">
-          <p className="text-sm font-medium text-muted-foreground">{pick('শিক্ষক দেওয়া হয়েছে', 'Subjects Assigned')}</p>
+          <p className="text-sm font-medium text-muted-foreground">{'শিক্ষক দেওয়া হয়েছে'}</p>
           <p className="text-2xl sm:text-3xl font-bold text-primary tabular-nums mt-1.5">
-            {formatNumber(assignedSubjectIds.size, locale)}
+            {formatNumber(assignedSubjectIds.size, 'bn')}
           </p>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            {pick(`মোট শাখা বণ্টন: ${formatNumber(relevantAssignments.length, locale)}টি`, `Section slots: ${relevantAssignments.length}`)}
+          <p className="text-sm text-muted-foreground mt-1">
+            {`মোট শাখা বণ্টন: ${formatNumber(relevantAssignments.length, 'bn')}টি`}
           </p>
         </div>
 
         <div className="bg-surface border border-border rounded-[var(--radius)] p-4 sm:p-5 shadow-xs">
-          <p className="text-sm font-medium text-muted-foreground">{pick('বাকি', 'Pending')}</p>
+          <p className="text-sm font-medium text-muted-foreground">{'বাকি'}</p>
           <p className={`text-2xl sm:text-3xl font-bold tabular-nums mt-1.5 ${unassignedSubjectsCount > 0 ? 'text-amber-500' : 'text-success'}`}>
-            {formatNumber(unassignedSubjectsCount, locale)}
+            {formatNumber(unassignedSubjectsCount, 'bn')}
           </p>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {unassignedSubjectsCount > 0
-              ? pick('বসাতে বাকি আছে', 'Needs teacher')
-              : pick('সব সম্পন্ন', 'All assigned')}
+              ? 'বসাতে বাকি আছে'
+              : 'সব সম্পন্ন'}
           </p>
         </div>
       </div>
@@ -805,7 +794,7 @@ function SubjectTeachers({
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={pick('শিক্ষক বা বিষয় খুঁজুন...', 'Search teacher or subject...')}
+              placeholder={'শিক্ষক বা বিষয় খুঁজুন...'}
               className="pl-9 h-10 text-sm"
             />
           </div>
@@ -819,7 +808,7 @@ function SubjectTeachers({
               className="h-10 px-3 text-sm text-muted-foreground hover:text-foreground"
             >
               <RotateCcw className="w-4 h-4 mr-1.5" />
-              {pick('রিসেট', 'Reset')}
+              {'রিসেট'}
             </Button>
           )}
         </div>
@@ -833,7 +822,7 @@ function SubjectTeachers({
             }}
             className="w-48 h-10 text-sm"
           >
-            <option value="ALL">{pick('সকল শ্রেণি', 'All Classes')}</option>
+            <option value="ALL">{'সকল শ্রেণি'}</option>
             {activeClasses.map((cls) => (
               <option key={cls.id} value={cls.id}>
                 {classLabel(cls.id) || cls.name}
@@ -846,18 +835,18 @@ function SubjectTeachers({
             onChange={(e) => setSectionFilter(e.target.value)}
             className="w-40 h-10 text-sm"
           >
-            <option value="ALL">{pick('সকল শাখা', 'All Sections')}</option>
+            <option value="ALL">{'সকল শাখা'}</option>
             {filterSections.map((sec) => (
               <option key={sec.id} value={sec.id}>
                 {classFilter === 'ALL' ? `${classLabel(sec.classId)} — ` : ''}
-                {sec.name} {pick('শাখা', 'Sec')}
+                {sec.name} {'শাখা'}
               </option>
             ))}
           </Select>
 
           <Button type="button" variant="primary" size="sm" onClick={openCreateModal} className="h-10 text-sm px-4">
             <Plus className="w-4 h-4 mr-1.5" />
-            {pick('নতুন শিক্ষক বণ্টন', 'Assign Subject Teacher')}
+            {'নতুন শিক্ষক বণ্টন'}
           </Button>
         </div>
       </div>
@@ -870,17 +859,14 @@ function SubjectTeachers({
           setMatrixOpen(false);
           setMatrixDrafts({});
         }}
-        title={pick('বিষয় শিক্ষক বণ্টন', 'Assign Subject Teachers')}
-        description={pick(
-          'শ্রেণি নির্বাচন করে প্রতিটি বিষয় ও শাখার জন্য শিক্ষক নির্ধারণ করুন।',
-          'Select a class and assign teachers for each subject and section.'
-        )}
+        title={'বিষয় শিক্ষক বণ্টন'}
+        description={'শ্রেণি নির্বাচন করে প্রতিটি বিষয় ও শাখার জন্য শিক্ষক নির্ধারণ করুন।'}
         maxWidth="max-w-5xl"
       >
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="w-full sm:w-64">
-              <FormField label={pick('শ্রেণি নির্বাচন করুন', 'Select Class')}>
+              <FormField label={'শ্রেণি নির্বাচন করুন'}>
                 <Select
                   value={matrixClassId}
                   disabled={savingMatrix}
@@ -905,21 +891,21 @@ function SubjectTeachers({
               <BookOpen className="w-9 h-9 mx-auto mb-2 opacity-40" />
               <p className="text-sm font-medium text-foreground">
                 {matrixSections.length === 0
-                  ? pick('এই শ্রেণিতে কোনো সক্রিয় শাখা নেই।', 'No active sections in this class.')
-                  : pick('এই শ্রেণিতে কোনো সক্রিয় বিষয় যোগ করা হয়নি।', 'No active subjects configured for this class.')}
+                  ? 'এই শ্রেণিতে কোনো সক্রিয় শাখা নেই।'
+                  : 'এই শ্রেণিতে কোনো সক্রিয় বিষয় যোগ করা হয়নি।'}
               </p>
             </div>
           ) : (
             <div className="overflow-x-auto max-h-[60vh] border border-border rounded-lg">
-              <table className="w-full text-sm">
+              <table className="w-full text-base">
                 <thead className="bg-surface-muted text-muted-foreground border-b border-border sticky top-0 z-10">
                   <tr>
                     <th className="p-3.5 text-left font-semibold text-foreground/80 min-w-[200px]">
-                      {pick('বিষয় ও গ্রুপ', 'Subject & Group')}
+                      {'বিষয় ও গ্রুপ'}
                     </th>
                     {matrixSections.map((sec) => (
                       <th key={sec.id} className="p-3.5 text-left font-semibold text-foreground/80 min-w-[230px]">
-                        {sec.name} {pick('শাখা', 'Section')}
+                        {sec.name} {'শাখা'}
                       </th>
                     ))}
                   </tr>
@@ -944,9 +930,9 @@ function SubjectTeachers({
                                 value={currentStaffId}
                                 disabled={savingMatrix}
                                 onChange={(e) => setMatrixCell(sec.id, cs.id, { staffId: e.target.value })}
-                                className="h-9 text-xs sm:text-sm"
+                                className="h-9 text-sm"
                               >
-                                <option value="">{pick('— শিক্ষক নির্ধারিত নয় —', '— Unassigned —')}</option>
+                                <option value="">{'— শিক্ষক নির্ধারিত নয় —'}</option>
                                 {teachers.map((t) => (
                                   <option key={t.id} value={t.id}>
                                     {t.nameBn || t.name}
@@ -954,7 +940,7 @@ function SubjectTeachers({
                                 ))}
                               </Select>
                               {currentStaffId && (
-                                <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+                                <label className="inline-flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer select-none">
                                   <input
                                     type="checkbox"
                                     checked={currentCanEnter}
@@ -964,7 +950,7 @@ function SubjectTeachers({
                                     }
                                     className="rounded border-border text-primary w-3.5 h-3.5 cursor-pointer"
                                   />
-                                  {pick('নম্বর এন্ট্রির অনুমতি', 'Allow marks entry')}
+                                  {'নম্বর এন্ট্রির অনুমতি'}
                                 </label>
                               )}
                             </div>
@@ -988,7 +974,7 @@ function SubjectTeachers({
                 setMatrixDrafts({});
               }}
             >
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button
               type="button"
@@ -998,8 +984,8 @@ function SubjectTeachers({
             >
               <Save className="w-3.5 h-3.5 mr-1.5" />
               {savingMatrix
-                ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
-                : pick('সব পরিবর্তন সংরক্ষণ করুন', 'Save All Changes')}
+                ? 'সংরক্ষণ হচ্ছে...'
+                : 'সব পরিবর্তন সংরক্ষণ করুন'}
             </Button>
           </div>
         </div>
@@ -1015,12 +1001,9 @@ function SubjectTeachers({
         title={
           editGroup
             ? `${editGroup.classTitle} — ${editGroup.subjectTitle}`
-            : pick('বিষয় শিক্ষক সম্পাদনা', 'Edit Subject Teacher')
+            : 'বিষয় শিক্ষক সম্পাদনা'
         }
-        description={pick(
-          'প্রতিটি শাখার জন্য শিক্ষক পরিবর্তন বা নির্ধারণ করুন। কোনো শাখা থেকে সরাতে "শিক্ষক নির্ধারিত নয়" নির্বাচন করুন।',
-          'Update teachers for each section. Select "Unassigned" to release a section teacher.'
-        )}
+        description={'প্রতিটি শাখার জন্য শিক্ষক পরিবর্তন বা নির্ধারণ করুন। কোনো শাখা থেকে সরাতে "শিক্ষক নির্ধারিত নয়" নির্বাচন করুন।'}
         maxWidth="max-w-2xl"
       >
         {editGroup && (
@@ -1035,7 +1018,7 @@ function SubjectTeachers({
                       key={sec.id}
                       className="p-3.5 rounded-lg border border-border bg-surface-muted/20 space-y-2.5"
                     >
-                      <FormField label={`${sec.name} ${pick('শাখা', 'Section')}`}>
+                      <FormField label={`${sec.name} ${'শাখা'}`}>
                         <Select
                           value={draft.staffId}
                           disabled={savingGroupEdit}
@@ -1046,7 +1029,7 @@ function SubjectTeachers({
                             }))
                           }
                         >
-                          <option value="">{pick('— শিক্ষক নির্ধারিত নয় —', '— Unassigned —')}</option>
+                          <option value="">{'— শিক্ষক নির্ধারিত নয় —'}</option>
                           {teachers.map((teacher) => (
                             <option key={teacher.id} value={teacher.id}>
                               {teacher.nameBn || teacher.name} ({teacher.designation})
@@ -1055,7 +1038,7 @@ function SubjectTeachers({
                         </Select>
                       </FormField>
                       {draft.staffId && (
-                        <label className="inline-flex items-center gap-2 text-xs text-foreground cursor-pointer select-none">
+                        <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
                           <input
                             type="checkbox"
                             checked={draft.canEnterMarks}
@@ -1068,7 +1051,7 @@ function SubjectTeachers({
                             }
                             className="rounded border-border text-primary w-3.5 h-3.5 cursor-pointer"
                           />
-                          {pick('নম্বর এন্ট্রির অনুমতি', 'Allow marks entry')}
+                          {'নম্বর এন্ট্রির অনুমতি'}
                         </label>
                       )}
                     </div>
@@ -1083,13 +1066,13 @@ function SubjectTeachers({
                 disabled={savingGroupEdit}
                 onClick={() => setEditGroup(null)}
               >
-                {pick('বাতিল', 'Cancel')}
+                {'বাতিল'}
               </Button>
               <Button type="submit" variant="primary" disabled={savingGroupEdit}>
                 <Save className="w-3.5 h-3.5 mr-1.5" />
                 {savingGroupEdit
-                  ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
-                  : pick('সংরক্ষণ করুন', 'Save Changes')}
+                  ? 'সংরক্ষণ হচ্ছে...'
+                  : 'সংরক্ষণ করুন'}
               </Button>
             </div>
           </form>
@@ -1098,22 +1081,22 @@ function SubjectTeachers({
 
       {/* 5. Main Assignment Table (Grouped by Class & Subject, Sections side-by-side) */}
       <Card className="overflow-x-auto border-border">
-        <table className="w-full text-sm">
+        <table className="w-full text-base">
           <thead className="bg-surface-muted text-muted-foreground border-b border-border">
             <tr>
               <th className="p-3.5 text-left font-semibold text-foreground/80 min-w-[140px]">
-                {pick('শ্রেণি', 'Class')}
+                {'শ্রেণি'}
               </th>
               <th className="p-3.5 text-left font-semibold text-foreground/80 min-w-[210px]">
-                {pick('বিষয় ও গ্রুপ', 'Subject & Group')}
+                {'বিষয় ও গ্রুপ'}
               </th>
               {visibleSectionNames.map((secName) => (
                 <th key={secName} className="p-3.5 text-left font-semibold text-foreground/80 min-w-[200px]">
-                  {secName} {pick('শাখা', 'Section')}
+                  {secName} {'শাখা'}
                 </th>
               ))}
               <th className="p-3.5 text-right font-semibold text-foreground/80 w-[190px]">
-                {pick('কাজ', 'Action')}
+                {'কাজ'}
               </th>
             </tr>
           </thead>
@@ -1137,12 +1120,12 @@ function SubjectTeachers({
                 >
                   <BookOpen className="w-9 h-9 mx-auto mb-2 opacity-40 text-muted-foreground" />
                   <p className="text-base font-semibold text-foreground">
-                    {pick('কোনো বিষয় শিক্ষক বণ্টন পাওয়া যায়নি', 'No subject assignments found')}
+                    {'কোনো বিষয় শিক্ষক বণ্টন পাওয়া যায়নি'}
                   </p>
                   <p className="text-sm mt-1.5 text-muted-foreground">
                     {isFiltered
-                      ? pick('ফিল্টারের সাথে মেলে এমন কোনো রেকর্ড নেই। ফিল্টার রিসেট করে দেখুন।', 'No records match the current filter.')
-                      : pick('এই শিক্ষাবর্ষের জন্য কোনো শিক্ষক বণ্টন করা হয়নি। উপরের বাটনে ক্লিক করে বণ্টন করুন।', 'No teacher assignments made yet.')}
+                      ? 'ফিল্টারের সাথে মেলে এমন কোনো রেকর্ড নেই। ফিল্টার রিসেট করে দেখুন।'
+                      : 'এই শিক্ষাবর্ষের জন্য কোনো শিক্ষক বণ্টন করা হয়নি। উপরের বাটনে ক্লিক করে বণ্টন করুন।'}
                   </p>
                 </td>
               </tr>
@@ -1175,7 +1158,7 @@ function SubjectTeachers({
                           {teacherDisplay}
                         </p>
                         {teacherDesig && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{teacherDesig}</p>
+                          <p className="text-sm text-muted-foreground mt-0.5">{teacherDesig}</p>
                         )}
                       </td>
                     );
@@ -1187,10 +1170,10 @@ function SubjectTeachers({
                         variant="outline"
                         size="sm"
                         onClick={() => openEditGroupModal(group)}
-                        className="text-xs sm:text-sm"
+                        className="text-sm"
                       >
                         <Pencil className="w-3.5 h-3.5 mr-1" />
-                        {pick('সম্পাদনা', 'Edit')}
+                        {'সম্পাদনা'}
                       </Button>
                       <Button
                         type="button"
@@ -1204,10 +1187,10 @@ function SubjectTeachers({
                             assignments: Array.from(group.bySectionName.values()),
                           })
                         }
-                        className="text-xs sm:text-sm text-destructive hover:bg-destructive/10 hover:border-destructive/30"
+                        className="text-sm text-destructive hover:bg-destructive/10 hover:border-destructive/30"
                       >
                         <Trash2 className="w-3.5 h-3.5 mr-1" />
-                        {pick('সরান', 'Remove')}
+                        {'সরান'}
                       </Button>
                     </div>
                   </td>
@@ -1221,9 +1204,7 @@ function SubjectTeachers({
       {totalGrouped > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
           <span>
-            {locale === 'bn'
-              ? `মোট ${formatNumber(totalGrouped, 'bn')} টি বিষয় · পৃষ্ঠা ${formatNumber(currentPage, 'bn')} / ${formatNumber(totalPages, 'bn')}`
-              : `Total ${totalGrouped} subjects · Page ${currentPage} / ${totalPages}`}
+            {`মোট ${formatNumber(totalGrouped, 'bn')} টি বিষয় · পৃষ্ঠা ${formatNumber(currentPage, 'bn')} / ${formatNumber(totalPages, 'bn')}`}
           </span>
           <div className="flex items-center gap-2">
             <Button
@@ -1233,7 +1214,7 @@ function SubjectTeachers({
               disabled={currentPage <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
-              {pick('পূর্ববর্তী', 'Previous')}
+              {'পূর্ববর্তী'}
             </Button>
             <Button
               type="button"
@@ -1242,7 +1223,7 @@ function SubjectTeachers({
               disabled={currentPage >= totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             >
-              {pick('পরবর্তী', 'Next')}
+              {'পরবর্তী'}
             </Button>
           </div>
         </div>
@@ -1252,16 +1233,13 @@ function SubjectTeachers({
         open={Boolean(removeGroupTarget)}
         onClose={() => setRemoveGroupTarget(null)}
         onConfirm={confirmRemoveGroup}
-        title={pick('শিক্ষক বণ্টন সরান', 'Remove Teacher Assignment')}
+        title={'শিক্ষক বণ্টন সরান'}
         description={
           removeGroupTarget
-            ? pick(
-                `আপনি কি নিশ্চিতভাবে "${removeGroupTarget.classTitle} — ${removeGroupTarget.subjectTitle}"-এর শিক্ষক বণ্টন সরাতে চান?`,
-                `Are you sure you want to remove the teacher assignments for "${removeGroupTarget.classTitle} — ${removeGroupTarget.subjectTitle}"?`,
-              )
+            ? `আপনি কি নিশ্চিতভাবে "${removeGroupTarget.classTitle} — ${removeGroupTarget.subjectTitle}"-এর শিক্ষক বণ্টন সরাতে চান?`
             : ''
         }
-        confirmLabel={pick('সরান', 'Remove')}
+        confirmLabel={'সরান'}
         destructive
         loading={removing}
       />

@@ -40,7 +40,6 @@ import {
   useResetPasswordMutation,
   type LoginResponseData,
 } from '../api/auth.api';
-import { useI18n } from '@/src/lib/i18n';
 import { SchoolEmblem } from '@/src/components/shared/Feedback';
 import { Button, Card, FormField, Input } from '@/src/components/ui/primitives';
 import { DemoLoginCards, type DemoAccount } from './DemoLoginCards';
@@ -48,7 +47,6 @@ import { DemoLoginCards, type DemoAccount } from './DemoLoginCards';
 export function LoginPage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const { locale, pick } = useI18n();
   const [step, setStep] = useState<'IDENTIFY' | 'ENTER_PASSWORD' | 'SET_PASSWORD'>('IDENTIFY');
   const [verifiedIdentifier, setVerifiedIdentifier] = useState('');
   const [accountName, setAccountName] = useState('');
@@ -75,7 +73,7 @@ export function LoginPage() {
   const completePortalSession = (res: LoginResponseData) => {
     const roles = res.user?.roles || [];
     if (roles.includes('ADMIN') || roles.includes('SUPER_ADMIN')) {
-      toast.error(pick('এই পোর্টাল দিয়ে অ্যাডমিন প্রবেশ অনুমোদিত নয়।', 'Admin login is not permitted on this portal.'));
+      toast.error('এই পোর্টাল দিয়ে অ্যাডমিন প্রবেশ অনুমোদিত নয়।');
       return;
     }
 
@@ -83,7 +81,7 @@ export function LoginPage() {
       roles.includes(candidate)
     );
     if (!role) {
-      toast.error(pick('এই অ্যাকাউন্টের কোনো পোর্টাল অ্যাক্সেস নেই।', 'This account has no portal access.'));
+      toast.error('এই অ্যাকাউন্টের কোনো পোর্টাল অ্যাক্সেস নেই।');
       return;
     }
 
@@ -102,7 +100,7 @@ export function LoginPage() {
       })
     );
 
-    toast.success(pick('লগইন সফল হয়েছে।', 'Login successful.'));
+    toast.success('লগইন সফল হয়েছে।');
 
     let redirectUrl = '/teacher/dashboard';
     if (role === 'PARENT') redirectUrl = '/parent/dashboard';
@@ -123,10 +121,7 @@ export function LoginPage() {
         setupForm.reset({ otp: '', password: '', confirmPassword: '' });
         setStep('SET_PASSWORD');
         toast.info(
-          pick(
-            'প্রথমবার লগইনের জন্য কনসোলে (এসএমএস লগে) একটি ওটিপি পাঠানো হয়েছে। পাসওয়ার্ড সেট করুন।',
-            'OTP sent (check backend console SMS log). Please set your password.'
-          )
+          'প্রথমবার লগইনের জন্য কনসোলে (এসএমএস লগে) একটি ওটিপি পাঠানো হয়েছে। পাসওয়ার্ড সেট করুন।'
         );
       } else {
         setPasswordInput('');
@@ -136,7 +131,7 @@ export function LoginPage() {
       toast.error(
         err?.data?.message ||
           err?.message ||
-          pick('অ্যাকাউন্ট যাচাই করা যায়নি। সঠিক ইমেইল বা মোবাইল নম্বর দিন।', 'Could not verify account.')
+          'অ্যাকাউন্ট যাচাই করা যায়নি। সঠিক ইমেইল বা মোবাইল নম্বর দিন।'
       );
     }
   };
@@ -144,7 +139,7 @@ export function LoginPage() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordInput.length < 6) {
-      toast.error(pick('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।', 'Password must be at least 6 characters.'));
+      toast.error('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');
       return;
     }
     try {
@@ -157,7 +152,7 @@ export function LoginPage() {
       toast.error(
         err?.data?.message ||
           err?.message ||
-          pick('লগইন ব্যর্থ হয়েছে। সঠিক পাসওয়ার্ড দিন।', 'Login failed. Please check your password.')
+          'লগইন ব্যর্থ হয়েছে। সঠিক পাসওয়ার্ড দিন।'
       );
     }
   };
@@ -175,7 +170,7 @@ export function LoginPage() {
       toast.error(
         err?.data?.message ||
           err?.message ||
-          pick('পাসওয়ার্ড সেট করা যায়নি। ওটিপি ও তথ্য যাচাই করুন।', 'Failed to set password.')
+          'পাসওয়ার্ড সেট করা যায়নি। ওটিপি ও তথ্য যাচাই করুন।'
       );
     }
   };
@@ -190,7 +185,7 @@ export function LoginPage() {
       const res = await loginApi({ email: email.trim(), password }).unwrap();
       completePortalSession(res);
     } catch (err: any) {
-      toast.error(err?.data?.message || err?.message || pick('ডেমো লগইন ব্যর্থ হয়েছে।', 'Demo login failed.'));
+      toast.error(err?.data?.message || err?.message || 'ডেমো লগইন ব্যর্থ হয়েছে।');
     } finally {
       setActiveDemoRole(null);
     }
@@ -208,7 +203,7 @@ export function LoginPage() {
       <aside className="hidden lg:flex lg:col-span-6 xl:col-span-5 relative overflow-hidden bg-[#093B1F] text-white">
         <img
           src="/images/hero_campus_heritage_1795136893336.jpg"
-          alt={pick('ভোজেশ্বর উচ্চ বিদ্যালয় প্রাঙ্গণ', 'Bhojeshwar High School Campus')}
+          alt={'ভোজেশ্বর উচ্চ বিদ্যালয় প্রাঙ্গণ'}
           referrerPolicy="no-referrer"
           className="absolute inset-0 w-full h-full object-cover object-center"
         />
@@ -224,10 +219,10 @@ export function LoginPage() {
               className="inline-flex items-center gap-2 text-sm font-medium text-white/85 hover:text-white transition-colors whitespace-nowrap"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>{pick('পাবলিক ওয়েবসাইটে ফিরুন', 'Back to Website')}</span>
+              <span>{'পাবলিক ওয়েবসাইটে ফিরুন'}</span>
             </Link>
-            <span className="text-xs font-medium text-white/80 tabular-nums whitespace-nowrap">
-              {pick('EIIN: ১১৩৫৮৭ · স্থাপিত ১৯৭৮', 'EIIN: 113587 · Est. 1978')}
+            <span className="text-sm font-medium text-white/80 tabular-nums whitespace-nowrap">
+              {'EIIN: ১১৩৫৮৭ · স্থাপিত ১৯৭৮'}
             </span>
           </div>
 
@@ -238,36 +233,33 @@ export function LoginPage() {
 
             <div className="space-y-2.5">
               <p className="text-sm font-semibold text-white/85">
-                {pick('ডিজিটাল ক্যাম্পাস ম্যানেজমেন্ট পোর্টাল', 'Digital Campus Management Portal')}
+                {'ডিজিটাল ক্যাম্পাস ম্যানেজমেন্ট পোর্টাল'}
               </p>
               <h1 className="text-3xl xl:text-4xl font-bold leading-tight tracking-tight text-white">
-                {pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}
+                {'ভোজেশ্বর উচ্চ বিদ্যালয়'}
               </h1>
               <p className="text-base font-medium text-white/85">
-                {locale === 'bn' ? 'Bhojeshwar High School · “শিক্ষাই আলো, জ্ঞানই শক্তি”' : '“Education is Light, Knowledge is Power”'}
+                {'Bhojeshwar High School · “শিক্ষাই আলো, জ্ঞানই শক্তি”'}
               </p>
             </div>
 
             <p className="text-base text-white/80 leading-relaxed max-w-md">
-              {pick(
-                'প্রশাসন, শিক্ষক, অভিভাবক ও শিক্ষার্থীদের জন্য একক ও নিরাপদ ডিজিটাল প্ল্যাটফর্ম — হাজিরা, পরীক্ষা, ফলাফল ও একাডেমিক কার্যক্রম পরিচালনার আধুনিক ব্যবস্থা।',
-                'A unified, secure institutional platform for administrators, teachers, parents, and students — streamlining attendance, examinations, results, and academics.'
-              )}
+              {'প্রশাসন, শিক্ষক, অভিভাবক ও শিক্ষার্থীদের জন্য একক ও নিরাপদ ডিজিটাল প্ল্যাটফর্ম — হাজিরা, পরীক্ষা, ফলাফল ও একাডেমিক কার্যক্রম পরিচালনার আধুনিক ব্যবস্থা।'}
             </p>
           </div>
 
           <div className="pt-5 border-t border-white/15 grid grid-cols-3 gap-4 tabular-nums">
             <div>
-              <p className="text-lg font-bold text-white">{pick('৪৮+ বছর', '48+ Yrs')}</p>
-              <p className="text-xs text-white/75 mt-0.5">{pick('শিক্ষার ঐতিহ্য', 'Academic Heritage')}</p>
+              <p className="text-lg font-bold text-white">{'৪৮+ বছর'}</p>
+              <p className="text-sm text-white/75 mt-0.5">{'শিক্ষার ঐতিহ্য'}</p>
             </div>
             <div className="border-l border-white/15 pl-4">
-              <p className="text-lg font-bold text-white">{pick('৬ষ্ঠ – ১০ম', 'Classes 6–10')}</p>
-              <p className="text-xs text-white/75 mt-0.5">{pick('বিজ্ঞান · মানবিক · ব্যবসায়', '3 SSC Streams')}</p>
+              <p className="text-lg font-bold text-white">{'৬ষ্ঠ – ১০ম'}</p>
+              <p className="text-sm text-white/75 mt-0.5">{'বিজ্ঞান · মানবিক · ব্যবসায়'}</p>
             </div>
             <div className="border-l border-white/15 pl-4">
-              <p className="text-lg font-bold text-white">{pick('ভোজেশ্বর', 'Bhojeshwar')}</p>
-              <p className="text-xs text-white/75 mt-0.5">{pick('নড়িয়া, শরীয়তপুর', 'Noria, Shariatpur')}</p>
+              <p className="text-lg font-bold text-white">{'ভোজেশ্বর'}</p>
+              <p className="text-sm text-white/75 mt-0.5">{'নড়িয়া, শরীয়তপুর'}</p>
             </div>
           </div>
         </div>
@@ -281,10 +273,10 @@ export function LoginPage() {
             className="lg:hidden inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>{pick('মূল ওয়েবসাইট', 'Home')}</span>
+            <span>{'মূল ওয়েবসাইট'}</span>
           </Link>
-          <p className="hidden lg:block text-xs text-muted-foreground tabular-nums">
-            {pick('শিক্ষাবর্ষ ২০২৬ · সমন্বিত পোর্টাল অ্যাক্সেস', 'Session 2026 · Unified Portal Access')}
+          <p className="hidden lg:block text-sm text-muted-foreground tabular-nums">
+            {'শিক্ষাবর্ষ ২০২৬ · সমন্বিত পোর্টাল অ্যাক্সেস'}
           </p>
         </div>
 
@@ -294,10 +286,10 @@ export function LoginPage() {
               <SchoolEmblem size={48} />
               <div>
                 <p className="font-bold text-foreground text-base leading-snug">
-                  {pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}
+                  {'ভোজেশ্বর উচ্চ বিদ্যালয়'}
                 </p>
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  {pick('স্থাপিত ১৯৭৮ · EIIN: ১১৩৫৮৭', 'Est. 1978 · EIIN: 113587')}
+                <p className="text-sm text-muted-foreground tabular-nums">
+                  {'স্থাপিত ১৯৭৮ · EIIN: ১১৩৫৮৭'}
                 </p>
               </div>
             </div>
@@ -305,25 +297,16 @@ export function LoginPage() {
             <div className="space-y-1.5">
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
                 {step === 'SET_PASSWORD'
-                  ? pick('নতুন পাসওয়ার্ড সেট করুন', 'Set Your Password')
-                  : pick('পোর্টাল সাইন ইন', 'Portal Sign In')}
+                  ? 'নতুন পাসওয়ার্ড সেট করুন'
+                  : 'পোর্টাল সাইন ইন'}
               </h2>
               <p className="text-base text-muted-foreground leading-relaxed">
                 {step === 'IDENTIFY' &&
-                  pick(
-                    'পোর্টালে প্রবেশ করতে আপনার নিবন্ধিত ইমেইল বা মোবাইল নম্বর দিন।',
-                    'Enter your registered email address or mobile number to access Teacher, Accountant, or Parent portal.'
-                  )}
+                  'পোর্টালে প্রবেশ করতে আপনার নিবন্ধিত ইমেইল বা মোবাইল নম্বর দিন।'}
                 {step === 'ENTER_PASSWORD' &&
-                  pick(
-                    `স্বাগতম, ${accountName || verifiedIdentifier} — প্রবেশ করতে আপনার পাসওয়ার্ড দিন।`,
-                    `Welcome back, ${accountName || verifiedIdentifier} — enter your password to continue.`
-                  )}
+                  `স্বাগতম, ${accountName || verifiedIdentifier} — প্রবেশ করতে আপনার পাসওয়ার্ড দিন।`}
                 {step === 'SET_PASSWORD' &&
-                  pick(
-                    `স্বাগতম, ${accountName || verifiedIdentifier} — প্রথমবার লগইনের জন্য ওটিপি যাচাই করে পাসওয়ার্ড সেট করুন।`,
-                    `Welcome, ${accountName || verifiedIdentifier} — verify OTP and set your password.`
-                  )}
+                  `স্বাগতম, ${accountName || verifiedIdentifier} — প্রথমবার লগইনের জন্য ওটিপি যাচাই করে পাসওয়ার্ড সেট করুন।`}
               </p>
             </div>
 
@@ -331,7 +314,7 @@ export function LoginPage() {
               {step === 'IDENTIFY' && (
                 <form onSubmit={identifyForm.handleSubmit(handleInitiateSubmit)} className="space-y-4">
                   <FormField
-                    label={pick('ইমেইল অথবা মোবাইল নম্বর', 'Email or Mobile Number')}
+                    label={'ইমেইল অথবা মোবাইল নম্বর'}
                     required
                     error={identifyForm.formState.errors.identifier?.message}
                   >
@@ -339,7 +322,7 @@ export function LoginPage() {
                       <Mail className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <Input
                         {...identifyForm.register('identifier')}
-                        placeholder="teacher@example.com / 01700000000"
+                        placeholder="ইমেইল বা মোবাইল (যেমন: 01700000000)"
                         className="pl-10"
                       />
                     </div>
@@ -351,7 +334,7 @@ export function LoginPage() {
                     disabled={isInitiating}
                     className="w-full h-11 text-base font-semibold mt-1"
                   >
-                    <span>{isInitiating ? pick('যাচাই হচ্ছে...', 'Checking...') : pick('পরবর্তী ধাপে যান', 'Continue')}</span>
+                    <span>{isInitiating ? 'যাচাই হচ্ছে...' : 'পরবর্তী ধাপে যান'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </form>
@@ -364,13 +347,13 @@ export function LoginPage() {
                     <button
                       type="button"
                       onClick={resetToIdentify}
-                      className="text-xs font-semibold text-primary hover:underline shrink-0 cursor-pointer"
+                      className="text-sm font-semibold text-primary hover:underline shrink-0 cursor-pointer"
                     >
-                      {pick('পরিবর্তন করুন', 'Change')}
+                      {'পরিবর্তন করুন'}
                     </button>
                   </div>
 
-                  <FormField label={pick('পাসওয়ার্ড', 'Password')} required>
+                  <FormField label={'পাসওয়ার্ড'} required>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                       <Input
@@ -384,7 +367,7 @@ export function LoginPage() {
                       <button
                         type="button"
                         onClick={() => setShowPass((v) => !v)}
-                        aria-label={pick('পাসওয়ার্ড দেখুন বা লুকান', 'Toggle password visibility')}
+                        aria-label={'পাসওয়ার্ড দেখুন বা লুকান'}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                       >
                         {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -397,7 +380,7 @@ export function LoginPage() {
                       href="/forgot-password"
                       className="font-medium text-primary hover:underline whitespace-nowrap"
                     >
-                      {pick('পাসওয়ার্ড ভুলে গেছেন?', 'Forgot password?')}
+                      {'পাসওয়ার্ড ভুলে গেছেন?'}
                     </Link>
                   </div>
 
@@ -407,7 +390,7 @@ export function LoginPage() {
                     disabled={isLoggingIn}
                     className="w-full h-11 text-base font-semibold mt-1"
                   >
-                    <span>{isLoggingIn ? pick('প্রবেশ করছে...', 'Signing in...') : pick('পোর্টালে প্রবেশ করুন', 'Sign In to Portal')}</span>
+                    <span>{isLoggingIn ? 'প্রবেশ করছে...' : 'পোর্টালে প্রবেশ করুন'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </form>
@@ -415,15 +398,15 @@ export function LoginPage() {
 
               {step === 'SET_PASSWORD' && (
                 <form onSubmit={setupForm.handleSubmit(handleSetupPasswordSubmit)} className="space-y-4">
-                  <div className="flex items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-xs text-emerald-800 dark:text-emerald-200">
+                  <div className="flex items-center justify-between gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-sm text-emerald-800 dark:text-emerald-200">
                     <div>
                       <p className="font-semibold">
-                        {pick('প্রথমবার লগইন যাচাইকরণ', 'First-Time Login Verification')}
+                        {'প্রথমবার লগইন যাচাইকরণ'}
                       </p>
                       <p className="opacity-90 mt-0.5">
                         {maskedTarget
-                          ? pick(`ওটিপি পাঠানো হয়েছে: ${maskedTarget} (সার্ভার কনসোলে দেখুন)`, `OTP sent to ${maskedTarget} (check server console)`)
-                          : pick('সার্ভার কনসোল লগ থেকে ৬-সংখ্যার ওটিপি কোডটি দিন।', 'Enter the 6-digit OTP from server console log.')}
+                          ? `ওটিপি পাঠানো হয়েছে: ${maskedTarget} (সার্ভার কনসোলে দেখুন)`
+                          : 'সার্ভার কনসোল লগ থেকে ৬-সংখ্যার ওটিপি কোডটি দিন।'}
                       </p>
                     </div>
                     <button
@@ -431,12 +414,12 @@ export function LoginPage() {
                       onClick={resetToIdentify}
                       className="font-semibold text-primary hover:underline shrink-0 cursor-pointer"
                     >
-                      {pick('ফিরুন', 'Back')}
+                      {'ফিরুন'}
                     </button>
                   </div>
 
                   <FormField
-                    label={pick('৬-সংখ্যার ওটিপি কোড', '6-Digit OTP Code')}
+                    label={'৬-সংখ্যার ওটিপি কোড'}
                     required
                     error={setupForm.formState.errors.otp?.message}
                   >
@@ -449,7 +432,7 @@ export function LoginPage() {
                   </FormField>
 
                   <FormField
-                    label={pick('নতুন পাসওয়ার্ড', 'New Password')}
+                    label={'নতুন পাসওয়ার্ড'}
                     required
                     error={setupForm.formState.errors.password?.message}
                   >
@@ -472,7 +455,7 @@ export function LoginPage() {
                   </FormField>
 
                   <FormField
-                    label={pick('পাসওয়ার্ড নিশ্চিত করুন', 'Confirm Password')}
+                    label={'পাসওয়ার্ড নিশ্চিত করুন'}
                     required
                     error={setupForm.formState.errors.confirmPassword?.message}
                   >
@@ -502,8 +485,8 @@ export function LoginPage() {
                   >
                     <span>
                       {isSettingPassword
-                        ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
-                        : pick('পাসওয়ার্ড সেট করে প্রবেশ করুন', 'Set Password & Sign In')}
+                        ? 'সংরক্ষণ হচ্ছে...'
+                        : 'পাসওয়ার্ড সেট করে প্রবেশ করুন'}
                     </span>
                     <ArrowRight className="w-4 h-4" />
                   </Button>
@@ -518,9 +501,9 @@ export function LoginPage() {
             />
 
             <p className="text-center text-sm text-muted-foreground">
-              {pick('অ্যাকাউন্ট সহায়তার জন্য ', 'Need help signing in? ')}
+              {'অ্যাকাউন্ট সহায়তার জন্য '}
               <Link href="/contact" className="font-semibold text-primary hover:underline">
-                {pick('বিদ্যালয় অফিসে যোগাযোগ করুন', 'Contact School Office')}
+                {'বিদ্যালয় অফিসে যোগাযোগ করুন'}
               </Link>
             </p>
           </div>
@@ -533,7 +516,6 @@ export function LoginPage() {
 export function AdminGateLoginPage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const { pick } = useI18n();
   const [showPass, setShowPass] = useState(false);
   const [showGateKey, setShowGateKey] = useState(false);
   const [adminLoginApi, { isLoading }] = useAdminLoginMutation();
@@ -553,7 +535,7 @@ export function AdminGateLoginPage() {
 
       const roles = res.user?.roles || [];
       if (!roles.includes('ADMIN') && !roles.includes('SUPER_ADMIN')) {
-        toast.error(pick('অ্যাডমিন অনুমতি পাওয়া যায়নি।', 'Admin authorization denied.'));
+        toast.error('অ্যাডমিন অনুমতি পাওয়া যায়নি।');
         return;
       }
 
@@ -572,13 +554,13 @@ export function AdminGateLoginPage() {
         })
       );
 
-      toast.success(pick('অ্যাডমিন পোর্টালে লগইন সফল হয়েছে।', 'Admin login successful.'));
+      toast.success('অ্যাডমিন পোর্টালে লগইন সফল হয়েছে।');
       router.push('/admin');
     } catch (err: any) {
       toast.error(
         err?.data?.message ||
           err?.message ||
-          pick('অ্যাডমিন যাচাইকরণ ব্যর্থ হয়েছে।', 'Admin authentication failed.')
+          'অ্যাডমিন যাচাইকরণ ব্যর্থ হয়েছে।'
       );
     }
   };
@@ -589,7 +571,7 @@ export function AdminGateLoginPage() {
       <aside className="hidden lg:flex lg:col-span-6 xl:col-span-5 relative overflow-hidden bg-[#093B1F] text-white">
         <img
           src="/images/hero_campus_heritage_1795136893336.jpg"
-          alt={pick('ভোজেশ্বর উচ্চ বিদ্যালয় প্রাঙ্গণ', 'Bhojeshwar High School Campus')}
+          alt={'ভোজেশ্বর উচ্চ বিদ্যালয় প্রাঙ্গণ'}
           referrerPolicy="no-referrer"
           className="absolute inset-0 w-full h-full object-cover object-center"
         />
@@ -605,10 +587,10 @@ export function AdminGateLoginPage() {
               className="inline-flex items-center gap-2 text-sm font-medium text-white/85 hover:text-white transition-colors whitespace-nowrap"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>{pick('পাবলিক ওয়েবসাইটে ফিরুন', 'Back to Website')}</span>
+              <span>{'পাবলিক ওয়েবসাইটে ফিরুন'}</span>
             </Link>
-            <span className="text-xs font-medium text-white/80 tabular-nums whitespace-nowrap">
-              {pick('EIIN: ১১৩৫৮৭ · স্থাপিত ১৯৭৮', 'EIIN: 113587 · Est. 1978')}
+            <span className="text-sm font-medium text-white/80 tabular-nums whitespace-nowrap">
+              {'EIIN: ১১৩৫৮৭ · স্থাপিত ১৯৭৮'}
             </span>
           </div>
 
@@ -619,31 +601,25 @@ export function AdminGateLoginPage() {
 
             <div className="space-y-2.5">
               <p className="text-sm font-semibold text-white/85">
-                {pick('সুরক্ষিত প্রশাসনিক কন্ট্রোল প্যানেল', 'Restricted Administrative Control Panel')}
+                {'সুরক্ষিত প্রশাসনিক কন্ট্রোল প্যানেল'}
               </p>
               <h1 className="text-3xl xl:text-4xl font-bold leading-tight tracking-tight text-white">
-                {pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}
+                {'ভোজেশ্বর উচ্চ বিদ্যালয়'}
               </h1>
               <p className="text-base font-medium text-white/85">
-                {pick('“শিক্ষাই আলো, জ্ঞানই শক্তি” · অ্যাডমিন গেটওয়ে', '“Education is Light, Knowledge is Power” · Admin Gateway')}
+                {'“শিক্ষাই আলো, জ্ঞানই শক্তি” · অ্যাডমিন গেটওয়ে'}
               </p>
             </div>
 
             <p className="text-base text-white/80 leading-relaxed max-w-md">
-              {pick(
-                'শুধুমাত্র অনুমোদিত সিস্টেম অ্যাডমিনিস্ট্রেটরদের জন্য সংরক্ষিত প্রবেশাধিকার — ইমেইল বা মোবাইল নম্বর, পাসওয়ার্ড এবং নিরাপত্তা অ্যাক্সেস কী দিয়ে প্রবেশ করুন।',
-                'Reserved exclusively for authorized system administrators — sign in using your email or phone, password, and security gate key.'
-              )}
+              {'শুধুমাত্র অনুমোদিত সিস্টেম অ্যাডমিনিস্ট্রেটরদের জন্য সংরক্ষিত প্রবেশাধিকার — ইমেইল বা মোবাইল নম্বর, পাসওয়ার্ড এবং নিরাপত্তা অ্যাক্সেস কী দিয়ে প্রবেশ করুন।'}
             </p>
           </div>
 
-          <div className="pt-5 border-t border-white/15 flex items-center gap-3 text-xs text-white/75">
+          <div className="pt-5 border-t border-white/15 flex items-center gap-3 text-sm text-white/75">
             <ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0" />
             <span>
-              {pick(
-                'বহু-স্তরীয় নিরাপত্তা ও অডিট লগ দ্বারা সুরক্ষিত',
-                'Protected by multi-layer authentication and audit logging'
-              )}
+              {'বহু-স্তরীয় নিরাপত্তা ও অডিট লগ দ্বারা সুরক্ষিত'}
             </span>
           </div>
         </div>
@@ -657,10 +633,10 @@ export function AdminGateLoginPage() {
             className="lg:hidden inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>{pick('মূল ওয়েবসাইট', 'Home')}</span>
+            <span>{'মূল ওয়েবসাইট'}</span>
           </Link>
-          <p className="hidden lg:block text-xs text-muted-foreground tabular-nums">
-            {pick('শিক্ষাবর্ষ ২০২৬ · প্রশাসনিক অ্যাক্সেস', 'Session 2026 · Administrative Access')}
+          <p className="hidden lg:block text-sm text-muted-foreground tabular-nums">
+            {'শিক্ষাবর্ষ ২০২৬ · প্রশাসনিক অ্যাক্সেস'}
           </p>
         </div>
 
@@ -670,10 +646,10 @@ export function AdminGateLoginPage() {
               <SchoolEmblem size={48} />
               <div>
                 <p className="font-bold text-foreground text-base leading-snug">
-                  {pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}
+                  {'ভোজেশ্বর উচ্চ বিদ্যালয়'}
                 </p>
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  {pick('স্থাপিত ১৯৭৮ · EIIN: ১১৩৫৮৭', 'Est. 1978 · EIIN: 113587')}
+                <p className="text-sm text-muted-foreground tabular-nums">
+                  {'স্থাপিত ১৯৭৮ · EIIN: ১১৩৫৮৭'}
                 </p>
               </div>
             </div>
@@ -681,23 +657,20 @@ export function AdminGateLoginPage() {
             <div className="space-y-1.5">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-semibold">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>{pick('সুরক্ষিত অ্যাডমিন গেটওয়ে', 'Restricted Admin Gateway')}</span>
+                <span>{'সুরক্ষিত অ্যাডমিন গেটওয়ে'}</span>
               </div>
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                {pick('অ্যাডমিনিস্ট্রেটর সাইন ইন', 'Administrator Sign In')}
+                {'অ্যাডমিনিস্ট্রেটর সাইন ইন'}
               </h2>
               <p className="text-base text-muted-foreground leading-relaxed">
-                {pick(
-                  'আপনার নিবন্ধিত ইমেইল বা মোবাইল নম্বর, পাসওয়ার্ড ও নিরাপত্তা অ্যাক্সেস কী প্রদান করুন।',
-                  'Enter your registered email or mobile number, password, and security gate key.'
-                )}
+                {'আপনার নিবন্ধিত ইমেইল বা মোবাইল নম্বর, পাসওয়ার্ড ও নিরাপত্তা অ্যাক্সেস কী প্রদান করুন।'}
               </p>
             </div>
 
             <Card className="p-6 sm:p-7">
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
-                  label={pick('ইমেইল অথবা মোবাইল নম্বর', 'Email or Mobile Number')}
+                  label={'ইমেইল অথবা মোবাইল নম্বর'}
                   required
                   error={form.formState.errors.identifier?.message}
                 >
@@ -705,14 +678,14 @@ export function AdminGateLoginPage() {
                     <Mail className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     <Input
                       {...form.register('identifier')}
-                      placeholder="admin@example.com / 01700000000"
+                      placeholder="ইমেইল বা মোবাইল (যেমন: 01700000000)"
                       className="pl-10"
                     />
                   </div>
                 </FormField>
 
                 <FormField
-                  label={pick('পাসওয়ার্ড', 'Password')}
+                  label={'পাসওয়ার্ড'}
                   required
                   error={form.formState.errors.password?.message}
                 >
@@ -727,7 +700,7 @@ export function AdminGateLoginPage() {
                     <button
                       type="button"
                       onClick={() => setShowPass((v) => !v)}
-                      aria-label={pick('পাসওয়ার্ড দেখুন বা লুকান', 'Toggle password visibility')}
+                      aria-label={'পাসওয়ার্ড দেখুন বা লুকান'}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                     >
                       {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -736,7 +709,7 @@ export function AdminGateLoginPage() {
                 </FormField>
 
                 <FormField
-                  label={pick('নিরাপত্তা অ্যাক্সেস কী (Security Gate Key)', 'Security Gate Key')}
+                  label={'নিরাপত্তা অ্যাক্সেস কী (Security Gate Key)'}
                   required
                   error={form.formState.errors.accessKey?.message}
                 >
@@ -751,7 +724,7 @@ export function AdminGateLoginPage() {
                     <button
                       type="button"
                       onClick={() => setShowGateKey((v) => !v)}
-                      aria-label={pick('অ্যাক্সেস কী দেখুন বা লুকান', 'Toggle gate key visibility')}
+                      aria-label={'অ্যাক্সেস কী দেখুন বা লুকান'}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                     >
                       {showGateKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -767,8 +740,8 @@ export function AdminGateLoginPage() {
                 >
                   <span>
                     {isLoading
-                      ? pick('যাচাই চলছে...', 'Authenticating...')
-                      : pick('অ্যাডমিন প্যানেলে প্রবেশ করুন', 'Enter Admin Panel')}
+                      ? 'যাচাই চলছে...'
+                      : 'অ্যাডমিন প্যানেলে প্রবেশ করুন'}
                   </span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
@@ -782,7 +755,6 @@ export function AdminGateLoginPage() {
 }
 
 export function ForgotPasswordPage() {
-  const { pick } = useI18n();
   const [sent, setSent] = useState(false);
   const [contact, setContact] = useState('');
   const [forgotPasswordApi, { isLoading: sending }] = useForgotPasswordMutation();
@@ -795,13 +767,13 @@ export function ForgotPasswordPage() {
       await forgotPasswordApi({ email: contact.trim() }).unwrap();
       setSent(true);
       toast.success(
-        pick('পাসওয়ার্ড রিসেট নির্দেশনা সফলভাবে পাঠানো হয়েছে।', 'Password reset instructions sent.')
+        'পাসওয়ার্ড রিসেট নির্দেশনা সফলভাবে পাঠানো হয়েছে।'
       );
     } catch (err: any) {
       toast.error(
         err?.data?.message ||
           err?.message ||
-          pick('অনুরোধ প্রক্রিয়া করা যায়নি।', 'Failed to process request.')
+          'অনুরোধ প্রক্রিয়া করা যায়নি।'
       );
     }
   };
@@ -810,22 +782,22 @@ export function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
       <Card className="max-w-md w-full p-7 space-y-4">
         <SchoolEmblem size={48} />
-        <h1 className="text-xl font-bold text-foreground">{pick('পাসওয়ার্ড পুনরুদ্ধার', 'Forgot Password')}</h1>
+        <h1 className="text-xl font-bold text-foreground">{'পাসওয়ার্ড পুনরুদ্ধার'}</h1>
         {sent ? (
           <div className="space-y-3 text-sm text-muted-foreground">
             <p className="text-success font-medium flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4" />
-              {pick('পুনরুদ্ধার নির্দেশনা আপনার ইমেইলে পাঠানো হয়েছে।', 'Reset instructions have been sent to your email.')}
+              {'পুনরুদ্ধার নির্দেশনা আপনার ইমেইলে পাঠানো হয়েছে।'}
             </p>
             <Link href="/reset-password">
               <Button variant="primary" size="sm">
-                {pick('নতুন পাসওয়ার্ড সেট করুন', 'Go to Reset Password')}
+                {'নতুন পাসওয়ার্ড সেট করুন'}
               </Button>
             </Link>
           </div>
         ) : (
           <form onSubmit={handleForgot} className="space-y-4">
-            <FormField label={pick('ইমেইল অথবা মোবাইল নম্বর', 'Email or Phone')} required>
+            <FormField label={'ইমেইল অথবা মোবাইল নম্বর'} required>
               <Input
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
@@ -834,10 +806,10 @@ export function ForgotPasswordPage() {
               />
             </FormField>
             <Button type="submit" variant="primary" className="w-full" disabled={sending}>
-              {sending ? pick('পাঠানো হচ্ছে...', 'Sending...') : pick('রিসেট কোড পাঠান', 'Send Reset Code')}
+              {sending ? 'পাঠানো হচ্ছে...' : 'রিসেট কোড পাঠান'}
             </Button>
             <Link href="/login" className="block text-center text-sm text-primary hover:underline">
-              {pick('লগইনে ফিরে যান', 'Back to Login')}
+              {'লগইনে ফিরে যান'}
             </Link>
           </form>
         )}
@@ -847,7 +819,6 @@ export function ForgotPasswordPage() {
 }
 
 export function ResetPasswordPage() {
-  const { pick } = useI18n();
   const router = useRouter();
   const [token, setToken] = useState('');
   const [pass, setPass] = useState('');
@@ -857,23 +828,23 @@ export function ResetPasswordPage() {
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token.trim()) {
-      toast.error(pick('রিসেট টোকেন আবশ্যক', 'Reset token is required'));
+      toast.error('রিসেট টোকেন আবশ্যক');
       return;
     }
     if (pass.length < 6) {
-      toast.error(pick('কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন', 'Minimum 6 characters required'));
+      toast.error('কমপক্ষে ৬ অক্ষরের পাসওয়ার্ড দিন');
       return;
     }
 
     try {
       await resetPasswordApi({ resetToken: token.trim(), newPassword: pass }).unwrap();
-      toast.success(pick('পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে।', 'Password reset successfully.'));
+      toast.success('পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে।');
       router.push('/login');
     } catch (err: any) {
       toast.error(
         err?.data?.message ||
           err?.message ||
-          pick('পাসওয়ার্ড রিসেট ব্যর্থ হয়েছে।', 'Password reset failed.')
+          'পাসওয়ার্ড রিসেট ব্যর্থ হয়েছে।'
       );
     }
   };
@@ -881,17 +852,17 @@ export function ResetPasswordPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
       <Card className="max-w-md w-full p-7 space-y-4">
-        <h1 className="text-xl font-bold text-foreground">{pick('নতুন পাসওয়ার্ড নির্ধারণ', 'Reset Password')}</h1>
+        <h1 className="text-xl font-bold text-foreground">{'নতুন পাসওয়ার্ড নির্ধারণ'}</h1>
         <form onSubmit={handleReset} className="space-y-4">
-          <FormField label={pick('রিসেট টোকেন', 'Reset Token')} required>
+          <FormField label={'রিসেট টোকেন'} required>
             <Input
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              placeholder="e.g. eyJhbGci..."
+              placeholder="যেমন: eyJhbGci..."
               required
             />
           </FormField>
-          <FormField label={pick('নতুন পাসওয়ার্ড', 'New Password')} required>
+          <FormField label={'নতুন পাসওয়ার্ড'} required>
             <div className="relative">
               <Input
                 type={showPass ? 'text' : 'password'}
@@ -904,7 +875,7 @@ export function ResetPasswordPage() {
               <button
                 type="button"
                 onClick={() => setShowPass((v) => !v)}
-                aria-label={pick('পাসওয়ার্ড দেখুন বা লুকান', 'Toggle password visibility')}
+                aria-label={'পাসওয়ার্ড দেখুন বা লুকান'}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
               >
                 {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -912,7 +883,7 @@ export function ResetPasswordPage() {
             </div>
           </FormField>
           <Button type="submit" variant="primary" className="w-full" disabled={resetting}>
-            {resetting ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save Password')}
+            {resetting ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
           </Button>
         </form>
       </Card>
@@ -921,34 +892,32 @@ export function ResetPasswordPage() {
 }
 
 export function VerifyAccountPage() {
-  const { pick } = useI18n();
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
       <Card className="max-w-md w-full p-7 text-center space-y-4">
         <CheckCircle2 className="w-10 h-10 text-success mx-auto" />
-        <h1 className="text-xl font-bold text-foreground">{pick('অ্যাকাউন্ট যাচাইকরণ', 'Account Verification')}</h1>
+        <h1 className="text-xl font-bold text-foreground">{'অ্যাকাউন্ট যাচাইকরণ'}</h1>
         <p className="text-base text-muted-foreground">
-          {pick('আপনার ইমেইল/মোবাইল নম্বর সফলভাবে যাচাই হয়েছে। এখন পোর্টালে লগইন করতে পারবেন।', 'Your account verification interface is ready for backend OTP/token confirmation.')}
+          {'আপনার ইমেইল/মোবাইল নম্বর সফলভাবে যাচাই হয়েছে। এখন পোর্টালে লগইন করতে পারবেন।'}
         </p>
-        <Link href="/login"><Button variant="primary">{pick('লগইন করুন', 'Proceed to Login')}</Button></Link>
+        <Link href="/login"><Button variant="primary">{'লগইন করুন'}</Button></Link>
       </Card>
     </div>
   );
 }
 
 export function UnauthorizedPage() {
-  const { pick } = useI18n();
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
       <Card className="max-w-md w-full p-7 text-center space-y-4">
         <ShieldAlert className="w-10 h-10 text-destructive mx-auto" />
-        <h1 className="text-xl font-bold text-foreground">403 — {pick('প্রবেশাধিকার নেই', 'Unauthorized Access')}</h1>
+        <h1 className="text-xl font-bold text-foreground">403 — {'প্রবেশাধিকার নেই'}</h1>
         <p className="text-base text-muted-foreground">
-          {pick('এই পৃষ্ঠাটি দেখার জন্য আপনার অ্যাকাউন্টে প্রয়োজনীয় অনুমতি নেই।', 'Your current role does not have permission to view this resource.')}
+          {'এই পৃষ্ঠাটি দেখার জন্য আপনার অ্যাকাউন্টে প্রয়োজনীয় অনুমতি নেই।'}
         </p>
         <div className="flex justify-center gap-2">
-          <Link href="/login"><Button variant="primary">{pick('অন্য অ্যাকাউন্টে লগইন', 'Switch Account')}</Button></Link>
-          <Link href="/"><Button variant="outline">{pick('হোমপেজ', 'Home')}</Button></Link>
+          <Link href="/login"><Button variant="primary">{'অন্য অ্যাকাউন্টে লগইন'}</Button></Link>
+          <Link href="/"><Button variant="outline">{'হোমপেজ'}</Button></Link>
         </div>
       </Card>
     </div>

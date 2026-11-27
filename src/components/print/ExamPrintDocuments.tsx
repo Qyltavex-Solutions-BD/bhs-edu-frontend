@@ -4,8 +4,6 @@ import React from 'react';
 import { SCHOOL_LOGO_SRC, SchoolEmblem } from '@/src/components/shared/Feedback';
 import { formatDateLong, formatDateShort, formatNumber, formatTime, formatYear } from '@/src/lib/formatters';
 import type { GradeRange, SchoolProfile } from '@/src/types/entities';
-import { useI18n } from '@/src/lib/i18n';
-
 const DEFAULT_NCTB_LEGEND = [
   { range: '80–100', grade: 'A+', gp: '5.00' },
   { range: '70–79', grade: 'A', gp: '4.00' },
@@ -57,7 +55,6 @@ export function FormalExamDocumentShell({
   signatures?: Array<{ titleBn: string; titleEn: string; subtitle?: string }>;
   children: React.ReactNode;
 }) {
-  const { locale, pick } = useI18n();
   const isLandscape = orientation === 'landscape';
   const useFlow = isLandscape || allowFlow;
   const defaultSignatures = signatures ?? [
@@ -112,15 +109,15 @@ export function FormalExamDocumentShell({
                   <h1 className="text-xl sm:text-2xl print:text-[20px] font-bold tracking-tight text-[#111111] leading-snug">
                     {school.name}
                   </h1>
-                  <p className="text-[11px] sm:text-xs print:text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#27272A] mt-0.5">
+                  <p className="text-xs print:text-xs print:text-[10.5px] font-bold uppercase tracking-[0.14em] text-[#27272A] mt-0.5">
                     {school.nameEn ?? 'BHOJESHWAR HIGH SCHOOL'}
                   </p>
                   <p className="text-xs print:text-[11px] text-[#3F3F46] mt-0.5">{school.address}</p>
-                  <p className="text-[11px] print:text-[10px] text-[#52525B] tabular-nums mt-0.5">
+                  <p className="text-xs print:text-[10px] text-[#52525B] tabular-nums mt-0.5">
                     EIIN: {school.eiin ?? '113587'} &nbsp;|&nbsp;{' '}
-                    {pick('স্থাপিত:', 'Est:')} {formatYear(school.establishedYear ?? 1978, locale)}
-                    {school.schoolCode ? ` | ${pick('বিদ্যালয় কোড:', 'Code:')} ${school.schoolCode}` : ''}
-                    {school.phone ? ` | ${pick('ফোন:', 'Phone:')} ${school.phone}` : ''}
+                    {'স্থাপিত:'} {formatYear(school.establishedYear ?? 1978, 'bn')}
+                    {school.schoolCode ? ` | ${'বিদ্যালয় কোড:'} ${school.schoolCode}` : ''}
+                    {school.phone ? ` | ${'ফোন:'} ${school.phone}` : ''}
                   </p>
                 </div>
               </div>
@@ -129,12 +126,12 @@ export function FormalExamDocumentShell({
               <div className="mt-2.5 flex flex-col items-center">
                 <div className="inline-block border-[1.5px] border-[#18181B] px-5 py-1 bg-white">
                   <h2 className="text-sm sm:text-base print:text-[13px] font-bold tracking-wide text-[#111111] uppercase">
-                    {locale === 'bn' ? titleBn : titleEn}
+                    {titleBn}
                   </h2>
                 </div>
                 {(subtitleBn || subtitleEn) && (
                   <p className="text-xs print:text-[11.5px] font-semibold text-[#27272A] mt-1">
-                    {locale === 'bn' ? subtitleBn || subtitleEn : subtitleEn || subtitleBn}
+                    {subtitleBn || subtitleEn}
                   </p>
                 )}
               </div>
@@ -167,10 +164,10 @@ export function FormalExamDocumentShell({
                 <div key={i} className="pt-7 print:pt-6">
                   <div className="border-t border-[#18181B] pt-1.5 mx-auto max-w-[190px]">
                     <p className="font-bold text-[#111111]">
-                      {locale === 'bn' ? sig.titleBn : sig.titleEn}
+                      {sig.titleBn}
                     </p>
                     {sig.subtitle && (
-                      <p className="text-[11px] print:text-[10px] text-[#52525B] mt-0.5">{sig.subtitle}</p>
+                      <p className="text-xs print:text-[10px] text-[#52525B] mt-0.5">{sig.subtitle}</p>
                     )}
                   </div>
                 </div>
@@ -179,10 +176,7 @@ export function FormalExamDocumentShell({
 
             <div className="mt-3.5 pt-2 border-t border-[#E4E4E7] flex flex-wrap items-center justify-between gap-2 text-[10px] print:text-[9px] text-[#71717A]">
               <span>
-                {pick(
-                  'প্রাতিষ্ঠানিক কম্পিউটারাইজড কপি — প্রতিষ্ঠান প্রধানের স্বাক্ষর ও সীল ব্যতীত অকার্যকর',
-                  'Official Institutional Record — Valid with authorized signature and school seal'
-                )}
+                {'প্রাতিষ্ঠানিক কম্পিউটারাইজড কপি — প্রতিষ্ঠান প্রধানের স্বাক্ষর ও সীল ব্যতীত অকার্যকর'}
               </span>
               <span className="tabular-nums">
                 {school.nameEn ?? 'Bhojeshwar High School'} · EIIN {school.eiin ?? '113587'}
@@ -265,7 +259,6 @@ export function PrintableMarksheet({
   isPrintRoot = true,
   pageBreakAfter = false,
 }: PrintableMarksheetProps) {
-  const { locale, pick } = useI18n();
   const hasCaColumn = subjects.some((s) => (s.continuousAssessmentMarks ?? 0) > 0);
   const hasHighestColumn = subjects.some((s) => s.highestMarks !== undefined && s.highestMarks !== null);
 
@@ -275,21 +268,21 @@ export function PrintableMarksheet({
           .filter((r) => !r.isDeleted)
           .sort((a, b) => b.minPercentage - a.minPercentage)
           .map((r) => ({
-            range: `${formatNumber(r.minPercentage, locale)}–${formatNumber(Math.floor(r.maxPercentage), locale)}`,
+            range: `${formatNumber(r.minPercentage, 'bn')}–${formatNumber(Math.floor(r.maxPercentage), 'bn')}`,
             grade: r.letterGrade,
-            gp: formatNumber(r.gradePoint, locale, 2),
+            gp: formatNumber(r.gradePoint, 'bn', 2),
           }))
       : DEFAULT_NCTB_LEGEND.map((r) => ({
           range: r.range,
           grade: r.grade,
-          gp: formatNumber(Number(r.gp), locale, 2),
+          gp: formatNumber(Number(r.gp), 'bn', 2),
         }));
 
   const compulsorySubjects = subjects.filter((s) => !s.isOptional);
   const optionalSubjects = subjects.filter((s) => s.isOptional);
   const issueDate = summary.publishedAt
-    ? formatDateLong(summary.publishedAt, locale)
-    : formatDateLong(new Date().toISOString().slice(0, 10), locale);
+    ? formatDateLong(summary.publishedAt, 'bn')
+    : formatDateLong(new Date().toISOString().slice(0, 10), 'bn');
 
   const attendancePct =
     attendance && attendance.workingDays > 0
@@ -305,13 +298,13 @@ export function PrintableMarksheet({
       subtitleEn={examName}
       refLabel={
         <span>
-          <strong>{pick('আইডি নং:', 'Student ID:')}</strong>{' '}
+          <strong>{'আইডি নং:'}</strong>{' '}
           <span className="font-mono">{student.studentId}</span>
         </span>
       }
       dateLabel={
         <span>
-          <strong>{pick('প্রকাশের তারিখ:', 'Date of Issue:')}</strong> {issueDate}
+          <strong>{'প্রকাশের তারিখ:'}</strong> {issueDate}
         </span>
       }
       isPrintRoot={isPrintRoot}
@@ -326,46 +319,46 @@ export function PrintableMarksheet({
       <div className="grid grid-cols-1 md:grid-cols-12 print:grid-cols-12 gap-3.5 mb-3.5 items-start">
         <div className="md:col-span-8 print:col-span-8 border border-[#52525B] p-2.5 text-xs print:text-[11.5px] space-y-1">
           <div className="grid grid-cols-12 gap-1">
-            <span className="col-span-4 text-[#52525B]">{pick('শিক্ষার্থীর নাম', 'Name of Student')}</span>
+            <span className="col-span-4 text-[#52525B]">{'শিক্ষার্থীর নাম'}</span>
             <span className="col-span-8 font-bold text-[#111111]">
-              : {locale === 'bn' ? student.nameBn || student.nameEn : student.nameEn}
+              : {student.nameBn || student.nameEn}
             </span>
           </div>
           {student.fatherName && (
             <div className="grid grid-cols-12 gap-1">
-              <span className="col-span-4 text-[#52525B]">{pick('পিতার নাম', "Father's Name")}</span>
+              <span className="col-span-4 text-[#52525B]">{'পিতার নাম'}</span>
               <span className="col-span-8 font-medium">: {student.fatherName}</span>
             </div>
           )}
           {student.motherName && (
             <div className="grid grid-cols-12 gap-1">
-              <span className="col-span-4 text-[#52525B]">{pick('মাতার নাম', "Mother's Name")}</span>
+              <span className="col-span-4 text-[#52525B]">{'মাতার নাম'}</span>
               <span className="col-span-8 font-medium">: {student.motherName}</span>
             </div>
           )}
           <div className="grid grid-cols-12 gap-1 tabular-nums">
-            <span className="col-span-4 text-[#52525B]">{pick('শ্রেণি ও শাখা', 'Class & Section')}</span>
+            <span className="col-span-4 text-[#52525B]">{'শ্রেণি ও শাখা'}</span>
             <span className="col-span-8 font-semibold">
-              : {locale === 'bn' ? student.classNameBn : student.className} ({student.sectionName})
+              : {student.classNameBn} ({student.sectionName})
               {student.groupName
-                ? ` · ${locale === 'bn' ? student.groupNameBn || student.groupName : student.groupName}`
+                ? ` · ${student.groupNameBn || student.groupName}`
                 : ''}
             </span>
           </div>
           <div className="grid grid-cols-12 gap-1 tabular-nums">
-            <span className="col-span-4 text-[#52525B]">{pick('রোল নম্বর', 'Roll Number')}</span>
+            <span className="col-span-4 text-[#52525B]">{'রোল নম্বর'}</span>
             <span className="col-span-8 font-bold">
-              : {formatNumber(student.roll, locale)} &nbsp;&nbsp;|&nbsp;&nbsp;{' '}
-              <span className="text-[#52525B] font-normal">{pick('শিক্ষাবর্ষ:', 'Session:')}</span>{' '}
-              {formatYear(student.academicYear, locale)}
+              : {formatNumber(student.roll, 'bn')} &nbsp;&nbsp;|&nbsp;&nbsp;{' '}
+              <span className="text-[#52525B] font-normal">{'শিক্ষাবর্ষ:'}</span>{' '}
+              {formatYear(student.academicYear, 'bn')}
             </span>
           </div>
           {attendance && attendance.workingDays > 0 && (
             <div className="grid grid-cols-12 gap-1 tabular-nums">
-              <span className="col-span-4 text-[#52525B]">{pick('শ্রেণি উপস্থিতি', 'Attendance')}</span>
+              <span className="col-span-4 text-[#52525B]">{'শ্রেণি উপস্থিতি'}</span>
               <span className="col-span-8 font-medium">
-                : {formatNumber(attendance.presentDays, locale)} / {formatNumber(attendance.workingDays, locale)}{' '}
-                {pick('কার্যদিবস', 'days')} ({formatNumber(attendancePct ?? 0, locale)}%)
+                : {formatNumber(attendance.presentDays, 'bn')} / {formatNumber(attendance.workingDays, 'bn')}{' '}
+                {'কার্যদিবস'} ({formatNumber(attendancePct ?? 0, 'bn')}%)
               </span>
             </div>
           )}
@@ -373,17 +366,17 @@ export function PrintableMarksheet({
 
         {/* Compact Official Grading Scale Table (Bangladeshi Board Transcript Standard) */}
         <div className="md:col-span-4 print:col-span-4">
-          <table className="w-full text-[10px] border border-[#18181B] border-collapse tabular-nums">
+          <table className="w-full text-xs print:text-[10px] border border-[#18181B] border-collapse tabular-nums">
             <thead>
               <tr className="bg-[#F4F4F5] text-[#111111]">
                 <th className="border border-[#52525B] px-1.5 py-0.5 text-center font-bold">
-                  {pick('নম্বর (%)', 'Marks %')}
+                  {'নম্বর (%)'}
                 </th>
                 <th className="border border-[#52525B] px-1.5 py-0.5 text-center font-bold">
-                  {pick('গ্রেড', 'Grade')}
+                  {'গ্রেড'}
                 </th>
                 <th className="border border-[#52525B] px-1.5 py-0.5 text-center font-bold">
-                  {pick('পয়েন্ট', 'GP')}
+                  {'পয়েন্ট'}
                 </th>
               </tr>
             </thead>
@@ -406,39 +399,39 @@ export function PrintableMarksheet({
           <thead>
             <tr className="bg-[#F4F4F5] text-[#111111]">
               <th className="border border-[#18181B] px-2 py-1.5 text-center w-12">
-                {pick('কোড', 'Code')}
+                {'কোড'}
               </th>
               <th className="border border-[#18181B] px-2.5 py-1.5 text-left">
-                {pick('বিষয়ের নাম', 'Name of Subject')}
+                {'বিষয়ের নাম'}
               </th>
               <th className="border border-[#18181B] px-2 py-1.5 text-right">
-                {pick('পূর্ণমান', 'Full')}
+                {'পূর্ণমান'}
               </th>
               <th className="border border-[#18181B] px-2 py-1.5 text-right">
-                {pick('সৃজনশীল/লিখিত', 'Written')}
+                {'সৃজনশীল/লিখিত'}
               </th>
               <th className="border border-[#18181B] px-2 py-1.5 text-right">MCQ</th>
               <th className="border border-[#18181B] px-2 py-1.5 text-right">
-                {pick('ব্যবহারিক', 'Prac')}
+                {'ব্যবহারিক'}
               </th>
               {hasCaColumn && (
                 <th className="border border-[#18181B] px-2 py-1.5 text-right">
-                  {pick('ধারাবাহিক', 'CA')}
+                  {'ধারাবাহিক'}
                 </th>
               )}
               <th className="border border-[#18181B] px-2 py-1.5 text-right font-bold">
-                {pick('মোট প্রাপ্ত', 'Total')}
+                {'মোট প্রাপ্ত'}
               </th>
               {hasHighestColumn && (
                 <th className="border border-[#18181B] px-2 py-1.5 text-right">
-                  {pick('সর্বোচ্চ', 'High')}
+                  {'সর্বোচ্চ'}
                 </th>
               )}
               <th className="border border-[#18181B] px-2 py-1.5 text-center">
-                {pick('লেটার গ্রেড', 'Grade')}
+                {'লেটার গ্রেড'}
               </th>
               <th className="border border-[#18181B] px-2 py-1.5 text-right">
-                {pick('গ্রেড পয়েন্ট', 'GP')}
+                {'গ্রেড পয়েন্ট'}
               </th>
             </tr>
           </thead>
@@ -449,32 +442,32 @@ export function PrintableMarksheet({
                   {sub.subjectCode}
                 </td>
                 <td className="border border-[#52525B] px-2.5 py-1.5 font-medium">
-                  {locale === 'bn' ? sub.subjectNameBn : sub.subjectName}
+                  {sub.subjectNameBn}
                 </td>
                 <td className="border border-[#52525B] px-2 py-1.5 text-right">
-                  {formatNumber(sub.fullMarks, locale)}
+                  {formatNumber(sub.fullMarks, 'bn')}
                 </td>
                 <td className="border border-[#52525B] px-2 py-1.5 text-right">
-                  {sub.isAbsent ? 'AB' : formatNumber(sub.writtenMarks, locale)}
+                  {sub.isAbsent ? 'AB' : formatNumber(sub.writtenMarks, 'bn')}
                 </td>
                 <td className="border border-[#52525B] px-2 py-1.5 text-right">
-                  {sub.isAbsent ? 'AB' : formatNumber(sub.mcqMarks, locale)}
+                  {sub.isAbsent ? 'AB' : formatNumber(sub.mcqMarks, 'bn')}
                 </td>
                 <td className="border border-[#52525B] px-2 py-1.5 text-right">
-                  {sub.isAbsent ? 'AB' : formatNumber(sub.practicalMarks, locale)}
+                  {sub.isAbsent ? 'AB' : formatNumber(sub.practicalMarks, 'bn')}
                 </td>
                 {hasCaColumn && (
                   <td className="border border-[#52525B] px-2 py-1.5 text-right">
-                    {sub.isAbsent ? 'AB' : formatNumber(sub.continuousAssessmentMarks ?? 0, locale)}
+                    {sub.isAbsent ? 'AB' : formatNumber(sub.continuousAssessmentMarks ?? 0, 'bn')}
                   </td>
                 )}
                 <td className="border border-[#52525B] px-2 py-1.5 text-right font-bold">
-                  {sub.isAbsent ? 'AB' : formatNumber(sub.totalMarks, locale)}
+                  {sub.isAbsent ? 'AB' : formatNumber(sub.totalMarks, 'bn')}
                 </td>
                 {hasHighestColumn && (
                   <td className="border border-[#52525B] px-2 py-1.5 text-right text-[#52525B]">
                     {sub.highestMarks !== null && sub.highestMarks !== undefined
-                      ? formatNumber(sub.highestMarks, locale)
+                      ? formatNumber(sub.highestMarks, 'bn')
                       : '—'}
                   </td>
                 )}
@@ -487,7 +480,7 @@ export function PrintableMarksheet({
                 </td>
                 <td className="border border-[#52525B] px-2 py-1.5 text-right font-semibold">
                   {sub.gradePoint !== null && sub.gradePoint !== undefined
-                    ? formatNumber(sub.gradePoint, locale, 2)
+                    ? formatNumber(sub.gradePoint, 'bn', 2)
                     : '—'}
                 </td>
               </tr>
@@ -498,9 +491,9 @@ export function PrintableMarksheet({
                 <tr className="bg-[#FAFAFA]">
                   <td
                     colSpan={9 + (hasCaColumn ? 1 : 0) + (hasHighestColumn ? 1 : 0)}
-                    className="border border-[#52525B] px-2.5 py-1 text-[11px] font-bold text-[#27272A]"
+                    className="border border-[#52525B] px-2.5 py-1 text-xs print:text-[11px] font-bold text-[#27272A]"
                   >
-                    {pick('ঐচ্ছিক / ৪র্থ বিষয় (GP ২.০০-এর অতিরিক্ত পয়েন্ট বোনাস হিসেবে যুক্ত)', 'Additional / 4th Subject (GP above 2.00 added as bonus)')}
+                    {'ঐচ্ছিক / ৪র্থ বিষয় (GP ২.০০-এর অতিরিক্ত পয়েন্ট বোনাস হিসেবে যুক্ত)'}
                   </td>
                 </tr>
                 {optionalSubjects.map((sub, idx) => (
@@ -509,37 +502,37 @@ export function PrintableMarksheet({
                       {sub.subjectCode}
                     </td>
                     <td className="border border-[#52525B] px-2.5 py-1.5 font-medium">
-                      {locale === 'bn' ? sub.subjectNameBn : sub.subjectName}
+                      {sub.subjectNameBn}
                       {sub.bonusGradePoint > 0 && (
-                        <span className="ml-1.5 text-[11px] text-[#3F3F46]">
-                          (+{formatNumber(sub.bonusGradePoint, locale, 2)} {pick('বোনাস', 'bonus')})
+                        <span className="ml-1.5 text-xs print:text-[11px] text-[#3F3F46]">
+                          (+{formatNumber(sub.bonusGradePoint, 'bn', 2)} {'বোনাস'})
                         </span>
                       )}
                     </td>
                     <td className="border border-[#52525B] px-2 py-1.5 text-right">
-                      {formatNumber(sub.fullMarks, locale)}
+                      {formatNumber(sub.fullMarks, 'bn')}
                     </td>
                     <td className="border border-[#52525B] px-2 py-1.5 text-right">
-                      {sub.isAbsent ? 'AB' : formatNumber(sub.writtenMarks, locale)}
+                      {sub.isAbsent ? 'AB' : formatNumber(sub.writtenMarks, 'bn')}
                     </td>
                     <td className="border border-[#52525B] px-2 py-1.5 text-right">
-                      {sub.isAbsent ? 'AB' : formatNumber(sub.mcqMarks, locale)}
+                      {sub.isAbsent ? 'AB' : formatNumber(sub.mcqMarks, 'bn')}
                     </td>
                     <td className="border border-[#52525B] px-2 py-1.5 text-right">
-                      {sub.isAbsent ? 'AB' : formatNumber(sub.practicalMarks, locale)}
+                      {sub.isAbsent ? 'AB' : formatNumber(sub.practicalMarks, 'bn')}
                     </td>
                     {hasCaColumn && (
                       <td className="border border-[#52525B] px-2 py-1.5 text-right">
-                        {sub.isAbsent ? 'AB' : formatNumber(sub.continuousAssessmentMarks ?? 0, locale)}
+                        {sub.isAbsent ? 'AB' : formatNumber(sub.continuousAssessmentMarks ?? 0, 'bn')}
                       </td>
                     )}
                     <td className="border border-[#52525B] px-2 py-1.5 text-right font-bold">
-                      {sub.isAbsent ? 'AB' : formatNumber(sub.totalMarks, locale)}
+                      {sub.isAbsent ? 'AB' : formatNumber(sub.totalMarks, 'bn')}
                     </td>
                     {hasHighestColumn && (
                       <td className="border border-[#52525B] px-2 py-1.5 text-right text-[#52525B]">
                         {sub.highestMarks !== null && sub.highestMarks !== undefined
-                          ? formatNumber(sub.highestMarks, locale)
+                          ? formatNumber(sub.highestMarks, 'bn')
                           : '—'}
                       </td>
                     )}
@@ -548,7 +541,7 @@ export function PrintableMarksheet({
                     </td>
                     <td className="border border-[#52525B] px-2 py-1.5 text-right font-semibold">
                       {sub.gradePoint !== null && sub.gradePoint !== undefined
-                        ? formatNumber(sub.gradePoint, locale, 2)
+                        ? formatNumber(sub.gradePoint, 'bn', 2)
                         : '—'}
                     </td>
                   </tr>
@@ -562,47 +555,47 @@ export function PrintableMarksheet({
       {/* Formal Summary Box */}
       <div className="mt-3.5 grid grid-cols-2 sm:grid-cols-6 print:grid-cols-6 border border-[#18181B] divide-y sm:divide-y-0 sm:divide-x print:divide-y-0 print:divide-x divide-[#52525B] text-center tabular-nums">
         <div className="p-2.5">
-          <p className="text-[10px] uppercase tracking-wide text-[#52525B]">{pick('মোট নম্বর', 'Total Marks')}</p>
+          <p className="text-xs print:text-[10px] uppercase tracking-wide text-[#52525B]">{'মোট নম্বর'}</p>
           <p className="text-sm font-bold mt-0.5">
-            {formatNumber(summary.totalMarks, locale)} / {formatNumber(summary.totalFullMarks, locale)}
+            {formatNumber(summary.totalMarks, 'bn')} / {formatNumber(summary.totalFullMarks, 'bn')}
           </p>
         </div>
         <div className="p-2.5 bg-[#FAFAFA]">
-          <p className="text-[10px] uppercase tracking-wide text-[#52525B]">{pick('অর্জিত জিপিএ', 'Final GPA')}</p>
+          <p className="text-xs print:text-[10px] uppercase tracking-wide text-[#52525B]">{'অর্জিত জিপিএ'}</p>
           <p className="text-sm font-bold mt-0.5">
-            {summary.gpa !== null && summary.gpa !== undefined ? formatNumber(summary.gpa, locale, 2) : '—'}
+            {summary.gpa !== null && summary.gpa !== undefined ? formatNumber(summary.gpa, 'bn', 2) : '—'}
           </p>
         </div>
         <div className="p-2.5">
-          <p className="text-[10px] uppercase tracking-wide text-[#52525B]">{pick('৪র্থ ছাড়া জিপিএ', 'GPA (w/o 4th)')}</p>
+          <p className="text-xs print:text-[10px] uppercase tracking-wide text-[#52525B]">{'৪র্থ ছাড়া জিপিএ'}</p>
           <p className="text-sm font-bold mt-0.5">
             {summary.gpaWithoutOptional !== null && summary.gpaWithoutOptional !== undefined
-              ? formatNumber(summary.gpaWithoutOptional, locale, 2)
+              ? formatNumber(summary.gpaWithoutOptional, 'bn', 2)
               : '—'}
           </p>
         </div>
         <div className="p-2.5">
-          <p className="text-[10px] uppercase tracking-wide text-[#52525B]">{pick('লেটার গ্রেড', 'Grade')}</p>
+          <p className="text-xs print:text-[10px] uppercase tracking-wide text-[#52525B]">{'লেটার গ্রেড'}</p>
           <p className="text-sm font-bold mt-0.5">{summary.letterGrade ?? '—'}</p>
         </div>
         <div className="p-2.5">
-          <p className="text-[10px] uppercase tracking-wide text-[#52525B]">{pick('মেধাক্রম (শ্রেণি/শাখা)', 'Merit (Cls/Sec)')}</p>
+          <p className="text-xs print:text-[10px] uppercase tracking-wide text-[#52525B]">{'মেধাক্রম (শ্রেণি/শাখা)'}</p>
           <p className="text-sm font-bold mt-0.5">
-            {summary.meritPosition ? `#${formatNumber(summary.meritPosition, locale)}` : '—'}
-            {summary.sectionMeritPosition ? ` / #${formatNumber(summary.sectionMeritPosition, locale)}` : ''}
+            {summary.meritPosition ? `#${formatNumber(summary.meritPosition, 'bn')}` : '—'}
+            {summary.sectionMeritPosition ? ` / #${formatNumber(summary.sectionMeritPosition, 'bn')}` : ''}
           </p>
         </div>
         <div className="p-2.5">
-          <p className="text-[10px] uppercase tracking-wide text-[#52525B]">{pick('ফলাফল', 'Status')}</p>
+          <p className="text-xs print:text-[10px] uppercase tracking-wide text-[#52525B]">{'ফলাফল'}</p>
           <p
             className={`text-sm font-bold mt-0.5 ${
               summary.resultStatus === 'PASS' ? 'text-[#111111]' : 'text-[#991B1B]'
             }`}
           >
             {summary.resultStatus === 'PASS'
-              ? pick('উত্তীর্ণ (PASS)', 'PASSED')
+              ? 'উত্তীর্ণ'
               : summary.resultStatus === 'FAIL'
-                ? pick('অনুত্তীর্ণ (FAIL)', 'FAILED')
+                ? 'অনুত্তীর্ণ'
                 : summary.resultStatus}
           </p>
         </div>
@@ -611,19 +604,13 @@ export function PrintableMarksheet({
       {/* Class Teacher's Remarks Box */}
       <div className="mt-3.5 border border-[#52525B] px-3.5 py-2.5 text-xs">
         <span className="font-bold text-[#111111]">
-          {pick('শ্রেণি শিক্ষকের মন্তব্য:', "Class Teacher's Remarks:")}
+          {'শ্রেণি শিক্ষকের মন্তব্য:'}
         </span>{' '}
         <span className="text-[#27272A]">
           {summary.teacherRemarks ||
             (summary.resultStatus === 'PASS'
-              ? pick(
-                  'সন্তোষজনক ফলাফল। নিয়মিত অধ্যবসায় ও শৃঙ্খলা বজায় রাখার পরামর্শ দেওয়া হলো।',
-                  'Satisfactory academic progress. Encouraged to maintain regular study and discipline.'
-                )
-              : pick(
-                  'অনুত্তীর্ণ বিষয়ে অতিরিক্ত মনোযোগ, নিয়মিত ক্লাস উপস্থিতি ও অভিভাবকের তদারকি প্রয়োজন।',
-                  'Requires focused revision in failed subjects, regular attendance, and guardian supervision.'
-                ))}
+              ? 'সন্তোষজনক ফলাফল। নিয়মিত অধ্যবসায় ও শৃঙ্খলা বজায় রাখার পরামর্শ দেওয়া হলো।'
+              : 'অনুত্তীর্ণ বিষয়ে অতিরিক্ত মনোযোগ, নিয়মিত ক্লাস উপস্থিতি ও অভিভাবকের তদারকি প্রয়োজন।')}
         </span>
       </div>
     </FormalExamDocumentShell>
@@ -684,7 +671,6 @@ export function PrintableTabulationSheet({
     resultStatus: string;
   }>;
 }) {
-  const { locale, pick } = useI18n();
   const passedCount = rows.filter((r) => r.resultStatus === 'PASS').length;
   const failedCount = rows.filter((r) => r.resultStatus === 'FAIL').length;
   const gpa5Count = rows.filter((r) => r.resultStatus === 'PASS' && (r.gpa ?? 0) >= 5.0).length;
@@ -700,14 +686,14 @@ export function PrintableTabulationSheet({
       subtitleEn={`${examName} — ${className}${sectionLabel ? ` (${sectionLabel})` : ''}`}
       refLabel={
         <span>
-          <strong>{pick('শিক্ষাবর্ষ:', 'Academic Year:')}</strong> {formatNumber(academicYear, locale)} &nbsp;|&nbsp;{' '}
-          <strong>{pick('মোট পরীক্ষার্থী:', 'Examinees:')}</strong> {formatNumber(rows.length, locale)}
+          <strong>{'শিক্ষাবর্ষ:'}</strong> {formatNumber(academicYear, 'bn')} &nbsp;|&nbsp;{' '}
+          <strong>{'মোট পরীক্ষার্থী:'}</strong> {formatNumber(rows.length, 'bn')}
         </span>
       }
       dateLabel={
         <span>
-          <strong>{pick('প্রস্তুতের তারিখ:', 'Prepared On:')}</strong>{' '}
-          {formatDateLong(new Date().toISOString().slice(0, 10), locale)}
+          <strong>{'প্রস্তুতের তারিখ:'}</strong>{' '}
+          {formatDateLong(new Date().toISOString().slice(0, 10), 'bn')}
         </span>
       }
       signatures={[
@@ -717,44 +703,44 @@ export function PrintableTabulationSheet({
       ]}
     >
       <div className="overflow-x-auto">
-        <table className="w-full text-[10px] border border-[#18181B] border-collapse tabular-nums">
+        <table className="w-full text-xs print:text-[10px] border border-[#18181B] border-collapse tabular-nums">
           <thead>
             <tr className="bg-[#F4F4F5] text-[#111111]">
               <th className="border border-[#18181B] px-1 py-1 text-center w-9">
-                {pick('মেধা', 'Merit')}
+                {'মেধা'}
               </th>
               <th className="border border-[#18181B] px-1 py-1 text-center w-9">
-                {pick('রোল', 'Roll')}
+                {'রোল'}
               </th>
               <th className="border border-[#18181B] px-1.5 py-1 text-left min-w-[115px]">
-                {pick('শিক্ষার্থীর নাম ও শাখা', 'Student Name & Section')}
+                {'শিক্ষার্থীর নাম ও শাখা'}
               </th>
               {subjects.map((sub) => (
                 <th key={sub.id} className="border border-[#18181B] px-1 py-1 text-center leading-tight">
-                  <div className="font-bold">{locale === 'bn' ? sub.nameBn : sub.nameEn}</div>
-                  <div className="text-[9px] font-normal text-[#52525B] whitespace-nowrap">
-                    {sub.code} · ({formatNumber(sub.fullMarks, locale)})
+                  <div className="font-bold">{sub.nameBn}</div>
+                  <div className="text-xs print:text-[9px] font-normal text-[#52525B] whitespace-nowrap">
+                    {sub.code} · ({formatNumber(sub.fullMarks, 'bn')})
                   </div>
                 </th>
               ))}
-              <th className="border border-[#18181B] px-1 py-1 text-right">{pick('মোট', 'Total')}</th>
+              <th className="border border-[#18181B] px-1 py-1 text-right">{'মোট'}</th>
               <th className="border border-[#18181B] px-1 py-1 text-right">GPA</th>
-              <th className="border border-[#18181B] px-1 py-1 text-center">{pick('গ্রেড', 'Grade')}</th>
-              <th className="border border-[#18181B] px-1 py-1 text-center">{pick('অবস্থা', 'Status')}</th>
+              <th className="border border-[#18181B] px-1 py-1 text-center">{'গ্রেড'}</th>
+              <th className="border border-[#18181B] px-1 py-1 text-center">{'অবস্থা'}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.studentId}>
                 <td className="border border-[#52525B] px-1 py-1 text-center font-bold">
-                  {r.meritPosition ? formatNumber(r.meritPosition, locale) : '—'}
+                  {r.meritPosition ? formatNumber(r.meritPosition, 'bn') : '—'}
                 </td>
                 <td className="border border-[#52525B] px-1 py-1 text-center font-semibold">
-                  {formatNumber(r.roll, locale)}
+                  {formatNumber(r.roll, 'bn')}
                 </td>
                 <td className="border border-[#52525B] px-1.5 py-1 font-medium whitespace-nowrap">
                   <span>{r.studentName}</span>{' '}
-                  <span className="text-[9px] text-[#52525B]">
+                  <span className="text-xs print:text-[9px] text-[#52525B]">
                     ({r.sectionName}{r.groupName ? `, ${r.groupName}` : ''})
                   </span>
                 </td>
@@ -768,18 +754,18 @@ export function PrintableTabulationSheet({
                         <span className="font-bold text-[#991B1B]">AB</span>
                       ) : (
                         <span className={cell.grade === 'F' || cell.isPassed === false ? 'font-bold text-[#991B1B]' : ''}>
-                          {formatNumber(cell.total, locale)}{' '}
-                          <span className="text-[9px]">({cell.grade})</span>
+                          {formatNumber(cell.total, 'bn')}{' '}
+                          <span className="text-xs print:text-[9px]">({cell.grade})</span>
                         </span>
                       )}
                     </td>
                   );
                 })}
                 <td className="border border-[#52525B] px-1 py-1 text-right font-bold">
-                  {formatNumber(r.totalMarks, locale)}
+                  {formatNumber(r.totalMarks, 'bn')}
                 </td>
                 <td className="border border-[#52525B] px-1 py-1 text-right font-bold">
-                  {r.gpa !== null ? formatNumber(r.gpa, locale, 2) : '—'}
+                  {r.gpa !== null ? formatNumber(r.gpa, 'bn', 2) : '—'}
                 </td>
                 <td className="border border-[#52525B] px-1 py-1 text-center font-bold">
                   {r.letterGrade ?? '—'}
@@ -795,10 +781,10 @@ export function PrintableTabulationSheet({
                     }
                   >
                     {r.resultStatus === 'PASS'
-                      ? pick('উত্তীর্ণ', 'PASS')
+                      ? 'উত্তীর্ণ'
                       : r.resultStatus === 'INCOMPLETE'
-                        ? pick('অসম্পূর্ণ', 'INCOMPLETE')
-                        : pick('অনুত্তীর্ণ', 'FAIL')}
+                        ? 'অসম্পূর্ণ'
+                        : 'অনুত্তীর্ণ'}
                   </span>
                 </td>
               </tr>
@@ -810,24 +796,24 @@ export function PrintableTabulationSheet({
       {/* Tabulation Statistical Summary Strip */}
       <div className="mt-3.5 grid grid-cols-5 border border-[#18181B] divide-x divide-[#52525B] text-center text-xs tabular-nums">
         <div className="py-2 px-2">
-          <span className="text-[#52525B]">{pick('মোট পরীক্ষার্থী:', 'Total:')}</span>{' '}
-          <strong>{formatNumber(rows.length, locale)}</strong>
+          <span className="text-[#52525B]">{'মোট পরীক্ষার্থী:'}</span>{' '}
+          <strong>{formatNumber(rows.length, 'bn')}</strong>
         </div>
         <div className="py-2 px-2">
-          <span className="text-[#52525B]">{pick('উত্তীর্ণ:', 'Passed:')}</span>{' '}
-          <strong>{formatNumber(passedCount, locale)}</strong>
+          <span className="text-[#52525B]">{'উত্তীর্ণ:'}</span>{' '}
+          <strong>{formatNumber(passedCount, 'bn')}</strong>
         </div>
         <div className="py-2 px-2">
-          <span className="text-[#52525B]">{pick('অনুত্তীর্ণ:', 'Failed:')}</span>{' '}
-          <strong className="text-[#991B1B]">{formatNumber(failedCount, locale)}</strong>
+          <span className="text-[#52525B]">{'অনুত্তীর্ণ:'}</span>{' '}
+          <strong className="text-[#991B1B]">{formatNumber(failedCount, 'bn')}</strong>
         </div>
         <div className="py-2 px-2">
-          <span className="text-[#52525B]">{pick('পাসের হার:', 'Pass Rate:')}</span>{' '}
-          <strong>{formatNumber(passRate, locale)}%</strong>
+          <span className="text-[#52525B]">{'পাসের হার:'}</span>{' '}
+          <strong>{formatNumber(passRate, 'bn')}%</strong>
         </div>
         <div className="py-2 px-2">
-          <span className="text-[#52525B]">{pick('জিপিএ ৫.০০:', 'GPA 5.00:')}</span>{' '}
-          <strong>{formatNumber(gpa5Count, locale)}</strong>
+          <span className="text-[#52525B]">{'জিপিএ ৫.০০:'}</span>{' '}
+          <strong>{formatNumber(gpa5Count, 'bn')}</strong>
         </div>
       </div>
     </FormalExamDocumentShell>
@@ -862,8 +848,6 @@ export function PrintableExamRoutine({
     instructions?: string | null;
   }>;
 }) {
-  const { locale, pick } = useI18n();
-
   return (
     <FormalExamDocumentShell
       school={school}
@@ -873,13 +857,13 @@ export function PrintableExamRoutine({
       subtitleEn={`${examName} — ${className}`}
       refLabel={
         <span>
-          <strong>{pick('শিক্ষাবর্ষ:', 'Session:')}</strong> {formatNumber(academicYear, locale)}
+          <strong>{'শিক্ষাবর্ষ:'}</strong> {formatNumber(academicYear, 'bn')}
         </span>
       }
       dateLabel={
         <span>
-          <strong>{pick('প্রকাশের তারিখ:', 'Issued On:')}</strong>{' '}
-          {formatDateLong(new Date().toISOString().slice(0, 10), locale)}
+          <strong>{'প্রকাশের তারিখ:'}</strong>{' '}
+          {formatDateLong(new Date().toISOString().slice(0, 10), 'bn')}
         </span>
       }
       signatures={[
@@ -890,40 +874,40 @@ export function PrintableExamRoutine({
       <table className="w-full text-xs sm:text-[13px] border border-[#18181B] border-collapse tabular-nums">
         <thead>
           <tr className="bg-[#F4F4F5] text-[#111111]">
-            <th className="border border-[#18181B] px-2 py-2 text-center w-10">{pick('ক্রম', 'Sl')}</th>
-            <th className="border border-[#18181B] px-2.5 py-2 text-left">{pick('তারিখ ও বার', 'Date')}</th>
-            <th className="border border-[#18181B] px-2.5 py-2 text-left">{pick('বিষয় ও কোড', 'Subject & Code')}</th>
-            <th className="border border-[#18181B] px-2 py-2 text-center">{pick('পূর্ণমান', 'Full')}</th>
-            <th className="border border-[#18181B] px-2.5 py-2 text-center">{pick('সময়', 'Time')}</th>
-            <th className="border border-[#18181B] px-2.5 py-2 text-left">{pick('পরীক্ষার কক্ষ', 'Room / Hall')}</th>
+            <th className="border border-[#18181B] px-2 py-2 text-center w-10">{'ক্রম'}</th>
+            <th className="border border-[#18181B] px-2.5 py-2 text-left">{'তারিখ ও বার'}</th>
+            <th className="border border-[#18181B] px-2.5 py-2 text-left">{'বিষয় ও কোড'}</th>
+            <th className="border border-[#18181B] px-2 py-2 text-center">{'পূর্ণমান'}</th>
+            <th className="border border-[#18181B] px-2.5 py-2 text-center">{'সময়'}</th>
+            <th className="border border-[#18181B] px-2.5 py-2 text-left">{'পরীক্ষার কক্ষ'}</th>
           </tr>
         </thead>
         <tbody>
           {routines.map((rt, idx) => (
             <tr key={rt.id}>
               <td className="border border-[#52525B] px-2 py-2 text-center font-semibold">
-                {formatNumber(idx + 1, locale)}
+                {formatNumber(idx + 1, 'bn')}
               </td>
               <td className="border border-[#52525B] px-2.5 py-2 font-semibold whitespace-nowrap">
-                {formatDateShort(rt.examDate, locale)}
+                {formatDateShort(rt.examDate, 'bn')}
               </td>
               <td className="border border-[#52525B] px-2.5 py-2">
                 <span className="font-bold">{rt.subjectName}</span>{' '}
-                <span className="text-[11px] font-mono text-[#52525B]">({rt.subjectCode})</span>
+                <span className="text-xs print:text-[11px] font-mono text-[#52525B]">({rt.subjectCode})</span>
                 {rt.sectionName && (
-                  <span className="block text-[11px] text-[#52525B]">
-                    {pick('শাখা:', 'Section:')} {rt.sectionName}
+                  <span className="block text-xs print:text-[11px] text-[#52525B]">
+                    {'শাখা:'} {rt.sectionName}
                   </span>
                 )}
               </td>
               <td className="border border-[#52525B] px-2 py-2 text-center">
-                {formatNumber(rt.fullMarks, locale)}
+                {formatNumber(rt.fullMarks, 'bn')}
               </td>
               <td className="border border-[#52525B] px-2.5 py-2 text-center whitespace-nowrap">
-                {formatTime(rt.startTime, locale)} – {formatTime(rt.endTime, locale)}
+                {formatTime(rt.startTime, 'bn')} – {formatTime(rt.endTime, 'bn')}
               </td>
               <td className="border border-[#52525B] px-2.5 py-2">
-                {rt.roomNo || pick('নির্ধারিত হল', 'Assigned Hall')}
+                {rt.roomNo || 'নির্ধারিত হল'}
               </td>
             </tr>
           ))}
@@ -933,32 +917,20 @@ export function PrintableExamRoutine({
       {/* Official General Instructions */}
       <div className="mt-5 border border-[#52525B] p-3.5 text-xs space-y-1.5">
         <p className="font-bold uppercase tracking-wide text-[#111111] border-b border-[#D4D4D8] pb-1">
-          {pick('পরীক্ষার্থীদের জন্য বিশেষ নির্দেশাবলী:', 'Important Instructions for Examinees:')}
+          {'পরীক্ষার্থীদের জন্য বিশেষ নির্দেশাবলী:'}
         </p>
         <ol className="list-decimal list-inside space-y-1 text-[#27272A]">
           <li>
-            {pick(
-              'পরীক্ষা শুরু হওয়ার অন্তত ৩০ মিনিট পূর্বে প্রবেশপত্রসহ নির্ধারিত আসনে উপস্থিত থাকতে হবে।',
-              'Examinees must be seated in the assigned hall at least 30 minutes before the examination starts with their Admit Card.'
-            )}
+            {'পরীক্ষা শুরু হওয়ার অন্তত ৩০ মিনিট পূর্বে প্রবেশপত্রসহ নির্ধারিত আসনে উপস্থিত থাকতে হবে।'}
           </li>
           <li>
-            {pick(
-              'মোবাইল ফোন, স্মার্টওয়াচ বা যেকোনো অননুমোদিত ইলেকট্রনিক ডিভাইস পরীক্ষার হলে সম্পূর্ণ নিষিদ্ধ।',
-              'Mobile phones, smartwatches, or any unauthorized electronic devices are strictly prohibited inside the hall.'
-            )}
+            {'মোবাইল ফোন, স্মার্টওয়াচ বা যেকোনো অননুমোদিত ইলেকট্রনিক ডিভাইস পরীক্ষার হলে সম্পূর্ণ নিষিদ্ধ।'}
           </li>
           <li>
-            {pick(
-              'ব্যবহারিক পরীক্ষার তারিখ ও সময়সূচি সংশ্লিষ্ট বিভাগীয় শিক্ষকের মাধ্যমে জানিয়ে দেওয়া হবে।',
-              'Practical examination dates and batches will be notified by the respective subject department.'
-            )}
+            {'ব্যবহারিক পরীক্ষার তারিখ ও সময়সূচি সংশ্লিষ্ট বিভাগীয় শিক্ষকের মাধ্যমে জানিয়ে দেওয়া হবে।'}
           </li>
           <li>
-            {pick(
-              'বিদ্যালয় কর্তৃপক্ষ অনিবার্য কারণে পরীক্ষার সময়সূচি পরিবর্তনের অধিকার সংরক্ষণ করে।',
-              'The school authority reserves the right to reschedule any examination under unavoidable circumstances.'
-            )}
+            {'বিদ্যালয় কর্তৃপক্ষ অনিবার্য কারণে পরীক্ষার সময়সূচি পরিবর্তনের অধিকার সংরক্ষণ করে।'}
           </li>
         </ol>
       </div>
@@ -1009,23 +981,21 @@ export function PrintableExamAdmitCard({
   isPrintRoot = true,
   pageBreakAfter = false,
 }: PrintableExamAdmitCardProps) {
-  const { locale, pick } = useI18n();
-
   return (
     <FormalExamDocumentShell
       school={school}
       titleBn="প্রবেশপত্র (ADMIT CARD)"
       titleEn="EXAMINATION ADMIT CARD"
-      subtitleBn={`${examName} · ${pick('শিক্ষাবর্ষ', 'Session')} ${formatNumber(academicYear, locale)}`}
-      subtitleEn={`${examName} · Session ${formatNumber(academicYear, locale)}`}
+      subtitleBn={`${examName} · ${'শিক্ষাবর্ষ'} ${formatNumber(academicYear, 'bn')}`}
+      subtitleEn={`${examName} · Session ${formatNumber(academicYear, 'bn')}`}
       refLabel={
         <span>
-          <strong>{pick('রোল নং:', 'Roll No:')}</strong> {formatNumber(student.roll, locale)}
+          <strong>{'রোল নং:'}</strong> {formatNumber(student.roll, 'bn')}
         </span>
       }
       dateLabel={
         <span>
-          <strong>{pick('আইডি:', 'ID:')}</strong> <span className="font-mono">{student.studentId}</span>
+          <strong>{'আইডি:'}</strong> <span className="font-mono">{student.studentId}</span>
         </span>
       }
       isPrintRoot={isPrintRoot}
@@ -1040,35 +1010,35 @@ export function PrintableExamAdmitCard({
       <div className="flex flex-col sm:flex-row print:flex-row gap-4 mb-4 items-start">
         <div className="flex-1 w-full border border-[#18181B] p-3 text-xs sm:text-[13px] space-y-1.5">
           <div className="grid grid-cols-12 gap-1">
-            <span className="col-span-4 text-[#52525B]">{pick('পরীক্ষার্থীর নাম', 'Name of Examinee')}</span>
+            <span className="col-span-4 text-[#52525B]">{'পরীক্ষার্থীর নাম'}</span>
             <span className="col-span-8 font-bold text-[#111111]">
-              : {locale === 'bn' ? student.nameBn || student.nameEn : student.nameEn}
+              : {student.nameBn || student.nameEn}
             </span>
           </div>
           {student.fatherName && (
             <div className="grid grid-cols-12 gap-1">
-              <span className="col-span-4 text-[#52525B]">{pick('পিতার নাম', "Father's Name")}</span>
+              <span className="col-span-4 text-[#52525B]">{'পিতার নাম'}</span>
               <span className="col-span-8">: {student.fatherName}</span>
             </div>
           )}
           {student.motherName && (
             <div className="grid grid-cols-12 gap-1">
-              <span className="col-span-4 text-[#52525B]">{pick('মাতার নাম', "Mother's Name")}</span>
+              <span className="col-span-4 text-[#52525B]">{'মাতার নাম'}</span>
               <span className="col-span-8">: {student.motherName}</span>
             </div>
           )}
           <div className="grid grid-cols-12 gap-1 tabular-nums">
-            <span className="col-span-4 text-[#52525B]">{pick('শ্রেণি ও শাখা', 'Class & Section')}</span>
+            <span className="col-span-4 text-[#52525B]">{'শ্রেণি ও শাখা'}</span>
             <span className="col-span-8 font-semibold">
               : {student.className} ({student.sectionName})
               {student.groupName ? ` · ${student.groupName}` : ''}
             </span>
           </div>
           <div className="grid grid-cols-12 gap-1 tabular-nums">
-            <span className="col-span-4 text-[#52525B]">{pick('পরীক্ষার কক্ষ ও আসন', 'Exam Room & Seat')}</span>
+            <span className="col-span-4 text-[#52525B]">{'পরীক্ষার কক্ষ ও আসন'}</span>
             <span className="col-span-8 font-semibold">
-              : {student.hallRoom || pick('নোটিশ বোর্ড দ্রষ্টব্য', 'See Notice Board')}
-              {student.seatNo ? ` · ${pick('আসন', 'Seat')} #${formatNumber(student.seatNo, locale)}` : ''}
+              : {student.hallRoom || 'নোটিশ বোর্ড দ্রষ্টব্য'}
+              {student.seatNo ? ` · ${'আসন'} #${formatNumber(student.seatNo, 'bn')}` : ''}
             </span>
           </div>
         </div>
@@ -1083,8 +1053,8 @@ export function PrintableExamAdmitCard({
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="text-center px-2 text-[10px] text-[#52525B] leading-tight">
-              <p className="font-semibold">{pick('সত্যায়িত ছবি', 'Attested Photo')}</p>
+            <div className="text-center px-2 text-xs print:text-[10px] text-[#52525B] leading-tight">
+              <p className="font-semibold">{'সত্যায়িত ছবি'}</p>
               <p className="mt-1">35mm × 45mm</p>
             </div>
           )}
@@ -1094,38 +1064,35 @@ export function PrintableExamAdmitCard({
       {/* Personal Applicable Exam Timetable */}
       <div className="mb-4">
         <p className="text-xs font-bold uppercase tracking-wide text-[#111111] mb-1.5">
-          {pick('নির্ধারিত পরীক্ষার বিষয় ও সময়সূচি:', 'Scheduled Examination Subjects & Timetable:')}
+          {'নির্ধারিত পরীক্ষার বিষয় ও সময়সূচি:'}
         </p>
         {schedule.length === 0 ? (
           <div className="border border-[#52525B] p-3 text-xs text-[#52525B] text-center">
-            {pick(
-              'এই পরীক্ষার সময়সূচি বিদ্যালয় নোটিশ বোর্ডে প্রকাশিত রুটিন অনুযায়ী প্রযোজ্য হবে।',
-              'Subject timetable will follow the official routine published on the school notice board.'
-            )}
+            {'এই পরীক্ষার সময়সূচি বিদ্যালয় নোটিশ বোর্ডে প্রকাশিত রুটিন অনুযায়ী প্রযোজ্য হবে।'}
           </div>
         ) : (
           <table className="w-full text-xs border border-[#18181B] border-collapse tabular-nums">
             <thead>
               <tr className="bg-[#F4F4F5] text-[#111111]">
-                <th className="border border-[#18181B] px-2 py-1.5 text-left">{pick('তারিখ', 'Date')}</th>
-                <th className="border border-[#18181B] px-2 py-1.5 text-center w-14">{pick('কোড', 'Code')}</th>
-                <th className="border border-[#18181B] px-2 py-1.5 text-left">{pick('বিষয়', 'Subject')}</th>
-                <th className="border border-[#18181B] px-2 py-1.5 text-center">{pick('সময়', 'Time')}</th>
-                <th className="border border-[#18181B] px-2 py-1.5 text-left">{pick('কক্ষ', 'Room')}</th>
+                <th className="border border-[#18181B] px-2 py-1.5 text-left">{'তারিখ'}</th>
+                <th className="border border-[#18181B] px-2 py-1.5 text-center w-14">{'কোড'}</th>
+                <th className="border border-[#18181B] px-2 py-1.5 text-left">{'বিষয়'}</th>
+                <th className="border border-[#18181B] px-2 py-1.5 text-center">{'সময়'}</th>
+                <th className="border border-[#18181B] px-2 py-1.5 text-left">{'কক্ষ'}</th>
               </tr>
             </thead>
             <tbody>
               {schedule.map((row, i) => (
                 <tr key={i}>
                   <td className="border border-[#52525B] px-2 py-1.5 whitespace-nowrap font-medium">
-                    {formatDateShort(row.examDate, locale)}
+                    {formatDateShort(row.examDate, 'bn')}
                   </td>
                   <td className="border border-[#52525B] px-2 py-1.5 text-center font-mono">
                     {row.subjectCode}
                   </td>
                   <td className="border border-[#52525B] px-2 py-1.5 font-semibold">{row.subjectName}</td>
                   <td className="border border-[#52525B] px-2 py-1.5 text-center whitespace-nowrap">
-                    {formatTime(row.startTime, locale)} – {formatTime(row.endTime, locale)}
+                    {formatTime(row.startTime, 'bn')} – {formatTime(row.endTime, 'bn')}
                   </td>
                   <td className="border border-[#52525B] px-2 py-1.5">
                     {row.roomNo || student.hallRoom || '—'}
@@ -1138,18 +1105,18 @@ export function PrintableExamAdmitCard({
       </div>
 
       {/* Hall Directives */}
-      <div className="border border-[#52525B] p-3 text-[11px] space-y-1 text-[#27272A]">
+      <div className="border border-[#52525B] p-3 text-xs print:text-[11px] space-y-1 text-[#27272A]">
         <p className="font-bold text-[#111111]">
-          {pick('পরীক্ষা হলের নিয়মাবলী:', 'Examination Hall Directives:')}
+          {'পরীক্ষা হলের নিয়মাবলী:'}
         </p>
         <p>
-          ১. {pick('প্রতিদিন পরীক্ষায় অংশগ্রহণের সময় এই মূল প্রবেশপত্রটি সাথে আনতে হবে।', 'Bring this original Admit Card to every examination session.')}
+          ১. {'প্রতিদিন পরীক্ষায় অংশগ্রহণের সময় এই মূল প্রবেশপত্রটি সাথে আনতে হবে।'}
         </p>
         <p>
-          ২. {pick('পরীক্ষা শুরুর ৩০ মিনিট পূর্বে কক্ষে প্রবেশ করে নির্ধারিত আসনে বসতে হবে।', 'Enter the hall and take your assigned seat 30 minutes prior to commencement.')}
+          ২. {'পরীক্ষা শুরুর ৩০ মিনিট পূর্বে কক্ষে প্রবেশ করে নির্ধারিত আসনে বসতে হবে।'}
         </p>
         <p>
-          ৩. {pick('হাজিরা খাতায় স্বাক্ষর ও উত্তরপত্রের ওএমআর/কভার পৃষ্ঠায় রোল নম্বর সঠিকভাবে লিখতে হবে।', 'Sign the attendance sheet and fill in your Roll No. accurately on the answer script.')}
+          ৩. {'হাজিরা খাতায় স্বাক্ষর ও উত্তরপত্রের ওএমআর/কভার পৃষ্ঠায় রোল নম্বর সঠিকভাবে লিখতে হবে।'}
         </p>
       </div>
     </FormalExamDocumentShell>
@@ -1211,14 +1178,12 @@ export function PrintableExamSeatPlan({
   seats?: SeatPlanRoomBlock['seats'];
   rooms?: SeatPlanRoomBlock[];
 }) {
-  const { locale, pick } = useI18n();
-
   const normalizedRooms: SeatPlanRoomBlock[] =
     rooms && rooms.length > 0
       ? rooms
       : [
           {
-            roomNo: roomName || pick('হল রুম ১০১', 'Hall Room 101'),
+            roomNo: roomName || 'হল রুম ১০১',
             capacity: seats?.length ?? 0,
             seats: seats ?? [],
           },
@@ -1237,8 +1202,8 @@ export function PrintableExamSeatPlan({
             school={school}
             titleBn="পরীক্ষার আসন বিন্যাস (SEAT PLAN)"
             titleEn="OFFICIAL EXAMINATION SEAT PLAN"
-            subtitleBn={`${examName}${academicYear ? ` · ${pick('শিক্ষাবর্ষ', 'Session')} ${formatNumber(academicYear, locale)}` : ''}`}
-            subtitleEn={`${examName}${academicYear ? ` · Session ${formatNumber(academicYear, locale)}` : ''}`}
+            subtitleBn={`${examName}${academicYear ? ` · ${'শিক্ষাবর্ষ'} ${formatNumber(academicYear, 'bn')}` : ''}`}
+            subtitleEn={`${examName}${academicYear ? ` · Session ${formatNumber(academicYear, 'bn')}` : ''}`}
             allowFlow={room.seats.length > 18}
             isPrintRoot={false}
             pageBreakAfter={roomIdx < normalizedRooms.length - 1}
@@ -1253,31 +1218,31 @@ export function PrintableExamSeatPlan({
               <tbody>
                 <tr>
                   <td className="border border-[#52525B] bg-[#F4F4F5] px-2.5 py-1.5 font-bold w-1/5">
-                    {pick('পরীক্ষার কক্ষ', 'Exam Room')}
+                    {'পরীক্ষার কক্ষ'}
                   </td>
                   <td className="border border-[#52525B] px-2.5 py-1.5 font-bold w-3/10">
                     {room.roomNo}
                     {room.buildingName ? ` (${room.buildingName})` : ''}
                   </td>
                   <td className="border border-[#52525B] bg-[#F4F4F5] px-2.5 py-1.5 font-bold w-1/5">
-                    {pick('আসন / পরীক্ষার্থী', 'Capacity / Seated')}
+                    {'আসন / পরীক্ষার্থী'}
                   </td>
                   <td className="border border-[#52525B] px-2.5 py-1.5 font-semibold w-3/10">
-                    {formatNumber(room.seats.length, locale)} / {formatNumber(room.capacity, locale)}
+                    {formatNumber(room.seats.length, 'bn')} / {formatNumber(room.capacity, 'bn')}
                     {minRoll !== null && maxRoll !== null
-                      ? ` (${pick('রোল', 'Roll')} ${formatNumber(minRoll, locale)}–${formatNumber(maxRoll, locale)})`
+                      ? ` (${'রোল'} ${formatNumber(minRoll, 'bn')}–${formatNumber(maxRoll, 'bn')})`
                       : ''}
                   </td>
                 </tr>
                 <tr>
                   <td className="border border-[#52525B] bg-[#F4F4F5] px-2.5 py-1.5 font-bold">
-                    {pick('প্রধান পরিদর্শক', 'Chief Invigilator')}
+                    {'প্রধান পরিদর্শক'}
                   </td>
                   <td className="border border-[#52525B] px-2.5 py-1.5">
-                    {room.invigilatorName || pick('নির্ধারিত হয়নি', 'To be assigned')}
+                    {room.invigilatorName || 'নির্ধারিত হয়নি'}
                   </td>
                   <td className="border border-[#52525B] bg-[#F4F4F5] px-2.5 py-1.5 font-bold">
-                    {pick('সহকারী পরিদর্শক', 'Asst. Invigilator')}
+                    {'সহকারী পরিদর্শক'}
                   </td>
                   <td className="border border-[#52525B] px-2.5 py-1.5">
                     {room.assistantInvigilatorName || '—'}
@@ -1294,19 +1259,19 @@ export function PrintableExamSeatPlan({
                   className="border-[1.5px] border-[#18181B] p-2.5 bg-white break-inside-avoid"
                 >
                   <div className="flex items-center justify-between border-b border-[#52525B] pb-1 mb-1.5">
-                    <span className="text-[11px] font-bold uppercase tracking-wide text-[#27272A]">
-                      {pick('আসন', 'Seat')} #{formatNumber(seat.seatNo, locale)}
+                    <span className="text-xs print:text-[11px] font-bold uppercase tracking-wide text-[#27272A]">
+                      {'আসন'} #{formatNumber(seat.seatNo, 'bn')}
                     </span>
                     <span className="text-xs font-bold text-[#111111] border border-[#18181B] px-1.5 py-0.2">
-                      {pick('রোল:', 'Roll:')} {formatNumber(seat.roll, locale)}
+                      {'রোল:'} {formatNumber(seat.roll, 'bn')}
                     </span>
                   </div>
                   <p className="text-xs font-bold text-[#111111] truncate">{seat.studentName}</p>
-                  <p className="text-[11px] text-[#3F3F46] mt-0.5 truncate">
+                  <p className="text-xs print:text-[11px] text-[#3F3F46] mt-0.5 truncate">
                     {seat.className} ({seat.sectionName})
                     {seat.groupName ? ` · ${seat.groupName}` : ''}
                   </p>
-                  <p className="text-[10px] font-mono text-[#52525B] mt-0.5">
+                  <p className="text-xs print:text-[10px] font-mono text-[#52525B] mt-0.5">
                     ID: {seat.studentId}
                   </p>
                 </div>
@@ -1340,8 +1305,6 @@ export function PrintableExamAttendanceSheet({
   examTime?: string | null;
   rooms: SeatPlanRoomBlock[];
 }) {
-  const { locale, pick } = useI18n();
-
   return (
     <div data-certificate-print-root="true" data-print-orientation="portrait" className="space-y-6 print:space-y-0">
       {rooms.map((room, roomIdx) => (
@@ -1350,8 +1313,8 @@ export function PrintableExamAttendanceSheet({
           school={school}
           titleBn="পরীক্ষা কক্ষের উপস্থিতি ও উত্তরপত্র স্বাক্ষর শিট"
           titleEn="EXAMINATION HALL ATTENDANCE & SCRIPT REGISTER"
-          subtitleBn={`${examName} · ${pick('শিক্ষাবর্ষ', 'Session')} ${formatNumber(academicYear, locale)}`}
-          subtitleEn={`${examName} · Session ${formatNumber(academicYear, locale)}`}
+          subtitleBn={`${examName} · ${'শিক্ষাবর্ষ'} ${formatNumber(academicYear, 'bn')}`}
+          subtitleEn={`${examName} · Session ${formatNumber(academicYear, 'bn')}`}
           allowFlow={room.seats.length > 18}
           isPrintRoot={false}
           pageBreakAfter={roomIdx < rooms.length - 1}
@@ -1365,27 +1328,27 @@ export function PrintableExamAttendanceSheet({
             <tbody>
               <tr>
                 <td className="border border-[#52525B] bg-[#F4F4F5] px-2.5 py-1.5 font-bold w-1/6">
-                  {pick('বিষয়', 'Subject')}
+                  {'বিষয়'}
                 </td>
                 <td className="border border-[#52525B] px-2.5 py-1.5 font-bold w-2/6">{subjectLabel}</td>
                 <td className="border border-[#52525B] bg-[#F4F4F5] px-2.5 py-1.5 font-bold w-1/6">
-                  {pick('তারিখ ও সময়', 'Date & Time')}
+                  {'তারিখ ও সময়'}
                 </td>
                 <td className="border border-[#52525B] px-2.5 py-1.5 w-2/6">
-                  {examDate ? formatDateShort(examDate, locale) : '________________'}
+                  {examDate ? formatDateShort(examDate, 'bn') : '________________'}
                   {examTime ? ` · ${examTime}` : ''}
                 </td>
               </tr>
               <tr>
                 <td className="border border-[#52525B] bg-[#F4F4F5] px-2.5 py-1.5 font-bold">
-                  {pick('কক্ষ নম্বর', 'Room No.')}
+                  {'কক্ষ নম্বর'}
                 </td>
                 <td className="border border-[#52525B] px-2.5 py-1.5 font-semibold">
                   {room.roomNo}
                   {room.buildingName ? ` (${room.buildingName})` : ''}
                 </td>
                 <td className="border border-[#52525B] bg-[#F4F4F5] px-2.5 py-1.5 font-bold">
-                  {pick('পরিদর্শক', 'Invigilator')}
+                  {'পরিদর্শক'}
                 </td>
                 <td className="border border-[#52525B] px-2.5 py-1.5">
                   {room.invigilatorName || '____________________'}
@@ -1398,17 +1361,17 @@ export function PrintableExamAttendanceSheet({
           <table className="w-full text-xs border border-[#18181B] border-collapse tabular-nums">
             <thead>
               <tr className="bg-[#F4F4F5] text-[#111111]">
-                <th className="border border-[#18181B] px-1.5 py-2 text-center w-9">{pick('ক্রম', 'Sl')}</th>
-                <th className="border border-[#18181B] px-2 py-2 text-center w-14">{pick('রোল', 'Roll')}</th>
-                <th className="border border-[#18181B] px-2 py-2 text-left">{pick('পরীক্ষার্থীর নাম ও শাখা', 'Examinee Name')}</th>
+                <th className="border border-[#18181B] px-1.5 py-2 text-center w-9">{'ক্রম'}</th>
+                <th className="border border-[#18181B] px-2 py-2 text-center w-14">{'রোল'}</th>
+                <th className="border border-[#18181B] px-2 py-2 text-left">{'পরীক্ষার্থীর নাম ও শাখা'}</th>
                 <th className="border border-[#18181B] px-2 py-2 text-center w-32">
-                  {pick('মূল উত্তরপত্র ক্রমিক নং', 'Main Script Sl. No.')}
+                  {'মূল উত্তরপত্র ক্রমিক নং'}
                 </th>
                 <th className="border border-[#18181B] px-2 py-2 text-center w-16">
-                  {pick('অতিরিক্ত পাতা', 'Loose')}
+                  {'অতিরিক্ত পাতা'}
                 </th>
                 <th className="border border-[#18181B] px-2 py-2 text-center w-32">
-                  {pick('পরীক্ষার্থীর স্বাক্ষর', 'Examinee Signature')}
+                  {'পরীক্ষার্থীর স্বাক্ষর'}
                 </th>
               </tr>
             </thead>
@@ -1416,14 +1379,14 @@ export function PrintableExamAttendanceSheet({
               {room.seats.map((seat, idx) => (
                 <tr key={seat.studentId}>
                   <td className="border border-[#52525B] px-1.5 py-2.5 text-center">
-                    {formatNumber(idx + 1, locale)}
+                    {formatNumber(idx + 1, 'bn')}
                   </td>
                   <td className="border border-[#52525B] px-2 py-2.5 text-center font-bold">
-                    {formatNumber(seat.roll, locale)}
+                    {formatNumber(seat.roll, 'bn')}
                   </td>
                   <td className="border border-[#52525B] px-2 py-2.5">
                     <span className="font-semibold">{seat.studentName}</span>
-                    <span className="block text-[10px] text-[#52525B]">
+                    <span className="block text-xs print:text-[10px] text-[#52525B]">
                       {seat.className} ({seat.sectionName}) · {seat.studentId}
                     </span>
                   </td>
@@ -1438,14 +1401,14 @@ export function PrintableExamAttendanceSheet({
           {/* Tally Box for Hall Invigilator */}
           <div className="mt-4 grid grid-cols-3 border border-[#18181B] divide-x divide-[#52525B] text-xs tabular-nums">
             <div className="p-2.5">
-              <strong>{pick('মোট পরীক্ষার্থী:', 'Total Examinees:')}</strong>{' '}
-              {formatNumber(room.seats.length, locale)}
+              <strong>{'মোট পরীক্ষার্থী:'}</strong>{' '}
+              {formatNumber(room.seats.length, 'bn')}
             </div>
             <div className="p-2.5">
-              <strong>{pick('উপস্থিত:', 'Present:')}</strong> _______________
+              <strong>{'উপস্থিত:'}</strong> _______________
             </div>
             <div className="p-2.5">
-              <strong>{pick('অনুপস্থিত (রোল নং):', 'Absent (Rolls):')}</strong> _______________
+              <strong>{'অনুপস্থিত (রোল নং):'}</strong> _______________
             </div>
           </div>
         </FormalExamDocumentShell>
@@ -1483,7 +1446,6 @@ export function PrintableConsolidatedResultSheet({
     isPassed: boolean;
   }>;
 }) {
-  const { locale, pick } = useI18n();
   const passedCount = rows.filter((r) => r.isPassed).length;
 
   return (
@@ -1496,14 +1458,14 @@ export function PrintableConsolidatedResultSheet({
       subtitleEn={`${title} — ${className}`}
       refLabel={
         <span>
-          <strong>{pick('শিক্ষাবর্ষ:', 'Academic Year:')}</strong> {formatNumber(academicYear, locale)} &nbsp;|&nbsp;{' '}
-          <strong>{pick('মোট শিক্ষার্থী:', 'Students:')}</strong> {formatNumber(rows.length, locale)}
+          <strong>{'শিক্ষাবর্ষ:'}</strong> {formatNumber(academicYear, 'bn')} &nbsp;|&nbsp;{' '}
+          <strong>{'মোট শিক্ষার্থী:'}</strong> {formatNumber(rows.length, 'bn')}
         </span>
       }
       dateLabel={
         <span>
-          <strong>{pick('উত্তীর্ণ:', 'Passed:')}</strong> {formatNumber(passedCount, locale)} /{' '}
-          {formatNumber(rows.length, locale)}
+          <strong>{'উত্তীর্ণ:'}</strong> {formatNumber(passedCount, 'bn')} /{' '}
+          {formatNumber(rows.length, 'bn')}
         </span>
       }
       signatures={[
@@ -1516,34 +1478,34 @@ export function PrintableConsolidatedResultSheet({
         <table className="w-full text-xs border border-[#18181B] border-collapse tabular-nums">
           <thead>
             <tr className="bg-[#F4F4F5] text-[#111111]">
-              <th className="border border-[#18181B] px-2 py-2 text-center w-12">{pick('মেধা', 'Merit')}</th>
-              <th className="border border-[#18181B] px-2 py-2 text-center w-12">{pick('রোল', 'Roll')}</th>
-              <th className="border border-[#18181B] px-2.5 py-2 text-left">{pick('শিক্ষার্থীর নাম ও শাখা', 'Student & Section')}</th>
+              <th className="border border-[#18181B] px-2 py-2 text-center w-12">{'মেধা'}</th>
+              <th className="border border-[#18181B] px-2 py-2 text-center w-12">{'রোল'}</th>
+              <th className="border border-[#18181B] px-2.5 py-2 text-left">{'শিক্ষার্থীর নাম ও শাখা'}</th>
               {sources.map((src) => (
                 <th key={src.examId} className="border border-[#18181B] px-2 py-2 text-center">
                   <div>{src.name}</div>
-                  <div className="text-[10px] font-normal text-[#52525B]">
-                    ({formatNumber(src.weightagePercentage, locale)}%)
+                  <div className="text-xs print:text-[10px] font-normal text-[#52525B]">
+                    ({formatNumber(src.weightagePercentage, 'bn')}%)
                   </div>
                 </th>
               ))}
-              <th className="border border-[#18181B] px-2 py-2 text-right">{pick('সমন্বিত নম্বর', 'Weighted Marks')}</th>
-              <th className="border border-[#18181B] px-2 py-2 text-right">{pick('সমন্বিত জিপিএ', 'Final GPA')}</th>
-              <th className="border border-[#18181B] px-2 py-2 text-center">{pick('গ্রেড', 'Grade')}</th>
-              <th className="border border-[#18181B] px-2 py-2 text-center">{pick('অবস্থা', 'Status')}</th>
+              <th className="border border-[#18181B] px-2 py-2 text-right">{'সমন্বিত নম্বর'}</th>
+              <th className="border border-[#18181B] px-2 py-2 text-right">{'সমন্বিত জিপিএ'}</th>
+              <th className="border border-[#18181B] px-2 py-2 text-center">{'গ্রেড'}</th>
+              <th className="border border-[#18181B] px-2 py-2 text-center">{'অবস্থা'}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
               <tr key={`${r.roll}-${i}`}>
                 <td className="border border-[#52525B] px-2 py-1.5 text-center font-bold">
-                  {r.merit ? `#${formatNumber(r.merit, locale)}` : '—'}
+                  {r.merit ? `#${formatNumber(r.merit, 'bn')}` : '—'}
                 </td>
                 <td className="border border-[#52525B] px-2 py-1.5 text-center font-semibold">
-                  {formatNumber(r.roll, locale)}
+                  {formatNumber(r.roll, 'bn')}
                 </td>
                 <td className="border border-[#52525B] px-2.5 py-1.5 font-medium whitespace-nowrap">
-                  {r.studentName} <span className="text-[11px] text-[#52525B]">({r.sectionName})</span>
+                  {r.studentName} <span className="text-xs print:text-[11px] text-[#52525B]">({r.sectionName})</span>
                 </td>
                 {sources.map((src) => {
                   const sc = r.sourceScores[src.examId];
@@ -1553,9 +1515,9 @@ export function PrintableConsolidatedResultSheet({
                         <span className="text-[#A1A1AA]">—</span>
                       ) : (
                         <span>
-                          {formatNumber(sc.marks, locale)}{' '}
-                          <span className="text-[10px] text-[#52525B]">
-                            (GPA {sc.gpa !== null ? formatNumber(sc.gpa, locale, 2) : '—'})
+                          {formatNumber(sc.marks, 'bn')}{' '}
+                          <span className="text-xs print:text-[10px] text-[#52525B]">
+                            (GPA {sc.gpa !== null ? formatNumber(sc.gpa, 'bn', 2) : '—'})
                           </span>
                         </span>
                       )}
@@ -1563,17 +1525,17 @@ export function PrintableConsolidatedResultSheet({
                   );
                 })}
                 <td className="border border-[#52525B] px-2 py-1.5 text-right font-bold">
-                  {formatNumber(r.weightedMarks, locale, 1)}
+                  {formatNumber(r.weightedMarks, 'bn', 1)}
                 </td>
                 <td className="border border-[#52525B] px-2 py-1.5 text-right font-bold">
-                  {formatNumber(r.weightedGpa, locale, 2)}
+                  {formatNumber(r.weightedGpa, 'bn', 2)}
                 </td>
                 <td className="border border-[#52525B] px-2 py-1.5 text-center font-bold">
                   {r.letterGrade}
                 </td>
                 <td className="border border-[#52525B] px-2 py-1.5 text-center font-bold">
                   <span className={r.isPassed ? 'text-[#111111]' : 'text-[#991B1B]'}>
-                    {r.isPassed ? pick('উত্তীর্ণ', 'PASS') : pick('অনুত্তীর্ণ', 'FAIL')}
+                    {r.isPassed ? 'উত্তীর্ণ' : 'অনুত্তীর্ণ'}
                   </span>
                 </td>
               </tr>

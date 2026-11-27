@@ -506,7 +506,7 @@ export function ExamRoutinesView() {
       {/* Filter Bar */}
       <Card className="p-4 flex flex-wrap items-end gap-3">
         <div className="w-44">
-          <label className="block text-xs text-muted-foreground mb-1">{'শ্রেণি নির্বাচন করুন'}</label>
+          <label className="block text-sm text-muted-foreground mb-1">{'শ্রেণি নির্বাচন করুন'}</label>
           <Select
             value={resolvedClassId}
             onChange={(e) => {
@@ -523,7 +523,7 @@ export function ExamRoutinesView() {
         </div>
 
         <div className="w-full sm:w-72">
-          <label className="block text-xs text-muted-foreground mb-1">{'পরীক্ষা নির্বাচন করুন'}</label>
+          <label className="block text-sm text-muted-foreground mb-1">{'পরীক্ষা নির্বাচন করুন'}</label>
           <Select
             value={resolvedExamId}
             onChange={(e) => setSelectedExamId(e.target.value)}
@@ -549,7 +549,7 @@ export function ExamRoutinesView() {
             <AlertTriangle className="w-4 h-4 shrink-0" />
             <span>{`${formatNumber(conflicts.length, 'bn')}টি সময় বা কক্ষ সংঘর্ষ শনাক্ত হয়েছে`}</span>
           </div>
-          <ul className="list-disc list-inside text-xs text-foreground space-y-0.5">
+          <ul className="list-disc list-inside text-sm text-foreground space-y-0.5">
             {conflicts.map((c, idx) => (
               <li key={idx}>{c.reasonBn}</li>
             ))}
@@ -597,7 +597,7 @@ export function ExamRoutinesView() {
                 <span className="font-semibold text-foreground">
                   {row.original.subjectName}
                   {isClassNineTen && row.original.rt.subject?.code && (
-                    <span className="ml-1.5 text-xs font-mono text-muted-foreground">
+                    <span className="ml-1.5 text-sm font-mono text-muted-foreground">
                       ({row.original.rt.subject.code})
                     </span>
                   )}

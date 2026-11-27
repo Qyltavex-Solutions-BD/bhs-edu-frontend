@@ -32,7 +32,6 @@ import {
   useSaveMarksBatchMutation,
 } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -84,7 +83,6 @@ function getAssignmentSubject(db: MockDatabase, classSubjectId: string) {
 export function TeacherResultsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const teacher = useCurrentTeacher(db);
-  const { locale, pick } = useI18n();
   const [examId, setExamId] = useState('exam-hy-10');
   const [previewSummaryId, setPreviewSummaryId] = useState<string | null>(null);
 
@@ -166,14 +164,14 @@ export function TeacherResultsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('শ্রেণির ফলাফল ও মেধাতালিকা', 'Class Results & Merit List')}
-        description={pick('আপনার নির্ধারিত শ্রেণিসমূহের ফলাফল বিশ্লেষণ', 'Review exam standings for your classes')}
+        title={'শ্রেণির ফলাফল ও মেধাতালিকা'}
+        description={'আপনার নির্ধারিত শ্রেণিসমূহের ফলাফল বিশ্লেষণ'}
       />
       <Card className="p-4 flex items-center justify-between gap-4">
         <Select value={exam?.id ?? ''} onChange={(e) => setExamId(e.target.value)} className="max-w-sm">
           {myExams.map((e) => (
             <option key={e.id} value={e.id}>
-              {e.name} ({e.resultStatus})
+              {e.name} ({ENUM_LABELS.ResultPublicationStatus?.[e.resultStatus]?.bn ?? e.resultStatus})
             </option>
           ))}
         </Select>
@@ -182,16 +180,16 @@ export function TeacherResultsPage() {
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead className="bg-surface-muted/70 text-sm text-muted-foreground border-b border-border">
               <tr>
-                <th className="px-4 py-3 text-left">{pick('মেধা', 'Merit')}</th>
-                <th className="px-4 py-3 text-left">{pick('রোল', 'Roll')}</th>
-                <th className="px-4 py-3 text-left">{pick('শিক্ষার্থী', 'Student')}</th>
-                <th className="px-4 py-3 text-right">{pick('মোট নম্বর', 'Total')}</th>
+                <th className="px-4 py-3 text-left">{'মেধা'}</th>
+                <th className="px-4 py-3 text-left">{'রোল'}</th>
+                <th className="px-4 py-3 text-left">{'শিক্ষার্থী'}</th>
+                <th className="px-4 py-3 text-right">{'মোট নম্বর'}</th>
                 <th className="px-4 py-3 text-right">GPA</th>
-                <th className="px-4 py-3 text-center">{pick('গ্রেড', 'Grade')}</th>
-                <th className="px-4 py-3 text-right">{pick('মার্কশিট', 'Marksheet')}</th>
+                <th className="px-4 py-3 text-center">{'গ্রেড'}</th>
+                <th className="px-4 py-3 text-right">{'মার্কশিট'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border tabular-nums">
@@ -201,20 +199,20 @@ export function TeacherResultsPage() {
                 return (
                   <tr key={sum.id}>
                     <td className="px-4 py-3 font-bold">
-                      {sum.meritPosition ? `#${formatNumber(sum.meritPosition, locale)}` : '—'}
+                      {sum.meritPosition ? `#${formatNumber(sum.meritPosition, 'bn')}` : '—'}
                     </td>
-                    <td className="px-4 py-3">{enr ? formatNumber(enr.roll, locale) : '—'}</td>
+                    <td className="px-4 py-3">{enr ? formatNumber(enr.roll, 'bn') : '—'}</td>
                     <td className="px-4 py-3 font-medium">
-                      {locale === 'bn' ? stu?.nameBn || stu?.nameEn : stu?.nameEn}
+                      {stu?.nameBn || stu?.nameEn}
                     </td>
-                    <td className="px-4 py-3 text-right">{formatNumber(sum.totalMarks, locale)}</td>
+                    <td className="px-4 py-3 text-right">{formatNumber(sum.totalMarks, 'bn')}</td>
                     <td className="px-4 py-3 text-right font-semibold text-primary">
-                      {sum.gpa !== null && sum.gpa !== undefined ? formatNumber(sum.gpa, locale, 2) : '—'}
+                      {sum.gpa !== null && sum.gpa !== undefined ? formatNumber(sum.gpa, 'bn', 2) : '—'}
                     </td>
                     <td className="px-4 py-3 text-center font-semibold">{sum.letterGrade ?? '—'}</td>
                     <td className="px-4 py-3 text-right">
                       <Button variant="outline" size="sm" onClick={() => setPreviewSummaryId(sum.id)}>
-                        {pick('দেখুন', 'View')}
+                        {'দেখুন'}
                       </Button>
                     </td>
                   </tr>
@@ -228,7 +226,7 @@ export function TeacherResultsPage() {
       <Modal
         open={Boolean(marksheetProps)}
         onClose={() => setPreviewSummaryId(null)}
-        title={pick('শিক্ষার্থীর মার্কশিট', 'Student Marksheet')}
+        title={'শিক্ষার্থীর মার্কশিট'}
         maxWidth="max-w-4xl"
       >
         {marksheetProps && (
@@ -236,7 +234,7 @@ export function TeacherResultsPage() {
             <div className="flex justify-end no-print">
               <Button variant="primary" size="sm" onClick={() => triggerPrint()}>
                 <Printer className="w-4 h-4" />
-                {pick('প্রিন্ট করুন', 'Print Marksheet')}
+                {'প্রিন্ট করুন'}
               </Button>
             </div>
             <PrintableMarksheet {...marksheetProps} />

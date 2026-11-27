@@ -3,7 +3,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { ExternalLink, Printer, UserPlus, CheckCircle2 } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import { triggerPrint } from '@/src/lib/utils/cn';
 import { Button, Card } from '@/src/components/ui/primitives';
 import { PrintableAdmissionConfirmationSlip } from '@/src/components/print/PrintDocuments';
@@ -24,7 +23,6 @@ export function AdmissionConfirmationView({
   result: AdminAdmissionResult;
   onAdmitAnother: () => void;
 }) {
-  const { locale, pick } = useI18n();
   const { student, enrollment, formValues } = result;
   const enrolledAny = enrollment as unknown as {
     schoolClass?: { name: string; nameBn?: string };
@@ -44,20 +42,16 @@ export function AdmissionConfirmationView({
     : [];
   const chosenOpt = optionals.find((o) => o.classSubjectId === enrollment.optionalClassSubjectId);
   const optionalSubjectName = chosenOpt
-    ? locale === 'bn'
-      ? chosenOpt.nameBn
-      : chosenOpt.nameEn
+    ? chosenOpt.nameBn
     : enrolledAny.optionalClassSubject?.subject
-    ? locale === 'bn'
-      ? enrolledAny.optionalClassSubject.subject.nameBn || enrolledAny.optionalClassSubject.subject.name
-      : enrolledAny.optionalClassSubject.subject.name
+    ? enrolledAny.optionalClassSubject.subject.nameBn || enrolledAny.optionalClassSubject.subject.name
     : null;
   const school: SchoolProfile =
     db.schoolProfile ??
     ({
       id: 'default',
       name: 'Bhojeshwar High School',
-      nameBn: 'বজেশ্বর উচ্চ বিদ্যালয়',
+      nameBn: 'ভোজেশ্বর উচ্চ বিদ্যালয়',
       nameEn: 'Bhojeshwar High School',
       eiin: '113587',
       address: 'নড়িয়া, শরীয়তপুর',
@@ -72,29 +66,29 @@ export function AdmissionConfirmationView({
           <div className="space-y-1">
             <p className="text-base font-bold text-success flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5" />
-              {pick('শিক্ষার্থী সফলভাবে ভর্তি সম্পন্ন হয়েছে!', 'Student Admitted Successfully!')}
+              {'শিক্ষার্থী সফলভাবে ভর্তি সম্পন্ন হয়েছে!'}
             </p>
             <p className="text-sm text-muted-foreground tabular-nums">
-              {pick('শিক্ষার্থী আইডি:', 'Student ID:')}{' '}
+              {'শিক্ষার্থী আইডি:'}{' '}
               <strong className="font-mono text-foreground">{student.studentId}</strong> ·{' '}
-              {pick('রোল:', 'Roll:')}{' '}
+              {'রোল:'}{' '}
               <strong className="font-mono text-foreground">{enrollment.roll}</strong>
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="primary" size="sm" onClick={triggerPrint}>
               <Printer className="w-4 h-4" />
-              {pick('ভর্তি ও আইডি স্লিপ প্রিন্ট', 'Print Confirmation & ID Slip')}
+              {'ভর্তি ও আইডি স্লিপ প্রিন্ট'}
             </Button>
             <Link href={`/admin/students/${student.id}`}>
               <Button variant="outline" size="sm">
                 <ExternalLink className="w-4 h-4" />
-                {pick('প্রোফাইল দেখুন', 'View Profile')}
+                {'প্রোফাইল দেখুন'}
               </Button>
             </Link>
             <Button variant="ghost" size="sm" onClick={onAdmitAnother}>
               <UserPlus className="w-4 h-4" />
-              {pick('আরও একজন ভর্তি করুন', 'Admit Another')}
+              {'আরও একজন ভর্তি করুন'}
             </Button>
           </div>
         </div>
@@ -104,9 +98,9 @@ export function AdmissionConfirmationView({
         school={school}
         student={student}
         enrollment={enrollment}
-        classNameLabel={cls ? (locale === 'bn' ? cls.nameBn || cls.name : cls.name) : ''}
+        classNameLabel={cls ? (cls.nameBn || cls.name) : ''}
         sectionName={sec?.name ?? ''}
-        groupName={grp ? (locale === 'bn' ? grp.nameBn || grp.name : grp.name) : null}
+        groupName={grp ? (grp.nameBn || grp.name) : null}
         academicYearName={yr?.name ?? ''}
         fatherName={formValues.fatherNameBn}
         motherName={formValues.motherNameBn}

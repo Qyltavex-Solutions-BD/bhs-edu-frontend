@@ -16,7 +16,6 @@ import {
   X,
 } from 'lucide-react';
 import type { MockDatabase } from '@/src/mocks/seed';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { getCampusPhoto } from '@/src/components/shared/Feedback';
 import { NoticeTickerBar } from '@/src/components/layout/PublicLayout';
@@ -57,7 +56,6 @@ interface HomeHeroSectionProps {
 }
 
 export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
-  const { locale, pick } = useI18n();
   const router = useRouter();
 
   const [slideIndex, setSlideIndex] = useState(0);
@@ -82,10 +80,7 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
       {
         id: 'slide-heritage',
         title: db.schoolProfile.name || 'ভোজেশ্বর উচ্চ বিদ্যালয়',
-        subtitle: pick(
-          '১৯৭৮ সাল থেকে শরীয়তপুরের নড়িয়া উপজেলার ভোজেশ্বরে ঐতিহ্য, শৃঙ্খলা ও মানসম্মত মাধ্যমিক শিক্ষার আলোকবর্তিকা।',
-          'A beacon of academic excellence, discipline, and quality secondary education in Bhojeshwar, Noria, Shariatpur since 1978.'
-        ),
+        subtitle: '১৯৭৮ সাল থেকে শরীয়তপুরের নড়িয়া উপজেলার ভোজেশ্বরে ঐতিহ্য, শৃঙ্খলা ও মানসম্মত মাধ্যমিক শিক্ষার আলোকবর্তিকা।',
         image: 'campus-heritage',
         link: '/about',
         ctaBn: 'বিদ্যালয় পরিচিতি',
@@ -95,14 +90,8 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
       },
       {
         id: 'slide-digital',
-        title: pick(
-          'ডিজিটাল স্মার্ট শ্রেণিকক্ষ ও আধুনিক পাঠদান',
-          'Smart Digital Classrooms & Modern Pedagogy'
-        ),
-        subtitle: pick(
-          'মাল্টিমিডিয়া প্রজেক্টর, ইন্টারেক্টিভ কনটেন্ট ও অনলাইন রিসোর্স লাইব্রেরির মাধ্যমে ৬ষ্ঠ–১০ম শ্রেণির শিক্ষার্থীদের যুগোপযোগী প্রস্তুতি।',
-          'Preparing Classes 6–10 through multimedia smart classrooms, curated digital resources, and interactive assessments.'
-        ),
+        title: 'ডিজিটাল স্মার্ট শ্রেণিকক্ষ ও আধুনিক পাঠদান',
+        subtitle: 'মাল্টিমিডিয়া প্রজেক্টর, ইন্টারেক্টিভ কনটেন্ট ও অনলাইন রিসোর্স লাইব্রেরির মাধ্যমে ৬ষ্ঠ–১০ম শ্রেণির শিক্ষার্থীদের যুগোপযোগী প্রস্তুতি।',
         image: 'digital-classroom',
         link: '/academics/resources',
         ctaBn: 'ডিজিটাল রিসোর্স',
@@ -112,14 +101,8 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
       },
       {
         id: 'slide-science',
-        title: pick(
-          'সুসজ্জিত বিজ্ঞান গবেষণাগার ও আইসিটি ল্যাব',
-          'Modern Science Laboratories & ICT Center'
-        ),
-        subtitle: pick(
-          'পদার্থ, রসায়ন, জীববিজ্ঞান ও তথ্যপ্রযুক্তিতে হাতে-কলমে ব্যবহারিক শিক্ষার পূর্ণাঙ্গ সুবিধা।',
-          'Hands-on practical education across Physics, Chemistry, Biology, and Information & Communication Technology.'
-        ),
+        title: 'সুসজ্জিত বিজ্ঞান গবেষণাগার ও আইসিটি ল্যাব',
+        subtitle: 'পদার্থ, রসায়ন, জীববিজ্ঞান ও তথ্যপ্রযুক্তিতে হাতে-কলমে ব্যবহারিক শিক্ষার পূর্ণাঙ্গ সুবিধা।',
         image: 'science-lab',
         link: '/about/facilities',
         ctaBn: 'ল্যাব ও সুবিধা দেখুন',
@@ -129,14 +112,8 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
       },
       {
         id: 'slide-library',
-        title: pick(
-          'সমৃদ্ধ পাঠাগার ও সহশিক্ষা কার্যক্রম',
-          'Enriched Library & Co-Curricular Excellence'
-        ),
-        subtitle: pick(
-          'বিতর্ক, বিজ্ঞান মেলা, স্কাউটিং ও বার্ষিক ক্রীড়া প্রতিযোগিতার মাধ্যমে শিক্ষার্থীদের সর্বাঙ্গীণ মেধা বিকাশ।',
-          'Nurturing well-rounded learners through our sunlit reading room, debate club, science fairs, and athletics.'
-        ),
+        title: 'সমৃদ্ধ পাঠাগার ও সহশিক্ষা কার্যক্রম',
+        subtitle: 'বিতর্ক, বিজ্ঞান মেলা, স্কাউটিং ও বার্ষিক ক্রীড়া প্রতিযোগিতার মাধ্যমে শিক্ষার্থীদের সর্বাঙ্গীণ মেধা বিকাশ।',
         image: 'library-room',
         link: '/academics/library',
         ctaBn: 'পাঠাগার দেখুন',
@@ -205,7 +182,7 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
       }
     }
     return merged;
-  }, [db, pick]);
+  }, [db]);
 
   const publishedExams = useMemo(
     () =>
@@ -327,7 +304,7 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
             >
               <img
                 src={currentHeroPhoto.src}
-                alt={locale === 'bn' ? currentHeroPhoto.altBn : currentHeroPhoto.altEn}
+                alt={currentHeroPhoto.altBn}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover object-center"
               />
@@ -344,11 +321,11 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm font-medium text-white/85 tabular-nums">
                 <span className="font-semibold tracking-wider text-white">BHS</span>
                 <span className="text-white/40" aria-hidden="true">·</span>
-                <span>{pick('স্থাপিত: ১৯৭৮ খ্রি.', 'Est. 1978')}</span>
+                <span>{'স্থাপিত: ১৯৭৮ খ্রি.'}</span>
                 <span className="text-white/40" aria-hidden="true">·</span>
                 <span>EIIN: {db.schoolProfile.eiin ?? '113587'}</span>
                 <span className="text-white/40" aria-hidden="true">·</span>
-                <span>{pick('ভোজেশ্বর, নড়িয়া, শরীয়তপুর', 'Bhojeshwar, Noria, Shariatpur')}</span>
+                <span>{'ভোজেশ্বর, নড়িয়া, শরীয়তপুর'}</span>
               </div>
 
               <AnimatePresence initial={false} mode="wait">
@@ -378,7 +355,7 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
                     type="button"
                     className="group inline-flex items-center gap-2 px-5 py-3 text-base font-semibold rounded-[var(--radius)] bg-primary text-primary-foreground hover:opacity-92 transition-all cursor-pointer whitespace-nowrap shadow-lg shadow-black/25"
                   >
-                    <span>{pick('অনলাইন ভর্তি আবেদন', 'Apply for Admission')}</span>
+                    <span>{'অনলাইন ভর্তি আবেদন'}</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 </Link>
@@ -388,9 +365,7 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
                     className="inline-flex items-center gap-2 px-5 py-3 text-base font-medium rounded-[var(--radius)] bg-white/10 hover:bg-white/18 text-white border border-white/25 backdrop-blur-md transition-colors cursor-pointer whitespace-nowrap"
                   >
                     <span>
-                      {locale === 'bn'
-                        ? currentSlide?.ctaBn ?? 'বিদ্যালয় পরিচিতি'
-                        : currentSlide?.ctaEn ?? 'Explore Campus'}
+                      {currentSlide?.ctaBn ?? 'বিদ্যালয় পরিচিতি'}
                     </span>
                   </button>
                 </Link>
@@ -399,23 +374,23 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
               <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 pt-2 text-sm text-white/80 tabular-nums">
                 <span>
                   <strong className="text-white font-semibold">
-                    {formatNumber(yearsSinceEst, locale)}+
+                    {formatNumber(yearsSinceEst, 'bn')}+
                   </strong>{' '}
-                  {pick('বছরের গৌরবময় ঐতিহ্য', 'Years of Excellence')}
+                  {'বছরের গৌরবময় ঐতিহ্য'}
                 </span>
                 <span className="text-white/30" aria-hidden="true">|</span>
                 <span>
                   <strong className="text-white font-semibold">
-                    {pick('৬ষ্ঠ–১০ম শ্রেণি', `Classes 6–10`)}
+                    {'৬ষ্ঠ–১০ম শ্রেণি'}
                   </strong>{' '}
-                  {pick('(বিজ্ঞান · মানবিক · ব্যবসায়)', '(Science · Humanities · Business)')}
+                  {'(বিজ্ঞান · মানবিক · ব্যবসায়)'}
                 </span>
                 <span className="text-white/30 hidden sm:inline" aria-hidden="true">|</span>
                 <span className="hidden sm:inline">
                   <strong className="text-white font-semibold">
-                    {formatNumber(db.staff.length, locale)}+
+                    {formatNumber(db.staff.length, 'bn')}+
                   </strong>{' '}
-                  {pick('শিক্ষক ও কর্মচারী', 'Faculty & Staff')}
+                  {'শিক্ষক ও কর্মচারী'}
                 </span>
               </div>
             </div>
@@ -424,12 +399,12 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
               <div className="lg:col-span-4 flex flex-col lg:items-end justify-end gap-3">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-white/75 tabular-nums mr-1">
-                    {formatNumber(safeSlideIdx + 1, locale)} /{' '}
-                    {formatNumber(heroSlides.length, locale)}
+                    {formatNumber(safeSlideIdx + 1, 'bn')} /{' '}
+                    {formatNumber(heroSlides.length, 'bn')}
                   </span>
                   <button
                     type="button"
-                    aria-label={pick('পূর্ববর্তী স্লাইড', 'Previous slide')}
+                    aria-label={'পূর্ববর্তী স্লাইড'}
                     onClick={() => navigateSlide(safeSlideIdx - 1, -1)}
                     className="h-8 w-8 inline-flex items-center justify-center rounded-lg bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/20 text-white transition-colors cursor-pointer"
                   >
@@ -437,7 +412,7 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
                   </button>
                   <button
                     type="button"
-                    aria-label={pick('পরবর্তী স্লাইড', 'Next slide')}
+                    aria-label={'পরবর্তী স্লাইড'}
                     onClick={() => navigateSlide(safeSlideIdx + 1, 1)}
                     className="h-8 w-8 inline-flex items-center justify-center rounded-lg bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/20 text-white transition-colors cursor-pointer"
                   >
@@ -473,11 +448,11 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
                             className="h-8 w-10 rounded object-cover shrink-0 opacity-90 group-hover:opacity-100"
                           />
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs text-white/65 tabular-nums leading-none">
-                              {formatNumber(idx + 1, locale).padStart(2, locale === 'bn' ? '০' : '0')}
+                            <p className="text-sm text-white/65 tabular-nums leading-none">
+                              {formatNumber(idx + 1, 'bn').padStart(2, '০')}
                             </p>
-                            <p className="text-xs font-medium text-white truncate mt-0.5">
-                              {locale === 'bn' ? slide.shortBn : slide.shortEn}
+                            <p className="text-sm font-medium text-white truncate mt-0.5">
+                              {slide.shortBn}
                             </p>
                           </div>
                         </div>
@@ -520,12 +495,12 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
                   <div className="flex items-center gap-2">
                     <Award className="w-4 h-4 text-white/85" />
                     <h2 className="text-base font-semibold text-white">
-                      {pick('তাৎক্ষণিক প্রকাশিত ফলাফল অনুসন্ধান', 'Instant Published Result Lookup')}
+                      {'তাৎক্ষণিক প্রকাশিত ফলাফল অনুসন্ধান'}
                     </h2>
                   </div>
                   <button
                     type="button"
-                    aria-label={pick('বন্ধ করুন', 'Close')}
+                    aria-label={'বন্ধ করুন'}
                     onClick={() => setQuickResultOpen(false)}
                     className="h-7 w-7 rounded-md inline-flex items-center justify-center text-white/75 hover:text-white hover:bg-white/10 cursor-pointer"
                   >
@@ -545,7 +520,7 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
                       htmlFor="hero-exam"
                       className="block text-sm font-medium text-white/85 mb-1"
                     >
-                      {pick('প্রকাশিত পরীক্ষা', 'Published Exam')}
+                      {'প্রকাশিত পরীক্ষা'}
                     </label>
                     <select
                       id="hero-exam"
@@ -570,7 +545,7 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
                       htmlFor="hero-class"
                       className="block text-sm font-medium text-white/85 mb-1"
                     >
-                      {pick('শ্রেণি', 'Class')}
+                      {'শ্রেণি'}
                     </label>
                     <select
                       id="hero-class"
@@ -580,7 +555,7 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
                     >
                       {activeClasses.map((cls) => (
                         <option key={cls.id} value={cls.id} className="bg-[#072A17] text-white">
-                          {locale === 'bn' ? cls.nameBn ?? cls.name : cls.name}
+                          {cls.nameBn ?? cls.name}
                         </option>
                       ))}
                     </select>
@@ -591,14 +566,14 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
                       htmlFor="hero-roll"
                       className="block text-sm font-medium text-white/85 mb-1"
                     >
-                      {pick('রোল', 'Roll')}
+                      {'রোল'}
                     </label>
                     <input
                       id="hero-roll"
                       type="text"
                       value={quickRoll}
                       onChange={(e) => setQuickRoll(e.target.value)}
-                      placeholder={pick('১ / ১০১', 'e.g. 1')}
+                      placeholder={'১ / ১০১'}
                       className="w-full h-10 px-3 text-sm rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:bg-[#072A17] focus:outline-none focus:border-white/50 tabular-nums"
                     />
                   </div>
@@ -609,7 +584,7 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
                       className="w-full h-10 inline-flex items-center justify-center gap-1.5 text-sm font-semibold rounded-lg bg-white text-[#093B1F] hover:bg-[#F2F5F3] transition-colors cursor-pointer whitespace-nowrap"
                     >
                       <Search className="w-3.5 h-3.5" />
-                      <span>{pick('খুঁজুন', 'Search')}</span>
+                      <span>{'খুঁজুন'}</span>
                     </button>
                   </div>
                 </form>
@@ -632,10 +607,10 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-white truncate">
-                  {pick('তাৎক্ষণিক ফলাফল', 'Instant Results')}
+                  {'তাৎক্ষণিক ফলাফল'}
                 </p>
-                <p className="text-[13px] sm:text-sm text-white/90 truncate">
-                  {pick('রোল ও পরীক্ষা দিয়ে নম্বরপত্র', 'Search marksheet by roll')}
+                <p className="text-sm sm:text-sm text-white/90 truncate">
+                  {'রোল ও পরীক্ষা দিয়ে নম্বরপত্র'}
                 </p>
               </div>
               <Search className="w-4 h-4 text-white/80 group-hover:text-white shrink-0 transition-colors" />
@@ -650,10 +625,10 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-white truncate">
-                  {pick('ভর্তি তথ্য ও স্ট্যাটাস', 'Admission & Status')}
+                  {'ভর্তি তথ্য ও স্ট্যাটাস'}
                 </p>
-                <p className="text-[13px] sm:text-sm text-white/90 truncate">
-                  {pick('আবেদন, প্রবেশপত্র ও যাচাই', 'Apply & track admission')}
+                <p className="text-sm sm:text-sm text-white/90 truncate">
+                  {'আবেদন, প্রবেশপত্র ও যাচাই'}
                 </p>
               </div>
               <ArrowRight className="w-4 h-4 text-white/80 group-hover:text-white group-hover:translate-x-0.5 shrink-0 transition-all" />
@@ -668,10 +643,10 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-white truncate">
-                  {pick('ক্লাস ও পরীক্ষার রুটিন', 'Class & Exam Routines')}
+                  {'ক্লাস ও পরীক্ষার রুটিন'}
                 </p>
-                <p className="text-[13px] sm:text-sm text-white/90 truncate">
-                  {pick('৬ষ্ঠ–১০ম শ্রেণির সময়সূচি', 'Schedules for Classes 6–10')}
+                <p className="text-sm sm:text-sm text-white/90 truncate">
+                  {'৬ষ্ঠ–১০ম শ্রেণির সময়সূচি'}
                 </p>
               </div>
               <ArrowRight className="w-4 h-4 text-white/80 group-hover:text-white group-hover:translate-x-0.5 shrink-0 transition-all" />
@@ -686,10 +661,10 @@ export function HomeHeroSection({ db, notices }: HomeHeroSectionProps) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-white truncate">
-                  {pick('শিক্ষক ও অভিভাবক পোর্টাল', 'Teacher & Parent Portal')}
+                  {'শিক্ষক ও অভিভাবক পোর্টাল'}
                 </p>
-                <p className="text-[13px] sm:text-sm text-white/90 truncate">
-                  {pick('হাজিরা, নম্বর ও ড্যাশবোর্ড', 'Attendance, marks & portal')}
+                <p className="text-sm sm:text-sm text-white/90 truncate">
+                  {'হাজিরা, নম্বর ও ড্যাশবোর্ড'}
                 </p>
               </div>
               <ArrowRight className="w-4 h-4 text-white/65 group-hover:text-white group-hover:translate-x-0.5 shrink-0 transition-all" />

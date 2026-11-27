@@ -10,7 +10,6 @@ import {
   MinusCircle,
 } from 'lucide-react';
 import { getEnumMeta, type SemanticTone } from '@/src/lib/constants/enums';
-import { useI18n } from '@/src/lib/i18n';
 import { cn } from '@/src/lib/utils/cn';
 
 /**
@@ -29,9 +28,8 @@ export function StatusBadge({
   customTone?: SemanticTone;
   className?: string;
 }) {
-  const { locale } = useI18n();
   const meta = enumName ? getEnumMeta(enumName, value) : null;
-  const label = customLabel ?? (meta ? (locale === 'bn' ? meta.bn : meta.en) : value);
+  const label = customLabel ?? (meta ? (meta.bn) : value);
   const tone: SemanticTone = customTone ?? meta?.tone ?? 'neutral';
 
   const toneStyles: Record<SemanticTone, string> = {

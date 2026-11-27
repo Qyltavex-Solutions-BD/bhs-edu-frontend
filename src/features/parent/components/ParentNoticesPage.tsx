@@ -17,7 +17,6 @@ import {
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -82,13 +81,12 @@ function ChildSwitcherBar({
   selectedStudentId: string;
   onChange: (id: string) => void;
 }) {
-  const { locale, pick } = useI18n();
   if (childrenList.length <= 1) return null;
   return (
     <Card className="p-3.5 flex flex-wrap items-center justify-between gap-3 bg-surface-muted/40">
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
         <Users className="w-4 h-4 text-primary" />
-        <span>{pick('সন্তান নির্বাচন করুন:', 'Select Child:')}</span>
+        <span>{'সন্তান নির্বাচন করুন:'}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {childrenList.map((c) => {
@@ -104,8 +102,8 @@ function ChildSwitcherBar({
                   : 'bg-surface text-foreground border-border hover:bg-surface-muted'
               }`}
             >
-              {locale === 'bn' ? c.student.nameBn || c.student.nameEn : c.student.nameEn} ·{' '}
-              {locale === 'bn' ? c.cls?.nameBn || c.cls?.name : c.cls?.name} ({c.sec?.name})
+              {c.student.nameBn || c.student.nameEn} ·{' '}
+              {c.cls?.nameBn || c.cls?.name} ({c.sec?.name})
             </button>
           );
         })}

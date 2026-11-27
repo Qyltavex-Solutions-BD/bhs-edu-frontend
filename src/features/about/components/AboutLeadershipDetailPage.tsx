@@ -20,7 +20,6 @@ import {
   X,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   getCampusPhoto,
@@ -41,8 +40,6 @@ import { triggerPrint } from '@/src/lib/utils/cn';
 export function AboutLeadershipDetailPage() {
   const { id } = useParams();
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
-
   if (isLoading || !db) {
     return (
       <div className="max-w-[1440px] mx-auto p-6">
@@ -59,7 +56,7 @@ export function AboutLeadershipDetailPage() {
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-12 space-y-4">
         <Link href="/about/leadership" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
           <ArrowLeft className="w-4 h-4" />
-          <span>{pick('সকল বাণীতে ফিরে যান', 'Back to Leadership Messages')}</span>
+          <span>{'সকল বাণীতে ফিরে যান'}</span>
         </Link>
         <EmptyState />
       </div>
@@ -69,8 +66,8 @@ export function AboutLeadershipDetailPage() {
   const portrait = getLeadershipPortrait(msg.photo, msg.type);
   const isPrincipal = msg.type === 'PRINCIPAL';
   const roleTitle = isPrincipal
-    ? pick('প্রধান শিক্ষকের বাণী', "Message from the Headteacher")
-    : pick('সভাপতির বাণী', "Message from the Chairman");
+    ? 'প্রধান শিক্ষকের বাণী'
+    : 'সভাপতির বাণী';
   const paragraphs = msg.message
     .split('\n')
     .map((p) => p.trim())
@@ -105,11 +102,11 @@ export function AboutLeadershipDetailPage() {
       <div className="flex flex-wrap items-center justify-between gap-3 no-print">
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <Link href="/" className="hover:text-primary transition-colors">
-            {pick('হোম', 'Home')}
+            {'হোম'}
           </Link>
           <span aria-hidden="true">/</span>
           <Link href="/about/leadership" className="hover:text-primary transition-colors">
-            {pick('নেতৃত্বের বাণী', 'Leadership')}
+            {'নেতৃত্বের বাণী'}
           </Link>
           <span aria-hidden="true">/</span>
           <span className="text-foreground font-medium">{roleTitle}</span>
@@ -121,7 +118,7 @@ export function AboutLeadershipDetailPage() {
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>{pick('সব বাণী', 'All Messages')}</span>
+            <span>{'সব বাণী'}</span>
           </Link>
           <span className="text-border" aria-hidden="true">|</span>
           <button
@@ -130,7 +127,7 @@ export function AboutLeadershipDetailPage() {
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-surface text-sm font-medium text-foreground hover:bg-surface-muted transition-colors cursor-pointer"
           >
             <Printer className="w-4 h-4" />
-            <span>{pick('প্রিন্ট করুন', 'Print')}</span>
+            <span>{'প্রিন্ট করুন'}</span>
           </button>
         </div>
       </div>
@@ -174,14 +171,8 @@ export function AboutLeadershipDetailPage() {
                   “{db.schoolProfile.motto ?? 'শিক্ষাই আলো, জ্ঞানই শক্তি'}” —{' '}
                   <span className="text-muted-foreground font-normal text-base">
                     {isPrincipal
-                      ? pick(
-                          'মানসম্মত মাধ্যমিক শিক্ষা, বিজ্ঞানমনস্ক চর্চা ও নৈতিক মূল্যবোধের সমন্বয়ে আগামীর আলোকিত প্রজন্ম গড়ে তোলাই আমাদের অঙ্গীকার।',
-                          'Building an enlightened generation through quality secondary education, scientific curiosity, and enduring ethical values.'
-                        )
-                      : pick(
-                          'সুশৃঙ্খল, নিরাপদ ও আধুনিক শিক্ষার পরিবেশ নিশ্চিত করে ভোজেশ্বর উচ্চ বিদ্যালয়কে জেলার আদর্শ প্রতিষ্ঠানে রূপান্তরিত করাই আমাদের লক্ষ্য।',
-                          'Ensuring a disciplined, safe, and modern campus environment to uphold Bhojeshwar High School as an exemplary institution.'
-                        )}
+                      ? 'মানসম্মত মাধ্যমিক শিক্ষা, বিজ্ঞানমনস্ক চর্চা ও নৈতিক মূল্যবোধের সমন্বয়ে আগামীর আলোকিত প্রজন্ম গড়ে তোলাই আমাদের অঙ্গীকার।'
+                      : 'সুশৃঙ্খল, নিরাপদ ও আধুনিক শিক্ষার পরিবেশ নিশ্চিত করে ভোজেশ্বর উচ্চ বিদ্যালয়কে জেলার আদর্শ প্রতিষ্ঠানে রূপান্তরিত করাই আমাদের লক্ষ্য।'}
                   </span>
                 </p>
               </div>
@@ -190,21 +181,21 @@ export function AboutLeadershipDetailPage() {
             {/* Quiet Institutional Metadata Row */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm tabular-nums">
               <div>
-                <p className="text-xs text-muted-foreground">{pick('প্রতিষ্ঠান স্থাপিত', 'Established')}</p>
+                <p className="text-sm text-muted-foreground">{'প্রতিষ্ঠান স্থাপিত'}</p>
                 <p className="font-semibold text-foreground mt-0.5">
-                  {formatNumber(db.schoolProfile.establishedYear ?? 1978, locale)} {pick('খ্রি.', '')} ({formatNumber(yearsSinceEst, locale)}+ {pick('বছর', 'yrs')})
+                  {formatNumber(db.schoolProfile.establishedYear ?? 1978, 'bn')} {'খ্রি.'} ({formatNumber(yearsSinceEst, 'bn')}+ {'বছর'})
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">{pick('অবস্থান', 'Location')}</p>
+                <p className="text-sm text-muted-foreground">{'অবস্থান'}</p>
                 <p className="font-semibold text-foreground mt-0.5">
-                  {pick('ভোজেশ্বর, নড়িয়া, শরীয়তপুর', 'Bhojeshwar, Noria, Shariatpur')}
+                  {'ভোজেশ্বর, নড়িয়া, শরীয়তপুর'}
                 </p>
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <p className="text-xs text-muted-foreground">{pick('শিক্ষা স্তর', 'Academic Scope')}</p>
+                <p className="text-sm text-muted-foreground">{'শিক্ষা স্তর'}</p>
                 <p className="font-semibold text-foreground mt-0.5">
-                  {pick('৬ষ্ঠ–১০ম শ্রেণি (৩ বিভাগ)', 'Classes 6–10 (3 Streams)')}
+                  {'৬ষ্ঠ–১০ম শ্রেণি (৩ বিভাগ)'}
                 </p>
               </div>
             </div>
@@ -223,12 +214,12 @@ export function AboutLeadershipDetailPage() {
                 <div>
                   <h2 className="text-lg font-bold text-foreground">{roleTitle}</h2>
                   <p className="text-sm text-muted-foreground">
-                    {db.schoolProfile.name} · {pick('ভোজেশ্বর, নড়িয়া, শরীয়তপুর', 'Bhojeshwar, Noria, Shariatpur')}
+                    {db.schoolProfile.name} · {'ভোজেশ্বর, নড়িয়া, শরীয়তপুর'}
                   </p>
                 </div>
               </div>
               <span className="text-sm text-muted-foreground tabular-nums hidden sm:inline">
-                {formatDateLong(msg.updatedAt, locale)}
+                {formatDateLong(msg.updatedAt, 'bn')}
               </span>
             </div>
 
@@ -242,7 +233,7 @@ export function AboutLeadershipDetailPage() {
             {/* Dignified Institutional Sign-Off */}
             <div className="pt-6 mt-6 border-t border-border flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">{pick('শুভেচ্ছান্তে,', 'With warm regards,')}</p>
+                <p className="text-sm text-muted-foreground">{'শুভেচ্ছান্তে,'}</p>
                 <svg
                   viewBox="0 0 160 40"
                   className="w-28 h-7 text-secondary/80 my-1"
@@ -265,13 +256,13 @@ export function AboutLeadershipDetailPage() {
               <div className="flex flex-wrap gap-2 no-print">
                 <Link href="/admission">
                   <Button variant="primary" size="sm">
-                    {pick('ভর্তি তথ্য দেখুন', 'Admission Info')}
+                    {'ভর্তি তথ্য দেখুন'}
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Button>
                 </Link>
                 <Link href="/contact">
                   <Button variant="outline" size="sm">
-                    {pick('যোগাযোগ করুন', 'Contact Office')}
+                    {'যোগাযোগ করুন'}
                   </Button>
                 </Link>
               </div>
@@ -283,20 +274,17 @@ export function AboutLeadershipDetailPage() {
             <div className="flex items-end justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold text-foreground">
-                  {pick('আমাদের ক্যাম্পাস ও শিক্ষার পরিবেশ', 'Our Campus & Learning Environment')}
+                  {'আমাদের ক্যাম্পাস ও শিক্ষার পরিবেশ'}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {pick(
-                    'ঐতিহ্যবাহী একাডেমিক ভবন, স্মার্ট শ্রেণিকক্ষ ও আধুনিক গবেষণাগার।',
-                    'Heritage academic campus, multimedia classrooms, and equipped laboratories.'
-                  )}
+                  {'ঐতিহ্যবাহী একাডেমিক ভবন, স্মার্ট শ্রেণিকক্ষ ও আধুনিক গবেষণাগার।'}
                 </p>
               </div>
               <Link
                 href="/gallery"
                 className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline whitespace-nowrap"
               >
-                <span>{pick('ফটো গ্যালারি', 'Photo Gallery')}</span>
+                <span>{'ফটো গ্যালারি'}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -310,13 +298,13 @@ export function AboutLeadershipDetailPage() {
                   <div className="aspect-[4/3] overflow-hidden bg-surface-muted">
                     <img
                       src={item.photo.src}
-                      alt={locale === 'bn' ? item.captionBn : item.captionEn}
+                      alt={item.captionBn}
                       referrerPolicy="no-referrer"
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <figcaption className="px-3.5 py-2.5 text-sm text-muted-foreground leading-snug">
-                    {locale === 'bn' ? item.captionBn : item.captionEn}
+                    {item.captionBn}
                   </figcaption>
                 </figure>
               ))}
@@ -334,23 +322,23 @@ export function AboutLeadershipDetailPage() {
                 <h3 className="text-base font-bold text-foreground truncate">
                   {db.schoolProfile.name}
                 </h3>
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  {pick('স্থাপিত ১৯৭৮ · EIIN ১১৩৫৮৭', 'Est. 1978 · EIIN 113587')}
+                <p className="text-sm text-muted-foreground tabular-nums">
+                  {'স্থাপিত ১৯৭৮ · EIIN ১১৩৫৮৭'}
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border text-sm tabular-nums">
               <div className="p-3 rounded-lg bg-surface-muted/60">
-                <p className="text-xl font-bold text-primary">{formatNumber(yearsSinceEst, locale)}+</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {pick('বছরের ঐতিহ্য', 'Years Heritage')}
+                <p className="text-xl font-bold text-primary">{formatNumber(yearsSinceEst, 'bn')}+</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {'বছরের ঐতিহ্য'}
                 </p>
               </div>
               <div className="p-3 rounded-lg bg-surface-muted/60">
-                <p className="text-xl font-bold text-primary">{formatNumber(activeTeachersCount, locale)}+</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {pick('অভিজ্ঞ শিক্ষক', 'Faculty Members')}
+                <p className="text-xl font-bold text-primary">{formatNumber(activeTeachersCount, 'bn')}+</p>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {'অভিজ্ঞ শিক্ষক'}
                 </p>
               </div>
             </div>
@@ -384,30 +372,30 @@ export function AboutLeadershipDetailPage() {
           {/* Mission & Vision Summary Card */}
           <Card className="p-5 space-y-3.5">
             <h3 className="text-base font-bold text-foreground">
-              {pick('লক্ষ্য ও দৃষ্টিভঙ্গি', 'Mission & Vision')}
+              {'লক্ষ্য ও দৃষ্টিভঙ্গি'}
             </h3>
             <div className="space-y-2.5 text-sm leading-relaxed">
               <div>
-                <p className="font-semibold text-primary mb-0.5">{pick('আমাদের লক্ষ্য', 'Mission')}</p>
+                <p className="font-semibold text-primary mb-0.5">{'আমাদের লক্ষ্য'}</p>
                 <p className="text-muted-foreground">{db.schoolProfile.mission}</p>
               </div>
               <div className="pt-2.5 border-t border-border">
-                <p className="font-semibold text-primary mb-0.5">{pick('আমাদের দৃষ্টিভঙ্গি', 'Vision')}</p>
+                <p className="font-semibold text-primary mb-0.5">{'আমাদের দৃষ্টিভঙ্গি'}</p>
                 <p className="text-muted-foreground">{db.schoolProfile.vision}</p>
               </div>
             </div>
             <div className="pt-2 border-t border-border flex flex-wrap gap-3 text-sm font-semibold text-primary">
               <Link href="/about/history" className="hover:underline inline-flex items-center gap-1">
                 <Building2 className="w-4 h-4" />
-                <span>{pick('ইতিহাস', 'History')}</span>
+                <span>{'ইতিহাস'}</span>
               </Link>
               <Link href="/about/teachers" className="hover:underline inline-flex items-center gap-1">
                 <GraduationCap className="w-4 h-4" />
-                <span>{pick('শিক্ষকমণ্ডলী', 'Faculty')}</span>
+                <span>{'শিক্ষকমণ্ডলী'}</span>
               </Link>
               <Link href="/academics/academic-calendar" className="hover:underline inline-flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                <span>{pick('ক্যালেন্ডার', 'Calendar')}</span>
+                <span>{'ক্যালেন্ডার'}</span>
               </Link>
             </div>
           </Card>
@@ -416,7 +404,7 @@ export function AboutLeadershipDetailPage() {
           {otherLeaders.length > 0 && (
             <Card className="p-5 space-y-3.5">
               <h3 className="text-base font-bold text-foreground">
-                {pick('অন্যান্য নেতৃত্বের বাণী', 'Other Leadership Messages')}
+                {'অন্যান্য নেতৃত্বের বাণী'}
               </h3>
               <div className="space-y-3">
                 {otherLeaders.map((other) => (
@@ -432,15 +420,15 @@ export function AboutLeadershipDetailPage() {
                       className="w-14 h-16 rounded-lg object-cover object-top border border-border shrink-0"
                     />
                     <div className="min-w-0 flex-1 space-y-0.5">
-                      <p className="text-xs font-semibold text-primary">
+                      <p className="text-sm font-semibold text-primary">
                         {other.type === 'PRINCIPAL'
-                          ? pick('প্রধান শিক্ষকের বাণী', "Headteacher's Message")
-                          : pick('সভাপতির বাণী', "Chairman's Message")}
+                          ? 'প্রধান শিক্ষকের বাণী'
+                          : 'সভাপতির বাণী'}
                       </p>
                       <p className="text-base font-bold text-foreground group-hover:text-primary transition-colors truncate">
                         {other.personName}
                       </p>
-                      <p className="text-xs text-muted-foreground truncate">{other.designation}</p>
+                      <p className="text-sm text-muted-foreground truncate">{other.designation}</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
                   </Link>

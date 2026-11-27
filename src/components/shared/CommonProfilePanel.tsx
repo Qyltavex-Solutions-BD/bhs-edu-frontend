@@ -18,7 +18,6 @@ import {
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import { setCredentials } from '@/src/store/slices/authSlice';
 import { toggleTheme } from '@/src/store/slices/uiSlice';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { passwordChangeSchema, profileUpdateSchema } from '@/src/features/auth/schemas';
 import {
@@ -93,8 +92,6 @@ export function CommonProfilePanel({
   const auth = useAppSelector((s) => s.auth);
   const theme = useAppSelector((s) => s.ui.theme);
   const dispatch = useAppDispatch();
-  const { locale, pick } = useI18n();
-
   const { data: profile, isLoading: loadingProfile } = useGetAuthProfileQuery();
   const [updateProfile, { isLoading: savingProfile }] = useUpdateAuthProfileMutation();
   const [changePasswordApi, { isLoading: changingPassword }] = useChangePasswordMutation();
@@ -162,7 +159,7 @@ export function CommonProfilePanel({
     });
 
     if (!parsed.success) {
-      const msg = parsed.error.issues[0]?.message ?? pick('সঠিক তথ্য দিন।', 'Invalid profile input.');
+      const msg = parsed.error.issues[0]?.message ?? 'সঠিক তথ্য দিন।';
       setProfileError(msg);
       toast.error(msg);
       return;
@@ -205,12 +202,12 @@ export function CommonProfilePanel({
       }
 
       toast.success(
-        pick('প্রোফাইল তথ্য সফলভাবে হালনাগাদ করা হয়েছে।', 'Profile updated successfully.')
+        'প্রোফাইল তথ্য সফলভাবে হালনাগাদ করা হয়েছে।'
       );
     } catch (err: any) {
       toast.error(
         err?.message ||
-          pick('প্রোফাইল আপডেট করা যায়নি।', 'Could not update profile.')
+          'প্রোফাইল আপডেট করা যায়নি।'
       );
     }
   };
@@ -231,12 +228,12 @@ export function CommonProfilePanel({
       }).unwrap();
       setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
       toast.success(
-        pick('পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে।', 'Password changed successfully.')
+        'পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে।'
       );
     } catch (err: any) {
       const msg =
         err?.message ||
-        pick('পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে।', 'Could not change password.');
+        'পাসওয়ার্ড পরিবর্তন ব্যর্থ হয়েছে।';
       setPwError(msg);
       toast.error(msg);
     }
@@ -245,9 +242,9 @@ export function CommonProfilePanel({
   const handleRevokeSession = async (id: string) => {
     try {
       await revokeSessionApi(id).unwrap();
-      toast.success(pick('সেশন সফলভাবে বাতিল করা হয়েছে।', 'Session revoked successfully.'));
+      toast.success('সেশন সফলভাবে বাতিল করা হয়েছে।');
     } catch (err: any) {
-      toast.error(err?.message || pick('সেশন বাতিল করা যায়নি।', 'Could not revoke session.'));
+      toast.error(err?.message || 'সেশন বাতিল করা যায়নি।');
     }
   };
 
@@ -255,11 +252,11 @@ export function CommonProfilePanel({
     try {
       await revokeOtherSessionsApi().unwrap();
       toast.success(
-        pick('অন্যান্য সকল ডিভাইস থেকে সাইন আউট করা হয়েছে।', 'Signed out of all other devices.')
+        'অন্যান্য সকল ডিভাইস থেকে সাইন আউট করা হয়েছে।'
       );
     } catch (err: any) {
       toast.error(
-        err?.message || pick('অন্যান্য সেশন বাতিল করা যায়নি।', 'Could not revoke other sessions.')
+        err?.message || 'অন্যান্য সেশন বাতিল করা যায়নি।'
       );
     }
   };
@@ -305,9 +302,9 @@ export function CommonProfilePanel({
                       {extraMeta ? ` · ${extraMeta}` : ''}
                     </p>
                     {profile?.createdAt && (
-                      <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
-                        {pick('সদস্য হিসেবে যুক্ত:', 'Member since:')}{' '}
-                        {formatDateShort(profile.createdAt, locale)}
+                      <p className="text-sm text-muted-foreground mt-0.5 tabular-nums">
+                        {'সদস্য হিসেবে যুক্ত:'}{' '}
+                        {formatDateShort(profile.createdAt, 'bn')}
                       </p>
                     )}
                   </div>
@@ -331,26 +328,26 @@ export function CommonProfilePanel({
               {profile?.staff && (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-surface-muted/60 border border-border text-sm">
                   <div>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Briefcase className="w-3.5 h-3.5" />
-                      {pick('পদবি', 'Designation')}
+                      {'পদবি'}
                     </p>
                     <p className="font-semibold text-foreground mt-0.5">
                       {profile.staff.designation}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
                       <Building2 className="w-3.5 h-3.5" />
-                      {pick('বিভাগ', 'Department')}
+                      {'বিভাগ'}
                     </p>
                     <p className="font-semibold text-foreground mt-0.5">
                       {profile.staff.department?.name ?? '—'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">
-                      {pick('স্টাফ আইডি', 'Employee ID')}
+                    <p className="text-sm text-muted-foreground">
+                      {'স্টাফ আইডি'}
                     </p>
                     <p className="font-semibold text-foreground mt-0.5 tabular-nums">
                       {profile.staff.employeeId ?? '—'}
@@ -361,26 +358,26 @@ export function CommonProfilePanel({
 
               <form onSubmit={handleSaveProfile} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <FormField label={pick('পূর্ণ নাম', 'Full Name')} required>
+                  <FormField label={'পূর্ণ নাম'} required>
                     <Input
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder={pick('আপনার পূর্ণ নাম লিখুন', 'Enter your full name')}
+                      placeholder={'আপনার পূর্ণ নাম লিখুন'}
                       required
                     />
                   </FormField>
-                  <FormField label={pick('ফোন নম্বর', 'Phone Number')}>
+                  <FormField label={'ফোন নম্বর'}>
                     <Input
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="017XXXXXXXX"
                     />
                   </FormField>
-                  <FormField label={pick('ইমেইল ঠিকানা', 'Email Address')}>
+                  <FormField label={'ইমেইল ঠিকানা'}>
                     <Input
                       type="email"
                       value={profile?.email ?? auth.user?.email ?? ''}
-                      placeholder="name@example.com"
+                      placeholder="যেমন: name@example.com"
                       disabled
                       className="bg-surface-muted cursor-not-allowed opacity-80"
                     />
@@ -388,39 +385,33 @@ export function CommonProfilePanel({
 
                   {profile?.staff && (
                     <>
-                      <FormField label={pick('শিক্ষাগত যোগ্যতা', 'Qualification')}>
+                      <FormField label={'শিক্ষাগত যোগ্যতা'}>
                         <Input
                           value={qualification}
                           onChange={(e) => setQualification(e.target.value)}
-                          placeholder={pick(
-                            'যেমন: M.Sc in Mathematics, B.Ed',
-                            'e.g. M.Sc in Mathematics, B.Ed'
-                          )}
+                          placeholder={'যেমন: M.Sc in Mathematics, B.Ed'}
                         />
                       </FormField>
-                      <FormField label={pick('জরুরি যোগাযোগ', 'Emergency Contact')}>
+                      <FormField label={'জরুরি যোগাযোগ'}>
                         <Input
                           value={emergencyContact}
                           onChange={(e) => setEmergencyContact(e.target.value)}
                           placeholder="018XXXXXXXX"
                         />
                       </FormField>
-                      <FormField label={pick('বর্তমান ঠিকানা', 'Present Address')}>
+                      <FormField label={'বর্তমান ঠিকানা'}>
                         <Input
                           value={presentAddress}
                           onChange={(e) => setPresentAddress(e.target.value)}
-                          placeholder={pick(
-                            'গ্রাম/সড়ক, উপজেলা, জেলা',
-                            'Village/Road, Upazila, District'
-                          )}
+                          placeholder={'গ্রাম/সড়ক, উপজেলা, জেলা'}
                         />
                       </FormField>
                       <div className="sm:col-span-2">
-                        <FormField label={pick('স্থায়ী ঠিকানা', 'Permanent Address')}>
+                        <FormField label={'স্থায়ী ঠিকানা'}>
                           <Input
                             value={permanentAddress}
                             onChange={(e) => setPermanentAddress(e.target.value)}
-                            placeholder={pick('স্থায়ী ঠিকানা লিখুন', 'Enter permanent address')}
+                            placeholder={'স্থায়ী ঠিকানা লিখুন'}
                           />
                         </FormField>
                       </div>
@@ -429,25 +420,19 @@ export function CommonProfilePanel({
 
                   {profile?.parent && (
                     <>
-                      <FormField label={pick('পেশা', 'Occupation')}>
+                      <FormField label={'পেশা'}>
                         <Input
                           value={occupation}
                           onChange={(e) => setOccupation(e.target.value)}
-                          placeholder={pick(
-                            'যেমন: ব্যবসায়ী, চাকরিজীবী',
-                            'e.g. Businessman, Service Holder'
-                          )}
+                          placeholder={'যেমন: ব্যবসায়ী, চাকরিজীবী'}
                         />
                       </FormField>
                       <div className="sm:col-span-2">
-                        <FormField label={pick('ঠিকানা', 'Address')}>
+                        <FormField label={'ঠিকানা'}>
                           <Input
                             value={address}
                             onChange={(e) => setAddress(e.target.value)}
-                            placeholder={pick(
-                              'আপনার বর্তমান ঠিকানা লিখুন',
-                              'Enter your residential address'
-                            )}
+                            placeholder={'আপনার বর্তমান ঠিকানা লিখুন'}
                           />
                         </FormField>
                       </div>
@@ -461,7 +446,7 @@ export function CommonProfilePanel({
 
                 <Button type="submit" variant="primary" size="sm" disabled={savingProfile}>
                   {savingProfile && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  {pick('প্রোফাইল সংরক্ষণ করুন', 'Save Profile Changes')}
+                  {'প্রোফাইল সংরক্ষণ করুন'}
                 </Button>
               </form>
             </>
@@ -473,37 +458,37 @@ export function CommonProfilePanel({
           <div className="flex items-center gap-2">
             <KeyRound className="w-4 h-4 text-primary" />
             <h3 className="text-base font-bold text-foreground">
-              {pick('পাসওয়ার্ড পরিবর্তন', 'Change Password')}
+              {'পাসওয়ার্ড পরিবর্তন'}
             </h3>
           </div>
           <form onSubmit={handlePasswordChange} className="space-y-3">
-            <FormField label={pick('বর্তমান পাসওয়ার্ড', 'Current Password')} required>
+            <FormField label={'বর্তমান পাসওয়ার্ড'} required>
               <PasswordInput
                 value={pwForm.currentPassword}
                 onChange={(e) => setPwForm({ ...pwForm, currentPassword: e.target.value })}
-                ariaLabel={pick('বর্তমান পাসওয়ার্ড দেখুন বা লুকান', 'Toggle current password visibility')}
+                ariaLabel={'বর্তমান পাসওয়ার্ড দেখুন বা লুকান'}
               />
             </FormField>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <FormField label={pick('নতুন পাসওয়ার্ড', 'New Password')} required>
+              <FormField label={'নতুন পাসওয়ার্ড'} required>
                 <PasswordInput
                   value={pwForm.newPassword}
                   onChange={(e) => setPwForm({ ...pwForm, newPassword: e.target.value })}
-                  ariaLabel={pick('নতুন পাসওয়ার্ড দেখুন বা লুকান', 'Toggle new password visibility')}
+                  ariaLabel={'নতুন পাসওয়ার্ড দেখুন বা লুকান'}
                 />
               </FormField>
-              <FormField label={pick('নতুন পাসওয়ার্ড নিশ্চিত করুন', 'Confirm Password')} required>
+              <FormField label={'নতুন পাসওয়ার্ড নিশ্চিত করুন'} required>
                 <PasswordInput
                   value={pwForm.confirmPassword}
                   onChange={(e) => setPwForm({ ...pwForm, confirmPassword: e.target.value })}
-                  ariaLabel={pick('নিশ্চিত পাসওয়ার্ড দেখুন বা লুকান', 'Toggle confirm password visibility')}
+                  ariaLabel={'নিশ্চিত পাসওয়ার্ড দেখুন বা লুকান'}
                 />
               </FormField>
             </div>
             {pwError && <p className="text-sm text-destructive font-medium">{pwError}</p>}
             <Button type="submit" variant="outline" size="sm" disabled={changingPassword}>
               {changingPassword && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              {pick('পাসওয়ার্ড হালনাগাদ করুন', 'Update Password')}
+              {'পাসওয়ার্ড হালনাগাদ করুন'}
             </Button>
           </form>
         </Card>
@@ -513,32 +498,32 @@ export function CommonProfilePanel({
       <div className="lg:col-span-5 space-y-6">
         <Card className="p-6 space-y-4">
           <h3 className="text-base font-bold text-foreground">
-            {pick('থিম ও নোটিফিকেশন পছন্দ', 'Theme & Notification Preferences')}
+            {'থিম ও নোটিফিকেশন পছন্দ'}
           </h3>
           <div className="space-y-3.5 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-foreground">{pick('ডার্ক মোড', 'Dark Theme')}</span>
+              <span className="text-foreground">{'ডার্ক মোড'}</span>
               <Switch checked={theme === 'dark'} onChange={() => dispatch(toggleTheme())} />
             </div>
             <div className="pt-3 border-t border-border space-y-3">
               <p className="text-sm font-semibold text-muted-foreground">
-                {pick('নোটিফিকেশন চ্যানেল', 'Notification Channels')}
+                {'নোটিফিকেশন চ্যানেল'}
               </p>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-foreground">
-                  {pick('ইন-অ্যাপ নোটিফিকেশন', 'In-App Alerts')}
+                  {'ইন-অ্যাপ নোটিফিকেশন'}
                 </span>
                 <Switch checked={notifyInApp} onChange={setNotifyInApp} />
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-foreground">
-                  {pick('হাজিরা ও জরুরি SMS', 'Attendance & Urgent SMS')}
+                  {'হাজিরা ও জরুরি SMS'}
                 </span>
                 <Switch checked={notifySms} onChange={setNotifySms} />
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-foreground">
-                  {pick('ইমেইল বিজ্ঞপ্তি', 'Email Digests')}
+                  {'ইমেইল বিজ্ঞপ্তি'}
                 </span>
                 <Switch checked={notifyEmail} onChange={setNotifyEmail} />
               </div>
@@ -550,7 +535,7 @@ export function CommonProfilePanel({
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-base font-bold text-foreground flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-primary" />
-              {pick('সক্রিয় লগইন সেশনসমূহ', 'Active Login Sessions')}
+              {'সক্রিয় লগইন সেশনসমূহ'}
             </h3>
             {otherSessionsCount > 0 && (
               <Button
@@ -559,9 +544,9 @@ export function CommonProfilePanel({
                 size="sm"
                 disabled={revokingOthers}
                 onClick={handleRevokeOthers}
-                className="text-xs text-destructive hover:text-destructive"
+                className="text-sm text-destructive hover:text-destructive"
               >
-                {pick('অন্য সব বাতিল', 'Sign out others')}
+                {'অন্য সব বাতিল'}
               </Button>
             )}
           </div>
@@ -579,7 +564,7 @@ export function CommonProfilePanel({
               ))
             ) : sessions.length === 0 ? (
               <p className="py-4 text-sm text-muted-foreground text-center">
-                {pick('কোনো সক্রিয় সেশন পাওয়া যায়নি।', 'No active sessions found.')}
+                {'কোনো সক্রিয় সেশন পাওয়া যায়নি।'}
               </p>
             ) : (
               sessions.map((s) => {
@@ -596,13 +581,13 @@ export function CommonProfilePanel({
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-semibold text-foreground truncate">{label}</p>
                           {s.isCurrent && (
-                            <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
-                              {pick('বর্তমান', 'Current')}
+                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                              {'বর্তমান'}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                          IP: {s.ipAddress} · {formatDateShort(s.lastActiveAt, locale)}
+                        <p className="text-sm text-muted-foreground tabular-nums mt-0.5">
+                          IP: {s.ipAddress} · {formatDateShort(s.lastActiveAt, 'bn')}
                         </p>
                       </div>
                     </div>
@@ -615,7 +600,7 @@ export function CommonProfilePanel({
                         onClick={() => handleRevokeSession(s.id)}
                       >
                         <LogOut className="w-3.5 h-3.5" />
-                        {pick('বাতিল', 'Revoke')}
+                        {'বাতিল'}
                       </Button>
                     )}
                   </div>
@@ -625,10 +610,10 @@ export function CommonProfilePanel({
           </div>
 
           {profile?.permissions?.length ? (
-            <div className="pt-3 border-t border-border text-xs text-muted-foreground">
-              {pick('অনুমোদিত পারমিশন:', 'Granted permissions:')}{' '}
+            <div className="pt-3 border-t border-border text-sm text-muted-foreground">
+              {'অনুমোদিত পারমিশন:'}{' '}
               <span className="font-semibold text-foreground tabular-nums">
-                {formatNumber(profile.permissions.length, locale)}
+                {formatNumber(profile.permissions.length, 'bn')}
               </span>
             </div>
           ) : null}

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useI18n } from '@/src/lib/i18n';
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import { toggleTheme } from '@/src/store/slices/uiSlice';
 import { useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
@@ -22,7 +21,6 @@ import {
 export { NoticeTickerBar };
 
 export function PublicLayout({ children }: { children: React.ReactNode }) {
-  const { locale, pick, t } = useI18n();
   const theme = useAppSelector((s) => s.ui.theme);
   const auth = useAppSelector((s) => s.auth);
   const dispatch = useAppDispatch();
@@ -36,6 +34,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const closeTimerRef = useRef<number | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -45,6 +44,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
 
   // Scroll listener for seamless Hero-Blend -> Sticky Glass transition
   useEffect(() => {
+    setMounted(true);
     const onScroll = () => {
       setScrolled(window.scrollY > 24);
     };
@@ -185,7 +185,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       .slice(0, 4)
       .map((s) => ({
         id: s.id,
-        name: locale === 'bn' && s.nameBn ? s.nameBn : s.name,
+        name: true && s.nameBn ? s.nameBn : s.name,
         designation: s.designation,
       }));
 
@@ -198,8 +198,8 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       .slice(0, 3)
       .map((c) => ({
         id: `cls-${c.id}`,
-        label: locale === 'bn' && c.nameBn ? c.nameBn : c.name,
-        meta: pick('শ্রেণি', 'Class'),
+        label: true && c.nameBn ? c.nameBn : c.name,
+        meta: 'শ্রেণি',
         to: '/academics/classes',
       }));
 
@@ -214,10 +214,10 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       .slice(0, 4)
       .map((s) => ({
         id: `sub-${s.id}`,
-        label: locale === 'bn' && s.nameBn ? s.nameBn : s.name,
+        label: true && s.nameBn ? s.nameBn : s.name,
         meta: s.officialCode
-          ? `${pick('বিষয় কোড', 'Code')}: ${s.officialCode}`
-          : pick('পাঠ্যবিষয়', 'Subject'),
+          ? `${'বিষয় কোড'}: ${s.officialCode}`
+          : 'পাঠ্যবিষয়',
         to: '/academics/subjects',
       }));
 
@@ -227,7 +227,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       staff,
       academics: [...matchedClasses, ...matchedSubjects],
     };
-  }, [searchQuery, publicNotices, db?.staff, db?.classes, db?.subjects, tickerNotices, locale, pick]);
+  }, [searchQuery, publicNotices, db?.staff, db?.classes, db?.subjects, tickerNotices]);
 
   const hasAnySearchResult =
     searchResults.shortcuts.length > 0 ||
@@ -246,7 +246,7 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-white focus:rounded"
       >
-        {pick('মূল বিষয়বস্তুতে যান', 'Skip to main content')}
+        {'মূল বিষয়বস্তুতে যান'}
       </a>
 
       {/* Header */}
@@ -254,9 +254,6 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         isHome={isHome}
         isAtHeroTop={isAtHeroTop}
         school={school}
-        locale={locale}
-        pick={pick}
-        t={t}
         pathname={pathname}
         openDropdown={openDropdown}
         onOpenDropdown={handleOpenDropdown}
@@ -266,8 +263,8 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         onOpenSearch={() => setSearchOpen(true)}
         theme={theme}
         onToggleTheme={() => dispatch(toggleTheme())}
-        portalUrl={portalUrl}
-        isAuthenticated={auth.isAuthenticated}
+        portalUrl={mounted ? portalUrl : '/login'}
+        isAuthenticated={mounted && auth.isAuthenticated}
         onOpenMobileDrawer={handleOpenMobileDrawer}
       />
 
@@ -284,8 +281,6 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         hasAnySearchResult={hasAnySearchResult}
         onNavigate={navigateFromSearch}
         searchInputRef={searchInputRef}
-        locale={locale}
-        pick={pick}
       />
 
       {/* Mobile Drawer */}
@@ -298,13 +293,10 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
         }
         onOpenSearch={() => setSearchOpen(true)}
         pathname={pathname}
-        portalUrl={portalUrl}
-        isAuthenticated={auth.isAuthenticated}
+        portalUrl={mounted ? portalUrl : '/login'}
+        isAuthenticated={mounted && auth.isAuthenticated}
         theme={theme}
         onToggleTheme={() => dispatch(toggleTheme())}
-        locale={locale}
-        pick={pick}
-        t={t}
       />
 
       {/* Main Content */}
@@ -315,9 +307,6 @@ export function PublicLayout({ children }: { children: React.ReactNode }) {
       {/* Footer */}
       <PublicFooter
         school={school}
-        locale={locale}
-        pick={pick}
-        t={t}
       />
     </div>
   );

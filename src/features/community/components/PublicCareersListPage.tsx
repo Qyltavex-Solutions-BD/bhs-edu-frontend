@@ -32,7 +32,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { MasonryPhotoAlbum } from 'react-photo-album';
 
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -60,11 +59,10 @@ type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
 
 export function PublicCareersListPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
-      <PageHeader title={pick('নিয়োগ বিজ্ঞপ্তি (Careers)', 'Careers & Recruitment')} />
+      <PageHeader title={'নিয়োগ বিজ্ঞপ্তি (Careers)'} />
       <div className="space-y-4">
         {db.careers.filter((c) => c.isPublished).map((car) => (
           <Link key={car.id} href={`/careers/${car.id}`} className="block">
@@ -72,7 +70,7 @@ export function PublicCareersListPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-bold text-foreground">{car.title}</h2>
                 <span className="text-sm text-destructive font-semibold tabular-nums">
-                  {pick('শেষ তারিখ:', 'Deadline:')} {formatDateLong(car.deadline, locale)}
+                  {'শেষ তারিখ:'} {formatDateLong(car.deadline, 'bn')}
                 </span>
               </div>
               <p className="text-base text-muted-foreground line-clamp-2">{car.description}</p>

@@ -37,7 +37,7 @@ export function SegmentedTabs<T extends string>({
           >
             {item.label}
             {item.count !== undefined && (
-              <span className="ml-1.5 tabular-nums text-xs opacity-75">
+              <span className="ml-1.5 tabular-nums text-sm opacity-75">
                 ({item.count})
               </span>
             )}

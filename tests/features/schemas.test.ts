@@ -77,7 +77,7 @@ test('Feature runtime validation schemas', async (t) => {
   await t.test('examCreateSchema validates required examination scheduling parameters', () => {
     const valid = examCreateSchema.safeParse({
       academicYearId: 'ay-2026',
-      classId: 'cls-10',
+      classIds: ['cls-10'],
       gradingScaleId: 'gs-nctb-5',
       name: 'বার্ষিক পরীক্ষা ২০২৬',
       examType: ExamType.ANNUAL,

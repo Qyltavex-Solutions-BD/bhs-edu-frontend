@@ -11,7 +11,6 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import { EmptyState } from '@/src/components/shared/Feedback';
 import { Button, Card, Input, Select } from '@/src/components/ui/primitives';
 import type { SchoolClass, Section } from '@/src/types/entities';
@@ -35,7 +34,6 @@ export function AttendanceReports({
   classes: SchoolClass[];
   sections: Section[];
 }) {
-  const { pick } = useI18n();
   const [view, setView] = useState<'section' | 'summary'>('section');
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [classId, setClassId] = useState('');
@@ -69,14 +67,14 @@ export function AttendanceReports({
       downloadCsv(
         `attendance-report-${month}-page-${page}.csv`,
         [
-          pick('রোল', 'Roll'),
-          pick('শিক্ষার্থী', 'Student'),
-          pick('শ্রেণি', 'Class'),
-          pick('উপস্থিত', 'Present'),
-          pick('দেরি', 'Late'),
-          pick('অনুপস্থিত', 'Absent'),
-          pick('ছুটি', 'Leave'),
-          pick('হার (%)', 'Rate (%)'),
+          'রোল',
+          'শিক্ষার্থী',
+          'শ্রেণি',
+          'উপস্থিত',
+          'দেরি',
+          'অনুপস্থিত',
+          'ছুটি',
+          'হার (%)',
         ],
         sectionData.items.map((r) => [
           r.roll,
@@ -93,13 +91,13 @@ export function AttendanceReports({
       downloadCsv(
         `attendance-summary-${month}.csv`,
         [
-          pick('শ্রেণি', 'Class'),
-          pick('মোট শিক্ষার্থী', 'Students'),
-          pick('উপস্থিত', 'Present'),
-          pick('দেরি', 'Late'),
-          pick('অনুপস্থিত', 'Absent'),
-          pick('ছুটি', 'Leave'),
-          pick('হার (%)', 'Rate (%)'),
+          'শ্রেণি',
+          'মোট শিক্ষার্থী',
+          'উপস্থিত',
+          'দেরি',
+          'অনুপস্থিত',
+          'ছুটি',
+          'হার (%)',
         ],
         summaryData.summaryRows.map((r) => [
           r.className,
@@ -130,7 +128,7 @@ export function AttendanceReports({
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {pick('শিক্ষার্থীভিত্তিক রিপোর্ট', 'Student Register Report')}
+            {'শিক্ষার্থীভিত্তিক রিপোর্ট'}
           </button>
           <button
             type="button"
@@ -141,12 +139,12 @@ export function AttendanceReports({
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {pick('শ্রেণিভিত্তিক সারসংক্ষেপ', 'Class Summary')}
+            {'শ্রেণিভিত্তিক সারসংক্ষেপ'}
           </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Input
+          <Input placeholder="তথ্য লিখুন"
             type="month"
             value={month}
             onChange={(e) => {
@@ -157,11 +155,11 @@ export function AttendanceReports({
           />
           <Button size="sm" variant="outline" onClick={() => window.print()}>
             <Printer className="h-4 w-4" />
-            {pick('প্রিন্ট', 'Print')}
+            {'প্রিন্ট'}
           </Button>
           <Button size="sm" variant="outline" onClick={exportCsv}>
             <Download className="h-4 w-4" />
-            {pick('CSV এক্সপোর্ট', 'Export CSV')}
+            {'CSV এক্সপোর্ট'}
           </Button>
         </div>
       </div>
@@ -171,14 +169,14 @@ export function AttendanceReports({
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Card className="p-4">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>{pick('কার্যদিবস', 'Working Days')}</span>
+                <span>{'কার্যদিবস'}</span>
                 <Calendar className="h-4 w-4 text-primary" />
               </div>
               <div className="mt-1 text-2xl font-bold">{sectionData.summary.workingDays}</div>
             </Card>
             <Card className="p-4">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>{pick('গড় উপস্থিতি', 'Avg. Attendance')}</span>
+                <span>{'গড় উপস্থিতি'}</span>
                 <TrendingUp className="h-4 w-4 text-success" />
               </div>
               <div className="mt-1 text-2xl font-bold">
@@ -187,14 +185,14 @@ export function AttendanceReports({
             </Card>
             <Card className="p-4">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>{pick('মোট শিক্ষার্থী', 'Total Students')}</span>
+                <span>{'মোট শিক্ষার্থী'}</span>
                 <Users className="h-4 w-4 text-info" />
               </div>
               <div className="mt-1 text-2xl font-bold">{sectionData.summary.totalStudents}</div>
             </Card>
             <Card className="p-4">
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>{pick('ঝুঁকিপূর্ণ (<৭৫%)', 'At-Risk (<75%)')}</span>
+                <span>{'ঝুঁকিপূর্ণ (<৭৫%)'}</span>
                 <AlertTriangle className="h-4 w-4 text-destructive" />
               </div>
               <div className="mt-1 text-2xl font-bold text-destructive">
@@ -206,12 +204,12 @@ export function AttendanceReports({
           <Card className="overflow-hidden p-0">
             <div className="border-b border-border/70 px-5 py-4">
               <h3 className="text-lg font-semibold text-foreground">
-                {pick('মাসিক উপস্থিতি পরিসংখ্যান', 'Monthly Student Attendance Breakdown')}
+                {'মাসিক উপস্থিতি পরিসংখ্যান'}
               </h3>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {isFetching
-                  ? pick('লোড হচ্ছে...', 'Loading...')
-                  : pick('ব্যাকএন্ড ফিল্টার ও প্যাজিনেশন সক্রিয়', 'Server-side filtered & paginated')}
+                  ? 'লোড হচ্ছে...'
+                  : 'ব্যাকএন্ড ফিল্টার ও প্যাজিনেশন সক্রিয়'}
               </p>
             </div>
 
@@ -224,7 +222,7 @@ export function AttendanceReports({
                     setSearch(e.target.value);
                     setPage(1);
                   }}
-                  placeholder={pick('নাম, রোল বা আইডি...', 'Search name, roll, ID...')}
+                  placeholder={'নাম, রোল বা আইডি...'}
                   className="pl-9"
                 />
               </div>
@@ -236,7 +234,7 @@ export function AttendanceReports({
                   setPage(1);
                 }}
               >
-                <option value="">{pick('সব শ্রেণি', 'All Classes')}</option>
+                <option value="">{'সব শ্রেণি'}</option>
                 {classes.map((cls) => (
                   <option key={cls.id} value={cls.id}>
                     {cls.nameBn || cls.name}
@@ -250,7 +248,7 @@ export function AttendanceReports({
                   setPage(1);
                 }}
               >
-                <option value="">{pick('সব শাখা', 'All Sections')}</option>
+                <option value="">{'সব শাখা'}</option>
                 {availableSections.map((sec) => (
                   <option key={sec.id} value={sec.id}>
                     {sec.name}
@@ -267,31 +265,28 @@ export function AttendanceReports({
                   }}
                   className="h-4 w-4 accent-destructive"
                 />
-                <span>{pick('শুধু <৭৫% ঝুঁকিপূর্ণ', 'Only <75% At-Risk')}</span>
+                <span>{'শুধু <৭৫% ঝুঁকিপূর্ণ'}</span>
               </label>
             </div>
 
             {sectionData.items.length === 0 ? (
               <EmptyState
-                title={pick('কোনো রিপোর্ট তথ্য নেই', 'No report records found')}
-                description={pick(
-                  'নির্বাচিত মাস বা ফিল্টারে কোনো তথ্য পাওয়া যায়নি।',
-                  'No attendance data found for the selected month or filters.'
-                )}
+                title={'কোনো রিপোর্ট তথ্য নেই'}
+                description={'নির্বাচিত মাস বা ফিল্টারে কোনো তথ্য পাওয়া যায়নি।'}
               />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-base">
                   <thead className="border-b border-border/70 bg-muted/40 text-sm font-semibold text-muted-foreground">
                     <tr>
-                      <th className="px-4 py-3">{pick('রোল', 'Roll')}</th>
-                      <th className="px-4 py-3">{pick('শিক্ষার্থী', 'Student')}</th>
-                      <th className="px-4 py-3">{pick('শ্রেণি ও শাখা', 'Class & Section')}</th>
-                      <th className="px-4 py-3">{pick('উপস্থিত', 'Present')}</th>
-                      <th className="px-4 py-3">{pick('দেরি', 'Late')}</th>
-                      <th className="px-4 py-3">{pick('অনুপস্থিত', 'Absent')}</th>
-                      <th className="px-4 py-3">{pick('ছুটি', 'Leave')}</th>
-                      <th className="px-4 py-3">{pick('উপস্থিতির হার', 'Attendance Rate')}</th>
+                      <th className="px-4 py-3">{'রোল'}</th>
+                      <th className="px-4 py-3">{'শিক্ষার্থী'}</th>
+                      <th className="px-4 py-3">{'শ্রেণি ও শাখা'}</th>
+                      <th className="px-4 py-3">{'উপস্থিত'}</th>
+                      <th className="px-4 py-3">{'দেরি'}</th>
+                      <th className="px-4 py-3">{'অনুপস্থিত'}</th>
+                      <th className="px-4 py-3">{'ছুটি'}</th>
+                      <th className="px-4 py-3">{'উপস্থিতির হার'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/60">
@@ -327,7 +322,7 @@ export function AttendanceReports({
                               />
                             </div>
                             {row.rate !== null && row.rate < 75 && (
-                              <ToneBadge tone="danger">{pick('ঝুঁকি', 'Risk')}</ToneBadge>
+                              <ToneBadge tone="danger">{'ঝুঁকি'}</ToneBadge>
                             )}
                           </div>
                         </td>
@@ -347,7 +342,7 @@ export function AttendanceReports({
           <div className="flex items-center justify-between border-b border-border/70 px-5 py-4">
             <div>
               <h3 className="text-lg font-semibold text-foreground">
-                {pick('শ্রেণিভিত্তিক মাসিক সারসংক্ষেপ', 'Class-Wise Monthly Summary')}
+                {'শ্রেণিভিত্তিক মাসিক সারসংক্ষেপ'}
               </h3>
               <p className="mt-0.5 text-sm text-muted-foreground">{month}</p>
             </div>
@@ -357,13 +352,13 @@ export function AttendanceReports({
             <table className="w-full text-left text-base">
               <thead className="border-b border-border/70 bg-muted/40 text-sm font-semibold text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3">{pick('শ্রেণি', 'Class')}</th>
-                  <th className="px-4 py-3">{pick('মোট শিক্ষার্থী', 'Students')}</th>
-                  <th className="px-4 py-3">{pick('উপস্থিত', 'Present')}</th>
-                  <th className="px-4 py-3">{pick('দেরি', 'Late')}</th>
-                  <th className="px-4 py-3">{pick('অনুপস্থিত', 'Absent')}</th>
-                  <th className="px-4 py-3">{pick('ছুটি', 'Leave')}</th>
-                  <th className="px-4 py-3">{pick('উপস্থিতির হার', 'Rate')}</th>
+                  <th className="px-4 py-3">{'শ্রেণি'}</th>
+                  <th className="px-4 py-3">{'মোট শিক্ষার্থী'}</th>
+                  <th className="px-4 py-3">{'উপস্থিত'}</th>
+                  <th className="px-4 py-3">{'দেরি'}</th>
+                  <th className="px-4 py-3">{'অনুপস্থিত'}</th>
+                  <th className="px-4 py-3">{'ছুটি'}</th>
+                  <th className="px-4 py-3">{'উপস্থিতির হার'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">

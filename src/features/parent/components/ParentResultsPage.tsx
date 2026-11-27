@@ -16,7 +16,6 @@ import {
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -81,13 +80,12 @@ function ChildSwitcherBar({
   selectedStudentId: string;
   onChange: (id: string) => void;
 }) {
-  const { locale, pick } = useI18n();
   if (childrenList.length <= 1) return null;
   return (
     <Card className="p-3.5 flex flex-wrap items-center justify-between gap-3 bg-surface-muted/40">
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
         <Users className="w-4 h-4 text-primary" />
-        <span>{pick('সন্তান নির্বাচন করুন:', 'Select Child:')}</span>
+        <span>{'সন্তান নির্বাচন করুন:'}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {childrenList.map((c) => {
@@ -103,8 +101,8 @@ function ChildSwitcherBar({
                   : 'bg-surface text-foreground border-border hover:bg-surface-muted'
               }`}
             >
-              {locale === 'bn' ? c.student.nameBn || c.student.nameEn : c.student.nameEn} ·{' '}
-              {locale === 'bn' ? c.cls?.nameBn || c.cls?.name : c.cls?.name} ({c.sec?.name})
+              {c.student.nameBn || c.student.nameEn} ·{' '}
+              {c.cls?.nameBn || c.cls?.name} ({c.sec?.name})
             </button>
           );
         })}
@@ -116,13 +114,12 @@ function ChildSwitcherBar({
 export function ParentResultsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const { children } = useParentChildren(db);
-  const { locale, pick } = useI18n();
   const [selectedId, setSelectedId] = useState('stu-10-1');
   const [selectedExamId, setSelectedExamId] = useState('');
 
   if (isLoading || !db) return <LoadingSkeleton />;
   const active = children.find((c) => c.student.id === selectedId) ?? children[0];
-  if (!active) return <EmptyState title={pick('কোনো তথ্য নেই', 'No data')} />;
+  if (!active) return <EmptyState title={'কোনো তথ্য নেই'} />;
 
   const publishedExams = db.exams.filter(
     (e) =>
@@ -178,16 +175,13 @@ export function ParentResultsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('প্রকাশিত ফলাফল ও মার্কশিট', 'Published Results & Marksheet')}
-        description={pick(
-          'শুধুমাত্র প্রকাশিত পরীক্ষার ফলাফল ও প্রিন্টযোগ্য একাডেমিক ট্রান্সক্রিপ্ট',
-          'Published examination results and A4 printable academic transcripts'
-        )}
+        title={'প্রকাশিত ফলাফল ও মার্কশিট'}
+        description={'শুধুমাত্র প্রকাশিত পরীক্ষার ফলাফল ও প্রিন্টযোগ্য একাডেমিক ট্রান্সক্রিপ্ট'}
         actions={
           summary ? (
             <Button variant="primary" size="sm" onClick={() => triggerPrint()} className="no-print">
               <Printer className="w-4 h-4" />
-              {pick('মার্কশিট প্রিন্ট করুন', 'Print Marksheet')}
+              {'মার্কশিট প্রিন্ট করুন'}
             </Button>
           ) : undefined
         }
@@ -225,11 +219,8 @@ export function ParentResultsPage() {
 
       {!activeExam || !summary ? (
         <EmptyState
-          title={pick('কোনো প্রকাশিত ফলাফল পাওয়া যায়নি', 'No published results yet')}
-          description={pick(
-            'খসড়া বা স্থগিত ফলাফল এখানে প্রদর্শিত হয় না।',
-            'Draft or withheld examinations are not displayed.'
-          )}
+          title={'কোনো প্রকাশিত ফলাফল পাওয়া যায়নি'}
+          description={'খসড়া বা স্থগিত ফলাফল এখানে প্রদর্শিত হয় না।'}
         />
       ) : (
         <>
@@ -254,7 +245,7 @@ export function ParentResultsPage() {
 
           <Card className="p-5 no-print">
             <h2 className="text-base font-semibold mb-3">
-              {pick('জিপিএ অগ্রগতি চার্ট', 'GPA Performance Trend')}
+              {'জিপিএ অগ্রগতি চার্ট'}
             </h2>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { exportToCsv } from '@/src/lib/utils/cn';
 import { DataTable } from '@/src/components/shared/DataTable';
@@ -14,7 +13,6 @@ const PAGE_SIZE = 10;
 const SORTABLE_FIELDS = new Set(['studentId', 'name', 'primaryName', 'emergency', 'sms']);
 
 export function ParentCoverage() {
-  const { locale, pick } = useI18n();
   const [onlyGaps, setOnlyGaps] = useState(false);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -62,14 +60,14 @@ export function ParentCoverage() {
     smsReady: 0,
     gapCount: 0,
   };
-  const numLocale = locale === 'bn' ? 'bn' : 'en';
+  const numLocale = 'bn';
 
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('মোট সক্রিয় শিক্ষার্থী', 'Active Students')}
+            {'মোট সক্রিয় শিক্ষার্থী'}
           </p>
           <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground tabular-nums mt-1">
             {formatNumber(summary.activeStudents, numLocale)}
@@ -77,7 +75,7 @@ export function ParentCoverage() {
         </Card>
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('সম্পূর্ণ কভারেজ', 'Full Coverage')}
+            {'সম্পূর্ণ কভারেজ'}
           </p>
           <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-success tabular-nums mt-1">
             {formatNumber(summary.fullCoverage, numLocale)}
@@ -85,7 +83,7 @@ export function ParentCoverage() {
         </Card>
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('SMS প্রাপক নির্ধারিত', 'SMS Ready')}
+            {'SMS প্রাপক নির্ধারিত'}
           </p>
           <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary tabular-nums mt-1">
             {formatNumber(summary.smsReady, numLocale)}
@@ -93,7 +91,7 @@ export function ParentCoverage() {
         </Card>
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('তথ্য ঘাটতি (Gap)', 'Needs Attention')}
+            {'তথ্য ঘাটতি (Gap)'}
           </p>
           <p
             className={`text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums mt-1 ${
@@ -109,8 +107,8 @@ export function ParentCoverage() {
         data={rows}
         isLoading={isFetching && !rows.length}
         exportFilename="guardian-coverage.csv"
-        searchPlaceholder={pick('শিক্ষার্থী বা অভিভাবকের নাম/আইডি দিয়ে খুঁজুন...', 'Search by student or guardian...')}
-        emptyTitle={pick('কোনো তথ্য পাওয়া যায়নি', 'No records found')}
+        searchPlaceholder={'শিক্ষার্থী বা অভিভাবকের নাম/আইডি দিয়ে খুঁজুন...'}
+        emptyTitle={'কোনো তথ্য পাওয়া যায়নি'}
         server={{
           search,
           onSearch: setSearch,
@@ -142,21 +140,21 @@ export function ParentCoverage() {
             }}
           >
             {onlyGaps
-              ? pick('সকল শিক্ষার্থী দেখুন', 'Show all students')
-              : pick('শুধু ঘাটতি দেখুন', 'Only gaps')}
+              ? 'সকল শিক্ষার্থী দেখুন'
+              : 'শুধু ঘাটতি দেখুন'}
           </Button>
         }
         columns={[
           {
             accessorKey: 'studentId',
-            header: pick('আইডি', 'ID'),
+            header: 'আইডি',
             cell: ({ row }) => (
               <span className="font-mono text-sm">{row.original.studentId || '—'}</span>
             ),
           },
           {
             accessorKey: 'name',
-            header: pick('শিক্ষার্থী', 'Student'),
+            header: 'শিক্ষার্থী',
             cell: ({ row }) => (
               <Link
                 href={`/admin/students/${row.original.id}`}
@@ -168,7 +166,7 @@ export function ParentCoverage() {
           },
           {
             accessorKey: 'primaryName',
-            header: pick('প্রাথমিক অভিভাবক', 'Primary Guardian'),
+            header: 'প্রাথমিক অভিভাবক',
             cell: ({ row }) =>
               row.original.primaryParentId ? (
                 <Link
@@ -183,7 +181,7 @@ export function ParentCoverage() {
           },
           {
             accessorKey: 'phone',
-            header: pick('মোবাইল', 'Phone'),
+            header: 'মোবাইল',
             enableSorting: false,
             cell: ({ row }) => (
               <span className="font-mono text-sm tabular-nums">{row.original.phone}</span>
@@ -191,7 +189,7 @@ export function ParentCoverage() {
           },
           {
             accessorKey: 'emergency',
-            header: pick('জরুরি', 'Emergency'),
+            header: 'জরুরি',
             cell: ({ row }) => (
               <span
                 className={`tabular-nums font-medium ${

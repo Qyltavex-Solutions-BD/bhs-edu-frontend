@@ -1,22 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { useI18n } from '@/src/lib/i18n';
 import { PublicFaqView } from '@/src/components/public/PublicFaqView';
 import { PageHeader } from '@/src/components/shared/Feedback';
 import { Button, Card } from '@/src/components/ui/primitives';
 
 export function LegalAndFaqPage({ mode }: { mode: 'privacy' | 'terms' | 'faq' }) {
-  const { pick } = useI18n();
-
   if (mode === 'faq') {
     return <PublicFaqView />;
   }
 
   const title =
     mode === 'privacy'
-      ? pick('গোপনীয়তা নীতি (Privacy Policy)', 'Privacy Policy')
-      : pick('ব্যবহারের শর্তাবলি (Terms & Conditions)', 'Terms & Conditions');
+      ? 'গোপনীয়তা নীতি (Privacy Policy)'
+      : 'ব্যবহারের শর্তাবলি (Terms & Conditions)';
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
@@ -73,17 +70,16 @@ export function LegalAndFaqPage({ mode }: { mode: 'privacy' | 'terms' | 'faq' })
 }
 
 export function NotFoundPage() {
-  const { pick } = useI18n();
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-6">
       <Card className="max-w-md w-full p-8 text-center space-y-4">
         <p className="text-4xl font-bold text-primary tabular-nums">404</p>
-        <h1 className="text-xl font-bold text-foreground">{pick('পৃষ্ঠাটি পাওয়া যায়নি', 'Page Not Found')}</h1>
+        <h1 className="text-xl font-bold text-foreground">{'পৃষ্ঠাটি পাওয়া যায়নি'}</h1>
         <p className="text-base text-muted-foreground">
-          {pick('আপনি যে ঠিকানাটি খুঁজছেন তা বিদ্যমান নয় অথবা স্থানান্তরিত হয়েছে।', 'The page you requested does not exist or has been moved.')}
+          {'আপনি যে ঠিকানাটি খুঁজছেন তা বিদ্যমান নয় অথবা স্থানান্তরিত হয়েছে।'}
         </p>
         <Link href="/" className="inline-block">
-          <Button variant="primary">{pick('হোমপেজে ফিরে যান', 'Return Home')}</Button>
+          <Button variant="primary">{'হোমপেজে ফিরে যান'}</Button>
         </Link>
       </Card>
     </div>

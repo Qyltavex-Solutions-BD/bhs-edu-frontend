@@ -17,7 +17,6 @@ import {
   ZoomOut,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong } from '@/src/lib/formatters';
 import { SchoolEmblem, SCHOOL_LOGO_SRC } from '@/src/components/shared/Feedback';
 import type { Notice, NoticeAttachmentType, SchoolProfile } from '@/src/types/entities';
@@ -44,8 +43,6 @@ export function NoticeFormatBadge({
   showSize?: boolean;
   className?: string;
 }) {
-  const { pick } = useI18n();
-
   if (!notice.attachment && !notice.attachmentType && !notice.attachmentUrl) {
     return null;
   }
@@ -56,7 +53,7 @@ export function NoticeFormatBadge({
     return (
       <span
         className={cn(
-          'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border leading-none whitespace-nowrap',
+          'inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm font-semibold border leading-none whitespace-nowrap',
           'bg-destructive/8 text-destructive border-destructive/20',
           className
         )}
@@ -74,13 +71,13 @@ export function NoticeFormatBadge({
     return (
       <span
         className={cn(
-          'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border leading-none whitespace-nowrap',
+          'inline-flex items-center gap-1 px-2 py-0.5 rounded text-sm font-semibold border leading-none whitespace-nowrap',
           'bg-secondary/10 text-secondary border-secondary/20',
           className
         )}
       >
         <ImageIcon className="w-3.5 h-3.5 shrink-0" />
-        <span>{pick('ইমেজ', 'Image')}</span>
+        <span>{'ইমেজ'}</span>
         {showSize && notice.attachmentSize && (
           <span className="opacity-75 font-normal tabular-nums">· {notice.attachmentSize}</span>
         )}
@@ -111,16 +108,14 @@ export function downloadNoticeDocument(
     document.body.removeChild(a);
     if (showToast) {
       toast.success(
-        locale === 'bn'
-          ? `${notice.attachment || 'বিজ্ঞপ্তি'} ডাউনলোড শুরু হয়েছে।`
-          : `Downloading ${notice.attachment || 'notice document'}.`
+        `${notice.attachment || 'বিজ্ঞপ্তি'} ডাউনলোড শুরু হয়েছে।`
       );
     }
     return;
   }
 
   if (!notice.description?.trim()) {
-    toast.error(locale === 'bn' ? '\u09a8\u09a5\u09bf \u09aa\u09be\u0993\u09af\u09bc\u09be \u09af\u09be\u09af\u09bc\u09a8\u09bf\u0964' : 'The document is unavailable.');
+    toast.error('\u09a8\u09a5\u09bf \u09aa\u09be\u0993\u09af\u09bc\u09be \u09af\u09be\u09af\u09bc\u09a8\u09bf\u0964');
     return;
   }
 
@@ -130,7 +125,7 @@ export function downloadNoticeDocument(
   const address = school?.address ?? 'ডাকঘর: ভোজেশ্বর, উপজেলা: নড়িয়া, জেলা: শরীয়তপুর';
   const eiin = school?.eiin ?? '113587';
   const memo = notice.memoNo ?? `ভউবি/নোটিশ/২০২৬/${notice.id.slice(-3)}`;
-  const dateText = formatDateLong(notice.publishedAt ?? notice.createdAt, locale);
+  const dateText = formatDateLong(notice.publishedAt ?? notice.createdAt, 'bn');
   const safeBody = notice.description
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -203,9 +198,7 @@ export function downloadNoticeDocument(
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   if (showToast) {
     toast.success(
-      locale === 'bn'
-        ? 'অফিসিয়াল বিজ্ঞপ্তির কপি ডাউনলোড হয়েছে (প্রিন্ট/PDF সেভ করতে ফাইলটি খুলুন)।'
-        : 'Official circular copy downloaded.'
+      'অফিসিয়াল বিজ্ঞপ্তির কপি ডাউনলোড হয়েছে (প্রিন্ট/PDF সেভ করতে ফাইলটি খুলুন)।'
     );
   }
 }
@@ -221,8 +214,7 @@ function OfficialCircularSheet({
   notice: Notice;
   school?: SchoolProfile | null;
 }) {
-  const { locale, pick } = useI18n();
-  const dateText = formatDateLong(notice.publishedAt ?? notice.createdAt, locale);
+  const dateText = formatDateLong(notice.publishedAt ?? notice.createdAt, 'bn');
   const memoNo = notice.memoNo ?? `ভউবি/নোটিশ/২০২৬/${notice.id.slice(-3)}`;
 
   const paragraphs = notice.description
@@ -256,12 +248,12 @@ function OfficialCircularSheet({
             <h3 className="text-xl sm:text-2xl font-bold text-[#094724] tracking-tight leading-tight">
               {school?.name ?? 'ভোজেশ্বর উচ্চ বিদ্যালয়'}
             </h3>
-            <p className="text-xs font-bold tracking-[0.12em] uppercase text-[#374151]">
+            <p className="text-sm font-bold tracking-[0.12em] uppercase text-[#374151]">
               {school?.nameEn ?? 'BHOJESHWAR HIGH SCHOOL'}
             </p>
-            <p className="text-xs text-[#4B5563] tabular-nums">
+            <p className="text-sm text-[#4B5563] tabular-nums">
               {school?.address ?? 'ডাকঘর: ভোজেশ্বর, উপজেলা: নড়িয়া, জেলা: শরীয়তপুর'} ·{' '}
-              {pick('স্থাপিত: ১৯৭৮ খ্রি.', 'Est. 1978')} · EIIN: {school?.eiin ?? '113587'}
+              {'স্থাপিত: ১৯৭৮ খ্রি.'} · EIIN: {school?.eiin ?? '113587'}
             </p>
           </div>
         </div>
@@ -269,11 +261,11 @@ function OfficialCircularSheet({
         {/* Memo Number & Published Date Row */}
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-[#374151] tabular-nums">
           <p>
-            <span className="text-[#6B7280]">{pick('স্মারক নং:', 'Memo No:')}</span>{' '}
+            <span className="text-[#6B7280]">{'স্মারক নং:'}</span>{' '}
             <strong className="font-semibold text-[#111827]">{memoNo}</strong>
           </p>
           <p>
-            <span className="text-[#6B7280]">{pick('তারিখ:', 'Date:')}</span>{' '}
+            <span className="text-[#6B7280]">{'তারিখ:'}</span>{' '}
             <strong className="font-semibold text-[#111827]">{dateText}</strong>
           </p>
         </div>
@@ -289,14 +281,14 @@ function OfficialCircularSheet({
             )}
           >
             {notice.isUrgent
-              ? pick('জরুরি বিজ্ঞপ্তি', 'URGENT NOTICE')
-              : pick('অফিসিয়াল বিজ্ঞপ্তি', 'OFFICIAL NOTICE')}
+              ? 'জরুরি বিজ্ঞপ্তি'
+              : 'অফিসিয়াল বিজ্ঞপ্তি'}
           </span>
         </div>
 
         {/* Subject Line */}
         <div className="text-base font-bold text-[#111827] leading-relaxed bg-[#F8FAF9] border-l-3 border-[#0A6E31] px-3.5 py-2.5">
-          <span className="text-[#094724]">{pick('বিষয়:', 'Subject:')}</span> {notice.title}
+          <span className="text-[#094724]">{'বিষয়:'}</span> {notice.title}
         </div>
 
         {/* Circular Body Paragraphs */}
@@ -316,13 +308,13 @@ function OfficialCircularSheet({
         {/* Official Footer: Distribution Copy + Institutional Seal + Headteacher Signature */}
         <div className="pt-8 mt-6 border-t border-[#E5E7EB] flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
           {/* Distribution List */}
-          <div className="text-xs text-[#4B5563] leading-relaxed space-y-0.5">
+          <div className="text-sm text-[#4B5563] leading-relaxed space-y-0.5">
             <p className="font-semibold text-[#111827] mb-1">
-              {pick('অনুলিপি (সদয় অবগতি ও কার্যার্থে):', 'Copy for kind information & action:')}
+              {'অনুলিপি (সদয় অবগতি ও কার্যার্থে):'}
             </p>
-            <p>১. {pick('সভাপতি, ম্যানেজিং কমিটি, ভোজেশ্বর উচ্চ বিদ্যালয়।', 'President, Managing Committee, BHS.')}</p>
-            <p>২. {pick('সকল শ্রেণি শিক্ষক ও সংশ্লিষ্ট বিভাগ।', 'All Class Teachers & Departments.')}</p>
-            <p>৩. {pick('অফিস নোটিশ বোর্ড ও ডিজিটাল ওয়েবসাইট।', 'Office Notice Board & Official Website.')}</p>
+            <p>১. {'সভাপতি, ম্যানেজিং কমিটি, ভোজেশ্বর উচ্চ বিদ্যালয়।'}</p>
+            <p>২. {'সকল শ্রেণি শিক্ষক ও সংশ্লিষ্ট বিভাগ।'}</p>
+            <p>৩. {'অফিস নোটিশ বোর্ড ও ডিজিটাল ওয়েবসাইট।'}</p>
           </div>
 
           {/* Authentic Round Institutional Stamp + Signature Block */}
@@ -377,13 +369,13 @@ function OfficialCircularSheet({
               </svg>
               <div className="border-t border-[#374151] pt-1">
                 <p className="text-sm font-bold text-[#111827]">
-                  {pick('প্রধান শিক্ষক', 'Headteacher')}
+                  {'প্রধান শিক্ষক'}
                 </p>
-                <p className="text-xs text-[#4B5563]">
+                <p className="text-sm text-[#4B5563]">
                   {school?.name ?? 'ভোজেশ্বর উচ্চ বিদ্যালয়'}
                 </p>
-                <p className="text-xs text-[#6B7280]">
-                  {pick('ভোজেশ্বর, নড়িয়া, শরীয়তপুর', 'Bhojeshwar, Noria, Shariatpur')}
+                <p className="text-sm text-[#6B7280]">
+                  {'ভোজেশ্বর, নড়িয়া, শরীয়তপুর'}
                 </p>
               </div>
             </div>
@@ -405,7 +397,6 @@ export function NoticeDocumentViewer({
   showFullPageLink?: boolean;
   onNavigateFullPage?: () => void;
 }) {
-  const { locale, pick } = useI18n();
   const [zoom, setZoom] = useState(100);
   const pdfIframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -474,33 +465,33 @@ export function NoticeDocumentViewer({
         {/* Left: Notice Reference & Published Date */}
         <div className="flex items-center gap-2 min-w-0 text-sm text-muted-foreground tabular-nums">
           <span className="font-medium text-foreground truncate max-w-[200px] sm:max-w-[300px]">
-            {notice.memoNo ?? pick('প্রাতিষ্ঠানিক বিজ্ঞপ্তি', 'Official Notice')}
+            {notice.memoNo ?? 'প্রাতিষ্ঠানিক বিজ্ঞপ্তি'}
           </span>
           <span aria-hidden="true" className="hidden sm:inline">·</span>
           <span className="hidden sm:inline shrink-0">
-            {formatDateLong(notice.publishedAt ?? notice.createdAt, locale)}
+            {formatDateLong(notice.publishedAt ?? notice.createdAt, 'bn')}
           </span>
         </div>
 
         {/* Right: Zoom Controls + Download, Print & Full Page Actions */}
         <div className="flex items-center gap-1.5 flex-wrap">
           {!hasRealPdf && (
-            <div className="hidden sm:inline-flex items-center gap-0.5 px-1 py-0.5 rounded-lg bg-surface border border-border text-xs tabular-nums mr-1">
+            <div className="hidden sm:inline-flex items-center gap-0.5 px-1 py-0.5 rounded-lg bg-surface border border-border text-sm tabular-nums mr-1">
               <button
                 type="button"
                 onClick={() => setZoom((z) => Math.max(70, z - 15))}
-                aria-label={pick('জুম আউট', 'Zoom out')}
+                aria-label={'জুম আউট'}
                 className="h-6 w-6 inline-flex items-center justify-center rounded hover:bg-surface-muted text-foreground/80 hover:text-foreground cursor-pointer"
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
-              <span className="px-1.5 text-xs font-medium text-muted-foreground min-w-[42px] text-center">
+              <span className="px-1.5 text-sm font-medium text-muted-foreground min-w-[42px] text-center">
                 {zoom}%
               </span>
               <button
                 type="button"
                 onClick={() => setZoom((z) => Math.min(145, z + 15))}
-                aria-label={pick('জুম ইন', 'Zoom in')}
+                aria-label={'জুম ইন'}
                 className="h-6 w-6 inline-flex items-center justify-center rounded hover:bg-surface-muted text-foreground/80 hover:text-foreground cursor-pointer"
               >
                 <ZoomIn className="w-3.5 h-3.5" />
@@ -509,7 +500,7 @@ export function NoticeDocumentViewer({
                 <button
                   type="button"
                   onClick={() => setZoom(100)}
-                  aria-label={pick('রিসেট জুম', 'Reset zoom')}
+                  aria-label={'রিসেট জুম'}
                   className="h-6 w-6 inline-flex items-center justify-center rounded hover:bg-surface-muted text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   <RotateCcw className="w-3 h-3" />
@@ -520,11 +511,11 @@ export function NoticeDocumentViewer({
 
           <button
             type="button"
-            onClick={() => downloadNoticeDocument(notice, school, locale)}
+            onClick={() => downloadNoticeDocument(notice, school, 'bn')}
             className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-92 transition-opacity cursor-pointer whitespace-nowrap"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>{pick('ডাউনলোড', 'Download')}</span>
+            <span>{'ডাউনলোড'}</span>
           </button>
 
           <button
@@ -533,18 +524,18 @@ export function NoticeDocumentViewer({
             className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-surface border border-border text-sm font-medium text-foreground hover:bg-surface-muted transition-colors cursor-pointer whitespace-nowrap"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{pick('প্রিন্ট', 'Print')}</span>
+            <span className="hidden sm:inline">{'প্রিন্ট'}</span>
           </button>
 
           {showFullPageLink && (
             <Link
               href={`/notices/${notice.id}`}
               onClick={onNavigateFullPage}
-              title={pick('পূর্ণ পৃষ্ঠায় দেখুন', 'Open Full Page')}
+              title={'পূর্ণ পৃষ্ঠায় দেখুন'}
               className="h-8 px-3 inline-flex items-center gap-1 rounded-lg bg-surface border border-border text-sm font-medium text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors whitespace-nowrap"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">{pick('পূর্ণ পৃষ্ঠা', 'Full Page')}</span>
+              <span className="hidden md:inline">{'পূর্ণ পৃষ্ঠা'}</span>
             </Link>
           )}
         </div>
@@ -567,10 +558,7 @@ export function NoticeDocumentViewer({
               >
                 <div className="p-8 text-center text-white bg-[#525659]">
                   <p className="mb-4">
-                    {pick(
-                      'ব্রাউজারে সরাসরি পিডিএফ দেখতে নিচের বাটনে ক্লিক করুন:',
-                      'Click below to view the PDF directly in browser:'
-                    )}
+                    {'ব্রাউজারে সরাসরি পিডিএফ দেখতে নিচের বাটনে ক্লিক করুন:'}
                   </p>
                   <a
                     href={pdfUrl}
@@ -578,7 +566,7 @@ export function NoticeDocumentViewer({
                     rel="noreferrer"
                     className="inline-block px-5 py-2.5 rounded-lg bg-[#0c5936] text-white font-medium"
                   >
-                    {pick('পিডিএফ ফাইল ডাউনলোড / ওপেন করুন', 'Download / Open PDF File')}
+                    {'পিডিএফ ফাইল ডাউনলোড / ওপেন করুন'}
                   </a>
                 </div>
               </iframe>
@@ -610,7 +598,7 @@ export function NoticeDocumentViewer({
               }}
               className="w-full transition-transform duration-200"
             >
-              {notice.description?.trim() ? <OfficialCircularSheet notice={notice} school={school} /> : <p role="status">{pick('\u09a8\u09a5\u09bf \u09aa\u09be\u0993\u09af\u09bc\u09be \u09af\u09be\u09af\u09bc\u09a8\u09bf\u0964', 'The document is unavailable.')}</p>}
+              {notice.description?.trim() ? <OfficialCircularSheet notice={notice} school={school} /> : <p role="status">{'\u09a8\u09a5\u09bf \u09aa\u09be\u0993\u09af\u09bc\u09be \u09af\u09be\u09af\u09bc\u09a8\u09bf\u0964'}</p>}
             </div>
           </div>
         )}
@@ -631,8 +619,6 @@ export function NoticeDocumentModal({
   school?: SchoolProfile | null;
   onClose: () => void;
 }) {
-  const { pick } = useI18n();
-
   useEffect(() => {
     if (!notice) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -667,9 +653,9 @@ export function NoticeDocumentModal({
             {/* Modal Header */}
             <div className="px-4 sm:px-5 py-3.5 border-b border-border flex items-start justify-between gap-4 bg-surface shrink-0">
               <div className="min-w-0 space-y-0.5">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <span className="font-semibold text-primary">
-                    {pick('প্রাতিষ্ঠানিক বিজ্ঞপ্তি ভিউয়ার', 'Official Notice Viewer')}
+                    {'প্রাতিষ্ঠানিক বিজ্ঞপ্তি ভিউয়ার'}
                   </span>
                   {notice.memoNo && (
                     <>
@@ -686,7 +672,7 @@ export function NoticeDocumentModal({
               <button
                 type="button"
                 onClick={onClose}
-                aria-label={pick('বন্ধ করুন', 'Close')}
+                aria-label={'বন্ধ করুন'}
                 className="h-8 w-8 rounded-lg inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors cursor-pointer shrink-0"
               >
                 <X className="w-4 h-4" />
@@ -710,7 +696,7 @@ export function NoticeDocumentModal({
                 onClick={onClose}
                 className="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
               >
-                <span>{pick('পূর্ণ নোটিশ পৃষ্ঠায় যান', 'Open Full Notice Page')}</span>
+                <span>{'পূর্ণ নোটিশ পৃষ্ঠায় যান'}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
               <button
@@ -718,7 +704,7 @@ export function NoticeDocumentModal({
                 onClick={onClose}
                 className="px-3.5 py-1.5 rounded-md border border-border bg-surface text-foreground hover:bg-surface-muted font-medium cursor-pointer"
               >
-                {pick('বন্ধ করুন', 'Close')}
+                {'বন্ধ করুন'}
               </button>
             </div>
           </motion.div>

@@ -32,7 +32,6 @@ import {
   useSaveMarksBatchMutation,
 } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -84,16 +83,14 @@ function getAssignmentSubject(db: MockDatabase, classSubjectId: string) {
 export function TeacherRoutinesPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const teacher = useCurrentTeacher(db);
-  const { locale, pick } = useI18n();
-
   if (isLoading || !db || !teacher) return <LoadingSkeleton />;
   const myRoutines = db.classRoutines.filter((r) => r.staffId === teacher.id);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('আমার সাপ্তাহিক ক্লাস রুটিন', 'My Weekly Class Routine')}
-        description={pick('রবিবার থেকে বৃহস্পতিবার নির্ধারিত পিরিয়ড', 'Sunday through Thursday teaching timetable')}
+        title={'আমার সাপ্তাহিক ক্লাস রুটিন'}
+        description={'রবিবার থেকে বৃহস্পতিবার নির্ধারিত পিরিয়ড'}
       />
       <div className="space-y-4">
         {DAYS_ORDER.map((day) => {
@@ -104,11 +101,11 @@ export function TeacherRoutinesPage() {
           return (
             <Card key={day} className="p-4">
               <h3 className="text-base font-bold text-primary mb-3">
-                {locale === 'bn' ? dayMeta?.bn ?? day : dayMeta?.en ?? day}
+                {dayMeta?.bn ?? day}
               </h3>
               {dayItems.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  {pick('কোনো ক্লাস নির্ধারিত নেই', 'No periods assigned')}
+                  {'কোনো ক্লাস নির্ধারিত নেই'}
                 </p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -122,15 +119,15 @@ export function TeacherRoutinesPage() {
                         key={r.id}
                         className="p-3 rounded-[var(--radius)] border border-border bg-surface-muted/40"
                       >
-                        <p className="text-xs font-semibold text-primary tabular-nums">
-                          {pick(`পিরিয়ড ${formatNumber(r.periodNumber, locale)}`, `Period ${r.periodNumber}`)} ·{' '}
-                          {formatTime12h(r.startTime, locale)} – {formatTime12h(r.endTime, locale)}
+                        <p className="text-sm font-semibold text-primary tabular-nums">
+                          {`পিরিয়ড ${formatNumber(r.periodNumber, 'bn')}`} ·{' '}
+                          {formatTime12h(r.startTime, 'bn')} – {formatTime12h(r.endTime, 'bn')}
                         </p>
                         <p className="text-base font-semibold mt-1">
-                          {locale === 'bn' ? sub?.nameBn || sub?.name : sub?.name}
+                          {sub?.nameBn || sub?.name}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name} ({sec?.name}) · {pick('কক্ষ:', 'Room:')}{' '}
+                          {cls?.nameBn || cls?.name} ({sec?.name}) · {'কক্ষ:'}{' '}
                           {r.room ?? '—'}
                         </p>
                       </div>

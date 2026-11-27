@@ -27,7 +27,6 @@ import {
   Users,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatNumber, formatTime12h } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -56,7 +55,7 @@ import type { SyllabusExamTerm, SyllabusFile } from '@/src/types/entities';
 function getWeekdayLabel(dateStr: string, locale: 'bn' | 'en'): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     weekday: 'long',
   }).format(d);
 }
@@ -65,7 +64,7 @@ function getMonthLabel(yearMonth: string, locale: 'bn' | 'en'): string {
   const [y, m] = yearMonth.split('-').map(Number);
   if (!y || !m) return yearMonth;
   const d = new Date(y, m - 1, 1);
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     month: 'long',
   }).format(d);
 }
@@ -211,7 +210,6 @@ const STRUCTURED_DOC_SECTIONS: Record<AcademicDocumentType, StructuredDocSection
 
 export function PublicExaminationPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [selectedExamId, setSelectedExamId] = useState<string>('exam-ann-10');
 
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
@@ -231,19 +229,16 @@ export function PublicExaminationPage() {
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-8">
       <div className="no-print">
         <PageHeader
-          title={pick('পরীক্ষা, সময়সূচি ও গ্রেডিং নীতিমালা', 'Examinations, Routine & Grading Policy')}
-          description={pick(
-            'চলমান ও আসন্ন পরীক্ষার রুটিন, পরীক্ষার হল নির্দেশাবলি, পাস নীতি এবং এনসিটিবি ৫.০০ গ্রেডিং স্কেল।',
-            'Active examination timetable, exam hall instructions, board pass policy, and configured 5.00 grading scale.'
-          )}
+          title={'পরীক্ষা, সময়সূচি ও গ্রেডিং নীতিমালা'}
+          description={'চলমান ও আসন্ন পরীক্ষার রুটিন, পরীক্ষার হল নির্দেশাবলি, পাস নীতি এবং এনসিটিবি ৫.০০ গ্রেডিং স্কেল।'}
           actions={
             <>
               <Button variant="outline" size="sm" onClick={triggerPrint} className="whitespace-nowrap">
-                <Printer className="w-4 h-4" /> {pick('রুটিন প্রিন্ট করুন', 'Print Routine')}
+                <Printer className="w-4 h-4" /> {'রুটিন প্রিন্ট করুন'}
               </Button>
               <Link href="/results">
                 <Button variant="primary" size="sm" className="whitespace-nowrap">
-                  {pick('ফলাফল অনুসন্ধান', 'Search Results')}
+                  {'ফলাফল অনুসন্ধান'}
                 </Button>
               </Link>
             </>
@@ -256,12 +251,12 @@ export function PublicExaminationPage() {
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-border pb-4">
           <div className="space-y-1">
             <h2 className="text-lg font-bold text-foreground">
-              {activeExam?.name ?? pick('পরীক্ষার রুটিন ২০২৬', 'Examination Routine 2026')}
+              {activeExam?.name ?? 'পরীক্ষার রুটিন ২০২৬'}
             </h2>
             {activeExam && (
               <div className="flex flex-wrap items-center gap-2.5 text-sm text-muted-foreground tabular-nums">
                 <span>
-                  {formatDateLong(activeExam.startDate, locale)} – {formatDateLong(activeExam.endDate, locale)}
+                  {formatDateLong(activeExam.startDate, 'bn')} – {formatDateLong(activeExam.endDate, 'bn')}
                 </span>
                 <StatusBadge enumName="ExamStatus" value={activeExam.status} />
                 <StatusBadge enumName="ResultPublicationStatus" value={activeExam.resultStatus} />
@@ -280,21 +275,18 @@ export function PublicExaminationPage() {
 
         {examRoutines.length === 0 ? (
           <EmptyState
-            title={pick('এই পরীক্ষার বিস্তারিত রুটিন তালিকাভুক্ত নেই', 'No Detailed Schedule Listed for This Exam')}
-            description={pick(
-              'চলমান বার্ষিক/নির্বাচনি পরীক্ষার বিস্তারিত রুটিন দেখতে তালিকা থেকে "বার্ষিক / নির্বাচনি প্রস্তুতি পরীক্ষা ২০২৬" নির্বাচন করুন অথবা প্রকাশিত ফলাফল দেখুন।',
-              'Select "Annual / Preparatory Examination 2026" to view the active schedule, or check published results directly.'
-            )}
+            title={'এই পরীক্ষার বিস্তারিত রুটিন তালিকাভুক্ত নেই'}
+            description={'চলমান বার্ষিক/নির্বাচনি পরীক্ষার বিস্তারিত রুটিন দেখতে তালিকা থেকে "বার্ষিক / নির্বাচনি প্রস্তুতি পরীক্ষা ২০২৬" নির্বাচন করুন অথবা প্রকাশিত ফলাফল দেখুন।'}
             action={
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {selectedExamId !== 'exam-ann-10' && (
                   <Button variant="outline" size="sm" onClick={() => setSelectedExamId('exam-ann-10')}>
-                    {pick('বার্ষিক পরীক্ষার রুটিন দেখুন', 'View Annual Exam Routine')}
+                    {'বার্ষিক পরীক্ষার রুটিন দেখুন'}
                   </Button>
                 )}
                 {activeExam?.resultStatus === 'PUBLISHED' && (
                   <Link href={`/results?examId=${activeExam.id}&classId=${activeExam.classId}`}>
-                    <Button variant="primary" size="sm">{pick('প্রকাশিত ফলাফল দেখুন', 'View Published Results')}</Button>
+                    <Button variant="primary" size="sm">{'প্রকাশিত ফলাফল দেখুন'}</Button>
                   </Link>
                 )}
               </div>
@@ -302,15 +294,15 @@ export function PublicExaminationPage() {
           />
         ) : (
           <div className="overflow-x-auto border border-border rounded-[var(--radius)]">
-            <table className="w-full text-sm border-collapse">
+            <table className="w-full text-base border-collapse">
               <thead className="bg-surface-muted text-muted-foreground">
                 <tr>
-                  <th className="p-3.5 text-left font-semibold">{pick('তারিখ', 'Date')}</th>
-                  <th className="p-3.5 text-left font-semibold">{pick('বিষয় ও কোড', 'Subject & Code')}</th>
-                  <th className="p-3.5 text-left font-semibold">{pick('সময়', 'Time')}</th>
-                  <th className="p-3.5 text-left font-semibold">{pick('কক্ষ', 'Room')}</th>
-                  <th className="p-3.5 text-left font-semibold">{pick('বিশেষ নির্দেশাবলি', 'Instructions')}</th>
-                  <th className="p-3.5 text-left font-semibold">{pick('অবস্থা', 'Status')}</th>
+                  <th className="p-3.5 text-left font-semibold">{'তারিখ'}</th>
+                  <th className="p-3.5 text-left font-semibold">{'বিষয় ও কোড'}</th>
+                  <th className="p-3.5 text-left font-semibold">{'সময়'}</th>
+                  <th className="p-3.5 text-left font-semibold">{'কক্ষ'}</th>
+                  <th className="p-3.5 text-left font-semibold">{'বিশেষ নির্দেশাবলি'}</th>
+                  <th className="p-3.5 text-left font-semibold">{'অবস্থা'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border tabular-nums">
@@ -320,20 +312,20 @@ export function PublicExaminationPage() {
                   return (
                     <tr key={er.id} className="hover:bg-surface-muted/30">
                       <td className="p-3.5 font-semibold text-foreground whitespace-nowrap">
-                        {formatDateLong(er.examDate, locale)}
+                        {formatDateLong(er.examDate, 'bn')}
                       </td>
                       <td className="p-3.5">
                         <p className="font-semibold text-foreground">
-                          {locale === 'bn' ? sub?.nameBn ?? sub?.name : sub?.name}
+                          {sub?.nameBn ?? sub?.name}
                         </p>
                         {sub?.officialCode && (
-                          <p className="text-xs text-muted-foreground font-mono">
-                            {pick('কোড:', 'Code:')} {sub.officialCode}
+                          <p className="text-sm text-muted-foreground font-mono">
+                            {'কোড:'} {sub.officialCode}
                           </p>
                         )}
                       </td>
                       <td className="p-3.5 text-muted-foreground whitespace-nowrap">
-                        {formatTime12h(er.startTime, locale)} – {formatTime12h(er.endTime, locale)}
+                        {formatTime12h(er.startTime, 'bn')} – {formatTime12h(er.endTime, 'bn')}
                       </td>
                       <td className="p-3.5 whitespace-nowrap">{er.roomNo ?? '—'}</td>
                       <td className="p-3.5 text-sm text-muted-foreground max-w-xs">
@@ -356,7 +348,7 @@ export function PublicExaminationPage() {
         <Card className="lg:col-span-7 p-6 space-y-4">
           <div>
             <h2 className="text-lg font-bold text-foreground">
-              {pick('কনফিগারকৃত গ্রেডিং স্কেল', 'Configured Grading Scale')}
+              {'কনফিগারকৃত গ্রেডিং স্কেল'}
             </h2>
             <p className="text-sm text-muted-foreground mt-0.5">{activeScale?.name}</p>
           </div>
@@ -374,10 +366,10 @@ export function PublicExaminationPage() {
                   {r.letterGrade}
                 </p>
                 <p className="text-sm font-semibold text-foreground mt-0.5">
-                  {formatNumber(r.gradePoint, locale, 2)}
+                  {formatNumber(r.gradePoint, 'bn', 2)}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {formatNumber(r.minPercentage, locale)}–{formatNumber(Math.floor(r.maxPercentage), locale)}%
+                <p className="text-sm text-muted-foreground mt-1">
+                  {formatNumber(r.minPercentage, 'bn')}–{formatNumber(Math.floor(r.maxPercentage), 'bn')}%
                 </p>
               </div>
             ))}
@@ -386,34 +378,25 @@ export function PublicExaminationPage() {
 
         <Card className="lg:col-span-5 p-6 space-y-3.5">
           <h2 className="text-lg font-bold text-foreground">
-            {pick('পরীক্ষা হল ও উত্তীর্ণ হওয়ার নীতিমালা', 'Exam Hall & Pass Policy')}
+            {'পরীক্ষা হল ও উত্তীর্ণ হওয়ার নীতিমালা'}
           </h2>
           <ul className="space-y-2.5 text-sm text-muted-foreground leading-relaxed">
             <li className="flex items-start gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
               <span>
-                {pick(
-                  'প্রতিটি বিষয়ে ন্যূনতম ৩৩% নম্বর এবং সৃজনশীল, বহুনির্বাচনি ও ব্যবহারিক অংশে পৃথকভাবে উত্তীর্ণ হওয়া আবশ্যক।',
-                  'Minimum 33% marks overall with separate passes required in Written, MCQ, and Practical sections.'
-                )}
+                {'প্রতিটি বিষয়ে ন্যূনতম ৩৩% নম্বর এবং সৃজনশীল, বহুনির্বাচনি ও ব্যবহারিক অংশে পৃথকভাবে উত্তীর্ণ হওয়া আবশ্যক।'}
               </span>
             </li>
             <li className="flex items-start gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
               <span>
-                {pick(
-                  '৪র্থ (ঐচ্ছিক) বিষয়ে জিপিএ ২.০০ এর অতিরিক্ত পয়েন্ট চূড়ান্ত জিপিএ গণনায় বোনাস হিসেবে যুক্ত হয় (সর্বোচ্চ ৫.০০)।',
-                  'Optional (4th) subject grade points above 2.00 are added as GPA bonus (capped at 5.00).'
-                )}
+                {'৪র্থ (ঐচ্ছিক) বিষয়ে জিপিএ ২.০০ এর অতিরিক্ত পয়েন্ট চূড়ান্ত জিপিএ গণনায় বোনাস হিসেবে যুক্ত হয় (সর্বোচ্চ ৫.০০)।'}
               </span>
             </li>
             <li className="flex items-start gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
               <span>
-                {pick(
-                  'পরীক্ষা শুরুর অন্তত ৩০ মিনিট পূর্বে বৈধ প্রবেশপত্র ও নির্ধারিত ইউনিফর্মসহ আসন গ্রহণ করতে হবে।',
-                  'Candidates must enter the examination hall at least 30 minutes prior with valid admit cards and school uniform.'
-                )}
+                {'পরীক্ষা শুরুর অন্তত ৩০ মিনিট পূর্বে বৈধ প্রবেশপত্র ও নির্ধারিত ইউনিফর্মসহ আসন গ্রহণ করতে হবে।'}
               </span>
             </li>
           </ul>

@@ -20,7 +20,6 @@ import {
   X,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   getCampusPhoto,
@@ -40,7 +39,6 @@ import { triggerPrint } from '@/src/lib/utils/cn';
 
 export function AboutHistoryPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const archivePhotos = useMemo(
@@ -125,37 +123,37 @@ export function AboutHistoryPage() {
   const heroPhoto = getCampusPhoto('heritage-building');
 
   const getChapterMeta = (type: InstitutionContentType, index: number) => {
-    const chapterNum = formatNumber(index + 1, locale).padStart(2, locale === 'bn' ? '০' : '0');
+    const chapterNum = formatNumber(index + 1, 'bn').padStart(2, '০');
     if (type === InstitutionContentType.HISTORY) {
       return {
-        kicker: `${chapterNum} · ${pick('প্রতিষ্ঠার ইতিহাস', 'Founding Heritage')}`,
+        kicker: `${chapterNum} · ${'প্রতিষ্ঠার ইতিহাস'}`,
         photo: getCampusPhoto('morning-assembly'),
         captionBn: 'বিদ্যালয় প্রাঙ্গণে প্রাত্যহিক সমাবেশ ও শৃঙ্খলাবদ্ধ শিক্ষাজীবন।',
         captionEn: 'Morning assembly and disciplined campus life on the school courtyard.',
         archiveIndex: 1,
         points: [
-          pick(`প্রতিষ্ঠাকাল: ১ জানুয়ারি ${formatNumber(establishedYear, 'bn')} খ্রিস্টাব্দ`, `Founded: January 1, ${establishedYear}`),
-          pick('অবস্থান: ভোজেশ্বর, নড়িয়া, শরীয়তপুর', 'Location: Bhojeshwar, Noria, Shariatpur'),
-          pick(`EIIN: ${db.schoolProfile.eiin ?? '113587'} · কোড: ${db.schoolProfile.schoolCode ?? 'BHS'}`, `EIIN: ${db.schoolProfile.eiin ?? '113587'} · Code: ${db.schoolProfile.schoolCode ?? 'BHS'}`),
+          `প্রতিষ্ঠাকাল: ১ জানুয়ারি ${formatNumber(establishedYear, 'bn')} খ্রিস্টাব্দ`,
+          'অবস্থান: ভোজেশ্বর, নড়িয়া, শরীয়তপুর',
+          `EIIN: ${db.schoolProfile.eiin ?? '113587'} · কোড: ${db.schoolProfile.schoolCode ?? 'BHS'}`,
         ],
       };
     }
     if (type === InstitutionContentType.TRADITION) {
       return {
-        kicker: `${chapterNum} · ${pick('ঐতিহ্য ও সহশিক্ষা', 'Tradition & Co-Curricular')}`,
+        kicker: `${chapterNum} · ${'ঐতিহ্য ও সহশিক্ষা'}`,
         photo: getCampusPhoto('debate-hall'),
         captionBn: 'আন্তঃশ্রেণি বিতর্ক, সাহিত্য ও সাংস্কৃতিক প্রতিযোগিতায় শিক্ষার্থীদের অংশগ্রহণ।',
         captionEn: 'Students participating in inter-class debate, literary, and cultural programs.',
         archiveIndex: 2,
         points: [
-          pick('নিয়মিত বিতর্ক, সাহিত্য চর্চা ও বিজ্ঞান মেলা', 'Regular debate, literary clubs, and science fairs'),
-          pick('স্কাউটিং, বার্ষিক ক্রীড়া ও জাতীয় দিবস উদযাপন', 'Scouting, annual athletics, and national observances'),
-          pick('নৈতিক মূল্যবোধ ও নেতৃত্বগুণের ধারাবাহিক বিকাশ', 'Sustained development of ethics and leadership'),
+          'নিয়মিত বিতর্ক, সাহিত্য চর্চা ও বিজ্ঞান মেলা',
+          'স্কাউটিং, বার্ষিক ক্রীড়া ও জাতীয় দিবস উদযাপন',
+          'নৈতিক মূল্যবোধ ও নেতৃত্বগুণের ধারাবাহিক বিকাশ',
         ],
       };
     }
     return {
-      kicker: `${chapterNum} · ${pick('অবকাঠামো ও ক্যাম্পাস', 'Infrastructure & Campus')}`,
+      kicker: `${chapterNum} · ${'অবকাঠামো ও ক্যাম্পাস'}`,
       photo: getCampusPhoto('digital-classroom'),
       captionBn: 'মাল্টিমিডিয়া স্মার্ট শ্রেণিকক্ষ ও আধুনিক শিক্ষা উপকরণে পাঠদান।',
       captionEn: 'Interactive instruction in multimedia smart classrooms.',
@@ -215,25 +213,25 @@ export function AboutHistoryPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <Link href="/" className="hover:text-primary transition-colors">
-            {pick('হোম', 'Home')}
+            {'হোম'}
           </Link>
           <span aria-hidden="true">/</span>
           <Link href="/about" className="hover:text-primary transition-colors">
-            {pick('বিদ্যালয় পরিচিতি', 'About School')}
+            {'বিদ্যালয় পরিচিতি'}
           </Link>
           <span aria-hidden="true">/</span>
-          <span className="text-foreground font-medium">{pick('ইতিহাস ও ঐতিহ্য', 'History & Heritage')}</span>
+          <span className="text-foreground font-medium">{'ইতিহাস ও ঐতিহ্য'}</span>
         </nav>
 
         <div className="flex flex-wrap items-center gap-2">
           <Link href="/about/facilities">
             <Button variant="outline" size="sm">
-              {pick('ক্যাম্পাস সুবিধা', 'Facilities')}
+              {'ক্যাম্পাস সুবিধা'}
             </Button>
           </Link>
           <Link href="/about/leadership">
             <Button variant="outline" size="sm">
-              {pick('নেতৃত্বের বাণী', 'Leadership')}
+              {'নেতৃত্বের বাণী'}
             </Button>
           </Link>
         </div>
@@ -246,16 +244,16 @@ export function AboutHistoryPage() {
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm font-medium text-muted-foreground tabular-nums">
                 <span className="font-semibold text-primary">
-                  {pick(`স্থাপিত: ${formatNumber(establishedYear, 'bn')} খ্রি.`, `Est. ${establishedYear}`)}
+                  {`স্থাপিত: ${formatNumber(establishedYear, 'bn')} খ্রি.`}
                 </span>
                 <span aria-hidden="true">·</span>
                 <span>EIIN: {db.schoolProfile.eiin ?? '113587'}</span>
                 <span aria-hidden="true">·</span>
-                <span>{pick('ভোজেশ্বর, নড়িয়া, শরীয়তপুর', 'Bhojeshwar, Noria, Shariatpur')}</span>
+                <span>{'ভোজেশ্বর, নড়িয়া, শরীয়তপুর'}</span>
               </div>
 
               <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight leading-tight text-balance">
-                {pick('ইতিহাস ও গৌরবময় ঐতিহ্য', 'Institutional History & Heritage')}
+                {'ইতিহাস ও গৌরবময় ঐতিহ্য'}
               </h1>
 
               <p className="text-base text-foreground/90 leading-[1.8] max-w-[65ch]">
@@ -266,10 +264,7 @@ export function AboutHistoryPage() {
                 <p className="text-base font-medium text-foreground">
                   “{db.schoolProfile.motto ?? 'শিক্ষাই আলো, জ্ঞানই শক্তি'}” —{' '}
                   <span className="text-muted-foreground font-normal">
-                    {pick(
-                      `${formatNumber(yearsSinceEst, 'bn')}+ বছর ধরে নড়িয়া ও শরীয়তপুর অঞ্চলে মানসম্মত মাধ্যমিক শিক্ষার নির্ভরযোগ্য বিদ্যাপীঠ।`,
-                      `Over ${yearsSinceEst} years of dedicated secondary education in Noria, Shariatpur.`
-                    )}
+                    {`${formatNumber(yearsSinceEst, 'bn')}+ বছর ধরে নড়িয়া ও শরীয়তপুর অঞ্চলে মানসম্মত মাধ্যমিক শিক্ষার নির্ভরযোগ্য বিদ্যাপীঠ।`}
                   </span>
                 </p>
               </div>
@@ -278,27 +273,27 @@ export function AboutHistoryPage() {
             {/* Verified Institutional Snapshot (Strictly Real DB Facts) */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 tabular-nums">
               <div>
-                <p className="text-xs text-muted-foreground">{pick('প্রতিষ্ঠাকাল', 'Established')}</p>
+                <p className="text-sm text-muted-foreground">{'প্রতিষ্ঠাকাল'}</p>
                 <p className="text-lg font-bold text-primary mt-0.5">
-                  {formatNumber(establishedYear, locale)}
+                  {formatNumber(establishedYear, 'bn')}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">{pick('শিক্ষা স্তর', 'Academic Levels')}</p>
+                <p className="text-sm text-muted-foreground">{'শিক্ষা স্তর'}</p>
                 <p className="text-lg font-bold text-foreground mt-0.5">
-                  {pick('৬ষ্ঠ–১০ম', 'Classes 6–10')}
+                  {'৬ষ্ঠ–১০ম'}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">{pick('বিভাগসমূহ', 'Streams')}</p>
+                <p className="text-sm text-muted-foreground">{'বিভাগসমূহ'}</p>
                 <p className="text-lg font-bold text-foreground mt-0.5">
-                  {formatNumber(db.academicGroups.length, locale)} {pick('টি', '')}
+                  {formatNumber(db.academicGroups.length, 'bn')} {'টি'}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">{pick('শিক্ষক ও কর্মচারী', 'Faculty & Staff')}</p>
+                <p className="text-sm text-muted-foreground">{'শিক্ষক ও কর্মচারী'}</p>
                 <p className="text-lg font-bold text-foreground mt-0.5">
-                  {formatNumber(activeStaffCount, locale)} {pick('জন', '')}
+                  {formatNumber(activeStaffCount, 'bn')} {'জন'}
                 </p>
               </div>
             </div>
@@ -308,24 +303,24 @@ export function AboutHistoryPage() {
           <div className="lg:col-span-6 relative min-h-[280px] sm:min-h-[380px] lg:min-h-full bg-surface-muted overflow-hidden group">
             <img
               src={heroPhoto.src}
-              alt={locale === 'bn' ? heroPhoto.altBn : heroPhoto.altEn}
+              alt={heroPhoto.altBn}
               referrerPolicy="no-referrer"
               className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
             />
             <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/75 via-black/30 to-transparent pointer-events-none" />
             <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 flex items-end justify-between gap-3">
               <div>
-                <p className="text-xs font-medium text-white/80">
-                  {pick('চিত্র ০১ · মূল ক্যাম্পাস', 'Fig. 01 · Main Campus')}
+                <p className="text-sm font-medium text-white/80">
+                  {'চিত্র ০১ · মূল ক্যাম্পাস'}
                 </p>
                 <p className="text-sm sm:text-base font-semibold text-white mt-0.5">
-                  {pick('ভোজেশ্বর উচ্চ বিদ্যালয় মূল একাডেমিক ভবন ও প্রাঙ্গণ', 'Bhojeshwar High School Main Academic Building & Courtyard')}
+                  {'ভোজেশ্বর উচ্চ বিদ্যালয় মূল একাডেমিক ভবন ও প্রাঙ্গণ'}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setLightboxIdx(0)}
-                aria-label={pick('ছবি বড় করে দেখুন', 'View full photo')}
+                aria-label={'ছবি বড় করে দেখুন'}
                 className="h-9 w-9 rounded-lg bg-black/45 hover:bg-black/65 border border-white/25 text-white inline-flex items-center justify-center shrink-0 backdrop-blur-sm transition-colors cursor-pointer"
               >
                 <Maximize2 className="w-4 h-4" />
@@ -339,13 +334,10 @@ export function AboutHistoryPage() {
       <section className="space-y-6">
         <div className="space-y-1">
           <h2 className="text-2xl font-bold text-foreground tracking-tight">
-            {pick('প্রতিষ্ঠানের পথচলা ও মূল স্তম্ভসমূহ', 'Founding Story & Core Pillars')}
+            {'প্রতিষ্ঠানের পথচলা ও মূল স্তম্ভসমূহ'}
           </h2>
           <p className="text-base text-muted-foreground max-w-2xl">
-            {pick(
-              'প্রতিষ্ঠার ইতিহাস, নৈতিক ও সহশিক্ষা ঐতিহ্য এবং আধুনিক একাডেমিক পরিবেশের সমন্বয়ে গড়ে উঠেছে আমাদের বিদ্যালয়।',
-              'Built on founding heritage, disciplined co-curricular tradition, and a supportive learning environment.'
-            )}
+            {'প্রতিষ্ঠার ইতিহাস, নৈতিক ও সহশিক্ষা ঐতিহ্য এবং আধুনিক একাডেমিক পরিবেশের সমন্বয়ে গড়ে উঠেছে আমাদের বিদ্যালয়।'}
           </p>
         </div>
 
@@ -371,13 +363,13 @@ export function AboutHistoryPage() {
                   />
                   <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/70 via-black/25 to-transparent pointer-events-none" />
                   <div className="absolute inset-x-0 bottom-0 px-4 py-3 flex items-end justify-between gap-2">
-                    <p className="text-xs sm:text-sm text-white/95 leading-snug">
-                      {locale === 'bn' ? meta.captionBn : meta.captionEn}
+                    <p className="text-sm text-white/95 leading-snug">
+                      {meta.captionBn}
                     </p>
                     <button
                       type="button"
                       onClick={() => setLightboxIdx(meta.archiveIndex)}
-                      aria-label={pick('ছবি বড় করে দেখুন', 'Expand image')}
+                      aria-label={'ছবি বড় করে দেখুন'}
                       className="h-8 w-8 rounded-lg bg-black/45 hover:bg-black/65 border border-white/25 text-white inline-flex items-center justify-center shrink-0 cursor-pointer transition-colors"
                     >
                       <Maximize2 className="w-3.5 h-3.5" />
@@ -419,13 +411,10 @@ export function AboutHistoryPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="space-y-1">
             <h2 className="text-2xl font-bold text-foreground tracking-tight">
-              {pick('ধারাবাহিক অগ্রযাত্রার ধাপসমূহ', 'Institutional Milestones')}
+              {'ধারাবাহিক অগ্রযাত্রার ধাপসমূহ'}
             </h2>
             <p className="text-base text-muted-foreground">
-              {pick(
-                '১৯৭৮ সাল থেকে বর্তমান ডিজিটাল ক্যাম্পাস পর্যন্ত বিবর্তনের প্রধান অধ্যায়।',
-                'Key stages of growth from our 1978 founding to today’s digital campus.'
-              )}
+              {'১৯৭৮ সাল থেকে বর্তমান ডিজিটাল ক্যাম্পাস পর্যন্ত বিবর্তনের প্রধান অধ্যায়।'}
             </p>
           </div>
         </div>
@@ -435,13 +424,13 @@ export function AboutHistoryPage() {
             <Card key={i} className="p-6 flex flex-col justify-between space-y-3">
               <div className="space-y-2.5">
                 <p className="text-sm font-semibold text-primary tabular-nums">
-                  {locale === 'bn' ? m.phaseBn : m.phaseEn}
+                  {m.phaseBn}
                 </p>
                 <h3 className="text-lg font-bold text-foreground leading-snug">
-                  {locale === 'bn' ? m.titleBn : m.titleEn}
+                  {m.titleBn}
                 </h3>
                 <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                  {locale === 'bn' ? m.descBn : m.descEn}
+                  {m.descBn}
                 </p>
               </div>
             </Card>
@@ -454,20 +443,17 @@ export function AboutHistoryPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="space-y-1">
             <h2 className="text-2xl font-bold text-foreground tracking-tight">
-              {pick('ক্যাম্পাস চিত্রশালা', 'Campus Visual Archive')}
+              {'ক্যাম্পাস চিত্রশালা'}
             </h2>
             <p className="text-base text-muted-foreground">
-              {pick(
-                'একাডেমিক ভবন, প্রাত্যহিক সমাবেশ, বিতর্ক ও সাংস্কৃতিক প্রাঙ্গণ, স্মার্ট ক্লাসরুম, বিজ্ঞানাগার ও গ্রন্থাগারের নির্বাচিত স্থিরচিত্র। যেকোনো ছবিতে ক্লিক করে বড় করে দেখুন।',
-                'Selected views of our academic buildings, assembly courtyard, debate hall, smart classrooms, laboratories, and library. Click any photograph to inspect full size.'
-              )}
+              {'একাডেমিক ভবন, প্রাত্যহিক সমাবেশ, বিতর্ক ও সাংস্কৃতিক প্রাঙ্গণ, স্মার্ট ক্লাসরুম, বিজ্ঞানাগার ও গ্রন্থাগারের নির্বাচিত স্থিরচিত্র। যেকোনো ছবিতে ক্লিক করে বড় করে দেখুন।'}
             </p>
           </div>
           <Link
             href="/gallery"
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline whitespace-nowrap"
           >
-            <span>{pick('সম্পূর্ণ ফটো গ্যালারি', 'Full Photo Gallery')}</span>
+            <span>{'সম্পূর্ণ ফটো গ্যালারি'}</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -486,7 +472,7 @@ export function AboutHistoryPage() {
                 <div className="relative aspect-[16/10] w-full overflow-hidden bg-surface-muted">
                   <img
                     src={entry.photo.src}
-                    alt={locale === 'bn' ? entry.titleBn : entry.titleEn}
+                    alt={entry.titleBn}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
                   />
@@ -497,12 +483,12 @@ export function AboutHistoryPage() {
                   </div>
                 </div>
                 <figcaption className="p-4 space-y-1">
-                  <p className="text-xs font-medium text-primary tabular-nums">
-                    {pick(`চিত্র ০${formatNumber(idx + 1, 'bn')}`, `Fig. 0${idx + 1}`)} ·{' '}
-                    {locale === 'bn' ? entry.categoryBn : entry.categoryEn}
+                  <p className="text-sm font-medium text-primary tabular-nums">
+                    {`চিত্র ০${formatNumber(idx + 1, 'bn')}`} ·{' '}
+                    {entry.categoryBn}
                   </p>
                   <p className="text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-snug">
-                    {locale === 'bn' ? entry.titleBn : entry.titleEn}
+                    {entry.titleBn}
                   </p>
                 </figcaption>
               </button>
@@ -518,7 +504,7 @@ export function AboutHistoryPage() {
             <SchoolEmblem size={48} />
             <div>
               <h2 className="text-xl font-bold text-foreground">
-                {pick('প্রতিষ্ঠানের মৌলিক তথ্যপঞ্জি', 'Verified Institutional Record')}
+                {'প্রতিষ্ঠানের মৌলিক তথ্যপঞ্জি'}
               </h2>
               <p className="text-sm text-muted-foreground">
                 {db.schoolProfile.name} · {db.schoolProfile.nameEn}
@@ -528,31 +514,31 @@ export function AboutHistoryPage() {
 
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm sm:text-base tabular-nums">
             <div className="pb-3 border-b border-border/70">
-              <dt className="text-xs text-muted-foreground">{pick('প্রতিষ্ঠাকাল', 'Established')}</dt>
+              <dt className="text-sm text-muted-foreground">{'প্রতিষ্ঠাকাল'}</dt>
               <dd className="font-semibold text-foreground mt-0.5">
-                {pick(`১ জানুয়ারি ${formatNumber(establishedYear, 'bn')} খ্রিস্টাব্দ`, `January 1, ${establishedYear}`)}
+                {`১ জানুয়ারি ${formatNumber(establishedYear, 'bn')} খ্রিস্টাব্দ`}
               </dd>
             </div>
             <div className="pb-3 border-b border-border/70">
-              <dt className="text-xs text-muted-foreground">{pick('EIIN ও বিদ্যালয় কোড', 'EIIN & School Code')}</dt>
+              <dt className="text-sm text-muted-foreground">{'EIIN ও বিদ্যালয় কোড'}</dt>
               <dd className="font-semibold text-foreground mt-0.5">
-                EIIN: {db.schoolProfile.eiin ?? '113587'} · {pick('কোড:', 'Code:')} {db.admissionContent.schoolCode ?? db.schoolProfile.schoolCode ?? 'BHS'}
+                EIIN: {db.schoolProfile.eiin ?? '113587'} · {'কোড:'} {db.admissionContent.schoolCode ?? db.schoolProfile.schoolCode ?? 'BHS'}
               </dd>
             </div>
             <div className="pb-3 border-b border-border/70">
-              <dt className="text-xs text-muted-foreground">{pick('শিক্ষা স্তর ও বিভাগ', 'Classes & Streams')}</dt>
+              <dt className="text-sm text-muted-foreground">{'শিক্ষা স্তর ও বিভাগ'}</dt>
               <dd className="font-semibold text-foreground mt-0.5">
-                {pick('৬ষ্ঠ–১০ম শ্রেণি · বিজ্ঞান, মানবিক, ব্যবসায় শিক্ষা', 'Classes 6–10 · Science, Humanities, Business')}
+                {'৬ষ্ঠ–১০ম শ্রেণি · বিজ্ঞান, মানবিক, ব্যবসায় শিক্ষা'}
               </dd>
             </div>
             <div className="pb-3 border-b border-border/70">
-              <dt className="text-xs text-muted-foreground">{pick('জেলা ও থানা কোড', 'District & Upazila Code')}</dt>
+              <dt className="text-sm text-muted-foreground">{'জেলা ও থানা কোড'}</dt>
               <dd className="font-semibold text-foreground mt-0.5">
-                {pick('জেলা:', 'District:')} {db.admissionContent.districtCode ?? '—'} · {pick('থানা:', 'Thana:')} {db.admissionContent.thanaCode ?? '—'}
+                {'জেলা:'} {db.admissionContent.districtCode ?? '—'} · {'থানা:'} {db.admissionContent.thanaCode ?? '—'}
               </dd>
             </div>
             <div className="sm:col-span-2 pb-1">
-              <dt className="text-xs text-muted-foreground">{pick('ঠিকানা ও অবস্থান', 'Campus Address')}</dt>
+              <dt className="text-sm text-muted-foreground">{'ঠিকানা ও অবস্থান'}</dt>
               <dd className="font-semibold text-foreground mt-0.5">{db.schoolProfile.address}</dd>
             </div>
           </dl>
@@ -560,21 +546,18 @@ export function AboutHistoryPage() {
 
         <Card className="lg:col-span-4 p-6 space-y-4">
           <h2 className="text-lg font-bold text-foreground">
-            {pick('আরও জানুন', 'Continue Exploring')}
+            {'আরও জানুন'}
           </h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            {pick(
-              'বিদ্যালয়ের নেতৃত্ব, পরিচালনা পর্ষদ, অভিজ্ঞ শিক্ষকমণ্ডলী ও ক্যাম্পাস সুযোগ-সুবিধা সম্পর্কে বিস্তারিত দেখুন।',
-              'Explore school leadership, governing body, faculty members, and campus facilities.'
-            )}
+            {'বিদ্যালয়ের নেতৃত্ব, পরিচালনা পর্ষদ, অভিজ্ঞ শিক্ষকমণ্ডলী ও ক্যাম্পাস সুযোগ-সুবিধা সম্পর্কে বিস্তারিত দেখুন।'}
           </p>
           <div className="divide-y divide-border text-sm">
             {[
-              { to: '/about', label: pick('বিদ্যালয় পরিচিতি, লক্ষ্য ও দৃষ্টিভঙ্গি', 'About, Mission & Vision') },
-              { to: '/about/facilities', label: pick('অবকাঠামো ও ক্যাম্পাস সুবিধা', 'Facilities & Infrastructure') },
-              { to: '/about/leadership', label: pick('প্রধান শিক্ষক ও সভাপতির বাণী', 'Leadership Messages') },
-              { to: '/about/management-committee', label: pick('বিদ্যালয় ম্যানেজিং কমিটি', 'Managing Committee') },
-              { to: '/about/teachers', label: pick('শিক্ষকমণ্ডলী ও কর্মচারী তালিকা', 'Teachers & Staff Directory') },
+              { to: '/about', label: 'বিদ্যালয় পরিচিতি, লক্ষ্য ও দৃষ্টিভঙ্গি' },
+              { to: '/about/facilities', label: 'অবকাঠামো ও ক্যাম্পাস সুবিধা' },
+              { to: '/about/leadership', label: 'প্রধান শিক্ষক ও সভাপতির বাণী' },
+              { to: '/about/management-committee', label: 'বিদ্যালয় ম্যানেজিং কমিটি' },
+              { to: '/about/teachers', label: 'শিক্ষকমণ্ডলী ও কর্মচারী তালিকা' },
             ].map((lnk) => (
               <Link
                 key={lnk.to}
@@ -594,7 +577,7 @@ export function AboutHistoryPage() {
         <div
           role="dialog"
           aria-modal="true"
-          aria-label={locale === 'bn' ? activeLightbox.titleBn : activeLightbox.titleEn}
+          aria-label={activeLightbox.titleBn}
           className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
           onClick={() => setLightboxIdx(null)}
         >
@@ -604,18 +587,18 @@ export function AboutHistoryPage() {
           >
             <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-white/15 text-white">
               <div className="min-w-0">
-                <p className="text-xs text-white/70 tabular-nums">
-                  {formatNumber(lightboxIdx + 1, locale)} / {formatNumber(archivePhotos.length, locale)} ·{' '}
-                  {locale === 'bn' ? activeLightbox.categoryBn : activeLightbox.categoryEn}
+                <p className="text-sm text-white/70 tabular-nums">
+                  {formatNumber(lightboxIdx + 1, 'bn')} / {formatNumber(archivePhotos.length, 'bn')} ·{' '}
+                  {activeLightbox.categoryBn}
                 </p>
                 <p className="text-base font-semibold truncate">
-                  {locale === 'bn' ? activeLightbox.titleBn : activeLightbox.titleEn}
+                  {activeLightbox.titleBn}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setLightboxIdx(null)}
-                aria-label={pick('বন্ধ করুন', 'Close')}
+                aria-label={'বন্ধ করুন'}
                 className="h-9 w-9 rounded-lg bg-white/10 hover:bg-white/20 text-white inline-flex items-center justify-center shrink-0 cursor-pointer transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -625,7 +608,7 @@ export function AboutHistoryPage() {
             <div className="relative bg-black flex items-center justify-center max-h-[75vh] overflow-hidden">
               <img
                 src={activeLightbox.photo.src}
-                alt={locale === 'bn' ? activeLightbox.titleBn : activeLightbox.titleEn}
+                alt={activeLightbox.titleBn}
                 referrerPolicy="no-referrer"
                 className="w-full max-h-[75vh] object-contain"
               />
@@ -634,7 +617,7 @@ export function AboutHistoryPage() {
                 onClick={() =>
                   setLightboxIdx((lightboxIdx - 1 + archivePhotos.length) % archivePhotos.length)
                 }
-                aria-label={pick('পূর্ববর্তী ছবি', 'Previous photo')}
+                aria-label={'পূর্ববর্তী ছবি'}
                 className="absolute left-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/60 hover:bg-black/80 border border-white/25 text-white inline-flex items-center justify-center cursor-pointer transition-colors"
               >
                 <ChevronLeft className="w-5 h-5" />
@@ -642,7 +625,7 @@ export function AboutHistoryPage() {
               <button
                 type="button"
                 onClick={() => setLightboxIdx((lightboxIdx + 1) % archivePhotos.length)}
-                aria-label={pick('পরবর্তী ছবি', 'Next photo')}
+                aria-label={'পরবর্তী ছবি'}
                 className="absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-black/60 hover:bg-black/80 border border-white/25 text-white inline-flex items-center justify-center cursor-pointer transition-colors"
               >
                 <ChevronRight className="w-5 h-5" />

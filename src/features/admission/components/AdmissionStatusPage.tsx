@@ -21,7 +21,6 @@ import {
   type AdmissionCatalogData,
 } from '@/src/features/admission/rules';
 import type { SchoolProfile } from '@/src/types/entities';
-import { useI18n } from '@/src/lib/i18n';
 import { formatBdt, formatDateLong } from '@/src/lib/formatters';
 import { LoadingSkeleton, PageHeader, SchoolEmblem } from '@/src/components/shared/Feedback';
 import { Button, Card, Input } from '@/src/components/ui/primitives';
@@ -45,7 +44,6 @@ export function AdmissionStatusPage() {
   const { data: catalogData } = useGetPublicAdmissionCatalogQuery();
   const [triggerLookup, { isFetching: searching }] =
     useLazyGetPublicAdmissionStatusQuery();
-  const { locale, pick } = useI18n();
   const [query, setQuery] = useState('BHS-ADM-2027-0001');
   const [found, setFound] = useState<OnlineAdmissionApplication | null>(null);
   const [searched, setSearched] = useState(false);
@@ -58,7 +56,7 @@ export function AdmissionStatusPage() {
     ({
       id: 'default',
       name: 'Bhojeshwar High School',
-      nameBn: 'বজেশ্বর উচ্চ বিদ্যালয়',
+      nameBn: 'ভোজেশ্বর উচ্চ বিদ্যালয়',
       nameEn: 'Bhojeshwar High School',
       eiin: '113587',
       address: 'নড়িয়া, শরীয়তপুর',
@@ -119,8 +117,8 @@ export function AdmissionStatusPage() {
             kind: 'ADMIT_CARD',
             school: schoolProfile,
             application: found,
-            targetClassName: locale === 'bn' ? foundClass?.nameBn ?? '' : foundClass?.name ?? '',
-            groupName: foundGroup ? (locale === 'bn' ? foundGroup.nameBn : foundGroup.name) : null,
+            targetClassName: foundClass?.nameBn ?? '',
+            groupName: foundGroup ? (foundGroup.nameBn) : null,
           };
     printDocumentNode(statusDocRef.current, title, payload);
   };
@@ -133,15 +131,12 @@ export function AdmissionStatusPage() {
       const ok = await exportNodeToA4Pdf(statusDocRef.current, title);
       if (ok) {
         toast.success(
-          pick('A4 পিডিএফ (PDF) সফলভাবে ডাউনলোড হয়েছে।', 'A4 PDF downloaded successfully.')
+          'A4 পিডিএফ (PDF) সফলভাবে ডাউনলোড হয়েছে।'
         );
       }
     } catch {
       toast.error(
-        pick(
-          'পিডিএফ তৈরি করতে সমস্যা হয়েছে। অনুগ্রহ করে প্রিন্ট বাটন থেকে Save as PDF ব্যবহার করুন।',
-          'Could not generate PDF. Please use Print → Save as PDF.'
-        )
+        'পিডিএফ তৈরি করতে সমস্যা হয়েছে। অনুগ্রহ করে প্রিন্ট বাটন থেকে Save as PDF ব্যবহার করুন।'
       );
     } finally {
       setDownloadingPdf(false);
@@ -151,8 +146,8 @@ export function AdmissionStatusPage() {
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <PageHeader
-        title={pick('ভর্তি আবেদনের অবস্থা যাচাই ও ফরম ডাউনলোড', 'Check Admission Status & Download Form')}
-        description={pick('আবেদন নম্বর (যেমন: BHS-ADM-2027-0001) বা জন্ম নিবন্ধন নম্বর দিয়ে খুঁজুন।', 'Search by Application No (e.g., BHS-ADM-2027-0001) or Birth Certificate No.')}
+        title={'ভর্তি আবেদনের অবস্থা যাচাই ও ফরম ডাউনলোড'}
+        description={'আবেদন নম্বর (যেমন: BHS-ADM-2027-0001) বা জন্ম নিবন্ধন নম্বর দিয়ে খুঁজুন।'}
       />
 
       <Card className="p-5 no-print rounded-[4px]">
@@ -168,7 +163,7 @@ export function AdmissionStatusPage() {
           </div>
           <Button type="submit" variant="primary" className="rounded-[4px]" disabled={searching}>
             {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            {pick('যাচাই করুন', 'Check Status')}
+            {'যাচাই করুন'}
           </Button>
         </form>
       </Card>
@@ -177,7 +172,7 @@ export function AdmissionStatusPage() {
 
       {searched && !searching && !found && (
         <Card className="p-8 text-center text-base text-muted-foreground rounded-[4px]">
-          {pick('এই নম্বরে কোনো আবেদন পাওয়া যায়নি। অনুগ্রহ করে সঠিক আবেদন নম্বর (যেমন: BHS-ADM-2027-0001) বা ১৭-ডিজিট জন্ম নিবন্ধন নম্বর দিন।', 'No application matched. Please enter a valid Application No or 17-digit Birth Certificate No.')}
+          {'এই নম্বরে কোনো আবেদন পাওয়া যায়নি। অনুগ্রহ করে সঠিক আবেদন নম্বর (যেমন: BHS-ADM-2027-0001) বা ১৭-ডিজিট জন্ম নিবন্ধন নম্বর দিন।'}
         </Card>
       )}
 
@@ -186,7 +181,7 @@ export function AdmissionStatusPage() {
           <div className="p-4 sm:p-5 rounded-[4px] border border-border bg-surface space-y-3 no-print">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <p className="text-sm text-muted-foreground">{pick('আবেদনের বর্তমান অবস্থা', 'Current Status')}</p>
+                <p className="text-sm text-muted-foreground">{'আবেদনের বর্তমান অবস্থা'}</p>
                 <div className="mt-1 flex items-center gap-3">
                   <span className="font-mono text-base font-bold text-foreground">{found.applicationNumber}</span>
                   <StatusBadge enumName="AdmissionApplicationStatus" value={found.status} />
@@ -200,7 +195,7 @@ export function AdmissionStatusPage() {
                   onClick={handleStatusPrint}
                 >
                   <Printer className="w-4 h-4" />
-                  {pick('প্রিন্ট করুন', 'Print')}
+                  {'প্রিন্ট করুন'}
                 </Button>
                 <Button
                   variant="outline"
@@ -215,8 +210,8 @@ export function AdmissionStatusPage() {
                     <Download className="w-4 h-4" />
                   )}
                   {downloadingPdf
-                    ? pick('PDF তৈরি হচ্ছে...', 'Generating PDF...')
-                    : pick('PDF ডাউনলোড করুন', 'Download PDF')}
+                    ? 'PDF তৈরি হচ্ছে...'
+                    : 'PDF ডাউনলোড করুন'}
                 </Button>
               </div>
             </div>
@@ -225,37 +220,22 @@ export function AdmissionStatusPage() {
               <div className="p-4 rounded-[4px] border border-primary/30 bg-primary/5 space-y-2.5">
                 <p className="text-sm font-bold text-primary flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  {pick(
-                    'অভিনন্দন! আপনার আবেদনটি প্রাথমিকভাবে অনুমোদিত হয়েছে।',
-                    'Congratulations! Your application has been provisionally approved.'
-                  )}
+                  {'অভিনন্দন! আপনার আবেদনটি প্রাথমিকভাবে অনুমোদিত হয়েছে।'}
                 </p>
 
-                <p className="text-xs sm:text-sm text-foreground leading-relaxed">
+                <p className="text-sm text-foreground leading-relaxed">
                   {found.reportingStartDate && found.reportingEndDate
-                    ? pick(
-                        `আগামী ${formatDateLong(found.reportingStartDate, 'bn')} থেকে ${formatDateLong(found.reportingEndDate, 'bn')}-এর মধ্যে নিচের মূল কাগজপত্র ও ভর্তি ফি নিয়ে স্বশরীরে বিদ্যালয় অফিসে উপস্থিত হতে হবে। অন্যথায় আপনার প্রাথমিক অনুমোদন বাতিল বলে গণ্য হবে।`,
-                        `You must appear in person at the school office between ${formatDateLong(found.reportingStartDate, 'en')} and ${formatDateLong(found.reportingEndDate, 'en')} with the original documents below and admission fee. Otherwise, your initial approval will be cancelled.`
-                      )
+                    ? `আগামী ${formatDateLong(found.reportingStartDate, 'bn')} থেকে ${formatDateLong(found.reportingEndDate, 'bn')}-এর মধ্যে নিচের মূল কাগজপত্র ও ভর্তি ফি নিয়ে স্বশরীরে বিদ্যালয় অফিসে উপস্থিত হতে হবে। অন্যথায় আপনার প্রাথমিক অনুমোদন বাতিল বলে গণ্য হবে।`
                     : found.reportingEndDate
-                    ? pick(
-                        `আগামী ${formatDateLong(found.reportingEndDate, 'bn')}-এর মধ্যে নিচের মূল কাগজপত্র ও ভর্তি ফি নিয়ে স্বশরীরে বিদ্যালয় অফিসে উপস্থিত হতে হবে। অন্যথায় আপনার প্রাথমিক অনুমোদন বাতিল বলে গণ্য হবে।`,
-                        `You must appear in person at the school office by ${formatDateLong(found.reportingEndDate, 'en')} with the original documents below and admission fee. Otherwise, your initial approval will be cancelled.`
-                      )
-                    : pick(
-                        'নির্ধারিত সময়ের মধ্যে নিচের মূল কাগজপত্র ও ভর্তি ফি নিয়ে স্বশরীরে বিদ্যালয় অফিসে উপস্থিত হতে হবে।',
-                        'Please appear in person at the school office within the scheduled time with the original documents below and admission fee.'
-                      )}
+                    ? `আগামী ${formatDateLong(found.reportingEndDate, 'bn')}-এর মধ্যে নিচের মূল কাগজপত্র ও ভর্তি ফি নিয়ে স্বশরীরে বিদ্যালয় অফিসে উপস্থিত হতে হবে। অন্যথায় আপনার প্রাথমিক অনুমোদন বাতিল বলে গণ্য হবে।`
+                    : 'নির্ধারিত সময়ের মধ্যে নিচের মূল কাগজপত্র ও ভর্তি ফি নিয়ে স্বশরীরে বিদ্যালয় অফিসে উপস্থিত হতে হবে।'}
                 </p>
 
                 <div className="space-y-1.5 pt-1 border-t border-primary/15">
-                  <p className="text-xs sm:text-sm font-semibold text-foreground">
-                    {pick(
-                      'বিদ্যালয়ে যে সকল মূল কাগজপত্র নিয়ে আসতে হবে:',
-                      'Original documents you must bring to school:'
-                    )}
+                  <p className="text-sm font-semibold text-foreground">
+                    {'বিদ্যালয়ে যে সকল মূল কাগজপত্র নিয়ে আসতে হবে:'}
                   </p>
-                  <ul className="space-y-1.5 text-xs sm:text-sm text-foreground">
+                  <ul className="space-y-1.5 text-sm text-foreground">
                     {getRequiredDocumentChecklist(
                       foundClass?.numericValue ?? 6,
                       found.admissionType ?? (found.isReadmission ? 'READMISSION' : 'NEW'),
@@ -263,7 +243,7 @@ export function AdmissionStatusPage() {
                     ).map((doc) => (
                       <li key={doc.key} className="flex items-start gap-2">
                         <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                        <span>{locale === 'bn' ? doc.labelBn : doc.labelEn}</span>
+                        <span>{doc.labelBn}</span>
                       </li>
                     ))}
                   </ul>
@@ -272,29 +252,20 @@ export function AdmissionStatusPage() {
             )}
 
             {(found.status === 'NEW' || found.status === 'UNDER_REVIEW') && (
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                {pick(
-                  'আপনার আবেদনটি বর্তমানে বিদ্যালয় অফিসে প্রাথমিক যাচাইয়ের অপেক্ষায় রয়েছে। অনুমোদিত হলে এখানেই উপস্থিতির তারিখ ও প্রয়োজনীয় মূল কাগজপত্রের তালিকা দেখতে পাবেন।',
-                  'Your application is pending initial review. Once approved, the reporting date and required original documents will be shown here.'
-                )}
+              <p className="text-sm text-muted-foreground">
+                {'আপনার আবেদনটি বর্তমানে বিদ্যালয় অফিসে প্রাথমিক যাচাইয়ের অপেক্ষায় রয়েছে। অনুমোদিত হলে এখানেই উপস্থিতির তারিখ ও প্রয়োজনীয় মূল কাগজপত্রের তালিকা দেখতে পাবেন।'}
               </p>
             )}
 
             {found.status === 'ADMITTED' && (
-              <p className="text-xs sm:text-sm font-medium text-success">
-                {pick(
-                  'আপনার চূড়ান্ত ভর্তি সম্পন্ন হয়েছে এবং বিদ্যালয়ের নিয়মিত শিক্ষার্থী হিসেবে শাখা ও রোল বরাদ্দ করা হয়েছে।',
-                  'Your final admission is complete and you have been enrolled with an assigned section and roll.'
-                )}
+              <p className="text-sm font-medium text-success">
+                {'আপনার চূড়ান্ত ভর্তি সম্পন্ন হয়েছে এবং বিদ্যালয়ের নিয়মিত শিক্ষার্থী হিসেবে শাখা ও রোল বরাদ্দ করা হয়েছে।'}
               </p>
             )}
 
             {found.status === 'REJECTED' && (
-              <p className="text-xs sm:text-sm font-medium text-destructive">
-                {pick(
-                  'দুঃখিত, আপনার আবেদনটি বাতিল করা হয়েছে। বিস্তারিত জানতে বিদ্যালয় অফিসে যোগাযোগ করুন।',
-                  'Sorry, your application was rejected. Please contact the school office for details.'
-                )}
+              <p className="text-sm font-medium text-destructive">
+                {'দুঃখিত, আপনার আবেদনটি বাতিল করা হয়েছে। বিস্তারিত জানতে বিদ্যালয় অফিসে যোগাযোগ করুন।'}
               </p>
             )}
 
@@ -310,7 +281,7 @@ export function AdmissionStatusPage() {
               >
                 <span className="inline-flex items-center gap-1.5">
                   <FileText className="w-3.5 h-3.5" />
-                  {pick('পূর্ণাঙ্গ আবেদনপত্র', 'Full Application Form')}
+                  {'পূর্ণাঙ্গ আবেদনপত্র'}
                 </span>
               </button>
               <button
@@ -322,7 +293,7 @@ export function AdmissionStatusPage() {
                     : 'bg-surface text-foreground hover:bg-surface-muted/60'
                 }`}
               >
-                {pick('ভর্তি পরীক্ষার প্রবেশপত্র', 'Admit Card')}
+                {'ভর্তি পরীক্ষার প্রবেশপত্র'}
               </button>
             </div>
           </div>
@@ -342,8 +313,8 @@ export function AdmissionStatusPage() {
               <PrintableAdmissionAdmitCard
                 school={schoolProfile}
                 application={found}
-                targetClassName={locale === 'bn' ? foundClass?.nameBn ?? '' : foundClass?.name ?? ''}
-                groupName={foundGroup ? (locale === 'bn' ? foundGroup.nameBn : foundGroup.name) : null}
+                targetClassName={foundClass?.nameBn ?? ''}
+                groupName={foundGroup ? (foundGroup.nameBn) : null}
               />
             )}
           </div>

@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AttendanceMethod, AttendanceStatus } from '@/src/types/enums';
-import { useI18n } from '@/src/lib/i18n';
 import { localToday, shiftDate } from '@/src/lib/schoolDay';
 import { EmptyState } from '@/src/components/shared/Feedback';
 import { Button, Card, Input, Select } from '@/src/components/ui/primitives';
@@ -48,7 +47,6 @@ export function DailyRegister({
   classes: SchoolClass[];
   sections: Section[];
 }) {
-  const { locale, pick } = useI18n();
   const [workspaceTab, setWorkspaceTab] = useState<'register' | 'gate'>('register');
   const [date, setDate] = useState(() => localToday());
   const [classId, setClassId] = useState('');
@@ -150,14 +148,11 @@ export function DailyRegister({
         entries,
       }).unwrap();
       toast.success(
-        pick(
-          `${res.saved} জনের হাজিরা সংরক্ষিত এবং ${res.smsQueued}টি SMS পাঠানো হয়েছে`,
-          `Saved ${res.saved} records, ${res.smsQueued} SMS queued`
-        )
+        `${res.saved} জনের হাজিরা সংরক্ষিত এবং ${res.smsQueued}টি SMS পাঠানো হয়েছে`
       );
       clearDrafts();
     } catch (err) {
-      toast.error(errorMessage(err, pick('হাজিরা সংরক্ষণ ব্যর্থ হয়েছে', 'Save failed')));
+      toast.error(errorMessage(err, 'হাজিরা সংরক্ষণ ব্যর্থ হয়েছে'));
     }
   }
 
@@ -165,19 +160,19 @@ export function DailyRegister({
     downloadCsv(
       `daily-attendance-${date}-page-${page}.csv`,
       [
-        pick('রোল', 'Roll'),
-        pick('শিক্ষার্থী', 'Student'),
-        pick('শ্রেণি', 'Class'),
-        pick('অবস্থা', 'Status'),
-        pick('পদ্ধতি', 'Method'),
-        pick('প্রবেশ', 'In Time'),
-        pick('প্রস্থান', 'Out Time'),
+        'রোল',
+        'শিক্ষার্থী',
+        'শ্রেণি',
+        'অবস্থা',
+        'পদ্ধতি',
+        'প্রবেশ',
+        'প্রস্থান',
       ],
       items.map((row) => [
         row.roll,
         row.nameBn || row.nameEn,
         `${row.className} (${row.sectionName})`,
-        getStatusLabel(drafts[row.studentEnrollmentId] ?? row.attendance?.status, locale),
+        getStatusLabel(drafts[row.studentEnrollmentId] ?? row.attendance?.status, 'bn'),
         row.attendance?.method ?? '—',
         formatClockTime(row.attendance?.inTime),
         formatClockTime(row.attendance?.outTime),
@@ -198,7 +193,7 @@ export function DailyRegister({
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {pick('শ্রেণিভিত্তিক দৈনিক হাজিরা', 'Class Daily Register')}
+            {'শ্রেণিভিত্তিক দৈনিক হাজিরা'}
           </button>
           <button
             type="button"
@@ -209,7 +204,7 @@ export function DailyRegister({
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            {pick('লাইভ গেট ফিড ও বাকি তালিকা', 'Live Gate & Pending List')}
+            {'লাইভ গেট ফিড ও বাকি তালিকা'}
           </button>
         </div>
 
@@ -246,43 +241,40 @@ export function DailyRegister({
         <div className="flex items-center gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-base text-warning">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span>
-            {pick(
-              `বন্ধের দিন (${data.closedReason ?? 'ছুটি'}) — তবুও জরুরি প্রয়োজনে হাজিরা সংশোধন করা যাবে।`,
-              `Closed day (${data.closedReason ?? 'Holiday'}) — overrides remain available if needed.`
-            )}
+            {`বন্ধের দিন (${data.closedReason ?? 'ছুটি'}) — তবুও জরুরি প্রয়োজনে হাজিরা সংশোধন করা যাবে।`}
           </span>
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Card className="p-4">
-          <div className="text-sm text-muted-foreground">{pick('মোট শিক্ষার্থী', 'Total')}</div>
+          <div className="text-sm text-muted-foreground">{'মোট শিক্ষার্থী'}</div>
           <div className="mt-1 text-2xl font-bold">{stats.total}</div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{pick('উপস্থিত', 'Present')}</span>
+            <span>{'উপস্থিত'}</span>
             <CheckCircle2 className="h-4 w-4 text-success" />
           </div>
           <div className="mt-1 text-2xl font-bold text-success">{stats.present}</div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{pick('দেরি', 'Late')}</span>
+            <span>{'দেরি'}</span>
             <Clock className="h-4 w-4 text-warning" />
           </div>
           <div className="mt-1 text-2xl font-bold text-warning">{stats.late}</div>
         </Card>
         <Card className="p-4">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{pick('অনুপস্থিত', 'Absent')}</span>
+            <span>{'অনুপস্থিত'}</span>
             <UserX className="h-4 w-4 text-destructive" />
           </div>
           <div className="mt-1 text-2xl font-bold text-destructive">{stats.absent}</div>
         </Card>
         <Card className="p-4">
           <div className="text-sm text-muted-foreground">
-            {pick('অচিহ্নিত / ছুটি', 'Unmarked / Leave')}
+            {'অচিহ্নিত / ছুটি'}
           </div>
           <div className="mt-1 text-2xl font-bold">
             {stats.unmarked} <span className="text-sm font-normal text-info">/ {stats.leave}</span>
@@ -297,15 +289,12 @@ export function DailyRegister({
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-5 py-4">
             <div>
               <h3 className="text-lg font-semibold text-foreground">
-                {pick('দৈনিক হাজিরা রেজিস্টার', 'Daily Attendance Register')}
+                {'দৈনিক হাজিরা রেজিস্টার'}
               </h3>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {isFetching
-                  ? pick('লোড হচ্ছে...', 'Loading...')
-                  : pick(
-                      `RFID: ${stats.rfidCount} · ম্যানুয়াল: ${stats.manualCount}`,
-                      `RFID: ${stats.rfidCount} · Manual: ${stats.manualCount}`
-                    )}
+                  ? 'লোড হচ্ছে...'
+                  : `RFID: ${stats.rfidCount} · ম্যানুয়াল: ${stats.manualCount}`}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -316,7 +305,7 @@ export function DailyRegister({
                 disabled={items.length === 0}
               >
                 <UserCheck className="h-4 w-4 text-success" />
-                {pick('সবাইকে উপস্থিত', 'All Present')}
+                {'সবাইকে উপস্থিত'}
               </Button>
               <Button
                 size="sm"
@@ -325,19 +314,19 @@ export function DailyRegister({
                 disabled={items.length === 0}
               >
                 <UserX className="h-4 w-4 text-destructive" />
-                {pick('সবাইকে অনুপস্থিত', 'All Absent')}
+                {'সবাইকে অনুপস্থিত'}
               </Button>
               {dirtyCount > 0 && (
                 <>
                   <Button size="sm" variant="outline" onClick={clearDrafts}>
                     <RotateCcw className="h-4 w-4" />
-                    {pick('রিসেট', 'Reset')}
+                    {'রিসেট'}
                   </Button>
                   <Button size="sm" disabled={saving} onClick={saveChanges}>
                     <Save className="h-4 w-4" />
                     {saving
-                      ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
-                      : pick(`সংরক্ষণ করুন (${dirtyCount})`, `Save Changes (${dirtyCount})`)}
+                      ? 'সংরক্ষণ হচ্ছে...'
+                      : `সংরক্ষণ করুন (${dirtyCount})`}
                   </Button>
                 </>
               )}
@@ -348,7 +337,7 @@ export function DailyRegister({
                 disabled={items.length === 0}
               >
                 <Download className="h-4 w-4" />
-                {pick('CSV', 'CSV')}
+                {'CSV'}
               </Button>
             </div>
           </div>
@@ -362,7 +351,7 @@ export function DailyRegister({
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                placeholder={pick('নাম, রোল, আইডি বা RFID...', 'Search name, roll, ID, RFID...')}
+                placeholder={'নাম, রোল, আইডি বা RFID...'}
                 className="pl-9"
               />
             </div>
@@ -375,7 +364,7 @@ export function DailyRegister({
                 clearDrafts();
               }}
             >
-              <option value="">{pick('সব শ্রেণি', 'All Classes')}</option>
+              <option value="">{'সব শ্রেণি'}</option>
               {classes.map((cls) => (
                 <option key={cls.id} value={cls.id}>
                   {cls.nameBn || cls.name}
@@ -390,7 +379,7 @@ export function DailyRegister({
                 clearDrafts();
               }}
             >
-              <option value="">{pick('সব শাখা', 'All Sections')}</option>
+              <option value="">{'সব শাখা'}</option>
               {availableSections.map((sec) => (
                 <option key={sec.id} value={sec.id}>
                   {sec.name}
@@ -404,34 +393,31 @@ export function DailyRegister({
                 setPage(1);
               }}
             >
-              <option value="ALL">{pick('সব অবস্থা', 'All Statuses')}</option>
-              <option value="PRESENT">{pick('উপস্থিত', 'Present')}</option>
-              <option value="LATE">{pick('দেরি', 'Late')}</option>
-              <option value="ABSENT">{pick('অনুপস্থিত', 'Absent')}</option>
-              <option value="LEAVE">{pick('ছুটি', 'Leave')}</option>
-              <option value="UNMARKED">{pick('অচিহ্নিত', 'Unmarked')}</option>
+              <option value="ALL">{'সব অবস্থা'}</option>
+              <option value="PRESENT">{'উপস্থিত'}</option>
+              <option value="LATE">{'দেরি'}</option>
+              <option value="ABSENT">{'অনুপস্থিত'}</option>
+              <option value="LEAVE">{'ছুটি'}</option>
+              <option value="UNMARKED">{'অচিহ্নিত'}</option>
             </Select>
           </div>
 
           {items.length === 0 ? (
             <EmptyState
-              title={pick('কোনো শিক্ষার্থী পাওয়া যায়নি', 'No students found')}
-              description={pick(
-                'ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন।',
-                'Try adjusting your search or class/section filters.'
-              )}
+              title={'কোনো শিক্ষার্থী পাওয়া যায়নি'}
+              description={'ফিল্টার পরিবর্তন করে আবার চেষ্টা করুন।'}
             />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-base">
                 <thead className="border-b border-border/70 bg-muted/40 text-sm font-semibold text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3">{pick('রোল', 'Roll')}</th>
-                    <th className="px-4 py-3">{pick('শিক্ষার্থী', 'Student')}</th>
-                    <th className="px-4 py-3">{pick('শ্রেণি ও শাখা', 'Class & Section')}</th>
-                    <th className="px-4 py-3">{pick('পদ্ধতি ও সময়', 'Method & Time')}</th>
-                    <th className="px-4 py-3">{pick('অবস্থা', 'Status')}</th>
-                    <th className="px-4 py-3">{pick('মন্তব্য', 'Remarks')}</th>
+                    <th className="px-4 py-3">{'রোল'}</th>
+                    <th className="px-4 py-3">{'শিক্ষার্থী'}</th>
+                    <th className="px-4 py-3">{'শ্রেণি ও শাখা'}</th>
+                    <th className="px-4 py-3">{'পদ্ধতি ও সময়'}</th>
+                    <th className="px-4 py-3">{'অবস্থা'}</th>
+                    <th className="px-4 py-3">{'মন্তব্য'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -478,7 +464,7 @@ export function DailyRegister({
                             </div>
                           ) : (
                             <span className="text-sm text-muted-foreground">
-                              {pick('অচিহ্নিত', 'Unmarked')}
+                              {'অচিহ্নিত'}
                             </span>
                           )}
                         </td>
@@ -502,7 +488,7 @@ export function DailyRegister({
                                       : 'border-border bg-card text-muted-foreground hover:text-foreground'
                                   }`}
                                 >
-                                  {locale === 'bn' ? opt.shortBn : opt.shortEn}
+                                  {opt.shortBn}
                                 </button>
                               );
                             })}
@@ -517,7 +503,7 @@ export function DailyRegister({
                                 [row.studentEnrollmentId]: e.target.value,
                               }))
                             }
-                            placeholder={pick('মন্তব্য...', 'Remarks...')}
+                            placeholder={'মন্তব্য...'}
                             className="h-8 min-w-32 text-sm"
                           />
                         </td>

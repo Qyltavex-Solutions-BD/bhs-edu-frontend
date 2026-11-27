@@ -16,7 +16,6 @@ import {
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -81,13 +80,12 @@ function ChildSwitcherBar({
   selectedStudentId: string;
   onChange: (id: string) => void;
 }) {
-  const { locale, pick } = useI18n();
   if (childrenList.length <= 1) return null;
   return (
     <Card className="p-3.5 flex flex-wrap items-center justify-between gap-3 bg-surface-muted/40">
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
         <Users className="w-4 h-4 text-primary" />
-        <span>{pick('সন্তান নির্বাচন করুন:', 'Select Child:')}</span>
+        <span>{'সন্তান নির্বাচন করুন:'}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {childrenList.map((c) => {
@@ -103,8 +101,8 @@ function ChildSwitcherBar({
                   : 'bg-surface text-foreground border-border hover:bg-surface-muted'
               }`}
             >
-              {locale === 'bn' ? c.student.nameBn || c.student.nameEn : c.student.nameEn} ·{' '}
-              {locale === 'bn' ? c.cls?.nameBn || c.cls?.name : c.cls?.name} ({c.sec?.name})
+              {c.student.nameBn || c.student.nameEn} ·{' '}
+              {c.cls?.nameBn || c.cls?.name} ({c.sec?.name})
             </button>
           );
         })}
@@ -116,7 +114,6 @@ function ChildSwitcherBar({
 export function ParentSmsHistoryPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const { parent } = useParentChildren(db);
-  const { locale, pick } = useI18n();
   if (isLoading || !db || !parent) return <LoadingSkeleton />;
 
   const logs = db.attendanceSmsLogs.filter(
@@ -126,27 +123,24 @@ export function ParentSmsHistoryPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('হাজিরা SMS ইতিহাস', 'Attendance SMS History')}
-        description={pick(
-          `আপনার নিবন্ধিত নম্বর (${parent.phone}) এ প্রেরিত স্বয়ংক্রিয় SMS তালিকা`,
-          `Automated attendance alerts sent to your registered phone (${parent.phone})`
-        )}
+        title={'হাজিরা SMS ইতিহাস'}
+        description={`আপনার নিবন্ধিত নম্বর (${parent.phone}) এ প্রেরিত স্বয়ংক্রিয় SMS তালিকা`}
       />
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead className="bg-surface-muted/70 text-sm text-muted-foreground border-b border-border">
               <tr>
-                <th className="px-4 py-3 text-left">{pick('তারিখ ও সময়', 'Date & Time')}</th>
-                <th className="px-4 py-3 text-left">{pick('বার্তা', 'Message')}</th>
-                <th className="px-4 py-3 text-left">{pick('অবস্থা', 'Delivery Status')}</th>
+                <th className="px-4 py-3 text-left">{'তারিখ ও সময়'}</th>
+                <th className="px-4 py-3 text-left">{'বার্তা'}</th>
+                <th className="px-4 py-3 text-left">{'অবস্থা'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border tabular-nums">
               {logs.map((log) => (
                 <tr key={log.id}>
                   <td className="px-4 py-3 text-sm whitespace-nowrap">
-                    {formatDateLong(log.sentAt ?? log.createdAt, locale)}
+                    {formatDateLong(log.sentAt ?? log.createdAt, 'bn')}
                   </td>
                   <td className="px-4 py-3 text-sm leading-relaxed">{log.message}</td>
                   <td className="px-4 py-3">

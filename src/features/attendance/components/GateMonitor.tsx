@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AttendanceMethod, AttendanceStatus } from '@/src/types/enums';
-import { useI18n } from '@/src/lib/i18n';
 import { EmptyState } from '@/src/components/shared/Feedback';
 import { Button, Card, Input, Modal, Select } from '@/src/components/ui/primitives';
 import type { SchoolClass, Section } from '@/src/types/entities';
@@ -38,7 +37,6 @@ export function GateMonitor({
   classes: SchoolClass[];
   sections: Section[];
 }) {
-  const { pick } = useI18n();
   const [subTab, setSubTab] = useState<'pending' | 'feed'>('pending');
 
   const [classId, setClassId] = useState('');
@@ -102,7 +100,7 @@ export function GateMonitor({
       }
       setCardInput('');
     } catch (err) {
-      toast.error(errorMessage(err, pick('কার্ড স্ক্যান ব্যর্থ হয়েছে', 'Scan failed')));
+      toast.error(errorMessage(err, 'কার্ড স্ক্যান ব্যর্থ হয়েছে'));
     }
   }
 
@@ -119,9 +117,9 @@ export function GateMonitor({
           },
         ],
       }).unwrap();
-      toast.success(pick('উপস্থিত হিসেবে চিহ্নিত হয়েছে', 'Marked present'));
+      toast.success('উপস্থিত হিসেবে চিহ্নিত হয়েছে');
     } catch (err) {
-      toast.error(errorMessage(err, pick('সংরক্ষণ ব্যর্থ হয়েছে', 'Failed to mark')));
+      toast.error(errorMessage(err, 'সংরক্ষণ ব্যর্থ হয়েছে'));
     }
   }
 
@@ -138,14 +136,11 @@ export function GateMonitor({
         })),
       }).unwrap();
       toast.success(
-        pick(
-          `${res.saved} জন অনুপস্থিত চিহ্নিত এবং ${res.smsQueued}টি SMS পাঠানো হয়েছে`,
-          `${res.saved} marked absent, ${res.smsQueued} SMS queued`
-        )
+        `${res.saved} জন অনুপস্থিত চিহ্নিত এবং ${res.smsQueued}টি SMS পাঠানো হয়েছে`
       );
       setConfirmBatchOpen(false);
     } catch (err) {
-      toast.error(errorMessage(err, pick('ব্যাচ অনুপস্থিত ব্যর্থ হয়েছে', 'Batch absent failed')));
+      toast.error(errorMessage(err, 'ব্যাচ অনুপস্থিত ব্যর্থ হয়েছে'));
     }
   }
 
@@ -153,17 +148,17 @@ export function GateMonitor({
     downloadCsv(
       `rfid-gate-scans-${date}-page-${feedPage}.csv`,
       [
-        pick('কার্ড নম্বর', 'Card Number'),
-        pick('শিক্ষার্থী', 'Student'),
-        pick('শ্রেণি', 'Class'),
-        pick('দিক', 'Direction'),
-        pick('অবস্থা', 'Known'),
-        pick('ডিভাইস', 'Device'),
-        pick('সময়', 'Scanned At'),
+        'কার্ড নম্বর',
+        'শিক্ষার্থী',
+        'শ্রেণি',
+        'দিক',
+        'অবস্থা',
+        'ডিভাইস',
+        'সময়',
       ],
       scanItems.map((s) => [
         s.cardNumber,
-        s.studentName ?? pick('অজানা', 'Unknown'),
+        s.studentName ?? 'অজানা',
         s.className ?? '—',
         s.direction,
         s.isKnownCard ? 'KNOWN' : 'UNKNOWN',
@@ -184,13 +179,10 @@ export function GateMonitor({
             <Radio className="h-5 w-5 text-primary" />
             <div>
               <div className="text-base font-semibold text-foreground">
-                {pick('লাইভ RFID গেট রিডার মনিটর', 'Live RFID Gate Reader Monitor')}
+                {'লাইভ RFID গেট রিডার মনিটর'}
               </div>
               <div className="text-sm text-muted-foreground">
-                {pick(
-                  `আজকের স্ক্যান: ${scansData?.stats.totalToday ?? 0} (পরিচিত: ${scansData?.stats.knownToday ?? 0}, অজানা: ${scansData?.stats.unknownToday ?? 0})`,
-                  `Today's scans: ${scansData?.stats.totalToday ?? 0} (Known: ${scansData?.stats.knownToday ?? 0}, Unknown: ${scansData?.stats.unknownToday ?? 0})`
-                )}
+                {`আজকের স্ক্যান: ${scansData?.stats.totalToday ?? 0} (পরিচিত: ${scansData?.stats.knownToday ?? 0}, অজানা: ${scansData?.stats.unknownToday ?? 0})`}
               </div>
             </div>
           </div>
@@ -199,7 +191,7 @@ export function GateMonitor({
             <Input
               value={cardInput}
               onChange={(e) => setCardInput(e.target.value)}
-              placeholder={pick('RFID কার্ড নম্বর লিখুন (যেমন: RFID-1001)', 'Enter RFID card number')}
+              placeholder={'RFID কার্ড নম্বর লিখুন (যেমন: RFID-1001)'}
               className="w-60 bg-card"
             />
             <Select
@@ -207,11 +199,11 @@ export function GateMonitor({
               onChange={(e) => setPunchDirection(e.target.value as 'ENTRY' | 'EXIT')}
               className="w-32 bg-card"
             >
-              <option value="ENTRY">{pick('প্রবেশ (ENTRY)', 'ENTRY')}</option>
-              <option value="EXIT">{pick('প্রস্থান (EXIT)', 'EXIT')}</option>
+              <option value="ENTRY">{'প্রবেশ (ENTRY)'}</option>
+              <option value="EXIT">{'প্রস্থান (EXIT)'}</option>
             </Select>
             <Button type="submit" disabled={scanning || !cardInput.trim()}>
-              {scanning ? pick('স্ক্যান হচ্ছে...', 'Scanning...') : pick('কার্ড পাঞ্চ করুন', 'Punch Card')}
+              {scanning ? 'স্ক্যান হচ্ছে...' : 'কার্ড পাঞ্চ করুন'}
             </Button>
           </div>
         </form>
@@ -227,10 +219,7 @@ export function GateMonitor({
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          {pick(
-            `অচিহ্নিত / বাকি (${pendingData?.meta.total ?? 0})`,
-            `Pending / Unmarked (${pendingData?.meta.total ?? 0})`
-          )}
+          {`অচিহ্নিত / বাকি (${pendingData?.meta.total ?? 0})`}
         </button>
         <button
           type="button"
@@ -241,7 +230,7 @@ export function GateMonitor({
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          {pick('গেট স্ক্যান ফিড', 'Gate Scan Feed')}
+          {'গেট স্ক্যান ফিড'}
         </button>
       </div>
 
@@ -250,24 +239,18 @@ export function GateMonitor({
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-5 py-4">
             <div>
               <h3 className="text-lg font-semibold text-foreground">
-                {pick('গেট পাঞ্চ বাকি থাকা শিক্ষার্থী', 'Students Not Yet Scanned')}
+                {'গেট পাঞ্চ বাকি থাকা শিক্ষার্থী'}
               </h3>
               <p className="mt-0.5 text-sm text-muted-foreground">
                 {fetchingPending
-                  ? pick('লোড হচ্ছে...', 'Loading...')
-                  : pick(
-                      'ডিভাইস ত্রুটি বা কার্ড না আনলে ম্যানুয়ালি উপস্থিত দিন, অথবা দিনশেষে অনুপস্থিত ঘোষণা করুন',
-                      'Manually mark present on device fault or finalize absent with SMS'
-                    )}
+                  ? 'লোড হচ্ছে...'
+                  : 'ডিভাইস ত্রুটি বা কার্ড না আনলে ম্যানুয়ালি উপস্থিত দিন, অথবা দিনশেষে অনুপস্থিত ঘোষণা করুন'}
               </p>
             </div>
             {pendingItems.length > 0 && (
               <Button size="sm" variant="destructive" onClick={() => setConfirmBatchOpen(true)}>
                 <UserX className="h-4 w-4" />
-                {pick(
-                  `এই পাতার ${pendingItems.length} জনকে অনুপস্থিত + SMS`,
-                  `Mark ${pendingItems.length} Absent + SMS`
-                )}
+                {`এই পাতার ${pendingItems.length} জনকে অনুপস্থিত + SMS`}
               </Button>
             )}
           </div>
@@ -281,7 +264,7 @@ export function GateMonitor({
                   setPendingSearch(e.target.value);
                   setPendingPage(1);
                 }}
-                placeholder={pick('নাম, রোল বা কার্ড খুঁজুন...', 'Search name, roll, card...')}
+                placeholder={'নাম, রোল বা কার্ড খুঁজুন...'}
                 className="pl-9"
               />
             </div>
@@ -293,7 +276,7 @@ export function GateMonitor({
                 setPendingPage(1);
               }}
             >
-              <option value="">{pick('সব শ্রেণি', 'All Classes')}</option>
+              <option value="">{'সব শ্রেণি'}</option>
               {classes.map((cls) => (
                 <option key={cls.id} value={cls.id}>
                   {cls.nameBn || cls.name}
@@ -307,7 +290,7 @@ export function GateMonitor({
                 setPendingPage(1);
               }}
             >
-              <option value="">{pick('সব শাখা', 'All Sections')}</option>
+              <option value="">{'সব শাখা'}</option>
               {availableSections.map((sec) => (
                 <option key={sec.id} value={sec.id}>
                   {sec.name}
@@ -318,22 +301,19 @@ export function GateMonitor({
 
           {pendingItems.length === 0 ? (
             <EmptyState
-              title={pick('সব শিক্ষার্থীর হাজিরা সম্পন্ন', 'All students accounted for')}
-              description={pick(
-                'নির্বাচিত ফিল্টারে কোনো অচিহ্নিত শিক্ষার্থী বাকি নেই।',
-                'No unmarked students remain for the current filters.'
-              )}
+              title={'সব শিক্ষার্থীর হাজিরা সম্পন্ন'}
+              description={'নির্বাচিত ফিল্টারে কোনো অচিহ্নিত শিক্ষার্থী বাকি নেই।'}
             />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-base">
                 <thead className="border-b border-border/70 bg-muted/40 text-sm font-semibold text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3">{pick('রোল', 'Roll')}</th>
-                    <th className="px-4 py-3">{pick('শিক্ষার্থী', 'Student')}</th>
-                    <th className="px-4 py-3">{pick('শ্রেণি ও শাখা', 'Class & Section')}</th>
-                    <th className="px-4 py-3">{pick('RFID কার্ড', 'RFID Card')}</th>
-                    <th className="px-4 py-3 text-right">{pick('দ্রুত অ্যাকশন', 'Quick Action')}</th>
+                    <th className="px-4 py-3">{'রোল'}</th>
+                    <th className="px-4 py-3">{'শিক্ষার্থী'}</th>
+                    <th className="px-4 py-3">{'শ্রেণি ও শাখা'}</th>
+                    <th className="px-4 py-3">{'RFID কার্ড'}</th>
+                    <th className="px-4 py-3 text-right">{'দ্রুত অ্যাকশন'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -353,7 +333,7 @@ export function GateMonitor({
                       </td>
                       <td className="px-4 py-3 font-mono text-sm">
                         {item.rfidCardNumber ?? (
-                          <span className="text-warning">{pick('কার্ড নেই', 'No card')}</span>
+                          <span className="text-warning">{'কার্ড নেই'}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -364,7 +344,7 @@ export function GateMonitor({
                           onClick={() => markSinglePresent(item.studentEnrollmentId)}
                         >
                           <UserCheck className="h-3.5 w-3.5 text-success" />
-                          {pick('উপস্থিত (ম্যানুয়াল)', 'Mark Present')}
+                          {'উপস্থিত (ম্যানুয়াল)'}
                         </Button>
                       </td>
                     </tr>
@@ -380,10 +360,10 @@ export function GateMonitor({
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-5 py-4">
             <div>
               <h3 className="text-lg font-semibold text-foreground">
-                {pick('গেট RFID স্ক্যান ফিড', 'RFID Gate Punch Feed')}
+                {'গেট RFID স্ক্যান ফিড'}
               </h3>
               <p className="mt-0.5 text-sm text-muted-foreground">
-                {fetchingScans ? pick('লোড হচ্ছে...', 'Loading...') : date}
+                {fetchingScans ? 'লোড হচ্ছে...' : date}
               </p>
             </div>
             <Button
@@ -393,7 +373,7 @@ export function GateMonitor({
               disabled={scanItems.length === 0}
             >
               <Download className="h-4 w-4" />
-              {pick('CSV এক্সপোর্ট', 'Export CSV')}
+              {'CSV এক্সপোর্ট'}
             </Button>
           </div>
 
@@ -406,7 +386,7 @@ export function GateMonitor({
                   setFeedSearch(e.target.value);
                   setFeedPage(1);
                 }}
-                placeholder={pick('কার্ড নম্বর বা নাম খুঁজুন...', 'Search card or student...')}
+                placeholder={'কার্ড নম্বর বা নাম খুঁজুন...'}
                 className="pl-9"
               />
             </div>
@@ -417,9 +397,9 @@ export function GateMonitor({
                 setFeedPage(1);
               }}
             >
-              <option value="ALL">{pick('সব দিক (ENTRY/EXIT)', 'All Directions')}</option>
-              <option value="ENTRY">{pick('প্রবেশ (ENTRY)', 'ENTRY')}</option>
-              <option value="EXIT">{pick('প্রস্থান (EXIT)', 'EXIT')}</option>
+              <option value="ALL">{'সব দিক (ENTRY/EXIT)'}</option>
+              <option value="ENTRY">{'প্রবেশ (ENTRY)'}</option>
+              <option value="EXIT">{'প্রস্থান (EXIT)'}</option>
             </Select>
             <Select
               value={knownFilter}
@@ -428,31 +408,28 @@ export function GateMonitor({
                 setFeedPage(1);
               }}
             >
-              <option value="ALL">{pick('সব কার্ড', 'All Cards')}</option>
-              <option value="KNOWN">{pick('পরিচিত কার্ড', 'Known Cards')}</option>
-              <option value="UNKNOWN">{pick('অজানা কার্ড', 'Unknown Cards')}</option>
+              <option value="ALL">{'সব কার্ড'}</option>
+              <option value="KNOWN">{'পরিচিত কার্ড'}</option>
+              <option value="UNKNOWN">{'অজানা কার্ড'}</option>
             </Select>
           </div>
 
           {scanItems.length === 0 ? (
             <EmptyState
-              title={pick('কোনো গেট স্ক্যান নেই', 'No gate scans found')}
-              description={pick(
-                'এই তারিখে কোনো RFID স্ক্যান লগ পাওয়া যায়নি।',
-                'No RFID punch logs recorded for this date.'
-              )}
+              title={'কোনো গেট স্ক্যান নেই'}
+              description={'এই তারিখে কোনো RFID স্ক্যান লগ পাওয়া যায়নি।'}
             />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-base">
                 <thead className="border-b border-border/70 bg-muted/40 text-sm font-semibold text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3">{pick('সময়', 'Time')}</th>
-                    <th className="px-4 py-3">{pick('কার্ড নম্বর', 'Card Number')}</th>
-                    <th className="px-4 py-3">{pick('শিক্ষার্থী ও শ্রেণি', 'Student & Class')}</th>
-                    <th className="px-4 py-3">{pick('দিক', 'Direction')}</th>
-                    <th className="px-4 py-3">{pick('ডিভাইস', 'Device')}</th>
-                    <th className="px-4 py-3">{pick('অবস্থা', 'Status')}</th>
+                    <th className="px-4 py-3">{'সময়'}</th>
+                    <th className="px-4 py-3">{'কার্ড নম্বর'}</th>
+                    <th className="px-4 py-3">{'শিক্ষার্থী ও শ্রেণি'}</th>
+                    <th className="px-4 py-3">{'দিক'}</th>
+                    <th className="px-4 py-3">{'ডিভাইস'}</th>
+                    <th className="px-4 py-3">{'অবস্থা'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -470,7 +447,7 @@ export function GateMonitor({
                           </>
                         ) : (
                           <span className="text-sm text-destructive">
-                            {pick('অনিবন্ধিত কার্ড', 'Unregistered Card')}
+                            {'অনিবন্ধিত কার্ড'}
                           </span>
                         )}
                       </td>
@@ -486,12 +463,12 @@ export function GateMonitor({
                         {scan.isKnownCard ? (
                           <span className="inline-flex items-center gap-1 text-sm font-medium text-success">
                             <CheckCircle2 className="h-3.5 w-3.5" />
-                            {pick('পরিচিত', 'Known')}
+                            {'পরিচিত'}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 text-sm font-medium text-destructive">
                             <AlertTriangle className="h-3.5 w-3.5" />
-                            {pick('অজানা', 'Unknown')}
+                            {'অজানা'}
                           </span>
                         )}
                       </td>
@@ -508,24 +485,21 @@ export function GateMonitor({
       <Modal
         open={confirmBatchOpen}
         onClose={() => setConfirmBatchOpen(false)}
-        title={pick('ব্যাচ অনুপস্থিত নিশ্চিতকরণ', 'Confirm Batch Absent & SMS')}
+        title={'ব্যাচ অনুপস্থিত নিশ্চিতকরণ'}
         size="sm"
       >
         <div className="space-y-4">
           <p className="text-base text-muted-foreground">
-            {pick(
-              `এই পাতার ${pendingItems.length} জন অচিহ্নিত শিক্ষার্থীকে অনুপস্থিত ঘোষণা করা হবে এবং অভিভাবকদের কাছে স্বয়ংক্রিয় SMS পাঠানো হবে।`,
-              `${pendingItems.length} unmarked students on this page will be marked absent and guardian SMS alerts will be queued.`
-            )}
+            {`এই পাতার ${pendingItems.length} জন অচিহ্নিত শিক্ষার্থীকে অনুপস্থিত ঘোষণা করা হবে এবং অভিভাবকদের কাছে স্বয়ংক্রিয় SMS পাঠানো হবে।`}
           </p>
           <div className="flex justify-end gap-2 border-t border-border/70 pt-3">
             <Button variant="outline" onClick={() => setConfirmBatchOpen(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button variant="destructive" disabled={savingBatch} onClick={markVisibleAbsent}>
               {savingBatch
-                ? pick('সংরক্ষণ হচ্ছে...', 'Processing...')
-                : pick('নিশ্চিত করুন ও SMS পাঠান', 'Confirm & Send SMS')}
+                ? 'সংরক্ষণ হচ্ছে...'
+                : 'নিশ্চিত করুন ও SMS পাঠান'}
             </Button>
           </div>
         </div>

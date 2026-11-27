@@ -7,7 +7,6 @@ import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -57,24 +56,23 @@ function useCurrentStudent(db: MockDatabase | undefined) {
 export function StudentNotificationsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const [markRead] = useMarkNotificationReadMutation();
-  const { locale, pick } = useI18n();
   if (isLoading || !db) return <LoadingSkeleton />;
   const items = db.notifications.filter((n) => n.targetRoles.includes('STUDENT'));
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('নোটিফিকেশন', 'Notifications')}
+        title={'নোটিফিকেশন'}
         actions={
           <Button variant="outline" size="sm" onClick={() => markRead({})}>
-            {pick('সব পঠিত করুন', 'Mark All Read')}
+            {'সব পঠিত করুন'}
           </Button>
         }
       />
       <div className="space-y-3">
         {items.map((n) => (
           <Card key={n.id} className="p-4">
-            <p className="text-base font-semibold">{locale === 'bn' ? n.titleBn : n.titleEn}</p>
-            <p className="text-sm text-muted-foreground mt-1">{locale === 'bn' ? n.bodyBn : n.bodyEn}</p>
+            <p className="text-base font-semibold">{n.titleBn}</p>
+            <p className="text-sm text-muted-foreground mt-1">{n.bodyBn}</p>
           </Card>
         ))}
       </div>

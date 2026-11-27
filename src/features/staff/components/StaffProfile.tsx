@@ -10,14 +10,12 @@ import {
   useDeleteStaffMutation,
   useGetStaffProfileQuery,
 } from '../api/staff.api';
-import { useI18n } from '@/src/lib/i18n';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Card, Modal } from '@/src/components/ui/primitives';
 import { StaffFormModal } from './StaffFormModal';
 import type { StaffWorkspace } from '../api/staff.api';
 
 export function StaffProfile({ staffId }: { staffId: string }) {
-  const { pick } = useI18n();
   const router = useRouter();
   const { data: member, isLoading, error, refetch } = useGetStaffProfileQuery(staffId);
   const [deleteStaff, { isLoading: deleting }] = useDeleteStaffMutation();
@@ -26,8 +24,8 @@ export function StaffProfile({ staffId }: { staffId: string }) {
   if (isLoading) return <LoadingSkeleton />;
   if (error || !member) return (
     <div role="alert">
-      <p>{pick('স্টাফ প্রোফাইল লোড করা যায়নি।', 'Could not load the staff profile.')}</p>
-      <Button size="sm" variant="outline" onClick={refetch}>{pick('আবার চেষ্টা করুন', 'Retry')}</Button>
+      <p>{'স্টাফ প্রোফাইল লোড করা যায়নি।'}</p>
+      <Button size="sm" variant="outline" onClick={refetch}>{'আবার চেষ্টা করুন'}</Button>
     </div>
   );
 
@@ -52,7 +50,7 @@ export function StaffProfile({ staffId }: { staffId: string }) {
         </div>
         <div className="flex flex-wrap gap-2">
           <StatusBadge enumName="StaffStatus" value={member.status} />
-          <Button size="sm" variant="outline" onClick={() => setOpen(true)}>{pick('সম্পাদনা', 'Edit')}</Button>
+          <Button size="sm" variant="outline" onClick={() => setOpen(true)}>{'সম্পাদনা'}</Button>
           <Button
             size="sm"
             variant="outline"
@@ -60,54 +58,51 @@ export function StaffProfile({ staffId }: { staffId: string }) {
             className="text-destructive hover:text-destructive"
             onClick={() => setConfirmDeleteOpen(true)}
           >
-            {pick('মুছুন', 'Delete')}
+            {'মুছুন'}
           </Button>
-          <Link href="/admin/staff"><Button size="sm" variant="ghost">{pick('তালিকায়', 'Back to list')}</Button></Link>
+          <Link href="/admin/staff"><Button size="sm" variant="ghost">{'তালিকায়'}</Button></Link>
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm">
         <Card className="p-4 space-y-1">
-          <p className="font-semibold">{pick('চাকরি', 'Employment')}</p>
-          <p>{pick('যোগ্যতা', 'Qualification')}: {member.qualification || '—'}</p>
-          <p>{pick('যোগদান', 'Joined')}: {member.joiningDate?.slice(0, 10) || '—'}</p>
-          <p>{pick('ছাড়ার তারিখ', 'Left')}: {member.leavingDate?.slice(0, 10) || '—'}</p>
+          <p className="font-semibold">{'চাকরি'}</p>
+          <p>{'যোগ্যতা'}: {member.qualification || '—'}</p>
+          <p>{'যোগদান'}: {member.joiningDate?.slice(0, 10) || '—'}</p>
+          <p>{'ছাড়ার তারিখ'}: {member.leavingDate?.slice(0, 10) || '—'}</p>
         </Card>
         <Card className="p-4 space-y-1">
-          <p className="font-semibold">{pick('যোগাযোগ', 'Contact')}</p>
+          <p className="font-semibold">{'যোগাযোগ'}</p>
           <p>{member.phone || '—'}</p>
           <p>{member.email || '—'}</p>
-          <p>{pick('জরুরি', 'Emergency')}: {member.emergencyContact || '—'}</p>
-          <p>{pick('বর্তমান ঠিকানা', 'Present Address')}: {member.presentAddress || '—'}</p>
-          <p>{pick('স্থায়ী ঠিকানা', 'Permanent Address')}: {member.permanentAddress || '—'}</p>
+          <p>{'জরুরি'}: {member.emergencyContact || '—'}</p>
+          <p>{'বর্তমান ঠিকানা'}: {member.presentAddress || '—'}</p>
+          <p>{'স্থায়ী ঠিকানা'}: {member.permanentAddress || '—'}</p>
         </Card>
       </div>
       <Card className="p-4 space-y-2 text-sm">
-        <p className="font-semibold">{pick('এই বছরের শিক্ষকতা', 'Teaching this year')}</p>
+        <p className="font-semibold">{'এই বছরের শিক্ষকতা'}</p>
         {classDuties.map((duty) => (
-          <p key={duty.id}>{pick('শ্রেণি শিক্ষক', 'Class teacher')} {duty.section.schoolClass.name} ({duty.section.name})</p>
+          <p key={duty.id}>{'শ্রেণি শিক্ষক'} {duty.section.schoolClass.name} ({duty.section.name})</p>
         ))}
         {subjects.map((duty) => (
-          <p key={duty.id}>{pick('বিষয়', 'Subject')} {duty.classSubject.subject.name} {duty.section?.name}</p>
+          <p key={duty.id}>{'বিষয়'} {duty.classSubject.subject.name} {duty.section?.name}</p>
         ))}
-        {!classDuties.length && !subjects.length && <p className="text-muted-foreground">{pick('এই বছর কোনো বণ্টন নেই।', 'No assignment this year.')}</p>}
+        {!classDuties.length && !subjects.length && <p className="text-muted-foreground">{'এই বছর কোনো বণ্টন নেই।'}</p>}
       </Card>
       <StaffFormModal open={open} onClose={() => setOpen(false)} member={member} defaultType={member.staffType} />
       <Modal
         open={confirmDeleteOpen}
         onClose={() => !deleting && setConfirmDeleteOpen(false)}
-        title={pick('স্টাফ সদস্য মুছে ফেলুন', 'Delete Staff Member')}
+        title={'স্টাফ সদস্য মুছে ফেলুন'}
         maxWidth="max-w-md"
       >
         <div className="space-y-4">
           <p className="text-base text-foreground">
-            {pick(
-              `আপনি কি নিশ্চিতভাবে "${member.nameBn || member.name}"-কে মুছে ফেলতে চান?`,
-              `Are you sure you want to delete "${member.name}"?`
-            )}
+            {`আপনি কি নিশ্চিতভাবে "${member.nameBn || member.name}"-কে মুছে ফেলতে চান?`}
           </p>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" disabled={deleting} onClick={() => setConfirmDeleteOpen(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button
               type="button"
@@ -116,15 +111,15 @@ export function StaffProfile({ staffId }: { staffId: string }) {
               onClick={async () => {
                 try {
                   await deleteStaff(member.id).unwrap();
-                  toast.success(pick('স্টাফ সদস্য মুছে ফেলা হয়েছে।', 'Staff member deleted.'));
+                  toast.success('স্টাফ সদস্য মুছে ফেলা হয়েছে।');
                   router.push('/admin/staff');
                 } catch (err: unknown) {
                   const e = err as { data?: { message?: string }; message?: string };
-                  toast.error(e?.data?.message || e?.message || pick('মুছে ফেলা যায়নি।', 'Could not delete staff member.'));
+                  toast.error(e?.data?.message || e?.message || 'মুছে ফেলা যায়নি।');
                 }
               }}
             >
-              {deleting ? pick('মুছে ফেলা হচ্ছে...', 'Deleting...') : pick('মুছে ফেলুন', 'Delete')}
+              {deleting ? 'মুছে ফেলা হচ্ছে...' : 'মুছে ফেলুন'}
             </Button>
           </div>
         </div>

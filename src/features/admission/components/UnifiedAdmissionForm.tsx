@@ -12,7 +12,6 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/src/components/ui/primitives';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import {
   useCreateStudentMutation,
@@ -71,7 +70,6 @@ export function UnifiedAdmissionForm({
   onAdminSuccess,
   onCancel,
 }: UnifiedAdmissionFormProps) {
-  const { locale, pick } = useI18n();
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [maxVisitedStep, setMaxVisitedStep] = useState<1 | 2 | 3 | 4>(
     prefillApplication ? 4 : 1
@@ -167,22 +165,22 @@ export function UnifiedAdmissionForm({
   const steps: Array<{ num: 1 | 2 | 3 | 4; title: string }> = [
     {
       num: 1,
-      title: pick('শ্রেণি ও একাডেমিক তথ্য', 'Class & Academic'),
+      title: 'শ্রেণি ও একাডেমিক তথ্য',
     },
     {
       num: 2,
-      title: pick('শিক্ষার্থীর তথ্য ও ছবি', 'Student Identity'),
+      title: 'শিক্ষার্থীর তথ্য ও ছবি',
     },
     {
       num: 3,
-      title: pick('অভিভাবক ও ঠিকানা', 'Parents & Address'),
+      title: 'অভিভাবক ও ঠিকানা',
     },
     {
       num: 4,
       title:
         mode === 'public'
-          ? pick('ফর্ম প্রিভিউ ও জমা', 'Preview & Submit')
-          : pick('শাখা, রোল ও ভর্তি', 'Placement & Admit'),
+          ? 'ফর্ম প্রিভিউ ও জমা'
+          : 'শাখা, রোল ও ভর্তি',
     },
   ];
 
@@ -202,10 +200,7 @@ export function UnifiedAdmissionForm({
     const valid = await form.trigger(fields, { shouldFocus: true });
     if (!valid) {
       toast.error(
-        pick(
-          'চিহ্নিত আবশ্যক ঘরগুলো সঠিকভাবে পূরণ করুন।',
-          'Please complete the highlighted required fields.'
-        )
+        'চিহ্নিত আবশ্যক ঘরগুলো সঠিকভাবে পূরণ করুন।'
       );
     }
     return valid;
@@ -251,17 +246,14 @@ export function UnifiedAdmissionForm({
         const payload = toPublicAdmissionPayload(values, db);
         const created = await submitPublicApp(payload).unwrap();
         toast.success(
-          pick(
-            `আবেদন সফলভাবে গৃহীত হয়েছে। আবেদন নম্বর: ${created.applicationNumber}`,
-            `Application submitted. Tracking No: ${created.applicationNumber}`
-          )
+          `আবেদন সফলভাবে গৃহীত হয়েছে। আবেদন নম্বর: ${created.applicationNumber}`
         );
         onPublicSuccess?.(created);
       } catch (err: unknown) {
         const message =
           (err as { message?: string; data?: { message?: string } })?.message ||
           (err as { data?: { message?: string } })?.data?.message ||
-          pick('আবেদন জমা দেওয়া সম্ভব হয়নি।', 'Application submission failed.');
+          'আবেদন জমা দেওয়া সম্ভব হয়নি।';
         toast.error(message);
       }
       return;
@@ -278,10 +270,7 @@ export function UnifiedAdmissionForm({
       const enrollment: StudentEnrollment =
         raw.currentEnrollment ?? (raw.enrollment as StudentEnrollment);
       toast.success(
-        pick(
-          `${student.nameBn || student.nameEn} ভর্তি সম্পন্ন হয়েছে (${student.studentId})।`,
-          `${student.nameEn} admitted successfully (${student.studentId}).`
-        )
+        `${student.nameBn || student.nameEn} ভর্তি সম্পন্ন হয়েছে (${student.studentId})।`
       );
       onAdminSuccess?.({
         student,
@@ -292,7 +281,7 @@ export function UnifiedAdmissionForm({
       const message =
         (err as { message?: string; data?: { message?: string } })?.message ||
         (err as { data?: { message?: string } })?.data?.message ||
-        pick('ভর্তি সম্পন্ন করা সম্ভব হয়নি।', 'Student admission failed.');
+        'ভর্তি সম্পন্ন করা সম্ভব হয়নি।';
       toast.error(message);
     }
   };
@@ -307,10 +296,7 @@ export function UnifiedAdmissionForm({
       }
     }
     toast.error(
-      pick(
-        'চিহ্নিত আবশ্যক ঘরগুলো সঠিকভাবে পূরণ করুন।',
-        'Please complete the highlighted required fields.'
-      )
+      'চিহ্নিত আবশ্যক ঘরগুলো সঠিকভাবে পূরণ করুন।'
     );
   };
 
@@ -323,16 +309,10 @@ export function UnifiedAdmissionForm({
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 rounded-2xl border border-primary/30 bg-primary/5 text-base">
           <div>
             <p className="font-semibold text-foreground text-base">
-              {pick(
-                `অনলাইন আবেদন (${prefillApplication.applicationNumber}) থেকে ভর্তি প্রক্রিয়াকরণ`,
-                `Processing Admission from Online Application (${prefillApplication.applicationNumber})`
-              )}
+              {`অনলাইন আবেদন (${prefillApplication.applicationNumber}) থেকে ভর্তি প্রক্রিয়াকরণ`}
             </p>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {pick(
-                'আবেদনকারীর তথ্য প্রি-ফিল করা আছে। প্রয়োজনে সংশোধন করে ধাপ ৪-এ শাখা ও রোল নিশ্চিত করুন।',
-                'Applicant data is pre-filled. Review any step, then confirm section & roll in Step 4.'
-              )}
+              {'আবেদনকারীর তথ্য প্রি-ফিল করা আছে। প্রয়োজনে সংশোধন করে ধাপ ৪-এ শাখা ও রোল নিশ্চিত করুন।'}
             </p>
           </div>
           {onCancel && (
@@ -343,7 +323,7 @@ export function UnifiedAdmissionForm({
               className="rounded-xl h-10 px-4 text-sm font-semibold"
               onClick={onCancel}
             >
-              {pick('ইনবক্সে ফিরুন', 'Back to Inbox')}
+              {'ইনবক্সে ফিরুন'}
             </Button>
           )}
         </div>
@@ -353,7 +333,7 @@ export function UnifiedAdmissionForm({
       <div className="border border-border/80 rounded-3xl bg-surface overflow-hidden shadow-[0_2px_16px_-4px_rgba(28,100,64,0.08)]">
         {/* Crisp Official Top Step Navigation Bar */}
         <nav
-          aria-label={pick('ভর্তি ফরমের ধাপসমূহ', 'Admission Form Steps')}
+          aria-label={'ভর্তি ফরমের ধাপসমূহ'}
           className="grid grid-cols-2 lg:grid-cols-4 border-b border-border/80 bg-surface-muted/30 divide-y lg:divide-y-0 divide-x divide-border/80"
         >
           {steps.map((s) => {
@@ -391,7 +371,7 @@ export function UnifiedAdmissionForm({
                         : 'bg-surface border border-border text-muted-foreground'
                   }`}
                 >
-                  {isCompleted ? <Check className="w-4 h-4 stroke-[2.5]" /> : formatNumber(s.num, locale)}
+                  {isCompleted ? <Check className="w-4 h-4 stroke-[2.5]" /> : formatNumber(s.num, 'bn')}
                 </span>
                 <span className="text-base font-semibold truncate">{s.title}</span>
               </button>
@@ -461,7 +441,7 @@ export function UnifiedAdmissionForm({
                   onClick={() => setStep((s) => Math.max(1, s - 1) as 1 | 2 | 3 | 4)}
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  {pick('পূর্ববর্তী ধাপ', 'Previous')}
+                  {'পূর্ববর্তী ধাপ'}
                 </Button>
                 {onCancel && (
                   <Button
@@ -470,17 +450,14 @@ export function UnifiedAdmissionForm({
                     className="rounded-xl h-11 px-4 text-sm font-semibold"
                     onClick={onCancel}
                   >
-                    {pick('বাতিল', 'Cancel')}
+                    {'বাতিল'}
                   </Button>
                 )}
               </div>
 
               <div className="flex items-center gap-3.5">
                 <span className="text-sm text-muted-foreground font-medium tabular-nums hidden sm:inline">
-                  {pick(
-                    `ধাপ ${formatNumber(step, locale)} / ৪`,
-                    `Step ${step} of 4`
-                  )}
+                  {`ধাপ ${formatNumber(step, 'bn')} / ৪`}
                 </span>
 
                 {step < 4 ? (
@@ -491,7 +468,7 @@ export function UnifiedAdmissionForm({
                     className="rounded-xl h-11 px-5 text-base font-semibold shadow-sm"
                     onClick={handleNext}
                   >
-                    {pick('পরবর্তী ধাপ', 'Next Step')}
+                    {'পরবর্তী ধাপ'}
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 ) : (
@@ -504,10 +481,10 @@ export function UnifiedAdmissionForm({
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     {submitting
-                      ? pick('সংরক্ষণ হচ্ছে...', 'Submitting...')
+                      ? 'সংরক্ষণ হচ্ছে...'
                       : mode === 'public'
-                        ? pick('আবেদন চূড়ান্ত জমা দিন', 'Submit Application')
-                        : pick('ভর্তি নিশ্চিত করুন', 'Confirm Admission')}
+                        ? 'আবেদন চূড়ান্ত জমা দিন'
+                        : 'ভর্তি নিশ্চিত করুন'}
                   </Button>
                 )}
               </div>

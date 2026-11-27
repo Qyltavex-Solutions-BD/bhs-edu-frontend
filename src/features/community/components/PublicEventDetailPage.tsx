@@ -32,7 +32,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { MasonryPhotoAlbum } from 'react-photo-album';
 
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -61,7 +60,6 @@ type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
 export function PublicEventDetailPage() {
   const { id } = useParams();
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   if (isLoading) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
   const ev = db?.events.find((e) => e.id === id);
   if (!ev || !db) return <div className="max-w-[1440px] mx-auto p-6"><EmptyState /></div>;
@@ -82,7 +80,7 @@ export function PublicEventDetailPage() {
         href="/events"
         className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
       >
-        <ArrowLeft className="w-4 h-4" /> {pick('সব অনুষ্ঠানে ফিরুন', 'Back to All Events')}
+        <ArrowLeft className="w-4 h-4" /> {'সব অনুষ্ঠানে ফিরুন'}
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -100,8 +98,8 @@ export function PublicEventDetailPage() {
               {cat && <StatusBadge enumName="EventCategoryType" value={cat.type} />}
               <span className="text-sm text-muted-foreground tabular-nums inline-flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-primary" />
-                {formatDateLong(ev.startDate, locale)}
-                {isMultiDay ? ` – ${formatDateLong(ev.endDate, locale)}` : ''}
+                {formatDateLong(ev.startDate, 'bn')}
+                {isMultiDay ? ` – ${formatDateLong(ev.endDate, 'bn')}` : ''}
               </span>
             </div>
 
@@ -120,32 +118,32 @@ export function PublicEventDetailPage() {
         <aside className="lg:col-span-4 space-y-5">
           <Card className="p-5 space-y-3.5">
             <h2 className="text-base font-bold text-foreground">
-              {pick('অনুষ্ঠানের তথ্য', 'Event Schedule & Venue')}
+              {'অনুষ্ঠানের তথ্য'}
             </h2>
             <dl className="space-y-3 text-sm">
               <div className="flex items-start gap-2.5">
                 <Calendar className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <dt className="font-semibold text-foreground">{pick('তারিখ', 'Date')}</dt>
+                  <dt className="font-semibold text-foreground">{'তারিখ'}</dt>
                   <dd className="text-muted-foreground tabular-nums mt-0.5">
-                    {formatDateLong(ev.startDate, locale)}
-                    {isMultiDay ? ` – ${formatDateLong(ev.endDate, locale)}` : ''}
+                    {formatDateLong(ev.startDate, 'bn')}
+                    {isMultiDay ? ` – ${formatDateLong(ev.endDate, 'bn')}` : ''}
                   </dd>
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <dt className="font-semibold text-foreground">{pick('স্থান', 'Venue')}</dt>
+                  <dt className="font-semibold text-foreground">{'স্থান'}</dt>
                   <dd className="text-muted-foreground mt-0.5">
-                    {pick('ভোজেশ্বর উচ্চ বিদ্যালয় প্রাঙ্গণ, নড়িয়া, শরীয়তপুর', db.contactInfo.address)}
+                    {'ভোজেশ্বর উচ্চ বিদ্যালয় প্রাঙ্গণ, নড়িয়া, শরীয়তপুর'}
                   </dd>
                 </div>
               </div>
               <div className="flex items-start gap-2.5">
                 <Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <dt className="font-semibold text-foreground">{pick('যোগাযোগ', 'Inquiries')}</dt>
+                  <dt className="font-semibold text-foreground">{'যোগাযোগ'}</dt>
                   <dd className="text-muted-foreground tabular-nums mt-0.5">
                     {db.contactInfo.phone}
                   </dd>
@@ -154,7 +152,7 @@ export function PublicEventDetailPage() {
             </dl>
             <Link href="/academics/academic-calendar" className="block pt-2 border-t border-border">
               <Button variant="outline" size="sm" className="w-full">
-                <span>{pick('পূর্ণ একাডেমিক ক্যালেন্ডার দেখুন', 'View Academic Calendar')}</span>
+                <span>{'পূর্ণ একাডেমিক ক্যালেন্ডার দেখুন'}</span>
               </Button>
             </Link>
           </Card>
@@ -162,7 +160,7 @@ export function PublicEventDetailPage() {
           {otherEvents.length > 0 && (
             <Card className="p-5 space-y-3.5">
               <h2 className="text-base font-bold text-foreground">
-                {pick('অন্যান্য আসন্ন অনুষ্ঠান', 'Other Upcoming Events')}
+                {'অন্যান্য আসন্ন অনুষ্ঠান'}
               </h2>
               <div className="space-y-3">
                 {otherEvents.map((other) => (
@@ -171,8 +169,8 @@ export function PublicEventDetailPage() {
                     href={`/events/${other.id}`}
                     className="group block pb-3 border-b border-border last:border-none last:pb-0"
                   >
-                    <p className="text-xs text-primary font-semibold tabular-nums">
-                      {formatDateLong(other.startDate, locale)}
+                    <p className="text-sm text-primary font-semibold tabular-nums">
+                      {formatDateLong(other.startDate, 'bn')}
                     </p>
                     <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors mt-0.5 leading-snug">
                       {other.title}

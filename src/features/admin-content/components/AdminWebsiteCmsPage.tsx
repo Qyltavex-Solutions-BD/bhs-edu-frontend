@@ -33,7 +33,6 @@ import {
   useUpdateAdmissionContentMutation,
   useUpsertCmsItemMutation,
 } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { LoadingSkeleton, PageHeader } from '@/src/components/shared/Feedback';
@@ -63,7 +62,6 @@ export function AdminWebsiteCmsPage() {
   const [toggleCms] = useToggleCmsItemMutation();
   const [reorderCms] = useReorderCmsItemsMutation();
   const [updateAdmission, { isLoading: savingAdmission }] = useUpdateAdmissionContentMutation();
-  const { pick } = useI18n();
   const [tab, setTab] = useState<'banners' | 'leadership' | 'gallery' | 'admission' | 'publications'>('banners');
   const [dragBannerId, setDragBannerId] = useState<string | null>(null);
 
@@ -118,10 +116,7 @@ export function AdminWebsiteCmsPage() {
       isPublished: true,
     }).unwrap();
     toast.success(
-      pick(
-        'ভর্তি ক্যাম্পেইন ও হোমপেজ ব্যানার সেটিংস সংরক্ষিত হয়েছে।',
-        'Admission campaign & homepage banner settings saved.'
-      )
+      'ভর্তি ক্যাম্পেইন ও হোমপেজ ব্যানার সেটিংস সংরক্ষিত হয়েছে।'
     );
   };
 
@@ -132,34 +127,31 @@ export function AdminWebsiteCmsPage() {
     const [moved] = next.splice(fromIdx, 1);
     next.splice(toIdx, 0, moved);
     await reorderCms({ collection: 'banners', orderedIds: next.map((x) => x.id) }).unwrap();
-    toast.success(pick('হোমপেজ ব্যানারের ক্রম হালনাগাদ হয়েছে।', 'Banner slide order updated.'));
+    toast.success('হোমপেজ ব্যানারের ক্রম হালনাগাদ হয়েছে।');
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('ওয়েবসাইট কনটেন্ট ম্যানেজমেন্ট (CMS)', 'Website Content Management (CMS)')}
-        description={pick('হোমপেজ ব্যানার স্লাইডার (ড্র্যাগ-অ্যান্ড-ড্রপ), নেতৃত্বের বাণী, গ্যালারি, ভর্তি কনটেন্ট ও প্রকাশনা নিয়ন্ত্রণ।', 'Manage homepage banners (drag-and-drop), leadership messages, gallery, admission copy, and publications.')}
+        title={'ওয়েবসাইট কনটেন্ট ম্যানেজমেন্ট (CMS)'}
+        description={'হোমপেজ ব্যানার স্লাইডার (ড্র্যাগ-অ্যান্ড-ড্রপ), নেতৃত্বের বাণী, গ্যালারি, ভর্তি কনটেন্ট ও প্রকাশনা নিয়ন্ত্রণ।'}
       />
       <SegmentedTabs
         value={tab}
         onChange={setTab}
         items={[
-          { value: 'banners', label: pick('ব্যানার স্লাইডার', 'Banners') },
-          { value: 'leadership', label: pick('নেতৃত্বের বাণী', 'Leadership') },
-          { value: 'gallery', label: pick('গ্যালারি', 'Gallery') },
-          { value: 'admission', label: pick('ভর্তি কনটেন্ট', 'Admission Copy') },
-          { value: 'publications', label: pick('প্রকাশনা ও অর্জন', 'Publications & Achievements') },
+          { value: 'banners', label: 'ব্যানার স্লাইডার' },
+          { value: 'leadership', label: 'নেতৃত্বের বাণী' },
+          { value: 'gallery', label: 'গ্যালারি' },
+          { value: 'admission', label: 'ভর্তি কনটেন্ট' },
+          { value: 'publications', label: 'প্রকাশনা ও অর্জন' },
         ]}
       />
 
       {tab === 'banners' && (
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            {pick(
-              'স্লাইডগুলো ড্র্যাগ-অ্যান্ড-ড্রপ বা তীর বাটন দিয়ে সাজান — হোমপেজ হিরো স্লাইডার তাৎক্ষণিক আপডেট হবে।',
-              'Drag and drop banners or use arrow buttons to change homepage hero slide order.'
-            )}
+            {'স্লাইডগুলো ড্র্যাগ-অ্যান্ড-ড্রপ বা তীর বাটন দিয়ে সাজান — হোমপেজ হিরো স্লাইডার তাৎক্ষণিক আপডেট হবে।'}
           </p>
           <Card className="divide-y divide-border">
             {sortedBanners.map((b, idx) => (
@@ -205,7 +197,7 @@ export function AdminWebsiteCmsPage() {
                   <Switch
                     checked={b.isActive}
                     onChange={() => toggleCms({ collection: 'banners', id: b.id, field: 'isActive' })}
-                    label={b.isActive ? pick('সক্রিয়', 'Active') : pick('বন্ধ', 'Hidden')}
+                    label={b.isActive ? 'সক্রিয়' : 'বন্ধ'}
                   />
                 </div>
               </div>
@@ -243,24 +235,21 @@ export function AdminWebsiteCmsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border">
                 <div>
                   <h3 className="text-base font-bold text-foreground">
-                    {pick('ভর্তি ক্যাম্পেইন ও হোমপেজ ব্যানার নিয়ন্ত্রণ', 'Admission Campaign & Homepage Banner Control')}
+                    {'ভর্তি ক্যাম্পেইন ও হোমপেজ ব্যানার নিয়ন্ত্রণ'}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    {pick(
-                      'ভর্তি কার্যক্রম চালু/বন্ধ করুন, তারিখ ও ফি হালনাগাদ করুন এবং হোমপেজ ব্যানারের লেখা পরিবর্তন করুন।',
-                      'Toggle admission cycle status, update schedule & fee, and customize the homepage banner copy.'
-                    )}
+                    {'ভর্তি কার্যক্রম চালু/বন্ধ করুন, তারিখ ও ফি হালনাগাদ করুন এবং হোমপেজ ব্যানারের লেখা পরিবর্তন করুন।'}
                   </p>
                 </div>
                 <Switch
                   checked={admForm.showOnHomepage}
                   onChange={(v) => setAdmForm({ ...admForm, showOnHomepage: v })}
-                  label={pick('হোমপেজে ব্যানার দেখান', 'Show Banner on Homepage')}
+                  label={'হোমপেজে ব্যানার দেখান'}
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField label={pick('ভর্তি কার্যক্রম অবস্থা', 'Admission Cycle Status')}>
+                <FormField label={'ভর্তি কার্যক্রম অবস্থা'}>
                   <Select
                     value={admForm.admissionStatus}
                     onChange={(e) =>
@@ -270,13 +259,13 @@ export function AdminWebsiteCmsPage() {
                       })
                     }
                   >
-                    <option value="OPEN">{pick('ভর্তি চলছে (Open)', 'Admissions Open')}</option>
-                    <option value="UPCOMING">{pick('শীঘ্রই শুরু (Upcoming)', 'Opening Soon')}</option>
-                    <option value="CLOSED">{pick('ভর্তি বন্ধ (Closed)', 'Admissions Closed')}</option>
+                    <option value="OPEN">{'ভর্তি চলছে (Open)'}</option>
+                    <option value="UPCOMING">{'শীঘ্রই শুরু (Upcoming)'}</option>
+                    <option value="CLOSED">{'ভর্তি বন্ধ (Closed)'}</option>
                   </Select>
                 </FormField>
 
-                <FormField label={pick('শিক্ষাবর্ষ', 'Academic Session')}>
+                <FormField label={'শিক্ষাবর্ষ'}>
                   <Input
                     value={admForm.academicSession}
                     onChange={(e) => setAdmForm({ ...admForm, academicSession: e.target.value })}
@@ -284,63 +273,63 @@ export function AdminWebsiteCmsPage() {
                   />
                 </FormField>
 
-                <FormField label={pick('ভর্তিযোগ্য শ্রেণি ও বিভাগ', 'Eligible Classes & Streams')}>
+                <FormField label={'ভর্তিযোগ্য শ্রেণি ও বিভাগ'}>
                   <Input
                     value={admForm.eligibleClasses}
                     onChange={(e) => setAdmForm({ ...admForm, eligibleClasses: e.target.value })}
-                    placeholder={pick('৬ষ্ঠ–৯ম শ্রেণি (বিজ্ঞান, মানবিক, ব্যবসায় শিক্ষা)', 'Classes 6–9 (Science, Humanities, Business)')}
+                    placeholder={'৬ষ্ঠ–৯ম শ্রেণি (বিজ্ঞান, মানবিক, ব্যবসায় শিক্ষা)'}
                   />
                 </FormField>
               </div>
 
-              <FormField label={pick('হোমপেজ ব্যানারের শিরোনাম', 'Homepage Banner Headline')}>
+              <FormField label={'হোমপেজ ব্যানারের শিরোনাম'}>
                 <Input
                   value={admForm.bannerTitle}
                   onChange={(e) => setAdmForm({ ...admForm, bannerTitle: e.target.value })}
-                  placeholder={pick('২০২৭ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি চলছে', 'Session 2027 Admissions Open (Classes 6–9)')}
+                  placeholder={'২০২৭ শিক্ষাবর্ষে ৬ষ্ঠ থেকে ৯ম শ্রেণিতে ভর্তি চলছে'}
                 />
               </FormField>
 
-              <FormField label={pick('ব্যানারের সংক্ষিপ্ত বিবরণ', 'Homepage Banner Summary')}>
+              <FormField label={'ব্যানারের সংক্ষিপ্ত বিবরণ'}>
                 <Textarea
                   rows={3}
                   value={admForm.bannerSubtitle}
                   onChange={(e) => setAdmForm({ ...admForm, bannerSubtitle: e.target.value })}
-                  placeholder={pick('অভিভাবকদের জন্য পরিষ্কার সংক্ষিপ্ত বিবরণ লিখুন...', 'Write a concise summary for parents and applicants...')}
+                  placeholder={'অভিভাবকদের জন্য পরিষ্কার সংক্ষিপ্ত বিবরণ লিখুন...'}
                 />
               </FormField>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <FormField label={pick('আবেদন শুরু', 'Start Date')}>
+                <FormField label={'আবেদন শুরু'}>
                   <Input
                     type="date"
                     value={admForm.startDate}
                     onChange={(e) => setAdmForm({ ...admForm, startDate: e.target.value })}
                   />
                 </FormField>
-                <FormField label={pick('আবেদনের শেষ তারিখ', 'Deadline')}>
+                <FormField label={'আবেদনের শেষ তারিখ'}>
                   <Input
                     type="date"
                     value={admForm.endDate}
                     onChange={(e) => setAdmForm({ ...admForm, endDate: e.target.value })}
                   />
                 </FormField>
-                <FormField label={pick('ভর্তি পরীক্ষার তারিখ', 'Admission Test Date')}>
+                <FormField label={'ভর্তি পরীক্ষার তারিখ'}>
                   <Input
                     type="date"
                     value={admForm.admissionTestDate}
                     onChange={(e) => setAdmForm({ ...admForm, admissionTestDate: e.target.value })}
                   />
                 </FormField>
-                <FormField label={pick('আবেদন ফি (টাকা)', 'Application Fee (BDT)')}>
-                  <Input
+                <FormField label={'আবেদন ফি (টাকা)'}>
+                  <Input placeholder="আবেদন ফি (টাকা) লিখুন"
                     type="number"
                     min={0}
                     value={admForm.applicationFee}
                     onChange={(e) => setAdmForm({ ...admForm, applicationFee: Number(e.target.value) })}
                   />
                 </FormField>
-                <FormField label={pick('ভর্তি হেল্পলাইন', 'Admission Helpline')}>
+                <FormField label={'ভর্তি হেল্পলাইন'}>
                   <Input
                     value={admForm.helplinePhone}
                     onChange={(e) => setAdmForm({ ...admForm, helplinePhone: e.target.value })}
@@ -351,14 +340,11 @@ export function AdminWebsiteCmsPage() {
 
               <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border">
                 <p className="text-sm text-muted-foreground">
-                  {pick(
-                    'টিপস: ভর্তি মৌসুম শেষ হলে স্ট্যাটাস "ভর্তি বন্ধ" করে "হোমপেজে ব্যানার দেখান" সুইচটি অফ করে রাখুন।',
-                    'Tip: During off-season, set status to Closed and turn off "Show Banner on Homepage".'
-                  )}
+                  {'টিপস: ভর্তি মৌসুম শেষ হলে স্ট্যাটাস "ভর্তি বন্ধ" করে "হোমপেজে ব্যানার দেখান" সুইচটি অফ করে রাখুন।'}
                 </p>
                 <Button type="submit" variant="primary" disabled={savingAdmission}>
                   <Save className="w-4 h-4" />
-                  <span>{pick('পরিবর্তন সংরক্ষণ করুন', 'Save Admission Settings')}</span>
+                  <span>{'পরিবর্তন সংরক্ষণ করুন'}</span>
                 </Button>
               </div>
             </form>
@@ -366,7 +352,7 @@ export function AdminWebsiteCmsPage() {
 
           <Card className="p-5 space-y-2 text-sm text-muted-foreground">
             <h4 className="text-base font-bold text-foreground">
-              {pick('প্রিন্টেড ভর্তি ফরমের অফিসিয়াল ১৩-দফা ফিল্ড রেফারেন্স', 'Official Printed Admission Form Checklist Reference')}
+              {'প্রিন্টেড ভর্তি ফরমের অফিসিয়াল ১৩-দফা ফিল্ড রেফারেন্স'}
             </h4>
             <p>{db.admissionContent.studentNameNotice}</p>
             <p>{db.admissionContent.fatherInfoNotice}</p>

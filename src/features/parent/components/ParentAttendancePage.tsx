@@ -16,7 +16,6 @@ import {
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -81,13 +80,12 @@ function ChildSwitcherBar({
   selectedStudentId: string;
   onChange: (id: string) => void;
 }) {
-  const { locale, pick } = useI18n();
   if (childrenList.length <= 1) return null;
   return (
     <Card className="p-3.5 flex flex-wrap items-center justify-between gap-3 bg-surface-muted/40">
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
         <Users className="w-4 h-4 text-primary" />
-        <span>{pick('সন্তান নির্বাচন করুন:', 'Select Child:')}</span>
+        <span>{'সন্তান নির্বাচন করুন:'}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {childrenList.map((c) => {
@@ -103,8 +101,8 @@ function ChildSwitcherBar({
                   : 'bg-surface text-foreground border-border hover:bg-surface-muted'
               }`}
             >
-              {locale === 'bn' ? c.student.nameBn || c.student.nameEn : c.student.nameEn} ·{' '}
-              {locale === 'bn' ? c.cls?.nameBn || c.cls?.name : c.cls?.name} ({c.sec?.name})
+              {c.student.nameBn || c.student.nameEn} ·{' '}
+              {c.cls?.nameBn || c.cls?.name} ({c.sec?.name})
             </button>
           );
         })}
@@ -116,12 +114,11 @@ function ChildSwitcherBar({
 export function ParentAttendancePage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const { children } = useParentChildren(db);
-  const { locale, pick } = useI18n();
   const [selectedId, setSelectedId] = useState('stu-10-1');
 
   if (isLoading || !db) return <LoadingSkeleton />;
   const active = children.find((c) => c.student.id === selectedId) ?? children[0];
-  if (!active) return <EmptyState title={pick('কোনো তথ্য নেই', 'No data')} />;
+  if (!active) return <EmptyState title={'কোনো তথ্য নেই'} />;
 
   const records = db.attendances
     .filter((a) => a.studentEnrollmentId === active.enrollment.id)
@@ -134,8 +131,8 @@ export function ParentAttendancePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('সন্তানের হাজিরা ক্যালেন্ডার', 'Child Attendance Calendar')}
-        description={pick('মাসিক ক্যালেন্ডার হিট-ভিউ ও দৈনিক RFID/ম্যানুয়াল লগ', 'Monthly calendar heat view and daily attendance log')}
+        title={'সন্তানের হাজিরা ক্যালেন্ডার'}
+        description={'মাসিক ক্যালেন্ডার হিট-ভিউ ও দৈনিক RFID/ম্যানুয়াল লগ'}
       />
 
       <ChildSwitcherBar
@@ -146,28 +143,28 @@ export function ParentAttendancePage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
-          label={pick('উপস্থিত', 'Present')}
-          value={formatNumber(present, locale)}
+          label={'উপস্থিত'}
+          value={formatNumber(present, 'bn')}
           accent="success"
         />
         <StatCard
-          label={pick('বিলম্বে উপস্থিত', 'Late')}
-          value={formatNumber(late, locale)}
+          label={'বিলম্বে উপস্থিত'}
+          value={formatNumber(late, 'bn')}
           accent="warning"
         />
         <StatCard
-          label={pick('অনুপস্থিত', 'Absent')}
-          value={formatNumber(absent, locale)}
+          label={'অনুপস্থিত'}
+          value={formatNumber(absent, 'bn')}
           accent="destructive"
         />
       </div>
 
       <Card className="p-5">
         <h2 className="text-base font-semibold mb-1">
-          {pick('নভেম্বর ২০২৬ — মাসিক হাজিরা গ্রিড', 'November 2026 — Monthly Attendance Grid')}
+          {'নভেম্বর ২০২৬ — মাসিক হাজিরা গ্রিড'}
         </h2>
         <p className="text-sm text-muted-foreground mb-4">
-          {pick('P = উপস্থিত, L = বিলম্ব, A = অনুপস্থিত, LV = অনুমোদিত ছুটি', 'P = Present, L = Late, A = Absent, LV = Leave')}
+          {'P = উপস্থিত, L = বিলম্ব, A = অনুপস্থিত, LV = অনুমোদিত ছুটি'}
         </p>
         <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 gap-2.5 tabular-nums">
           {records
@@ -192,11 +189,11 @@ export function ParentAttendancePage() {
                       : 'border-info/40 bg-info/10 text-info';
               return (
                 <div key={r.id} className={`p-3 rounded-[var(--radius)] border ${tone}`}>
-                  <div className="flex items-center justify-between text-xs font-bold">
+                  <div className="flex items-center justify-between text-sm font-bold">
                     <span>{r.date.slice(8)} Nov</span>
                     <span>{code}</span>
                   </div>
-                  <p className="text-xs mt-1 opacity-85">
+                  <p className="text-sm mt-1 opacity-85">
                     {r.method} {r.inTime ? `· ${r.inTime.slice(0, 5)}` : ''}
                   </p>
                 </div>
@@ -207,26 +204,26 @@ export function ParentAttendancePage() {
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead className="bg-surface-muted/70 text-sm text-muted-foreground border-b border-border">
               <tr>
-                <th className="px-4 py-3 text-left">{pick('তারিখ', 'Date')}</th>
-                <th className="px-4 py-3 text-left">{pick('অবস্থা', 'Status')}</th>
-                <th className="px-4 py-3 text-left">{pick('পদ্ধতি', 'Method')}</th>
-                <th className="px-4 py-3 text-left">{pick('প্রবেশ / প্রস্থান', 'Check-in / Out')}</th>
+                <th className="px-4 py-3 text-left">{'তারিখ'}</th>
+                <th className="px-4 py-3 text-left">{'অবস্থা'}</th>
+                <th className="px-4 py-3 text-left">{'পদ্ধতি'}</th>
+                <th className="px-4 py-3 text-left">{'প্রবেশ / প্রস্থান'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border tabular-nums">
               {records.map((r) => (
                 <tr key={r.id}>
-                  <td className="px-4 py-2.5 font-medium">{formatDateLong(r.date, locale)}</td>
+                  <td className="px-4 py-2.5 font-medium">{formatDateLong(r.date, 'bn')}</td>
                   <td className="px-4 py-2.5">
                     <StatusBadge enumName="AttendanceStatus" value={r.status} />
                   </td>
                   <td className="px-4 py-2.5 text-sm">{r.method}</td>
                   <td className="px-4 py-2.5 text-sm text-muted-foreground">
-                    {r.inTime ? formatTime12h(r.inTime, locale) : '—'} /{' '}
-                    {r.outTime ? formatTime12h(r.outTime, locale) : '—'}
+                    {r.inTime ? formatTime12h(r.inTime, 'bn') : '—'} /{' '}
+                    {r.outTime ? formatTime12h(r.outTime, 'bn') : '—'}
                   </td>
                 </tr>
               ))}

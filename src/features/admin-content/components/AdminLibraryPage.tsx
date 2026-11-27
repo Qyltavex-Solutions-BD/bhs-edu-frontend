@@ -33,7 +33,6 @@ import {
   useUpdateAdmissionContentMutation,
   useUpsertCmsItemMutation,
 } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { LoadingSkeleton, PageHeader } from '@/src/components/shared/Feedback';
@@ -63,8 +62,6 @@ export function AdminLibraryPage() {
   const [upsertCms, { isLoading: saving }] = useUpsertCmsItemMutation();
   const [deleteCms] = useDeleteCmsItemMutation();
   const [toggleCms] = useToggleCmsItemMutation();
-  const { locale, pick } = useI18n();
-
   const [tab, setTab] = useState<'catalog' | 'distributions'>('catalog');
   const [bookSearch, setBookSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -112,20 +109,17 @@ export function AdminLibraryPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('গ্রন্থাগার ব্যবস্থাপনা', 'Library Management')}
+        title={'গ্রন্থাগার ব্যবস্থাপনা'}
         description={
           db.libraryProfile.description ??
-          pick(
-            'বিদ্যালয় গ্রন্থাগারের বইয়ের তালিকা, বিভাগ ও বিনামূল্যে পাঠ্যপুস্তক বিতরণ রেকর্ড।',
-            'Manage school library book catalog, categories, and textbook distribution records.'
-          )
+          'বিদ্যালয় গ্রন্থাগারের বইয়ের তালিকা, বিভাগ ও বিনামূল্যে পাঠ্যপুস্তক বিতরণ রেকর্ড।'
         }
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Link href="/academics/library" target="_blank" rel="noopener noreferrer">
               <Button variant="outline" size="sm">
                 <ExternalLink className="w-4 h-4" />
-                {pick('পাবলিক গ্রন্থাগার', 'Public Library')}
+                {'পাবলিক গ্রন্থাগার'}
               </Button>
             </Link>
             {tab === 'catalog' ? (
@@ -144,7 +138,7 @@ export function AdminLibraryPage() {
                   setBookModalOpen(true);
                 }}
               >
-                <Plus className="w-4 h-4" /> {pick('নতুন বই যুক্ত করুন', 'Add Book')}
+                <Plus className="w-4 h-4" /> {'নতুন বই যুক্ত করুন'}
               </Button>
             ) : (
               <Button
@@ -162,7 +156,7 @@ export function AdminLibraryPage() {
                   setDistModalOpen(true);
                 }}
               >
-                <Plus className="w-4 h-4" /> {pick('নতুন বিতরণ রেকর্ড', 'Add Distribution')}
+                <Plus className="w-4 h-4" /> {'নতুন বিতরণ রেকর্ড'}
               </Button>
             )}
           </div>
@@ -172,27 +166,27 @@ export function AdminLibraryPage() {
       {/* 4-Column Institutional KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">{pick('মোট তালিকাভুক্ত বই', 'Catalog Titles')}</p>
+          <p className="text-base font-bold text-foreground">{'মোট তালিকাভুক্ত বই'}</p>
           <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground tabular-nums mt-1">
-            {formatNumber(db.libraryBooks.length, locale)}
+            {formatNumber(db.libraryBooks.length, 'bn')}
           </p>
         </Card>
         <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">{pick('বিষয়শ্রেণি / বিভাগ', 'Book Categories')}</p>
+          <p className="text-base font-bold text-foreground">{'বিষয়শ্রেণি / বিভাগ'}</p>
           <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary tabular-nums mt-1">
-            {formatNumber(categories.length, locale)}
+            {formatNumber(categories.length, 'bn')}
           </p>
         </Card>
         <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">{pick('বিতরণ কার্যক্রম', 'Distribution Records')}</p>
+          <p className="text-base font-bold text-foreground">{'বিতরণ কার্যক্রম'}</p>
           <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground tabular-nums mt-1">
-            {formatNumber(db.libraryDistributions.length, locale)}
+            {formatNumber(db.libraryDistributions.length, 'bn')}
           </p>
         </Card>
         <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">{pick('পাবলিক সাইটে প্রকাশিত', 'Published Notices')}</p>
+          <p className="text-base font-bold text-foreground">{'পাবলিক সাইটে প্রকাশিত'}</p>
           <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-success tabular-nums mt-1">
-            {formatNumber(publishedDistributions, locale)}
+            {formatNumber(publishedDistributions, 'bn')}
           </p>
         </Card>
       </div>
@@ -201,8 +195,8 @@ export function AdminLibraryPage() {
         value={tab}
         onChange={setTab}
         items={[
-          { value: 'catalog', label: pick('বইয়ের তালিকা', 'Book Catalog'), count: db.libraryBooks.length },
-          { value: 'distributions', label: pick('পাঠ্যপুস্তক ও বই বিতরণ', 'Distributions'), count: db.libraryDistributions.length },
+          { value: 'catalog', label: 'বইয়ের তালিকা', count: db.libraryBooks.length },
+          { value: 'distributions', label: 'পাঠ্যপুস্তক ও বই বিতরণ', count: db.libraryDistributions.length },
         ]}
       />
 
@@ -213,7 +207,7 @@ export function AdminLibraryPage() {
               <Input
                 value={bookSearch}
                 onChange={(e) => setBookSearch(e.target.value)}
-                placeholder={pick('বইয়ের নাম, লেখক বা প্রকাশনী খুঁজুন...', 'Search title, author, publisher...')}
+                placeholder={'বইয়ের নাম, লেখক বা প্রকাশনী খুঁজুন...'}
                 className="max-w-sm h-9"
               />
               <Select
@@ -221,7 +215,7 @@ export function AdminLibraryPage() {
                 onChange={(e) => setCategoryFilter(e.target.value)}
                 className="w-44 h-9"
               >
-                <option value="ALL">{pick('সকল বিভাগ', 'All Categories')}</option>
+                <option value="ALL">{'সকল বিভাগ'}</option>
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
@@ -251,14 +245,14 @@ export function AdminLibraryPage() {
           </Card>
 
           <Card className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-base">
               <thead className="bg-surface-muted text-muted-foreground">
                 <tr>
-                  <th className="p-3 text-left">{pick('বইয়ের শিরোনাম', 'Book Title')}</th>
-                  <th className="p-3 text-left">{pick('লেখক', 'Author')}</th>
-                  <th className="p-3 text-left">{pick('প্রকাশনী', 'Publisher')}</th>
-                  <th className="p-3 text-left">{pick('বিভাগ', 'Category')}</th>
-                  <th className="p-3 text-right">{pick('ব্যবস্থাপনা', 'Actions')}</th>
+                  <th className="p-3 text-left">{'বইয়ের শিরোনাম'}</th>
+                  <th className="p-3 text-left">{'লেখক'}</th>
+                  <th className="p-3 text-left">{'প্রকাশনী'}</th>
+                  <th className="p-3 text-left">{'বিভাগ'}</th>
+                  <th className="p-3 text-right">{'ব্যবস্থাপনা'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -267,7 +261,7 @@ export function AdminLibraryPage() {
                     <td className="p-3">
                       <span className="font-semibold text-foreground block">{b.title}</span>
                       {b.description && (
-                        <span className="text-xs text-muted-foreground line-clamp-1">{b.description}</span>
+                        <span className="text-sm text-muted-foreground line-clamp-1">{b.description}</span>
                       )}
                     </td>
                     <td className="p-3">{b.author || '—'}</td>
@@ -297,7 +291,7 @@ export function AdminLibraryPage() {
                           size="sm"
                           onClick={async () => {
                             await deleteCms({ collection: 'libraryBooks', id: b.id }).unwrap();
-                            toast.success(pick('বই তালিকা থেকে মুছে ফেলা হয়েছে।', 'Book removed from catalog.'));
+                            toast.success('বই তালিকা থেকে মুছে ফেলা হয়েছে।');
                           }}
                         >
                           <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -309,7 +303,7 @@ export function AdminLibraryPage() {
                 {!filteredBooks.length && (
                   <tr>
                     <td colSpan={5} className="p-8 text-center text-muted-foreground">
-                      {pick('কোনো বই পাওয়া যায়নি।', 'No books found.')}
+                      {'কোনো বই পাওয়া যায়নি।'}
                     </td>
                   </tr>
                 )}
@@ -327,8 +321,8 @@ export function AdminLibraryPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge enumName="LibraryDistributionType" value={d.type} />
                   {d.distributionDate && (
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {formatDateShort(d.distributionDate, locale)}
+                    <span className="text-sm text-muted-foreground tabular-nums">
+                      {formatDateShort(d.distributionDate, 'bn')}
                     </span>
                   )}
                 </div>
@@ -341,7 +335,7 @@ export function AdminLibraryPage() {
                   onChange={() =>
                     toggleCms({ collection: 'libraryDistributions', id: d.id, field: 'isPublished' })
                   }
-                  label={d.isPublished ? pick('প্রকাশিত', 'Published') : pick('খসড়া', 'Draft')}
+                  label={d.isPublished ? 'প্রকাশিত' : 'খসড়া'}
                 />
                 <Button
                   variant="ghost"
@@ -365,7 +359,7 @@ export function AdminLibraryPage() {
                   size="sm"
                   onClick={async () => {
                     await deleteCms({ collection: 'libraryDistributions', id: d.id }).unwrap();
-                    toast.success(pick('বিতরণ রেকর্ড মুছে ফেলা হয়েছে।', 'Distribution record removed.'));
+                    toast.success('বিতরণ রেকর্ড মুছে ফেলা হয়েছে।');
                   }}
                 >
                   <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -380,7 +374,7 @@ export function AdminLibraryPage() {
       <Modal
         open={bookModalOpen}
         onClose={() => setBookModalOpen(false)}
-        title={bookForm.id ? pick('বইয়ের তথ্য সম্পাদনা', 'Edit Book') : pick('নতুন বই যুক্ত করুন', 'Add New Book')}
+        title={bookForm.id ? 'বইয়ের তথ্য সম্পাদনা' : 'নতুন বই যুক্ত করুন'}
       >
         <form
           onSubmit={async (e) => {
@@ -397,36 +391,36 @@ export function AdminLibraryPage() {
                 description: bookForm.description.trim() || null,
               },
             }).unwrap();
-            toast.success(pick('বইয়ের তথ্য সংরক্ষিত হয়েছে।', 'Book saved to catalog.'));
+            toast.success('বইয়ের তথ্য সংরক্ষিত হয়েছে।');
             setBookModalOpen(false);
           }}
           className="space-y-4"
         >
-          <FormField label={pick('বইয়ের নাম', 'Book Title')} required>
-            <Input value={bookForm.title} onChange={(e) => setBookForm({ ...bookForm, title: e.target.value })} />
+          <FormField label={'বইয়ের নাম'} required>
+            <Input placeholder="বইয়ের নাম লিখুন" value={bookForm.title} onChange={(e) => setBookForm({ ...bookForm, title: e.target.value })} />
           </FormField>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label={pick('লেখক', 'Author')}>
-              <Input value={bookForm.author} onChange={(e) => setBookForm({ ...bookForm, author: e.target.value })} />
+            <FormField label={'লেখক'}>
+              <Input placeholder="লেখক লিখুন" value={bookForm.author} onChange={(e) => setBookForm({ ...bookForm, author: e.target.value })} />
             </FormField>
-            <FormField label={pick('প্রকাশনী', 'Publisher')}>
-              <Input value={bookForm.publisher} onChange={(e) => setBookForm({ ...bookForm, publisher: e.target.value })} />
+            <FormField label={'প্রকাশনী'}>
+              <Input placeholder="প্রকাশনী লিখুন" value={bookForm.publisher} onChange={(e) => setBookForm({ ...bookForm, publisher: e.target.value })} />
             </FormField>
           </div>
-          <FormField label={pick('বিভাগ / শ্রেণি', 'Category')}>
+          <FormField label={'বিভাগ / শ্রেণি'}>
             <Input
               value={bookForm.category}
               onChange={(e) => setBookForm({ ...bookForm, category: e.target.value })}
-              placeholder={pick('যেমন: সাহিত্য, বিজ্ঞান, ইতিহাস, রেফারেন্স', 'e.g., Literature, Science, History')}
+              placeholder={'যেমন: সাহিত্য, বিজ্ঞান, ইতিহাস, রেফারেন্স'}
             />
           </FormField>
-          <FormField label={pick('সংক্ষিপ্ত বিবরণ', 'Description')}>
-            <Textarea rows={3} value={bookForm.description} onChange={(e) => setBookForm({ ...bookForm, description: e.target.value })} />
+          <FormField label={'সংক্ষিপ্ত বিবরণ'}>
+            <Textarea placeholder="সংক্ষিপ্ত বিবরণ লিখুন..." rows={3} value={bookForm.description} onChange={(e) => setBookForm({ ...bookForm, description: e.target.value })} />
           </FormField>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setBookModalOpen(false)}>{pick('বাতিল', 'Cancel')}</Button>
+            <Button variant="outline" onClick={() => setBookModalOpen(false)}>{'বাতিল'}</Button>
             <Button type="submit" variant="primary" disabled={saving}>
-              <Save className="w-4 h-4" /> {pick('সংরক্ষণ করুন', 'Save Book')}
+              <Save className="w-4 h-4" /> {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -436,7 +430,7 @@ export function AdminLibraryPage() {
       <Modal
         open={distModalOpen}
         onClose={() => setDistModalOpen(false)}
-        title={distForm.id ? pick('বিতরণ রেকর্ড সম্পাদনা', 'Edit Distribution') : pick('নতুন বিতরণ রেকর্ড', 'Add Distribution Record')}
+        title={distForm.id ? 'বিতরণ রেকর্ড সম্পাদনা' : 'নতুন বিতরণ রেকর্ড'}
       >
         <form
           onSubmit={async (e) => {
@@ -453,26 +447,26 @@ export function AdminLibraryPage() {
                 isPublished: distForm.isPublished,
               },
             }).unwrap();
-            toast.success(pick('বিতরণ তথ্য সংরক্ষিত হয়েছে।', 'Distribution record saved.'));
+            toast.success('বিতরণ তথ্য সংরক্ষিত হয়েছে।');
             setDistModalOpen(false);
           }}
           className="space-y-4"
         >
-          <FormField label={pick('শিরোনাম', 'Title')} required>
-            <Input value={distForm.title} onChange={(e) => setDistForm({ ...distForm, title: e.target.value })} />
+          <FormField label={'শিরোনাম'} required>
+            <Input placeholder="শিরোনাম লিখুন" value={distForm.title} onChange={(e) => setDistForm({ ...distForm, title: e.target.value })} />
           </FormField>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label={pick('ধরন', 'Type')}>
+            <FormField label={'ধরন'}>
               <Select
                 value={distForm.type}
                 onChange={(e) => setDistForm({ ...distForm, type: e.target.value as LibraryDistributionType })}
               >
-                <option value={LibraryDistributionType.TEXTBOOK_DISTRIBUTION}>{pick('বিনামূল্যে পাঠ্যপুস্তক বিতরণ', 'Textbook Distribution')}</option>
-                <option value={LibraryDistributionType.BOOK_DISTRIBUTION}>{pick('বই বিতরণ / পুরস্কার', 'Book Distribution')}</option>
-                <option value={LibraryDistributionType.OTHER}>{pick('অন্যান্য', 'Other')}</option>
+                <option value={LibraryDistributionType.TEXTBOOK_DISTRIBUTION}>{'বিনামূল্যে পাঠ্যপুস্তক বিতরণ'}</option>
+                <option value={LibraryDistributionType.BOOK_DISTRIBUTION}>{'বই বিতরণ / পুরস্কার'}</option>
+                <option value={LibraryDistributionType.OTHER}>{'অন্যান্য'}</option>
               </Select>
             </FormField>
-            <FormField label={pick('বিতরণের তারিখ', 'Distribution Date')}>
+            <FormField label={'বিতরণের তারিখ'}>
               <Input
                 type="date"
                 value={distForm.distributionDate}
@@ -480,17 +474,17 @@ export function AdminLibraryPage() {
               />
             </FormField>
           </div>
-          <FormField label={pick('বিবরণ', 'Description')}>
-            <Textarea rows={3} value={distForm.description} onChange={(e) => setDistForm({ ...distForm, description: e.target.value })} />
+          <FormField label={'বিবরণ'}>
+            <Textarea placeholder="বিবরণ লিখুন..." rows={3} value={distForm.description} onChange={(e) => setDistForm({ ...distForm, description: e.target.value })} />
           </FormField>
           <div className="flex items-center justify-between pt-2">
             <Switch
               checked={distForm.isPublished}
               onChange={(v) => setDistForm({ ...distForm, isPublished: v })}
-              label={pick('পাবলিক সাইটে প্রকাশ করুন', 'Publish publicly')}
+              label={'পাবলিক সাইটে প্রকাশ করুন'}
             />
             <Button type="submit" variant="primary" disabled={saving}>
-              <Save className="w-4 h-4" /> {pick('সংরক্ষণ করুন', 'Save')}
+              <Save className="w-4 h-4" /> {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>

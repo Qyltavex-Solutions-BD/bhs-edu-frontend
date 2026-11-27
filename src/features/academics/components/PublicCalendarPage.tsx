@@ -27,7 +27,6 @@ import {
   Users,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatNumber, formatTime12h } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -56,7 +55,7 @@ import type { SyllabusExamTerm, SyllabusFile } from '@/src/types/entities';
 function getWeekdayLabel(dateStr: string, locale: 'bn' | 'en'): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     weekday: 'long',
   }).format(d);
 }
@@ -65,7 +64,7 @@ function getMonthLabel(yearMonth: string, locale: 'bn' | 'en'): string {
   const [y, m] = yearMonth.split('-').map(Number);
   if (!y || !m) return yearMonth;
   const d = new Date(y, m - 1, 1);
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     month: 'long',
   }).format(d);
 }
@@ -211,7 +210,6 @@ const STRUCTURED_DOC_SECTIONS: Record<AcademicDocumentType, StructuredDocSection
 
 export function PublicCalendarPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [monthFilter, setMonthFilter] = useState<string>('ALL');
   const [search, setSearch] = useState('');
@@ -253,10 +251,10 @@ export function PublicCalendarPage() {
   };
 
   const tabs = [
-    { key: 'ALL', label: pick('সকল সূচি', 'All Events'), count: counts.ALL },
-    { key: AcademicEventType.EVENT, label: pick('পরীক্ষা ও অনুষ্ঠান', 'Exams & Events'), count: counts[AcademicEventType.EVENT] },
-    { key: AcademicEventType.HOLIDAY, label: pick('সরকারি ছুটি', 'Holidays'), count: counts[AcademicEventType.HOLIDAY] },
-    { key: AcademicEventType.ADMISSION, label: pick('ভর্তি কার্যক্রম', 'Admission'), count: counts[AcademicEventType.ADMISSION] },
+    { key: 'ALL', label: 'সকল সূচি', count: counts.ALL },
+    { key: AcademicEventType.EVENT, label: 'পরীক্ষা ও অনুষ্ঠান', count: counts[AcademicEventType.EVENT] },
+    { key: AcademicEventType.HOLIDAY, label: 'সরকারি ছুটি', count: counts[AcademicEventType.HOLIDAY] },
+    { key: AcademicEventType.ADMISSION, label: 'ভর্তি কার্যক্রম', count: counts[AcademicEventType.ADMISSION] },
   ];
 
   const totalShownDays = sortedEvents.reduce(
@@ -275,14 +273,11 @@ export function PublicCalendarPage() {
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <div className="no-print">
         <PageHeader
-          title={pick('একাডেমিক ক্যালেন্ডার ২০২৬', 'Academic Calendar 2026')}
-          description={pick(
-            '২০২৬ শিক্ষাবর্ষের সকল সরকারি ছুটি, পরীক্ষা, ফলাফল প্রকাশ, জাতীয় দিবস এবং ভর্তি কার্যক্রমের কালানুক্রমিক তালিকা।',
-            'Chronological schedule of 2026 academic events, national holidays, examinations, and admission timelines.'
-          )}
+          title={'একাডেমিক ক্যালেন্ডার ২০২৬'}
+          description={'২০২৬ শিক্ষাবর্ষের সকল সরকারি ছুটি, পরীক্ষা, ফলাফল প্রকাশ, জাতীয় দিবস এবং ভর্তি কার্যক্রমের কালানুক্রমিক তালিকা।'}
           actions={
             <Button variant="outline" size="sm" onClick={triggerPrint} className="whitespace-nowrap">
-              <Printer className="w-4 h-4" /> {pick('ক্যালেন্ডার প্রিন্ট করুন', 'Print Calendar')}
+              <Printer className="w-4 h-4" /> {'ক্যালেন্ডার প্রিন্ট করুন'}
             </Button>
           }
         />
@@ -294,13 +289,10 @@ export function PublicCalendarPage() {
           <SchoolEmblem size={44} />
           <div>
             <h1 className="text-lg font-bold text-foreground">
-              {locale === 'bn' ? db.schoolProfile.name : db.schoolProfile.nameEn}
+              {db.schoolProfile.name}
             </h1>
-            <p className="text-xs text-muted-foreground tabular-nums">
-              {pick(
-                `একাডেমিক ক্যালেন্ডার ২০২৬ · EIIN: ${db.schoolProfile.eiin} · ${db.schoolProfile.address}`,
-                `Academic Calendar 2026 · EIIN: ${db.schoolProfile.eiin} · Bhojeshwar, Noria, Shariatpur`
-              )}
+            <p className="text-sm text-muted-foreground tabular-nums">
+              {`একাডেমিক ক্যালেন্ডার ২০২৬ · EIIN: ${db.schoolProfile.eiin} · ${db.schoolProfile.address}`}
             </p>
           </div>
         </div>
@@ -318,7 +310,7 @@ export function PublicCalendarPage() {
               onClick={() => setTypeFilter(tab.key)}
               className="whitespace-nowrap tabular-nums"
             >
-              {tab.label} ({formatNumber(tab.count, locale)})
+              {tab.label} ({formatNumber(tab.count, 'bn')})
             </Button>
           ))}
         </div>
@@ -329,30 +321,27 @@ export function PublicCalendarPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={pick('অনুষ্ঠান বা ছুটির নাম খুঁজুন...', 'Search events or holidays...')}
+              placeholder={'অনুষ্ঠান বা ছুটির নাম খুঁজুন...'}
               className="pl-9"
             />
           </div>
           <div className="md:col-span-3">
             <Select value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)}>
-              <option value="ALL">{pick('সকল মাস (২০২৬)', 'All Months (2026)')}</option>
+              <option value="ALL">{'সকল মাস (২০২৬)'}</option>
               {availableMonths.map((ym) => (
                 <option key={ym} value={ym}>
-                  {getMonthLabel(ym, locale)}
+                  {getMonthLabel(ym, 'bn')}
                 </option>
               ))}
             </Select>
           </div>
           <div className="md:col-span-3 flex items-center justify-between md:justify-end gap-2">
             <span className="text-sm text-muted-foreground tabular-nums whitespace-nowrap">
-              {pick(
-                `${formatNumber(sortedEvents.length, 'bn')}টি সূচি`,
-                `${sortedEvents.length} Entries`
-              )}
+              {`${formatNumber(sortedEvents.length, 'bn')}টি সূচি`}
             </span>
             {hasActiveFilter && (
               <Button type="button" variant="outline" size="sm" onClick={resetFilters} className="whitespace-nowrap">
-                <RotateCcw className="w-3.5 h-3.5" /> {pick('রিসেট', 'Reset')}
+                <RotateCcw className="w-3.5 h-3.5" /> {'রিসেট'}
               </Button>
             )}
           </div>
@@ -362,37 +351,34 @@ export function PublicCalendarPage() {
       {/* Professional Institutional Calendar Table */}
       {sortedEvents.length === 0 ? (
         <EmptyState
-          title={pick('কোনো ক্যালেন্ডার সূচি পাওয়া যায়নি', 'No Calendar Events Found')}
-          description={pick(
-            'ধরন, মাস বা অনুসন্ধান শব্দ পরিবর্তন করে পুনরায় চেষ্টা করুন।',
-            'Try adjusting the category, month, or search query.'
-          )}
+          title={'কোনো ক্যালেন্ডার সূচি পাওয়া যায়নি'}
+          description={'ধরন, মাস বা অনুসন্ধান শব্দ পরিবর্তন করে পুনরায় চেষ্টা করুন।'}
           action={
             <Button variant="outline" size="sm" onClick={resetFilters}>
-              <RotateCcw className="w-4 h-4" /> {pick('ফিল্টার রিসেট করুন', 'Reset Filters')}
+              <RotateCcw className="w-4 h-4" /> {'ফিল্টার রিসেট করুন'}
             </Button>
           }
         />
       ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse min-w-[760px]">
+            <table className="w-full text-base border-collapse min-w-[760px]">
               <thead className="bg-surface-muted text-muted-foreground border-b border-border">
                 <tr>
                   <th className="px-4 py-3.5 text-left font-semibold w-16">
-                    {pick('ক্রমিক', 'SL')}
+                    {'ক্রমিক'}
                   </th>
                   <th className="px-4 py-3.5 text-left font-semibold w-64">
-                    {pick('তারিখ ও বার', 'Date & Day')}
+                    {'তারিখ ও বার'}
                   </th>
                   <th className="px-4 py-3.5 text-left font-semibold">
-                    {pick('কার্যক্রম / ছুটির বিবরণ', 'Event / Holiday Details')}
+                    {'কার্যক্রম / ছুটির বিবরণ'}
                   </th>
                   <th className="px-4 py-3.5 text-center font-semibold w-28">
-                    {pick('সময়কাল', 'Duration')}
+                    {'সময়কাল'}
                   </th>
                   <th className="px-4 py-3.5 text-left font-semibold w-40">
-                    {pick('ধরন', 'Category')}
+                    {'ধরন'}
                   </th>
                 </tr>
               </thead>
@@ -400,21 +386,21 @@ export function PublicCalendarPage() {
                 {sortedEvents.map((ev, idx) => {
                   const days = getDurationDays(ev.startDate, ev.endDate);
                   const isMultiDay = ev.endDate !== ev.startDate;
-                  const startWeekday = getWeekdayLabel(ev.startDate, locale);
-                  const endWeekday = isMultiDay ? getWeekdayLabel(ev.endDate, locale) : '';
+                  const startWeekday = getWeekdayLabel(ev.startDate, 'bn');
+                  const endWeekday = isMultiDay ? getWeekdayLabel(ev.endDate, 'bn') : '';
 
                   return (
                     <tr key={ev.id} className="hover:bg-surface-muted/30 transition-colors">
                       <td className="px-4 py-4 align-top font-mono text-sm font-semibold text-muted-foreground tabular-nums">
-                        {formatNumber(idx + 1, locale).padStart(2, locale === 'bn' ? '০' : '0')}
+                        {formatNumber(idx + 1, 'bn').padStart(2, '০')}
                       </td>
 
                       <td className="px-4 py-4 align-top tabular-nums">
                         <p className="font-semibold text-foreground whitespace-nowrap">
-                          {formatDateLong(ev.startDate, locale)}
-                          {isMultiDay && ` – ${formatDateLong(ev.endDate, locale)}`}
+                          {formatDateLong(ev.startDate, 'bn')}
+                          {isMultiDay && ` – ${formatDateLong(ev.endDate, 'bn')}`}
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                           {isMultiDay ? `${startWeekday} – ${endWeekday}` : startWeekday}
                         </p>
                       </td>
@@ -431,10 +417,10 @@ export function PublicCalendarPage() {
                       </td>
 
                       <td className="px-4 py-4 align-top text-center tabular-nums whitespace-nowrap">
-                        <span className="inline-block text-xs font-semibold px-2.5 py-1 rounded-[var(--radius)] border border-border bg-surface-muted/60 text-foreground">
+                        <span className="inline-block text-sm font-semibold px-2.5 py-1 rounded-[var(--radius)] border border-border bg-surface-muted/60 text-foreground">
                           {days > 1
-                            ? pick(`${formatNumber(days, 'bn')} দিন`, `${days} Days`)
-                            : pick('১ দিন', '1 Day')}
+                            ? `${formatNumber(days, 'bn')} দিন`
+                            : '১ দিন'}
                         </span>
                       </td>
 
@@ -448,16 +434,13 @@ export function PublicCalendarPage() {
               <tfoot className="bg-surface-muted/50 border-t border-border">
                 <tr>
                   <td colSpan={3} className="px-4 py-3 text-sm font-medium text-muted-foreground">
-                    {pick(
-                      `মোট তালিকাভুক্ত সূচি: ${formatNumber(sortedEvents.length, 'bn')}টি`,
-                      `Total Scheduled Entries: ${sortedEvents.length}`
-                    )}
+                    {`মোট তালিকাভুক্ত সূচি: ${formatNumber(sortedEvents.length, 'bn')}টি`}
                   </td>
                   <td className="px-4 py-3 text-center text-sm font-semibold text-foreground tabular-nums whitespace-nowrap">
-                    {pick(`${formatNumber(totalShownDays, 'bn')} দিন`, `${totalShownDays} Days`)}
+                    {`${formatNumber(totalShownDays, 'bn')} দিন`}
                   </td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                    {pick('শিক্ষাবর্ষ ২০২৬', 'Session 2026')}
+                  <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                    {'শিক্ষাবর্ষ ২০২৬'}
                   </td>
                 </tr>
               </tfoot>

@@ -16,7 +16,6 @@ import {
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -81,13 +80,12 @@ function ChildSwitcherBar({
   selectedStudentId: string;
   onChange: (id: string) => void;
 }) {
-  const { locale, pick } = useI18n();
   if (childrenList.length <= 1) return null;
   return (
     <Card className="p-3.5 flex flex-wrap items-center justify-between gap-3 bg-surface-muted/40">
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
         <Users className="w-4 h-4 text-primary" />
-        <span>{pick('সন্তান নির্বাচন করুন:', 'Select Child:')}</span>
+        <span>{'সন্তান নির্বাচন করুন:'}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {childrenList.map((c) => {
@@ -103,8 +101,8 @@ function ChildSwitcherBar({
                   : 'bg-surface text-foreground border-border hover:bg-surface-muted'
               }`}
             >
-              {locale === 'bn' ? c.student.nameBn || c.student.nameEn : c.student.nameEn} ·{' '}
-              {locale === 'bn' ? c.cls?.nameBn || c.cls?.name : c.cls?.name} ({c.sec?.name})
+              {c.student.nameBn || c.student.nameEn} ·{' '}
+              {c.cls?.nameBn || c.cls?.name} ({c.sec?.name})
             </button>
           );
         })}
@@ -116,27 +114,26 @@ function ChildSwitcherBar({
 export function ParentNotificationsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const [markRead] = useMarkNotificationReadMutation();
-  const { locale, pick } = useI18n();
   if (isLoading || !db) return <LoadingSkeleton />;
 
   const items = db.notifications.filter((n) => n.targetRoles.includes('PARENT'));
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('নোটিফিকেশন', 'Notifications')}
+        title={'নোটিফিকেশন'}
         actions={
           <Button variant="outline" size="sm" onClick={() => markRead({})}>
-            {pick('সব পঠিত করুন', 'Mark All Read')}
+            {'সব পঠিত করুন'}
           </Button>
         }
       />
       <div className="space-y-3">
         {items.map((n) => (
           <Card key={n.id} className={`p-4 ${!n.isRead ? 'border-primary/40 bg-primary/5' : ''}`}>
-            <p className="text-base font-semibold">{locale === 'bn' ? n.titleBn : n.titleEn}</p>
-            <p className="text-sm text-muted-foreground mt-1">{locale === 'bn' ? n.bodyBn : n.bodyEn}</p>
-            <p className="text-xs text-muted-foreground mt-2 tabular-nums">
-              {formatDateLong(n.createdAt, locale)}
+            <p className="text-base font-semibold">{n.titleBn}</p>
+            <p className="text-sm text-muted-foreground mt-1">{n.bodyBn}</p>
+            <p className="text-sm text-muted-foreground mt-2 tabular-nums">
+              {formatDateLong(n.createdAt, 'bn')}
             </p>
           </Card>
         ))}

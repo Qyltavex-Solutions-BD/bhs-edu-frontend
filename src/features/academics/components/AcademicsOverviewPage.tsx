@@ -27,7 +27,6 @@ import {
   Users,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatNumber, formatTime12h } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -56,7 +55,7 @@ import type { SyllabusExamTerm, SyllabusFile } from '@/src/types/entities';
 function getWeekdayLabel(dateStr: string, locale: 'bn' | 'en'): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     weekday: 'long',
   }).format(d);
 }
@@ -65,7 +64,7 @@ function getMonthLabel(yearMonth: string, locale: 'bn' | 'en'): string {
   const [y, m] = yearMonth.split('-').map(Number);
   if (!y || !m) return yearMonth;
   const d = new Date(y, m - 1, 1);
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     month: 'long',
   }).format(d);
 }
@@ -211,7 +210,6 @@ const STRUCTURED_DOC_SECTIONS: Record<AcademicDocumentType, StructuredDocSection
 
 export function AcademicsOverviewPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
 
   const publishedSyllabusFiles = db.syllabusFiles.filter((f) => f.isPublished).length;
@@ -226,10 +224,7 @@ export function AcademicsOverviewPage() {
       titleEn: 'Classes & Sections (6–10)',
       descBn: 'প্রতিটি শ্রেণির শাখা, শ্রেণিশিক্ষক, বিভাগ ও নির্ধারিত বিষয়সমূহ।',
       descEn: 'Sections, class teachers, streams, and configured subjects per class.',
-      meta: pick(
-        `${formatNumber(db.classes.length, 'bn')}টি শ্রেণি · ${formatNumber(db.sections.length, 'bn')}টি শাখা`,
-        `${db.classes.length} Classes · ${db.sections.length} Sections`
-      ),
+      meta: `${formatNumber(db.classes.length, 'bn')}টি শ্রেণি · ${formatNumber(db.sections.length, 'bn')}টি শাখা`,
     },
     {
       to: '/academics/subjects',
@@ -238,7 +233,7 @@ export function AcademicsOverviewPage() {
       titleEn: 'Subjects & Board Codes',
       descBn: 'এনসিটিবি অনুমোদিত বাধ্যতামূলক, বিভাগভিত্তিক ও ঐচ্ছিক বিষয়ের তালিকা।',
       descEn: 'NCTB compulsory, stream-specific, and optional subject catalog.',
-      meta: pick(`${formatNumber(db.subjects.length, 'bn')}টি পাঠ্যবিষয়`, `${db.subjects.length} Subjects`),
+      meta: `${formatNumber(db.subjects.length, 'bn')}টি পাঠ্যবিষয়`,
     },
     {
       to: '/academics/syllabus',
@@ -247,10 +242,7 @@ export function AcademicsOverviewPage() {
       titleEn: 'Syllabus & School Policies',
       descBn: 'শ্রেণি ও পরীক্ষাভিত্তিক অধ্যায়-তালিকা, অফিসিয়াল পিডিএফ ডাউনলোড ও আচরণবিধি।',
       descEn: 'Class & exam chapter syllabus, official PDF downloads, and school rules.',
-      meta: pick(
-        `${formatNumber(publishedSyllabusFiles, 'bn')}টি সিলেবাস ফাইল`,
-        `${publishedSyllabusFiles} Syllabus Files`
-      ),
+      meta: `${formatNumber(publishedSyllabusFiles, 'bn')}টি সিলেবাস ফাইল`,
     },
     {
       to: '/academics/routines',
@@ -259,7 +251,7 @@ export function AcademicsOverviewPage() {
       titleEn: 'Weekly Class Routines',
       descBn: 'শ্রেণি ও শাখাভিত্তিক রবি–বৃহস্পতিবারের পূর্ণাঙ্গ পাঠদানের সময়সূচি।',
       descEn: 'Sunday–Thursday timetable by class, section, teacher, and classroom.',
-      meta: pick(`${formatNumber(db.classRoutines.length, 'bn')}টি পিরিয়ড স্লট`, `${db.classRoutines.length} Routine Slots`),
+      meta: `${formatNumber(db.classRoutines.length, 'bn')}টি পিরিয়ড স্লট`,
     },
     {
       to: '/academics/examination',
@@ -268,7 +260,7 @@ export function AcademicsOverviewPage() {
       titleEn: 'Examinations & Grading',
       descBn: 'পরীক্ষার রুটিন, হল নির্দেশিকা, পাস নীতি ও ৫.০০ গ্রেডিং স্কেল।',
       descEn: 'Exam timetable, hall rules, pass criteria, and 5.00 GPA grading scale.',
-      meta: pick(`${formatNumber(scheduledExamDays, 'bn')}টি নির্ধারিত পরীক্ষা`, `${scheduledExamDays} Scheduled Exams`),
+      meta: `${formatNumber(scheduledExamDays, 'bn')}টি নির্ধারিত পরীক্ষা`,
     },
     {
       to: '/academics/academic-calendar',
@@ -277,7 +269,7 @@ export function AcademicsOverviewPage() {
       titleEn: 'Academic Calendar 2026',
       descBn: 'শিক্ষাবর্ষের সরকারি ছুটি, পরীক্ষা, ফলাফল ও ভর্তি কার্যক্রমের সময়সূচি।',
       descEn: 'Annual holidays, examinations, result days, and admission milestones.',
-      meta: pick(`${formatNumber(db.academicEvents.length, 'bn')}টি বার্ষিক সূচি`, `${db.academicEvents.length} Annual Events`),
+      meta: `${formatNumber(db.academicEvents.length, 'bn')}টি বার্ষিক সূচি`,
     },
     {
       to: '/academics/resources',
@@ -286,7 +278,7 @@ export function AcademicsOverviewPage() {
       titleEn: 'Digital Education Resources',
       descBn: 'স্মার্ট ক্লাসরুম, আইসিটি ল্যাব এবং শ্রেণিভিত্তিক ডিজিটাল পাঠসামগ্রী।',
       descEn: 'Smart classrooms, ICT lab facilities, and curated multimedia lessons.',
-      meta: pick(`${formatNumber(publishedResources, 'bn')}টি ডিজিটাল পাঠ`, `${publishedResources} Resources`),
+      meta: `${formatNumber(publishedResources, 'bn')}টি ডিজিটাল পাঠ`,
     },
     {
       to: '/academics/library',
@@ -295,30 +287,30 @@ export function AcademicsOverviewPage() {
       titleEn: 'School Library',
       descBn: 'পাঠকক্ষের সময়সূচি, অনুসন্ধানযোগ্য বইয়ের তালিকা ও পাঠ্যবই বিতরণ।',
       descEn: 'Reading room schedule, searchable book catalog, and textbook distributions.',
-      meta: pick(`${formatNumber(db.libraryBooks.length, 'bn')}টি তালিকাভুক্ত বই`, `${db.libraryBooks.length} Catalog Books`),
+      meta: `${formatNumber(db.libraryBooks.length, 'bn')}টি তালিকাভুক্ত বই`,
     },
   ];
 
   const stats = [
     {
-      label: pick('শ্রেণি কার্যক্রম', 'Academic Classes'),
-      value: pick('৬ষ্ঠ – ১০ম', 'Classes 6–10'),
-      sub: pick(`${formatNumber(db.sections.length, 'bn')}টি সক্রিয় শাখা`, `${db.sections.length} Active Sections`),
+      label: 'শ্রেণি কার্যক্রম',
+      value: '৬ষ্ঠ – ১০ম',
+      sub: `${formatNumber(db.sections.length, 'bn')}টি সক্রিয় শাখা`,
     },
     {
-      label: pick('বোর্ড অনুমোদিত বিষয়', 'NCTB Subjects'),
-      value: formatNumber(db.subjects.length, locale),
-      sub: pick(`${formatNumber(db.books.length, 'bn')}টি নির্ধারিত পাঠ্যবই`, `${db.books.length} Configured Textbooks`),
+      label: 'বোর্ড অনুমোদিত বিষয়',
+      value: formatNumber(db.subjects.length, 'bn'),
+      sub: `${formatNumber(db.books.length, 'bn')}টি নির্ধারিত পাঠ্যবই`,
     },
     {
-      label: pick('মাধ্যমিক বিভাগ', 'SSC Streams'),
-      value: formatNumber(db.academicGroups.length, locale),
-      sub: pick('বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা', 'Science, Humanities & Business'),
+      label: 'মাধ্যমিক বিভাগ',
+      value: formatNumber(db.academicGroups.length, 'bn'),
+      sub: 'বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা',
     },
     {
-      label: pick('ডিজিটাল ও ল্যাব সুবিধা', 'Smart Rooms & Labs'),
-      value: formatNumber(db.digitalClassrooms.length + 1, locale),
-      sub: pick('স্মার্ট ক্লাসরুম, আইসিটি ও বিজ্ঞান ল্যাব', 'Smart Room, ICT & Science Labs'),
+      label: 'ডিজিটাল ও ল্যাব সুবিধা',
+      value: formatNumber(db.digitalClassrooms.length + 1, 'bn'),
+      sub: 'স্মার্ট ক্লাসরুম, আইসিটি ও বিজ্ঞান ল্যাব',
     },
   ];
 
@@ -328,32 +320,26 @@ export function AcademicsOverviewPage() {
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center border-b border-border pb-10">
         <div className="lg:col-span-7 space-y-5">
           <p className="text-sm font-semibold text-primary tracking-wide">
-            {pick('একাডেমিক কার্যক্রম · শিক্ষাবর্ষ ২০২৬', 'Academic Programs · Session 2026')}
+            {'একাডেমিক কার্যক্রম · শিক্ষাবর্ষ ২০২৬'}
           </p>
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight leading-tight">
-            {pick(
-              'ষষ্ঠ থেকে দশম শ্রেণির সুসংগঠিত মাধ্যমিক শিক্ষা কাঠামো',
-              'Structured Secondary Education from Class 6 to Class 10'
-            )}
+            {'ষষ্ঠ থেকে দশম শ্রেণির সুসংগঠিত মাধ্যমিক শিক্ষা কাঠামো'}
           </h1>
           <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-            {pick(
-              'ভোজেশ্বর উচ্চ বিদ্যালয়ে জাতীয় শিক্ষাক্রম ও পাঠ্যপুস্তক বোর্ড (এনসিটিবি) অনুসৃত পাঠ্যসূচি, নিয়মিত শ্রেণি মূল্যায়ন, আধুনিক বিজ্ঞান ও কম্পিউটার গবেষণাগার এবং ডিজিটাল উপস্থিতি ব্যবস্থার মাধ্যমে প্রতিটি শিক্ষার্থীর মানসম্মত শিক্ষা নিশ্চিত করা হয়।',
-              'Bhojeshwar High School delivers NCTB-aligned secondary education across Classes 6–10 with structured timetables, laboratory practicals, smart classrooms, and transparent assessment.'
-            )}
+            {'ভোজেশ্বর উচ্চ বিদ্যালয়ে জাতীয় শিক্ষাক্রম ও পাঠ্যপুস্তক বোর্ড (এনসিটিবি) অনুসৃত পাঠ্যসূচি, নিয়মিত শ্রেণি মূল্যায়ন, আধুনিক বিজ্ঞান ও কম্পিউটার গবেষণাগার এবং ডিজিটাল উপস্থিতি ব্যবস্থার মাধ্যমে প্রতিটি শিক্ষার্থীর মানসম্মত শিক্ষা নিশ্চিত করা হয়।'}
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <Link href="/academics/classes">
               <Button variant="primary">
-                {pick('শ্রেণি ও শাখা দেখুন', 'Explore Classes')}
+                {'শ্রেণি ও শাখা দেখুন'}
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
             <Link href="/academics/routines">
-              <Button variant="outline">{pick('সাপ্তাহিক রুটিন', 'Class Routines')}</Button>
+              <Button variant="outline">{'সাপ্তাহিক রুটিন'}</Button>
             </Link>
             <Link href="/results">
-              <Button variant="outline">{pick('অনলাইন ফলাফল', 'Search Results')}</Button>
+              <Button variant="outline">{'অনলাইন ফলাফল'}</Button>
             </Link>
           </div>
         </div>
@@ -362,8 +348,8 @@ export function AcademicsOverviewPage() {
           <InstitutionalArtwork
             variant="digital-classroom"
             className="h-64 sm:h-80 w-full border border-border"
-            title={pick('মাল্টিমিডিয়া স্মার্ট শ্রেণিকক্ষ ও নিয়মিত পাঠদান', 'Multimedia Smart Classroom & Active Learning')}
-            subtitle={pick('ভোজেশ্বর উচ্চ বিদ্যালয় · স্থাপিত ১৯৭৮ · EIIN ১১৩৫৮৭', 'Bhojeshwar High School · Est. 1978 · EIIN 113587')}
+            title={'মাল্টিমিডিয়া স্মার্ট শ্রেণিকক্ষ ও নিয়মিত পাঠদান'}
+            subtitle={'ভোজেশ্বর উচ্চ বিদ্যালয় · স্থাপিত ১৯৭৮ · EIIN ১১৩৫৮৭'}
           />
         </div>
       </section>
@@ -374,7 +360,7 @@ export function AcademicsOverviewPage() {
           <Card key={s.label} className="p-5 space-y-1.5">
             <p className="text-sm font-medium text-muted-foreground">{s.label}</p>
             <p className="text-2xl sm:text-3xl font-bold text-primary tabular-nums">{s.value}</p>
-            <p className="text-xs text-muted-foreground">{s.sub}</p>
+            <p className="text-sm text-muted-foreground">{s.sub}</p>
           </Card>
         ))}
       </section>
@@ -384,17 +370,14 @@ export function AcademicsOverviewPage() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
           <div>
             <h2 className="text-xl font-bold text-foreground">
-              {pick('মাধ্যমিক স্তরের বিভাগসমূহ (৯ম ও ১০ম শ্রেণি)', 'Secondary Academic Streams (Classes 9–10)')}
+              {'মাধ্যমিক স্তরের বিভাগসমূহ (৯ম ও ১০ম শ্রেণি)'}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {pick(
-                '৬ষ্ঠ থেকে ৮ম শ্রেণিতে সমন্বিত ভিত্তি শিক্ষার পর ৯ম শ্রেণিতে শিক্ষার্থীরা তিনটি বিভাগে ভর্তি হতে পারে।',
-                'After a common foundation in Classes 6–8, students specialize in one of three secondary streams from Class 9.'
-              )}
+              {'৬ষ্ঠ থেকে ৮ম শ্রেণিতে সমন্বিত ভিত্তি শিক্ষার পর ৯ম শ্রেণিতে শিক্ষার্থীরা তিনটি বিভাগে ভর্তি হতে পারে।'}
             </p>
           </div>
           <Link href="/academics/classes/cls-9" className="text-sm font-semibold text-primary hover:underline whitespace-nowrap">
-            {pick('৯ম শ্রেণির বিষয়বিন্যাস দেখুন →', 'View Class 9 Subject Matrix →')}
+            {'৯ম শ্রেণির বিষয়বিন্যাস দেখুন →'}
           </Link>
         </div>
 
@@ -408,21 +391,18 @@ export function AcademicsOverviewPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-lg font-bold text-foreground">
-                      {locale === 'bn' ? grp.nameBn : grp.name}
+                      {grp.nameBn}
                     </h3>
-                    <span className="text-xs font-medium text-primary tabular-nums">
-                      {pick(
-                        `${formatNumber(grpSubjects.length, 'bn')}টি বিভাগীয় বিষয়`,
-                        `${grpSubjects.length} Stream Subjects`
-                      )}
+                    <span className="text-sm font-medium text-primary tabular-nums">
+                      {`${formatNumber(grpSubjects.length, 'bn')}টি বিভাগীয় বিষয়`}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">{grp.description}</p>
                 </div>
-                <div className="pt-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{pick('আবশ্যিক + বিভাগীয় + ঐচ্ছিক', 'Compulsory + Stream + Optional')}</span>
+                <div className="pt-2 border-t border-border flex items-center justify-between text-sm text-muted-foreground">
+                  <span>{'আবশ্যিক + বিভাগীয় + ঐচ্ছিক'}</span>
                   <Link href="/academics/classes/cls-10" className="font-semibold text-primary hover:underline">
-                    {pick('বিস্তারিত', 'Details')}
+                    {'বিস্তারিত'}
                   </Link>
                 </div>
               </Card>
@@ -435,13 +415,10 @@ export function AcademicsOverviewPage() {
       <section className="space-y-4">
         <div>
           <h2 className="text-xl font-bold text-foreground">
-            {pick('একাডেমিক সেবা ও তথ্যভাণ্ডার', 'Academic Services & Directory')}
+            {'একাডেমিক সেবা ও তথ্যভাণ্ডার'}
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {pick(
-              'শ্রেণি, বিষয়, রুটিন, পরীক্ষা, ক্যালেন্ডার এবং পাঠাগার সংক্রান্ত সকল তথ্য এক স্থানে।',
-              'Access classes, subjects, timetables, exams, calendar, resources, and library records.'
-            )}
+            {'শ্রেণি, বিষয়, রুটিন, পরীক্ষা, ক্যালেন্ডার এবং পাঠাগার সংক্রান্ত সকল তথ্য এক স্থানে।'}
           </p>
         </div>
 
@@ -457,14 +434,14 @@ export function AcademicsOverviewPage() {
                     </div>
                     <div className="space-y-1.5">
                       <h3 className="text-base font-bold text-foreground group-hover:text-primary transition-colors">
-                        {pick(m.titleBn, m.titleEn)}
+                        {m.titleBn}
                       </h3>
                       <p className="text-sm text-muted-foreground leading-relaxed">
-                        {pick(m.descBn, m.descEn)}
+                        {m.descBn}
                       </p>
                     </div>
                   </div>
-                  <div className="pt-3 border-t border-border flex items-center justify-between text-xs">
+                  <div className="pt-3 border-t border-border flex items-center justify-between text-sm">
                     <span className="text-muted-foreground font-medium tabular-nums">{m.meta}</span>
                     <ArrowRight className="w-4 h-4 text-primary group-hover:translate-x-0.5 transition-transform" />
                   </div>
@@ -483,19 +460,16 @@ export function AcademicsOverviewPage() {
           </div>
           <div>
             <h3 className="text-lg font-bold text-foreground">
-              {pick('বোর্ড স্টাইল অনলাইন ফলাফল ও প্রিন্টযোগ্য মার্কশিট', 'Board-Style Online Results & Printable Marksheet')}
+              {'বোর্ড স্টাইল অনলাইন ফলাফল ও প্রিন্টযোগ্য মার্কশিট'}
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              {pick(
-                'লগইন ছাড়াই শ্রেণি ও রোল নম্বর বা শিক্ষার্থী আইডি দিয়ে প্রকাশিত পরীক্ষার পূর্ণাঙ্গ মার্কশিট যাচাই ও প্রিন্ট করুন।',
-                'Verify and print published examination marksheets by class, roll number, or student ID without login.'
-              )}
+              {'লগইন ছাড়াই শ্রেণি ও রোল নম্বর বা শিক্ষার্থী আইডি দিয়ে প্রকাশিত পরীক্ষার পূর্ণাঙ্গ মার্কশিট যাচাই ও প্রিন্ট করুন।'}
             </p>
           </div>
         </div>
         <Link href="/results" className="shrink-0">
           <Button variant="primary" className="whitespace-nowrap">
-            {pick('ফলাফল অনুসন্ধান করুন', 'Search Results')}
+            {'ফলাফল অনুসন্ধান করুন'}
             <ArrowRight className="w-4 h-4" />
           </Button>
         </Link>

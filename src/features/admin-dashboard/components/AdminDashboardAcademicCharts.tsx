@@ -18,15 +18,13 @@ interface AdminDashboardAcademicChartsProps {
   classDistData: { name: string; students: number }[];
   subjectPerfData: { subject: string; avgPct: number }[];
   passRateData: { name: string; passRate: number }[];
-  locale?: 'bn' | 'en';
-  pick: (bn: string, en: string) => string;
 }
 
 export function AdminDashboardAcademicCharts({
   classDistData,
   subjectPerfData,
   passRateData,
-  pick,
+  
 }: AdminDashboardAcademicChartsProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -34,10 +32,10 @@ export function AdminDashboardAcademicCharts({
       <div className="bg-surface border border-border rounded-3xl p-6 shadow-xs space-y-4">
         <div>
           <h3 className="text-lg sm:text-xl font-bold text-foreground">
-            {pick('শ্রেণিভিত্তিক শিক্ষার্থী বণ্টন (২০২৬)', 'Class-Wise Student Distribution (2026)')}
+            {'শ্রেণিভিত্তিক শিক্ষার্থী বণ্টন (২০২৬)'}
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            {pick('ষষ্ঠ থেকে দশম শ্রেণিতে মোট নিবন্ধিত শিক্ষার্থী', 'Enrolled students across Classes 6–10')}
+            {'ষষ্ঠ থেকে দশম শ্রেণিতে মোট নিবন্ধিত শিক্ষার্থী'}
           </p>
         </div>
         <div className="h-60 w-full">
@@ -48,7 +46,7 @@ export function AdminDashboardAcademicCharts({
               <Tooltip />
               <Bar
                 dataKey="students"
-                name={pick('শিক্ষার্থী', 'Students')}
+                name={'শিক্ষার্থী'}
                 fill={COLOR_PRIMARY}
                 radius={[8, 8, 0, 0]}
               />
@@ -61,10 +59,10 @@ export function AdminDashboardAcademicCharts({
       <div className="bg-surface border border-border rounded-3xl p-6 shadow-xs space-y-4 flex flex-col justify-between">
         <div>
           <h3 className="text-lg sm:text-xl font-bold text-foreground">
-            {pick('বিষয়ভিত্তিক গড় নম্বর (%) — অর্ধবার্ষিক ২০২৬ (১০ম)', 'Subject Average Score (%) — Half-Yearly (Class 10)')}
+            {'বিষয়ভিত্তিক গড় নম্বর (%) — অর্ধবার্ষিক ২০২৬ (১০ম)'}
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
-            {pick('পরীক্ষায় বিভিন্ন বিষয়ের গড় প্রাপ্ত নম্বর হার', 'Average score percentage by subject')}
+            {'পরীক্ষায় বিভিন্ন বিষয়ের গড় প্রাপ্ত নম্বর হার'}
           </p>
         </div>
         <div className="h-56 w-full">
@@ -76,7 +74,7 @@ export function AdminDashboardAcademicCharts({
               <Tooltip />
               <Bar
                 dataKey="avgPct"
-                name={pick('গড় %', 'Avg %')}
+                name={'গড় %'}
                 fill={COLOR_BLUE}
                 radius={[6, 6, 0, 0]}
               />
@@ -85,7 +83,7 @@ export function AdminDashboardAcademicCharts({
         </div>
         {passRateData.length > 0 && (
           <div className="pt-3 border-t border-border flex items-center justify-between text-base text-muted-foreground">
-            <span>{pick('সর্বশেষ পরীক্ষার পাসের হার:', 'Latest Exam Pass Rate:')}</span>
+            <span>{'সর্বশেষ পরীক্ষার পাসের হার:'}</span>
             <strong className="text-[#1C6440] font-bold text-base tabular-nums">
               {passRateData[0].passRate}%
             </strong>

@@ -12,7 +12,6 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { cn } from '@/src/lib/utils/cn';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
@@ -58,7 +57,6 @@ export function StudentEnrollments({
   db?: MockDatabase;
   yearId: string;
 }) {
-  const { locale, pick } = useI18n();
   const [updateEnrollment, { isLoading }] = useUpdateEnrollmentMutation();
   const { data: liveEnrollments, isLoading: loadingEnrollments } =
     useGetEnrollmentsQuery({ academicYearId: yearId }, { skip: !yearId });
@@ -155,20 +153,14 @@ export function StudentEnrollments({
         studentGender: student?.gender ?? Gender.MALE,
         classNumeric: cls?.numericValue ?? 99,
         classLabel: cls
-          ? locale === 'bn'
-            ? cls.nameBn || cls.name
-            : cls.name
+          ? cls.nameBn || cls.name
           : '—',
         sectionLabel: section?.name ?? '—',
         groupLabel: group
-          ? locale === 'bn'
-            ? group.nameBn || group.name
-            : group.name
+          ? group.nameBn || group.name
           : '',
         optionalSubjectLabel: optSub
-          ? locale === 'bn'
-            ? optSub.nameBn || optSub.name
-            : optSub.name
+          ? optSub.nameBn || optSub.name
           : '',
       };
     });
@@ -176,7 +168,7 @@ export function StudentEnrollments({
     liveEnrollments,
     db,
     yearId,
-    locale,
+    'bn',
     classes,
     sections,
     academicGroups,
@@ -209,10 +201,10 @@ export function StudentEnrollments({
     });
     return academicGroups.map((g) => ({
       id: g.id,
-      label: locale === 'bn' ? g.nameBn || g.name : g.name,
+      label: g.nameBn || g.name,
       count: map.get(g.id) ?? 0,
     }));
-  }, [sessionEnrollments, academicGroups, locale]);
+  }, [sessionEnrollments, academicGroups, 'bn']);
 
   // Class counts sorted 6 -> 10
   const classCounts = useMemo(() => {
@@ -223,10 +215,10 @@ export function StudentEnrollments({
     return sortedClasses.map((cls) => ({
       id: cls.id,
       numericValue: cls.numericValue,
-      label: locale === 'bn' ? cls.nameBn || cls.name : cls.name,
+      label: cls.nameBn || cls.name,
       count: counts.get(cls.id) ?? 0,
     }));
-  }, [sessionEnrollments, sortedClasses, locale]);
+  }, [sessionEnrollments, sortedClasses, 'bn']);
 
   const selectedClassObj = sortedClasses.find((c) => c.id === classId);
   const showStreamFilter = (selectedClassObj?.numericValue ?? 0) >= 9;
@@ -306,10 +298,10 @@ export function StudentEnrollments({
         isReadmission: form.isReadmission,
         remarks: form.remarks,
       }).unwrap();
-      toast.success(pick('এনরোলমেন্ট অবস্থান হালনাগাদ হয়েছে।', 'Enrollment placement updated.'));
+      toast.success('এনরোলমেন্ট অবস্থান হালনাগাদ হয়েছে।');
       setEditing(null);
     } catch (err) {
-      toast.error(errorMessage(err, pick('হালনাগাদ করা যায়নি।', 'Could not update enrollment.')));
+      toast.error(errorMessage(err, 'হালনাগাদ করা যায়নি।'));
     }
   };
 
@@ -334,86 +326,74 @@ export function StudentEnrollments({
       <Card className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden">
         <div className="p-4 sm:p-5 flex flex-col gap-1.5">
           <span className="text-sm font-bold text-foreground">
-            {pick('সেশন এনরোলমেন্ট', 'Session Enrollments')}
+            {'সেশন এনরোলমেন্ট'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(totalCount, locale)}
+              {formatNumber(totalCount, 'bn')}
             </span>
             <span className="text-sm font-medium text-muted-foreground">
-              {pick(`সেশন ${yearObj?.name ?? ''}`, `Session ${yearObj?.name ?? ''}`)}
+              {`সেশন ${yearObj?.name ?? ''}`}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `সক্রিয় ${formatNumber(activeCount, locale)} · উত্তীর্ণ ${formatNumber(promotedCount, locale)} · অন্যান্য ${formatNumber(completedOrOtherCount, locale)}`,
-              `${activeCount} active · ${promotedCount} promoted · ${completedOrOtherCount} other`
-            )}
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {`সক্রিয় ${formatNumber(activeCount, 'bn')} · উত্তীর্ণ ${formatNumber(promotedCount, 'bn')} · অন্যান্য ${formatNumber(completedOrOtherCount, 'bn')}`}
           </p>
         </div>
 
         <div className="p-4 sm:p-5 flex flex-col gap-1.5">
           <span className="text-sm font-bold text-foreground">
-            {pick('শ্রেণি ও শাখা বিন্যাস', 'Classes & Sections')}
+            {'শ্রেণি ও শাখা বিন্যাস'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(populatedSections, locale)}
+              {formatNumber(populatedSections, 'bn')}
             </span>
             <span className="text-sm font-medium text-muted-foreground">
-              {pick('টি সক্রিয় শাখা', 'active sections')}
+              {'টি সক্রিয় শাখা'}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `${formatNumber(populatedClasses, locale)}টি শ্রেণিতে · গড়ে ${formatNumber(avgPerSection, locale)} জন/শাখা`,
-              `${populatedClasses} classes · ~${avgPerSection} per section`
-            )}
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {`${formatNumber(populatedClasses, 'bn')}টি শ্রেণিতে · গড়ে ${formatNumber(avgPerSection, 'bn')} জন/শাখা`}
           </p>
         </div>
 
         <div className="p-4 sm:p-5 flex flex-col gap-1.5">
           <span className="text-sm font-bold text-foreground">
-            {pick('বিভাগ বণ্টন (৯ম–১০ম)', 'Streams (Classes 9–10)')}
+            {'বিভাগ বণ্টন (৯ম–১০ম)'}
           </span>
           <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1 tabular-nums py-0.5">
             {streamCounts.map((st) => (
               <div key={st.id} className="text-sm">
                 <span className="text-xl font-extrabold text-foreground">
-                  {formatNumber(st.count, locale)}
+                  {formatNumber(st.count, 'bn')}
                 </span>{' '}
                 <span className="text-muted-foreground font-medium">{st.label}</span>
               </div>
             ))}
           </div>
-          <p className="text-xs sm:text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `৯ম ও ১০ম শ্রেণিতে মোট ${formatNumber(seniorTotalCount, locale)} জন`,
-              `${seniorTotalCount} students in Classes 9–10`
-            )}
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {`৯ম ও ১০ম শ্রেণিতে মোট ${formatNumber(seniorTotalCount, 'bn')} জন`}
           </p>
         </div>
 
         <div className="p-4 sm:p-5 flex flex-col gap-1.5">
           <span className="text-sm font-bold text-foreground">
-            {pick('ভর্তির ধরন ও প্রমোশন', 'Admission Type & Promotion')}
+            {'ভর্তির ধরন ও প্রমোশন'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(regularNewCount, locale)}
+              {formatNumber(regularNewCount, 'bn')}
             </span>
             <span className="text-sm font-medium text-muted-foreground">
-              {pick(
-                `নতুন · পুনঃভর্তি ${formatNumber(readmissionCount, locale)} · রিপিটার ${formatNumber(repeaterCount, locale)}`,
-                `new · ${readmissionCount} readm · ${repeaterCount} rep`
-              )}
+              {`নতুন · পুনঃভর্তি ${formatNumber(readmissionCount, 'bn')} · রিপিটার ${formatNumber(repeaterCount, 'bn')}`}
             </span>
           </div>
           <Link
             href="/admin/students/promotions"
             className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline w-fit"
           >
-            <span>{pick('প্রমোশন কনসোলে যান', 'Open promotion console')}</span>
+            <span>{'প্রমোশন কনসোলে যান'}</span>
             <ArrowUpRight className="w-4 h-4" />
           </Link>
         </div>
@@ -424,7 +404,7 @@ export function StudentEnrollments({
         <div
           className="flex items-center gap-1 px-4 pt-3 border-b border-border overflow-x-auto"
           role="tablist"
-          aria-label={pick('শ্রেণি অনুযায়ী ফিল্টার', 'Filter by class')}
+          aria-label={'শ্রেণি অনুযায়ী ফিল্টার'}
         >
           <button
             type="button"
@@ -442,8 +422,8 @@ export function StudentEnrollments({
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            {pick('সকল শ্রেণি', 'All Classes')}{' '}
-            <span className="text-xs opacity-75">({formatNumber(totalCount, locale)})</span>
+            {'সকল শ্রেণি'}{' '}
+            <span className="text-sm opacity-75">({formatNumber(totalCount, 'bn')})</span>
           </button>
 
           {classCounts.map((cls) => {
@@ -469,7 +449,7 @@ export function StudentEnrollments({
                 )}
               >
                 {cls.label}{' '}
-                <span className="text-xs opacity-75">({formatNumber(cls.count, locale)})</span>
+                <span className="text-sm opacity-75">({formatNumber(cls.count, 'bn')})</span>
               </button>
             );
           })}
@@ -482,10 +462,7 @@ export function StudentEnrollments({
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={pick(
-                  'নাম, আইডি বা রোল খুঁজুন...',
-                  'Search name, ID or roll...'
-                )}
+                placeholder={'নাম, আইডি বা রোল খুঁজুন...'}
                 className="pl-9 pr-9 h-9 text-sm"
               />
               {searchQuery && (
@@ -493,7 +470,7 @@ export function StudentEnrollments({
                   type="button"
                   onClick={() => setSearchQuery('')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                  aria-label={pick('মুছুন', 'Clear')}
+                  aria-label={'মুছুন'}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -505,9 +482,9 @@ export function StudentEnrollments({
                 value={sectionId}
                 onChange={(e) => setSectionId(e.target.value)}
                 className="w-auto min-w-[128px] h-9 text-sm"
-                aria-label={pick('শাখা', 'Section')}
+                aria-label={'শাখা'}
               >
-                <option value="ALL">{pick('সকল শাখা', 'All sections')}</option>
+                <option value="ALL">{'সকল শাখা'}</option>
                 {availableSections.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
@@ -520,12 +497,12 @@ export function StudentEnrollments({
                   value={groupId}
                   onChange={(e) => setGroupId(e.target.value)}
                   className="w-auto min-w-[144px] h-9 text-sm"
-                  aria-label={pick('বিভাগ', 'Stream')}
+                  aria-label={'বিভাগ'}
                 >
-                  <option value="ALL">{pick('সকল বিভাগ', 'All streams')}</option>
+                  <option value="ALL">{'সকল বিভাগ'}</option>
                   {academicGroups.map((grp) => (
                     <option key={grp.id} value={grp.id}>
-                      {locale === 'bn' ? grp.nameBn || grp.name : grp.name}
+                      {grp.nameBn || grp.name}
                     </option>
                   ))}
                 </Select>
@@ -535,30 +512,24 @@ export function StudentEnrollments({
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-auto min-w-[136px] h-9 text-sm"
-                aria-label={pick('এনরোলমেন্ট অবস্থা', 'Enrollment status')}
+                aria-label={'এনরোলমেন্ট অবস্থা'}
               >
-                <option value="ALL">{pick('সকল অবস্থা', 'All statuses')}</option>
-                <option value={EnrollmentStatus.ACTIVE}>{pick('সক্রিয়', 'Active')}</option>
-                <option value={EnrollmentStatus.PROMOTED}>{pick('উত্তীর্ণ', 'Promoted')}</option>
-                <option value={EnrollmentStatus.COMPLETED}>{pick('সমাপ্ত', 'Completed')}</option>
+                <option value="ALL">{'সকল অবস্থা'}</option>
+                <option value={EnrollmentStatus.ACTIVE}>{'সক্রিয়'}</option>
+                <option value={EnrollmentStatus.PROMOTED}>{'উত্তীর্ণ'}</option>
+                <option value={EnrollmentStatus.COMPLETED}>{'সমাপ্ত'}</option>
                 <option value={EnrollmentStatus.TRANSFERRED}>
-                  {pick('স্থানান্তরিত', 'Transferred')}
+                  {'স্থানান্তরিত'}
                 </option>
               </Select>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border text-sm text-muted-foreground">
             <span className="tabular-nums">
               {hasActiveFilters
-                ? pick(
-                    `মোট ${formatNumber(totalCount, locale)}টি এনরোলমেন্টের মধ্যে ${formatNumber(rows.length, locale)}টি দেখানো হচ্ছে`,
-                    `Showing ${rows.length} of ${totalCount} enrollments`
-                  )
-                : pick(
-                    `শুধুমাত্র সক্রিয় (ACTIVE) এনরোলমেন্টের শাখা, রোল ও বিভাগ পরিবর্তন করা যায় · উত্তীর্ণ বা সমাপ্ত রেকর্ড ইতিহাস হিসেবে সংরক্ষিত থাকে`,
-                    `Only ACTIVE enrollments can be adjusted · Promoted and completed records remain locked as session history`
-                  )}
+                ? `মোট ${formatNumber(totalCount, 'bn')}টি এনরোলমেন্টের মধ্যে ${formatNumber(rows.length, 'bn')}টি দেখানো হচ্ছে`
+                : `শুধুমাত্র সক্রিয় (ACTIVE) এনরোলমেন্টের শাখা, রোল ও বিভাগ পরিবর্তন করা যায় · উত্তীর্ণ বা সমাপ্ত রেকর্ড ইতিহাস হিসেবে সংরক্ষিত থাকে`}
             </span>
 
             {hasActiveFilters && (
@@ -568,7 +539,7 @@ export function StudentEnrollments({
                 className="inline-flex items-center gap-1 text-primary hover:underline font-medium cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>{pick('ফিল্টার রিসেট করুন', 'Reset filters')}</span>
+                <span>{'ফিল্টার রিসেট করুন'}</span>
               </button>
             )}
           </div>
@@ -582,37 +553,34 @@ export function StudentEnrollments({
         pageSize={15}
         emptyTitle={
           totalCount === 0
-            ? pick(
-                `${yearObj?.name ?? ''} শিক্ষাবর্ষে এখনো কোনো এনরোলমেন্ট নেই`,
-                `No enrollments in ${yearObj?.name ?? ''} session yet`
-              )
-            : pick('কোনো এনরোলমেন্ট পাওয়া যায়নি', 'No matching enrollments found')
+            ? `${yearObj?.name ?? ''} শিক্ষাবর্ষে এখনো কোনো এনরোলমেন্ট নেই`
+            : 'কোনো এনরোলমেন্ট পাওয়া যায়নি'
         }
         emptyAction={
           totalCount === 0 ? (
             <div className="flex flex-wrap items-center justify-center gap-2">
               <Link href="/admin/students/promotions">
                 <Button variant="primary" size="sm">
-                  {pick('আগের সেশন থেকে প্রমোশন করুন', 'Promote from previous session')}
+                  {'আগের সেশন থেকে প্রমোশন করুন'}
                 </Button>
               </Link>
               <Link href="/admin/students/create">
                 <Button variant="outline" size="sm">
-                  {pick('নতুন ভর্তি', 'New admission')}
+                  {'নতুন ভর্তি'}
                 </Button>
               </Link>
             </div>
           ) : hasActiveFilters ? (
             <Button variant="outline" size="sm" onClick={resetFilters}>
               <RotateCcw className="w-3.5 h-3.5" />
-              {pick('ফিল্টার রিসেট করুন', 'Reset filters')}
+              {'ফিল্টার রিসেট করুন'}
             </Button>
           ) : undefined
         }
         columns={[
           {
             accessorKey: 'roll',
-            header: pick('রোল', 'Roll'),
+            header: 'রোল',
             cell: ({ row }) => (
               <span className="font-mono text-sm font-semibold text-foreground tabular-nums">
                 {String(row.original.roll).padStart(2, '0')}
@@ -621,12 +589,12 @@ export function StudentEnrollments({
           },
           {
             accessorKey: 'studentNameBn',
-            header: pick('শিক্ষার্থী ও আইডি', 'Student & ID'),
+            header: 'শিক্ষার্থী ও আইডি',
             cell: ({ row }) => (
               <div className="flex items-center gap-3 min-w-[200px]">
                 <div
                   className={cn(
-                    'w-8 h-8 rounded-[var(--radius)] flex items-center justify-center font-semibold text-xs shrink-0 border border-border',
+                    'w-8 h-8 rounded-[var(--radius)] flex items-center justify-center font-semibold text-sm shrink-0 border border-border',
                     row.original.studentGender === Gender.FEMALE
                       ? 'bg-secondary/10 text-secondary'
                       : 'bg-primary/10 text-primary'
@@ -641,14 +609,14 @@ export function StudentEnrollments({
                   >
                     {row.original.studentNameBn}
                   </Link>
-                  <span className="block text-xs font-mono text-muted-foreground truncate">
+                  <span className="block text-sm font-mono text-muted-foreground truncate">
                     {row.original.studentCode}
                   </span>
                   {(row.original.isRepeater || row.original.isReadmission) && (
-                    <span className="inline-block mt-0.5 text-[11px] font-medium text-warning">
+                    <span className="inline-block mt-0.5 text-sm font-medium text-warning">
                       {[
-                        row.original.isRepeater ? pick('পুনরাবৃত্তি', 'Repeater') : null,
-                        row.original.isReadmission ? pick('পুনঃভর্তি', 'Readmission') : null,
+                        row.original.isRepeater ? 'পুনরাবৃত্তি' : null,
+                        row.original.isReadmission ? 'পুনঃভর্তি' : null,
                       ]
                         .filter(Boolean)
                         .join(' · ')}
@@ -660,7 +628,7 @@ export function StudentEnrollments({
           },
           {
             accessorKey: 'classNumeric',
-            header: pick('শ্রেণি ও শাখা', 'Class & Section'),
+            header: 'শ্রেণি ও শাখা',
             cell: ({ row }) => (
               <div className="whitespace-nowrap">
                 <span className="font-medium text-foreground">{row.original.classLabel}</span>
@@ -672,15 +640,15 @@ export function StudentEnrollments({
             ? [
                 {
                   accessorKey: 'groupLabel',
-                  header: pick('বিভাগ ও ৪র্থ বিষয়', 'Stream & Optional'),
+                  header: 'বিভাগ ও ৪র্থ বিষয়',
                   cell: ({ row }: { row: { original: EnrichedEnrollment } }) => (
                     <div className="whitespace-nowrap">
                       <span className="text-foreground">
                         {row.original.groupLabel || '—'}
                       </span>
                       {row.original.optionalSubjectLabel && (
-                        <span className="block text-xs text-muted-foreground mt-0.5">
-                          {pick('৪র্থ:', '4th:')} {row.original.optionalSubjectLabel}
+                        <span className="block text-sm text-muted-foreground mt-0.5">
+                          {'৪র্থ:'} {row.original.optionalSubjectLabel}
                         </span>
                       )}
                     </div>
@@ -690,7 +658,7 @@ export function StudentEnrollments({
             : []),
           {
             accessorKey: 'status',
-            header: pick('অবস্থা', 'Status'),
+            header: 'অবস্থা',
             cell: ({ row }) => (
               <StatusBadge enumName="EnrollmentStatus" value={row.original.status} />
             ),
@@ -698,7 +666,7 @@ export function StudentEnrollments({
           {
             id: 'actions',
             header: () => (
-              <div className="text-right">{pick('কাজ', 'Actions')}</div>
+              <div className="text-right">{'কাজ'}</div>
             ),
             enableSorting: false,
             cell: ({ row }) => {
@@ -709,29 +677,26 @@ export function StudentEnrollments({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-8 px-2.5 text-xs"
+                      className="h-8 px-2.5 text-sm"
                       onClick={() => startEdit(row.original)}
                     >
                       <Pencil className="w-3.5 h-3.5" />
-                      <span>{pick('সম্পাদনা', 'Edit')}</span>
+                      <span>{'সম্পাদনা'}</span>
                     </Button>
                   ) : (
                     <span
-                      className="inline-flex items-center gap-1 px-2 text-xs text-muted-foreground whitespace-nowrap"
-                      title={pick(
-                        'উত্তীর্ণ বা সমাপ্ত সেশনের এনরোলমেন্ট সংরক্ষিত থাকে',
-                        'Historical session record is locked'
-                      )}
+                      className="inline-flex items-center gap-1 px-2 text-sm text-muted-foreground whitespace-nowrap"
+                      title={'উত্তীর্ণ বা সমাপ্ত সেশনের এনরোলমেন্ট সংরক্ষিত থাকে'}
                     >
                       <Lock className="w-3 h-3" />
-                      <span>{pick('সংরক্ষিত', 'Locked')}</span>
+                      <span>{'সংরক্ষিত'}</span>
                     </span>
                   )}
                   <Link
                     href={`/admin/students/${row.original.studentId}`}
                     className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                    aria-label={pick('শিক্ষার্থীর প্রোফাইল', 'View student profile')}
-                    title={pick('শিক্ষার্থীর প্রোফাইল', 'View student profile')}
+                    aria-label={'শিক্ষার্থীর প্রোফাইল'}
+                    title={'শিক্ষার্থীর প্রোফাইল'}
                   >
                     <Eye className="w-3.5 h-3.5" />
                   </Link>
@@ -746,11 +711,8 @@ export function StudentEnrollments({
       <Modal
         open={Boolean(editing)}
         onClose={() => setEditing(null)}
-        title={pick('চলতি সেশনের প্লেসমেন্ট সম্পাদনা', 'Adjust Session Placement')}
-        description={pick(
-          'শাখা পরিবর্তন, রোল সংশোধন, বিভাগ বা ঐচ্ছিক বিষয় হালনাগাদ করুন। শ্রেণি পরিবর্তনের জন্য প্রমোশন কনসোল ব্যবহার করুন।',
-          'Update section, roll, stream, or optional subject for this session. Use the Promotion Console to move between classes.'
-        )}
+        title={'চলতি সেশনের প্লেসমেন্ট সম্পাদনা'}
+        description={'শাখা পরিবর্তন, রোল সংশোধন, বিভাগ বা ঐচ্ছিক বিষয় হালনাগাদ করুন। শ্রেণি পরিবর্তনের জন্য প্রমোশন কনসোল ব্যবহার করুন।'}
       >
         {editing && (
           <form onSubmit={saveEdit} className="space-y-5">
@@ -758,7 +720,7 @@ export function StudentEnrollments({
             <div className="p-3.5 rounded-[var(--radius)] bg-surface-muted/60 border border-border flex flex-wrap items-center justify-between gap-2 text-sm">
               <div>
                 <p className="font-semibold text-foreground">{editing.studentNameBn}</p>
-                <p className="text-xs text-muted-foreground font-mono mt-0.5">
+                <p className="text-sm text-muted-foreground font-mono mt-0.5">
                   {editing.studentCode} · {editing.classLabel} · {yearObj?.name ?? ''}
                 </p>
               </div>
@@ -766,7 +728,7 @@ export function StudentEnrollments({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label={pick('শাখা', 'Section')} required>
+              <FormField label={'শাখা'} required>
                 <Select
                   value={form.sectionId}
                   onChange={(event) => setForm({ ...form, sectionId: event.target.value })}
@@ -781,8 +743,8 @@ export function StudentEnrollments({
                 </Select>
               </FormField>
 
-              <FormField label={pick('রোল নম্বর', 'Roll Number')} required>
-                <Input
+              <FormField label={'রোল নম্বর'} required>
+                <Input placeholder="রোল নম্বর লিখুন"
                   type="number"
                   min={1}
                   value={form.roll}
@@ -792,7 +754,7 @@ export function StudentEnrollments({
 
               {editingNeedsGroup && (
                 <>
-                  <FormField label={pick('বিভাগ (স্ট্রিম)', 'Academic Stream')} required>
+                  <FormField label={'বিভাগ (স্ট্রিম)'} required>
                     <Select
                       value={form.groupId}
                       onChange={(event) =>
@@ -803,32 +765,30 @@ export function StudentEnrollments({
                         })
                       }
                     >
-                      <option value="">{pick('নির্বাচন করুন', 'Select stream')}</option>
+                      <option value="">{'নির্বাচন করুন'}</option>
                       {academicGroups.map((item) => (
                         <option key={item.id} value={item.id}>
-                          {locale === 'bn' ? item.nameBn || item.name : item.name}
+                          {item.nameBn || item.name}
                         </option>
                       ))}
                     </Select>
                   </FormField>
 
-                  <FormField label={pick('৪র্থ / ঐচ্ছিক বিষয়', 'Optional Subject')}>
+                  <FormField label={'৪র্থ / ঐচ্ছিক বিষয়'}>
                     <Select
                       value={form.optionalClassSubjectId}
                       onChange={(event) =>
                         setForm({ ...form, optionalClassSubjectId: event.target.value })
                       }
                     >
-                      <option value="">{pick('নেই', 'None')}</option>
+                      <option value="">{'নেই'}</option>
                       {editingOptionals.map((row) => {
                         const subject =
                           row.subject ??
                           db?.subjects.find((item) => item.id === row.subjectId);
                         return (
                           <option key={row.id} value={row.id}>
-                            {locale === 'bn'
-                              ? subject?.nameBn || subject?.name
-                              : subject?.name}
+                            {subject?.nameBn || subject?.name}
                           </option>
                         );
                       })}
@@ -844,7 +804,7 @@ export function StudentEnrollments({
                     checked={form.isRepeater}
                     onChange={(event) => setForm({ ...form, isRepeater: event.target.checked })}
                   />
-                  <span>{pick('পুনরাবৃত্তি শিক্ষার্থী (Repeater)', 'Repeater student')}</span>
+                  <span>{'পুনরাবৃত্তি শিক্ষার্থী (Repeater)'}</span>
                 </label>
                 <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer">
                   <input
@@ -852,19 +812,16 @@ export function StudentEnrollments({
                     checked={form.isReadmission}
                     onChange={(event) => setForm({ ...form, isReadmission: event.target.checked })}
                   />
-                  <span>{pick('পুনঃভর্তি (Readmission)', 'Readmission')}</span>
+                  <span>{'পুনঃভর্তি (Readmission)'}</span>
                 </label>
               </div>
 
               <div className="sm:col-span-2">
-                <FormField label={pick('প্রশাসনিক মন্তব্য', 'Administrative Remarks')}>
+                <FormField label={'প্রশাসনিক মন্তব্য'}>
                   <Textarea
                     value={form.remarks}
                     onChange={(event) => setForm({ ...form, remarks: event.target.value })}
-                    placeholder={pick(
-                      'যেমন: অভিভাবকের আবেদনে শাখা পরিবর্তন...',
-                      'e.g., Section transfer requested by guardian...'
-                    )}
+                    placeholder={'যেমন: অভিভাবকের আবেদনে শাখা পরিবর্তন...'}
                   />
                 </FormField>
               </div>
@@ -872,10 +829,10 @@ export function StudentEnrollments({
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
               <Button type="button" variant="outline" onClick={() => setEditing(null)}>
-                {pick('বাতিল', 'Cancel')}
+                {'বাতিল'}
               </Button>
               <Button type="submit" variant="primary" disabled={isLoading}>
-                {isLoading ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save Changes')}
+                {isLoading ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
               </Button>
             </div>
           </form>

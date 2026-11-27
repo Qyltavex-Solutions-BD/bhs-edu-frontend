@@ -27,7 +27,6 @@ import {
   Users,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatNumber, formatTime12h } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -56,7 +55,7 @@ import type { SyllabusExamTerm, SyllabusFile } from '@/src/types/entities';
 function getWeekdayLabel(dateStr: string, locale: 'bn' | 'en'): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     weekday: 'long',
   }).format(d);
 }
@@ -65,7 +64,7 @@ function getMonthLabel(yearMonth: string, locale: 'bn' | 'en'): string {
   const [y, m] = yearMonth.split('-').map(Number);
   if (!y || !m) return yearMonth;
   const d = new Date(y, m - 1, 1);
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     month: 'long',
   }).format(d);
 }
@@ -213,7 +212,6 @@ export function PublicClassDetailPage() {
   const { id, classId } = useParams();
   const targetClassId = id ?? classId;
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [groupFilter, setGroupFilter] = useState<string>('ALL');
 
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
@@ -223,11 +221,11 @@ export function PublicClassDetailPage() {
     return (
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10">
         <EmptyState
-          title={pick('শ্রেণির তথ্য পাওয়া যায়নি', 'Class Not Found')}
-          description={pick('অনুরোধকৃত শ্রেণিটি বর্তমানে সক্রিয় তালিকায় নেই।', 'The requested class could not be found.')}
+          title={'শ্রেণির তথ্য পাওয়া যায়নি'}
+          description={'অনুরোধকৃত শ্রেণিটি বর্তমানে সক্রিয় তালিকায় নেই।'}
           action={
             <Link href="/academics/classes">
-              <Button variant="primary" size="sm">{pick('সকল শ্রেণিতে ফিরে যান', 'Back to Classes')}</Button>
+              <Button variant="primary" size="sm">{'সকল শ্রেণিতে ফিরে যান'}</Button>
             </Link>
           }
         />
@@ -251,31 +249,28 @@ export function PublicClassDetailPage() {
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-8">
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-        <Link href="/" className="hover:text-primary">{pick('হোম', 'Home')}</Link>
+        <Link href="/" className="hover:text-primary">{'হোম'}</Link>
         <span>/</span>
-        <Link href="/academics" className="hover:text-primary">{pick('একাডেমিক', 'Academics')}</Link>
+        <Link href="/academics" className="hover:text-primary">{'একাডেমিক'}</Link>
         <span>/</span>
-        <Link href="/academics/classes" className="hover:text-primary">{pick('শ্রেণি ও শাখা', 'Classes')}</Link>
+        <Link href="/academics/classes" className="hover:text-primary">{'শ্রেণি ও শাখা'}</Link>
         <span>/</span>
-        <span className="text-foreground font-medium">{locale === 'bn' ? cls.nameBn : cls.name}</span>
+        <span className="text-foreground font-medium">{cls.nameBn}</span>
       </nav>
 
       <PageHeader
-        title={locale === 'bn' ? cls.nameBn ?? cls.name : cls.name}
-        description={pick(
-          `শিক্ষাবর্ষ ২০২৬ · মোট শাখা ${formatNumber(secs.length, 'bn')}টি · নির্ধারিত বিষয় ${formatNumber(allMapped.length, 'bn')}টি · এনসিটিবি পাঠ্যবই ${formatNumber(classBooks.length, 'bn')}টি।`,
-          `Session 2026 · ${secs.length} Sections · ${allMapped.length} Configured Subjects · ${classBooks.length} NCTB Textbooks.`
-        )}
+        title={cls.nameBn ?? cls.name}
+        description={`শিক্ষাবর্ষ ২০২৬ · মোট শাখা ${formatNumber(secs.length, 'bn')}টি · নির্ধারিত বিষয় ${formatNumber(allMapped.length, 'bn')}টি · এনসিটিবি পাঠ্যবই ${formatNumber(classBooks.length, 'bn')}টি।`}
         actions={
           <>
             <Link href={`/academics/routines?classId=${cls.id}`}>
               <Button variant="primary" size="sm" className="whitespace-nowrap">
-                <Clock className="w-4 h-4" /> {pick('এই শ্রেণির রুটিন', 'Class Routine')}
+                <Clock className="w-4 h-4" /> {'এই শ্রেণির রুটিন'}
               </Button>
             </Link>
             <Link href="/academics/classes">
               <Button variant="outline" size="sm" className="whitespace-nowrap">
-                <ArrowLeft className="w-4 h-4" /> {pick('সকল শ্রেণি', 'All Classes')}
+                <ArrowLeft className="w-4 h-4" /> {'সকল শ্রেণি'}
               </Button>
             </Link>
           </>
@@ -285,7 +280,7 @@ export function PublicClassDetailPage() {
       {/* Sections & Assigned Class Teachers */}
       <section className="space-y-3">
         <h2 className="text-lg font-bold text-foreground">
-          {pick('শাখা ও দায়িত্বপ্রাপ্ত শ্রেণিশিক্ষক', 'Sections & Assigned Class Teachers')}
+          {'শাখা ও দায়িত্বপ্রাপ্ত শ্রেণিশিক্ষক'}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {secs.map((sec) => {
@@ -299,16 +294,16 @@ export function PublicClassDetailPage() {
               <Card key={sec.id} className="p-4 flex items-center justify-between gap-3">
                 <div className="space-y-1 min-w-0">
                   <p className="text-base font-bold text-foreground">
-                    {pick(`শাখা: ${sec.name}`, `Section: ${sec.name}`)}
+                    {`শাখা: ${sec.name}`}
                   </p>
                   <p className="text-sm text-muted-foreground truncate">
                     {teacher
-                      ? `${pick('শ্রেণিশিক্ষক:', 'Class Teacher:')} ${teacher.name}`
-                      : pick('শ্রেণিশিক্ষক: অফিস কর্তৃক নির্ধারিত', 'Class Teacher: Assigned by Office')}
+                      ? `${'শ্রেণিশিক্ষক:'} ${teacher.name}`
+                      : 'শ্রেণিশিক্ষক: অফিস কর্তৃক নির্ধারিত'}
                   </p>
                   {slotCount > 0 && (
-                    <p className="text-xs text-primary tabular-nums">
-                      {pick(`${formatNumber(slotCount, 'bn')}টি সাপ্তাহিক পিরিয়ড`, `${slotCount} Weekly Periods`)}
+                    <p className="text-sm text-primary tabular-nums">
+                      {`${formatNumber(slotCount, 'bn')}টি সাপ্তাহিক পিরিয়ড`}
                     </p>
                   )}
                 </div>
@@ -316,7 +311,7 @@ export function PublicClassDetailPage() {
                   href={`/academics/routines?classId=${cls.id}&sectionId=${sec.id}`}
                   className="text-sm font-semibold text-primary hover:underline whitespace-nowrap shrink-0"
                 >
-                  {pick('রুটিন →', 'Routine →')}
+                  {'রুটিন →'}
                 </Link>
               </Card>
             );
@@ -329,15 +324,12 @@ export function PublicClassDetailPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-bold text-foreground">
-              {pick('নির্ধারিত বিষয়সমূহ', 'Configured Subjects')}
+              {'নির্ধারিত বিষয়সমূহ'}
             </h2>
             <p className="text-sm text-muted-foreground mt-0.5">
               {hasGroups
-                ? pick(
-                    'বিভাগ নির্বাচন করে সাধারণ আবশ্যিক ও বিভাগীয় বিষয়সমূহ একসাথে দেখুন।',
-                    'Filter by stream to view compulsory and group-specific subjects together.'
-                  )
-                : pick('সরকারি বোর্ড কোডসহ এই শ্রেণির সকল নির্ধারিত বিষয়।', 'All configured NCTB subjects for this class.')}
+                ? 'বিভাগ নির্বাচন করে সাধারণ আবশ্যিক ও বিভাগীয় বিষয়সমূহ একসাথে দেখুন।'
+                : 'সরকারি বোর্ড কোডসহ এই শ্রেণির সকল নির্ধারিত বিষয়।'}
             </p>
           </div>
 
@@ -350,7 +342,7 @@ export function PublicClassDetailPage() {
                 onClick={() => setGroupFilter('ALL')}
                 className="whitespace-nowrap"
               >
-                {pick('সকল বিভাগ', 'All Streams')}
+                {'সকল বিভাগ'}
               </Button>
               {db.academicGroups.map((g) => (
                 <Button
@@ -361,7 +353,7 @@ export function PublicClassDetailPage() {
                   onClick={() => setGroupFilter(g.id)}
                   className="whitespace-nowrap"
                 >
-                  {locale === 'bn' ? g.nameBn : g.name}
+                  {g.nameBn}
                 </Button>
               ))}
             </div>
@@ -369,13 +361,13 @@ export function PublicClassDetailPage() {
         </div>
 
         <div className="overflow-x-auto border border-border rounded-[var(--radius)]">
-          <table className="w-full text-sm border-collapse">
+          <table className="w-full text-base border-collapse">
             <thead className="bg-surface-muted text-muted-foreground">
               <tr>
-                <th className="p-3 text-left font-semibold">{pick('কোড', 'Code')}</th>
-                <th className="p-3 text-left font-semibold">{pick('বিষয়ের নাম', 'Subject')}</th>
-                <th className="p-3 text-left font-semibold">{pick('বিভাগ', 'Stream')}</th>
-                <th className="p-3 text-left font-semibold">{pick('ধরন', 'Type')}</th>
+                <th className="p-3 text-left font-semibold">{'কোড'}</th>
+                <th className="p-3 text-left font-semibold">{'বিষয়ের নাম'}</th>
+                <th className="p-3 text-left font-semibold">{'বিভাগ'}</th>
+                <th className="p-3 text-left font-semibold">{'ধরন'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -389,14 +381,14 @@ export function PublicClassDetailPage() {
                     </td>
                     <td className="p-3">
                       <p className="font-semibold text-foreground">
-                        {locale === 'bn' ? sub?.nameBn ?? sub?.name : sub?.name}
+                        {sub?.nameBn ?? sub?.name}
                       </p>
-                      {locale === 'bn' && sub?.name && (
-                        <p className="text-xs text-muted-foreground">{sub.name}</p>
+                      {true && sub?.name && (
+                        <p className="text-sm text-muted-foreground">{sub.name}</p>
                       )}
                     </td>
                     <td className="p-3 text-muted-foreground">
-                      {grp ? (locale === 'bn' ? grp.nameBn : grp.name) : pick('সাধারণ (সকল বিভাগ)', 'Common')}
+                      {grp ? (grp.nameBn) : 'সাধারণ (সকল বিভাগ)'}
                     </td>
                     <td className="p-3">
                       <span
@@ -406,7 +398,7 @@ export function PublicClassDetailPage() {
                             : 'bg-primary/5 text-primary border-primary/20'
                         }`}
                       >
-                        {cs.isOptional ? pick('ঐচ্ছিক (৪র্থ বিষয়)', 'Optional (4th)') : pick('বাধ্যতামূলক', 'Compulsory')}
+                        {cs.isOptional ? 'ঐচ্ছিক (৪র্থ বিষয়)' : 'বাধ্যতামূলক'}
                       </span>
                     </td>
                   </tr>
@@ -423,10 +415,10 @@ export function PublicClassDetailPage() {
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-primary" />
-              {pick('এনসিটিবি পাঠ্যপুস্তক তালিকা', 'NCTB Textbooks List')}
+              {'এনসিটিবি পাঠ্যপুস্তক তালিকা'}
             </h2>
             <span className="text-sm text-muted-foreground tabular-nums">
-              {pick(`মোট ${formatNumber(classBooks.length, 'bn')}টি বই`, `${classBooks.length} Books`)}
+              {`মোট ${formatNumber(classBooks.length, 'bn')}টি বই`}
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -439,12 +431,12 @@ export function PublicClassDetailPage() {
                 >
                   <div>
                     <p className="text-sm font-semibold text-foreground">{b.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {locale === 'bn' ? sub?.nameBn ?? sub?.name : sub?.name}
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {sub?.nameBn ?? sub?.name}
                     </p>
                   </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-border text-xs text-muted-foreground tabular-nums">
-                    <span>{pick('বোর্ড পাঠ্যবই', 'NCTB Textbook')}</span>
+                  <div className="flex items-center justify-between pt-2 border-t border-border text-sm text-muted-foreground tabular-nums">
+                    <span>{'বোর্ড পাঠ্যবই'}</span>
                     <span className="font-mono font-medium text-foreground">{b.bookCode}</span>
                   </div>
                 </div>

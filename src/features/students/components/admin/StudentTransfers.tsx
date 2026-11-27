@@ -14,7 +14,6 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { cn, exportToCsv, triggerCertificatePrint } from '@/src/lib/utils/cn';
 import { localToday } from '@/src/lib/schoolDay';
@@ -74,7 +73,6 @@ const REASON_PRESETS = [
 ];
 
 export function StudentTransfers() {
-  const { locale, pick } = useI18n();
   const [issueTc, { isLoading: issuing }] = useIssueTransferCertificateMutation();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -142,14 +140,14 @@ export function StudentTransfers() {
         classNumeric: cls?.numericValue ?? 99,
         classNameBn: cls?.nameBn || cls?.name || '',
         classNameEn: cls?.name || '',
-        classDisplay: cls ? (locale === 'bn' ? cls.nameBn || cls.name : cls.name) : '—',
+        classDisplay: cls ? (cls.nameBn || cls.name) : '—',
         sectionName: sec?.name ?? '—',
         roll: enr?.roll ?? 0,
-        guardianName: primary ? (locale === 'bn' ? primary.nameBn || primary.name : primary.name) : '',
+        guardianName: primary ? (primary.nameBn || primary.name) : '',
         guardianPhone: primary?.phone ?? '',
       };
     });
-  }, [activeStudentsRes?.items, locale]);
+  }, [activeStudentsRes?.items, 'bn']);
 
   const selectedStudentMeta = useMemo(
     () => eligibleStudents.find((item) => item.student.id === form.studentId) ?? null,
@@ -169,7 +167,7 @@ export function StudentTransfers() {
         null;
       const mother =
         parents.find((p: any) => p.relationship === RelationshipType.MOTHER)?.parent ?? null;
-      const fallbackClass = cls ? (locale === 'bn' ? cls.nameBn || cls.name : cls.name) : '—';
+      const fallbackClass = cls ? (cls.nameBn || cls.name) : '—';
 
       return {
         ...tc,
@@ -179,8 +177,8 @@ export function StudentTransfers() {
         studentNameEn: student?.nameEn || '',
         studentCode: student?.studentId ?? '—',
         studentGender: (student?.gender as Gender) ?? Gender.MALE,
-        fatherName: father ? (locale === 'bn' ? father.nameBn || father.name : father.name) : null,
-        motherName: mother ? (locale === 'bn' ? mother.nameBn || mother.name : mother.name) : null,
+        fatherName: father ? (father.nameBn || father.name) : null,
+        motherName: mother ? (mother.nameBn || mother.name) : null,
         guardianPhone: father?.phone ?? '',
         leavingClassDisplay: tc.leavingClass || fallbackClass,
         sectionName: enr?.section?.name ?? null,
@@ -188,7 +186,7 @@ export function StudentTransfers() {
         rawStudent: student,
       };
     });
-  }, [tcRes?.items, locale]);
+  }, [tcRes?.items, 'bn']);
 
   const summary = tcRes?.summary ?? {
     totalIssued: 0,
@@ -222,7 +220,7 @@ export function StudentTransfers() {
       leavingClass: '',
       reason: '',
       destinationSchool: '',
-      conductRemarks: pick('উত্তম ও শৃঙ্খলাপরায়ণ', 'Good and disciplined'),
+      conductRemarks: 'উত্তম ও শৃঙ্খলাপরায়ণ',
       duesCleared: true,
       promotedToNextClass: false,
       remarks: '',
@@ -235,22 +233,22 @@ export function StudentTransfers() {
     setForm((prev) => ({
       ...prev,
       studentId,
-      leavingClass: meta ? (locale === 'bn' ? meta.classNameBn : meta.classNameEn) : '',
+      leavingClass: meta ? (meta.classNameBn) : '',
     }));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.studentId) {
-      toast.error(pick('একজন সক্রিয় শিক্ষার্থী নির্বাচন করুন।', 'Please select an active student.'));
+      toast.error('একজন সক্রিয় শিক্ষার্থী নির্বাচন করুন।');
       return;
     }
     if (!form.tcNumber.trim()) {
-      toast.error(pick('টিসি নম্বর দিন।', 'TC number is required.'));
+      toast.error('টিসি নম্বর দিন।');
       return;
     }
     if (!form.reason.trim()) {
-      toast.error(pick('বিদ্যালয় ত্যাগের কারণ উল্লেখ করুন।', 'Reason for leaving is required.'));
+      toast.error('বিদ্যালয় ত্যাগের কারণ উল্লেখ করুন।');
       return;
     }
 
@@ -271,19 +269,16 @@ export function StudentTransfers() {
 
       const blockedMsg =
         created.autoBlockedCards && created.autoBlockedCards > 0
-          ? pick(
-              ` · ${formatNumber(created.autoBlockedCards, locale)}টি সক্রিয় RFID কার্ড স্বয়ংক্রিয়ভাবে বন্ধ হয়েছে।`,
-              ` · ${created.autoBlockedCards} active RFID card auto-blocked.`
-            )
+          ? ` · ${formatNumber(created.autoBlockedCards, 'bn')}টি সক্রিয় RFID কার্ড স্বয়ংক্রিয়ভাবে বন্ধ হয়েছে।`
           : '';
 
       toast.success(
-        `${pick('ছাড়পত্র ইস্যু সম্পন্ন হয়েছে', 'Transfer certificate issued')} (${created.tcNumber})${blockedMsg}`
+        `${'ছাড়পত্র ইস্যু সম্পন্ন হয়েছে'} (${created.tcNumber})${blockedMsg}`
       );
       setIssueOpen(false);
       setPrintId(created.id);
     } catch (err) {
-      toast.error(errorMessage(err, pick('ছাড়পত্র ইস্যু করা যায়নি।', 'Could not issue transfer certificate.')));
+      toast.error(errorMessage(err, 'ছাড়পত্র ইস্যু করা যায়নি।'));
     }
   };
 
@@ -317,80 +312,71 @@ export function StudentTransfers() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
-            {pick('মোট ইস্যুকৃত ছাড়পত্র', 'Total Issued TCs')}
+            {'মোট ইস্যুকৃত ছাড়পত্র'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(summary.totalIssued, locale)}
+              {formatNumber(summary.totalIssued, 'bn')}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick(
-                `${activeYearName} সেশনে ${formatNumber(summary.issuedThisYear, locale)}টি`,
-                `${summary.issuedThisYear} in ${activeYearName}`
-              )}
+              {`${activeYearName} সেশনে ${formatNumber(summary.issuedThisYear, 'bn')}টি`}
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
-            {pick('স্থায়ী নথি হিসেবে সংরক্ষিত', 'Archived in permanent registry')}
+            {'স্থায়ী নথি হিসেবে সংরক্ষিত'}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
-            {pick('বকেয়া নিষ্পত্তি', 'Dues Clearance')}
+            {'বকেয়া নিষ্পত্তি'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(summary.duesClearedCount, locale)}
+              {formatNumber(summary.duesClearedCount, 'bn')}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick('টি পরিশোধিত', 'cleared')}
+              {'টি পরিশোধিত'}
             </span>
           </div>
           <p className="text-sm text-muted-foreground tabular-nums">
             {summary.duesPendingCount > 0
-              ? pick(
-                  `${formatNumber(summary.duesPendingCount, locale)}টি টিসি-তে বকেয়া চিহ্নিত`,
-                  `${summary.duesPendingCount} marked with pending dues`
-                )
-              : pick('সকল ইস্যুকৃত টিসি বকেয়া মুক্ত', 'All issued certificates cleared')}
+              ? `${formatNumber(summary.duesPendingCount, 'bn')}টি টিসি-তে বকেয়া চিহ্নিত`
+              : 'সকল ইস্যুকৃত টিসি বকেয়া মুক্ত'}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
-            {pick('উত্তরণ অবস্থা (ত্যাগকালে)', 'Promotion Standing')}
+            {'উত্তরণ অবস্থা (ত্যাগকালে)'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(summary.promotedLeavingCount, locale)}
+              {formatNumber(summary.promotedLeavingCount, 'bn')}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick('জন উত্তীর্ণ হয়ে ত্যাগ', 'promoted before leaving')}
+              {'জন উত্তীর্ণ হয়ে ত্যাগ'}
             </span>
           </div>
           <p className="text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `মধ্য-সেশনে স্থানান্তর ${formatNumber(summary.midSessionCount, locale)} জন`,
-              `${summary.midSessionCount} mid-session transfers`
-            )}
+            {`মধ্য-সেশনে স্থানান্তর ${formatNumber(summary.midSessionCount, 'bn')} জন`}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
-            {pick('বর্তমান সক্রিয় শিক্ষার্থী', 'Active Student Roster')}
+            {'বর্তমান সক্রিয় শিক্ষার্থী'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
-              {formatNumber(summary.activeStudentsCount, locale)}
+              {formatNumber(summary.activeStudentsCount, 'bn')}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick('জন অধ্যয়নরত', 'currently enrolled')}
+              {'জন অধ্যয়নরত'}
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
-            {pick('টিসি ইস্যু হলে সক্রিয় কার্ড অটো-ব্লক হয়', 'Active RFID cards auto-block on TC')}
+            {'টিসি ইস্যু হলে সক্রিয় কার্ড অটো-ব্লক হয়'}
           </p>
         </Card>
       </div>
@@ -403,10 +389,7 @@ export function StudentTransfers() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={pick(
-                'টিসি নম্বর, নাম বা আইডি খুঁজুন...',
-                'Search TC number, name, or ID...'
-              )}
+              placeholder={'টিসি নম্বর, নাম বা আইডি খুঁজুন...'}
               className="pl-9 pr-9 h-10 text-base w-full"
             />
             {searchQuery && (
@@ -414,7 +397,7 @@ export function StudentTransfers() {
                 type="button"
                 onClick={() => setSearchQuery('')}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                aria-label={pick('মুছুন', 'Clear')}
+                aria-label={'মুছুন'}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -429,11 +412,11 @@ export function StudentTransfers() {
                 setPage(1);
               }}
               className="w-auto min-w-[155px] h-10 text-base"
-              aria-label={pick('বকেয়া অবস্থা', 'Dues status')}
+              aria-label={'বকেয়া অবস্থা'}
             >
-              <option value="ALL">{pick('সকল বকেয়া অবস্থা', 'All dues status')}</option>
-              <option value="CLEARED">{pick('পরিশোধিত', 'Dues cleared')}</option>
-              <option value="PENDING">{pick('অপরিশোধিত', 'Dues pending')}</option>
+              <option value="ALL">{'সকল বকেয়া অবস্থা'}</option>
+              <option value="CLEARED">{'পরিশোধিত'}</option>
+              <option value="PENDING">{'অপরিশোধিত'}</option>
             </Select>
 
             <Select
@@ -443,11 +426,11 @@ export function StudentTransfers() {
                 setPage(1);
               }}
               className="w-auto min-w-[155px] h-10 text-base"
-              aria-label={pick('উত্তরণ অবস্থা', 'Promotion status')}
+              aria-label={'উত্তরণ অবস্থা'}
             >
-              <option value="ALL">{pick('সকল ত্যাগ ধরন', 'All leaving types')}</option>
-              <option value="PROMOTED">{pick('পরবর্তী শ্রেণিতে উত্তীর্ণ', 'Promoted to next')}</option>
-              <option value="MID">{pick('মধ্য-সেশন ত্যাগ', 'Mid-session leaving')}</option>
+              <option value="ALL">{'সকল ত্যাগ ধরন'}</option>
+              <option value="PROMOTED">{'পরবর্তী শ্রেণিতে উত্তীর্ণ'}</option>
+              <option value="MID">{'মধ্য-সেশন ত্যাগ'}</option>
             </Select>
 
             <Button
@@ -458,12 +441,12 @@ export function StudentTransfers() {
               disabled={rows.length === 0}
             >
               <Download className="w-3.5 h-3.5" />
-              <span>{pick('এক্সপোর্ট CSV', 'Export CSV')}</span>
+              <span>{'এক্সপোর্ট CSV'}</span>
             </Button>
 
             <Button variant="primary" size="sm" className="h-9" onClick={openIssueModal}>
               <Plus className="w-4 h-4" />
-              <span>{pick('নতুন ছাড়পত্র ইস্যু', 'Issue Certificate')}</span>
+              <span>{'নতুন ছাড়পত্র ইস্যু'}</span>
             </Button>
           </div>
         </div>
@@ -471,14 +454,8 @@ export function StudentTransfers() {
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border text-sm text-muted-foreground">
           <span className="tabular-nums">
             {hasActiveFilters
-              ? pick(
-                  `মোট ${formatNumber(summary.totalIssued, locale)}টি ছাড়পত্রের মধ্যে ${formatNumber(tcRes?.meta.total ?? 0, locale)}টি দেখানো হচ্ছে`,
-                  `Showing ${tcRes?.meta.total ?? 0} of ${summary.totalIssued} transfer certificates`
-                )
-              : pick(
-                  'ছাড়পত্র ইস্যু হলে শিক্ষার্থীর অবস্থা স্থানান্তরিত হয়, চলতি এনরোলমেন্ট বন্ধ হয় এবং সক্রিয় RFID কার্ড ব্লক হয়ে যায়',
-                  'Issuing a TC marks the student transferred, closes active enrollment, and auto-blocks active RFID cards'
-                )}
+              ? `মোট ${formatNumber(summary.totalIssued, 'bn')}টি ছাড়পত্রের মধ্যে ${formatNumber(tcRes?.meta.total ?? 0, 'bn')}টি দেখানো হচ্ছে`
+              : 'ছাড়পত্র ইস্যু হলে শিক্ষার্থীর অবস্থা স্থানান্তরিত হয়, চলতি এনরোলমেন্ট বন্ধ হয় এবং সক্রিয় RFID কার্ড ব্লক হয়ে যায়'}
           </span>
 
           {hasActiveFilters && (
@@ -488,7 +465,7 @@ export function StudentTransfers() {
               className="inline-flex items-center gap-1 text-primary hover:underline font-medium cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>{pick('ফিল্টার রিসেট করুন', 'Reset filters')}</span>
+              <span>{'ফিল্টার রিসেট করুন'}</span>
             </button>
           )}
         </div>
@@ -507,40 +484,40 @@ export function StudentTransfers() {
         }}
         emptyTitle={
           summary.totalIssued === 0
-            ? pick('এখনো কোনো ছাড়পত্র ইস্যু করা হয়নি', 'No transfer certificates issued yet')
-            : pick('ফিল্টার অনুযায়ী কোনো ছাড়পত্র পাওয়া যায়নি', 'No matching certificates found')
+            ? 'এখনো কোনো ছাড়পত্র ইস্যু করা হয়নি'
+            : 'ফিল্টার অনুযায়ী কোনো ছাড়পত্র পাওয়া যায়নি'
         }
         emptyAction={
           summary.totalIssued === 0 ? (
             <Button variant="primary" size="sm" onClick={openIssueModal}>
               <Plus className="w-4 h-4" />
-              <span>{pick('প্রথম ছাড়পত্র ইস্যু করুন', 'Issue first certificate')}</span>
+              <span>{'প্রথম ছাড়পত্র ইস্যু করুন'}</span>
             </Button>
           ) : hasActiveFilters ? (
             <Button variant="outline" size="sm" onClick={resetFilters}>
               <RotateCcw className="w-3.5 h-3.5" />
-              <span>{pick('ফিল্টার রিসেট করুন', 'Reset filters')}</span>
+              <span>{'ফিল্টার রিসেট করুন'}</span>
             </Button>
           ) : undefined
         }
         columns={[
           {
             accessorKey: 'tcNumber',
-            header: pick('টিসি নম্বর ও ইস্যু', 'TC No. & Issued'),
+            header: 'টিসি নম্বর ও ইস্যু',
             cell: ({ row }) => (
               <div className="whitespace-nowrap tabular-nums">
                 <span className="font-mono text-base font-semibold text-foreground block">
                   {row.original.tcNumber}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {formatDateShort(row.original.issueDate, locale)}
+                  {formatDateShort(row.original.issueDate, 'bn')}
                 </span>
               </div>
             ),
           },
           {
             accessorKey: 'studentNameBn',
-            header: pick('শিক্ষার্থী ও আইডি', 'Student & ID'),
+            header: 'শিক্ষার্থী ও আইডি',
             cell: ({ row }) => (
               <div className="flex items-center gap-3 min-w-[200px]">
                 <div
@@ -569,28 +546,28 @@ export function StudentTransfers() {
           },
           {
             accessorKey: 'leavingClassDisplay',
-            header: pick('শ্রেণি ও ত্যাগের তারিখ', 'Leaving Class & Date'),
+            header: 'শ্রেণি ও ত্যাগের তারিখ',
             cell: ({ row }) => (
               <div className="whitespace-nowrap tabular-nums">
                 <span className="font-medium text-foreground block">
                   {row.original.leavingClassDisplay}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {formatDateShort(row.original.leavingDate, locale)} ·{' '}
+                  {formatDateShort(row.original.leavingDate, 'bn')} ·{' '}
                   {row.original.promotedToNextClass
-                    ? pick('উত্তীর্ণ', 'Promoted')
-                    : pick('মধ্য-সেশন', 'Mid-session')}
+                    ? 'উত্তীর্ণ'
+                    : 'মধ্য-সেশন'}
                 </span>
               </div>
             ),
           },
           {
             accessorKey: 'destinationSchool',
-            header: pick('গন্তব্য ও কারণ', 'Destination & Reason'),
+            header: 'গন্তব্য ও কারণ',
             cell: ({ row }) => (
               <div className="max-w-[260px]">
                 <span className="font-medium text-foreground block truncate">
-                  {row.original.destinationSchool || pick('উল্লেখ নেই', 'Not specified')}
+                  {row.original.destinationSchool || 'উল্লেখ নেই'}
                 </span>
                 <span className="text-sm text-muted-foreground block truncate">
                   {row.original.reason}
@@ -600,7 +577,7 @@ export function StudentTransfers() {
           },
           {
             id: 'clearance',
-            header: pick('বকেয়া ও আচরণ', 'Clearance & Conduct'),
+            header: 'বকেয়া ও আচরণ',
             enableSorting: false,
             cell: ({ row }) => (
               <div className="whitespace-nowrap text-sm">
@@ -611,11 +588,11 @@ export function StudentTransfers() {
                   )}
                 >
                   {row.original.duesCleared
-                    ? pick('বকেয়া পরিশোধিত', 'Dues cleared')
-                    : pick('বকেয়া অপরিশোধিত', 'Dues pending')}
+                    ? 'বকেয়া পরিশোধিত'
+                    : 'বকেয়া অপরিশোধিত'}
                 </span>
                 <span className="text-muted-foreground block max-w-[160px] truncate mt-0.5">
-                  {row.original.conductRemarks || pick('উত্তম', 'Good')}
+                  {row.original.conductRemarks || 'উত্তম'}
                 </span>
               </div>
             ),
@@ -633,13 +610,13 @@ export function StudentTransfers() {
                   onClick={() => setPrintId(row.original.id)}
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span>{pick('দেখুন ও প্রিন্ট', 'Preview & Print')}</span>
+                  <span>{'দেখুন ও প্রিন্ট'}</span>
                 </Button>
                 <Link
                   href={`/admin/students/${row.original.studentId}`}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                  aria-label={pick('শিক্ষার্থীর প্রোফাইল', 'View student dossier')}
-                  title={pick('শিক্ষার্থীর প্রোফাইল', 'View student dossier')}
+                  aria-label={'শিক্ষার্থীর প্রোফাইল'}
+                  title={'শিক্ষার্থীর প্রোফাইল'}
                 >
                   <Eye className="w-3.5 h-3.5" />
                 </Link>
@@ -653,30 +630,27 @@ export function StudentTransfers() {
       <Modal
         open={issueOpen}
         onClose={() => setIssueOpen(false)}
-        title={pick('নতুন ছাড়পত্র (TC) ইস্যু করুন', 'Issue Transfer Certificate')}
-        description={pick(
-          'সক্রিয় শিক্ষার্থী নির্বাচন করে অফিসিয়াল ছাড়পত্র তৈরি করুন। ইস্যু হওয়ার সাথে সাথে প্রিন্ট কপি পাওয়া যাবে।',
-          'Select an active student to generate an official Transfer Certificate. A printable copy opens immediately upon issuance.'
-        )}
+        title={'নতুন ছাড়পত্র (TC) ইস্যু করুন'}
+        description={'সক্রিয় শিক্ষার্থী নির্বাচন করে অফিসিয়াল ছাড়পত্র তৈরি করুন। ইস্যু হওয়ার সাথে সাথে প্রিন্ট কপি পাওয়া যাবে।'}
         maxWidth="max-w-2xl"
       >
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label={pick('সক্রিয় শিক্ষার্থী নির্বাচন', 'Select Active Student')} required>
+            <FormField label={'সক্রিয় শিক্ষার্থী নির্বাচন'} required>
               <Select
                 value={form.studentId}
                 onChange={(e) => handleStudentChange(e.target.value)}
               >
-                <option value="">{pick('শিক্ষার্থী বেছে নিন...', 'Choose a student...')}</option>
+                <option value="">{'শিক্ষার্থী বেছে নিন...'}</option>
                 {eligibleStudents.map((item) => (
                   <option key={item.student.id} value={item.student.id}>
-                    {item.student.nameBn || item.student.nameEn} · {item.classDisplay} ({item.sectionName}, {pick('রোল', 'Roll')} {item.roll})
+                    {item.student.nameBn || item.student.nameEn} · {item.classDisplay} ({item.sectionName}, {'রোল'} {item.roll})
                   </option>
                 ))}
               </Select>
             </FormField>
 
-            <FormField label={pick('টিসি স্মারক নম্বর', 'TC Reference Number')} required>
+            <FormField label={'টিসি স্মারক নম্বর'} required>
               <Input
                 value={form.tcNumber}
                 onChange={(e) => setForm({ ...form, tcNumber: e.target.value })}
@@ -698,10 +672,10 @@ export function StudentTransfers() {
                   </p>
                   <p className="text-muted-foreground tabular-nums mt-0.5">
                     {selectedStudentMeta.student.studentId} · {selectedStudentMeta.classDisplay} (
-                    {selectedStudentMeta.sectionName}) · {pick('রোল', 'Roll')}{' '}
-                    {formatNumber(selectedStudentMeta.roll, locale)}
+                    {selectedStudentMeta.sectionName}) · {'রোল'}{' '}
+                    {formatNumber(selectedStudentMeta.roll, 'bn')}
                     {selectedStudentMeta.guardianName
-                      ? ` · ${pick('অভিভাবক:', 'Guardian:')} ${selectedStudentMeta.guardianName} (${selectedStudentMeta.guardianPhone})`
+                      ? ` · ${'অভিভাবক:'} ${selectedStudentMeta.guardianName} (${selectedStudentMeta.guardianPhone})`
                       : ''}
                   </p>
                 </div>
@@ -710,21 +684,21 @@ export function StudentTransfers() {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <FormField label={pick('শেষ অধ্যয়নরত শ্রেণি', 'Leaving Class')} required>
+            <FormField label={'শেষ অধ্যয়নরত শ্রেণি'} required>
               <Input
                 value={form.leavingClass}
                 onChange={(e) => setForm({ ...form, leavingClass: e.target.value })}
-                placeholder={pick('যেমন: ৮ম শ্রেণি', 'e.g., Class 8')}
+                placeholder={'যেমন: ৮ম শ্রেণি'}
               />
             </FormField>
-            <FormField label={pick('ইস্যুর তারিখ', 'Issue Date')} required>
+            <FormField label={'ইস্যুর তারিখ'} required>
               <Input
                 type="date"
                 value={form.issueDate}
                 onChange={(e) => setForm({ ...form, issueDate: e.target.value })}
               />
             </FormField>
-            <FormField label={pick('বিদ্যালয় ত্যাগের তারিখ', 'Leaving Date')} required>
+            <FormField label={'বিদ্যালয় ত্যাগের তারিখ'} required>
               <Input
                 type="date"
                 value={form.leavingDate}
@@ -734,22 +708,19 @@ export function StudentTransfers() {
           </div>
 
           <div className="space-y-2">
-            <FormField label={pick('বিদ্যালয় ত্যাগের কারণ', 'Reason for Transfer')} required>
+            <FormField label={'বিদ্যালয় ত্যাগের কারণ'} required>
               <Textarea
                 value={form.reason}
                 onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                placeholder={pick(
-                  'যেমন: অভিভাবকের কর্মস্থল পরিবর্তনের কারণে ঢাকায় স্থানান্তর...',
-                  'e.g., Relocating due to parent job transfer...'
-                )}
+                placeholder={'যেমন: অভিভাবকের কর্মস্থল পরিবর্তনের কারণে ঢাকায় স্থানান্তর...'}
               />
             </FormField>
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-sm text-muted-foreground mr-1">
-                {pick('দ্রুত নির্বাচন:', 'Quick fill:')}
+                {'দ্রুত নির্বাচন:'}
               </span>
               {REASON_PRESETS.map((preset) => {
-                const text = locale === 'bn' ? preset.bn : preset.en;
+                const text = preset.bn;
                 return (
                   <button
                     key={preset.en}
@@ -765,18 +736,18 @@ export function StudentTransfers() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label={pick('গন্তব্য বিদ্যালয়', 'Destination School')}>
+            <FormField label={'গন্তব্য বিদ্যালয়'}>
               <Input
                 value={form.destinationSchool}
                 onChange={(e) => setForm({ ...form, destinationSchool: e.target.value })}
-                placeholder={pick('নতুন বিদ্যালয়ের নাম ও ঠিকানা', 'Target school name & location')}
+                placeholder={'নতুন বিদ্যালয়ের নাম ও ঠিকানা'}
               />
             </FormField>
-            <FormField label={pick('আচরণ ও চরিত্র', 'Conduct Remarks')}>
+            <FormField label={'আচরণ ও চরিত্র'}>
               <Input
                 value={form.conductRemarks}
                 onChange={(e) => setForm({ ...form, conductRemarks: e.target.value })}
-                placeholder={pick('উত্তম ও শৃঙ্খলাপরায়ণ', 'Good and disciplined')}
+                placeholder={'উত্তম ও শৃঙ্খলাপরায়ণ'}
               />
             </FormField>
           </div>
@@ -791,10 +762,10 @@ export function StudentTransfers() {
               />
               <span>
                 <span className="font-medium text-foreground block">
-                  {pick('সকল বকেয়া পরিশোধিত', 'All school dues cleared')}
+                  {'সকল বকেয়া পরিশোধিত'}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {pick('টিসি-তে বকেয়া মুক্ত হিসেবে উল্লেখ থাকবে', 'Marked as cleared on the official certificate')}
+                  {'টিসি-তে বকেয়া মুক্ত হিসেবে উল্লেখ থাকবে'}
                 </span>
               </span>
             </label>
@@ -808,10 +779,10 @@ export function StudentTransfers() {
               />
               <span>
                 <span className="font-medium text-foreground block">
-                  {pick('পরবর্তী শ্রেণিতে উত্তীর্ণ', 'Promoted to next class')}
+                  {'পরবর্তী শ্রেণিতে উত্তীর্ণ'}
                 </span>
                 <span className="text-sm text-muted-foreground">
-                  {pick('বার্ষিক পরীক্ষায় উত্তীর্ণ হলে টিক দিন', 'Check if eligible for promotion to the next grade')}
+                  {'বার্ষিক পরীক্ষায় উত্তীর্ণ হলে টিক দিন'}
                 </span>
               </span>
             </label>
@@ -821,31 +792,25 @@ export function StudentTransfers() {
             <div className="flex items-start gap-2 p-3 rounded-[var(--radius)] border border-warning/40 bg-warning/5 text-sm text-warning">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>
-                {pick(
-                  'বকেয়া অপরিশোধিত অবস্থায় ছাড়পত্র ইস্যু করলে অফিসিয়াল টিসি-তে "অপরিশোধিত" লেখা প্রদর্শিত হবে।',
-                  'Issuing with uncleared dues will mark Dues Status as Pending on the printed certificate.'
-                )}
+                {'বকেয়া অপরিশোধিত অবস্থায় ছাড়পত্র ইস্যু করলে অফিসিয়াল টিসি-তে "অপরিশোধিত" লেখা প্রদর্শিত হবে।'}
               </span>
             </div>
           )}
 
           <div className="p-3 rounded-[var(--radius)] border border-border bg-surface-muted/40 text-sm text-muted-foreground">
-            {pick(
-              'নিশ্চিত করলে শিক্ষার্থী স্থায়ীভাবে স্থানান্তরিত (TRANSFERRED) হিসেবে চিহ্নিত হবে এবং বর্তমান শ্রেণি ও হাজিরা তালিকা থেকে বাদ পড়বে। পূর্বের পরীক্ষার রেজাল্ট ও নথি সংরক্ষিত থাকবে।',
-              'Confirming marks this student as TRANSFERRED and closes their active class enrollment. All historical results and attendance logs remain preserved.'
-            )}
+            {'নিশ্চিত করলে শিক্ষার্থী স্থায়ীভাবে স্থানান্তরিত (TRANSFERRED) হিসেবে চিহ্নিত হবে এবং বর্তমান শ্রেণি ও হাজিরা তালিকা থেকে বাদ পড়বে। পূর্বের পরীক্ষার রেজাল্ট ও নথি সংরক্ষিত থাকবে।'}
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={() => setIssueOpen(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button type="submit" variant="primary" disabled={issuing || !form.studentId}>
               <FileCheck2 className="w-4 h-4" />
               <span>
                 {issuing
-                  ? pick('ইস্যু হচ্ছে...', 'Issuing...')
-                  : pick('ছাড়পত্র ইস্যু ও প্রিন্ট করুন', 'Issue & Open Print Copy')}
+                  ? 'ইস্যু হচ্ছে...'
+                  : 'ছাড়পত্র ইস্যু ও প্রিন্ট করুন'}
               </span>
             </Button>
           </div>
@@ -858,8 +823,8 @@ export function StudentTransfers() {
         onClose={() => setPrintId(null)}
         title={
           printedRow
-            ? `${pick('অফিসিয়াল ছাড়পত্র', 'Official Transfer Certificate')} · ${printedRow.tcNumber}`
-            : pick('ছাড়পত্র', 'Transfer Certificate')
+            ? `${'অফিসিয়াল ছাড়পত্র'} · ${printedRow.tcNumber}`
+            : 'ছাড়পত্র'
         }
         maxWidth="max-w-4xl"
       >
@@ -871,7 +836,7 @@ export function StudentTransfers() {
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>{pick('শিক্ষার্থীর সংরক্ষিত প্রোফাইল দেখুন', 'Open archived student dossier')}</span>
+                <span>{'শিক্ষার্থীর সংরক্ষিত প্রোফাইল দেখুন'}</span>
               </Link>
               <Button
                 type="button"
@@ -891,7 +856,7 @@ export function StudentTransfers() {
                 }
               >
                 <Printer className="w-4 h-4" />
-                <span>{pick('প্রিন্ট করুন', 'Print Certificate')}</span>
+                <span>{'প্রিন্ট করুন'}</span>
               </Button>
             </div>
             <PrintableTransferCertificate

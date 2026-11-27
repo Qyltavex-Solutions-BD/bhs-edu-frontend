@@ -32,7 +32,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { MasonryPhotoAlbum } from 'react-photo-album';
 
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -61,7 +60,6 @@ type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
 export function PublicNewsDetailPage() {
   const { id } = useParams();
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   if (isLoading) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
   const item = db?.news.find((n) => n.id === id);
   if (!item || !db) return <div className="max-w-[1440px] mx-auto p-6"><EmptyState /></div>;
@@ -85,7 +83,7 @@ export function PublicNewsDetailPage() {
         href="/news"
         className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
       >
-        <ArrowLeft className="w-4 h-4" /> {pick('সব সংবাদে ফিরুন', 'Back to All News')}
+        <ArrowLeft className="w-4 h-4" /> {'সব সংবাদে ফিরুন'}
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -102,7 +100,7 @@ export function PublicNewsDetailPage() {
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground tabular-nums">
               <span className="inline-flex items-center gap-1.5 font-medium text-primary">
                 <Calendar className="w-4 h-4" />
-                {formatDateLong(item.publishedAt ?? item.createdAt, locale)}
+                {formatDateLong(item.publishedAt ?? item.createdAt, 'bn')}
               </span>
               <span aria-hidden="true">·</span>
               <span>{db.schoolProfile.name}</span>
@@ -125,10 +123,10 @@ export function PublicNewsDetailPage() {
             <Card className="p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-bold text-foreground">
-                  {pick('অন্যান্য সাম্প্রতিক সংবাদ', 'More Campus News')}
+                  {'অন্যান্য সাম্প্রতিক সংবাদ'}
                 </h2>
                 <Link href="/news" className="text-sm font-semibold text-primary hover:underline">
-                  {pick('সব দেখুন', 'View All')}
+                  {'সব দেখুন'}
                 </Link>
               </div>
               <div className="space-y-3.5">
@@ -145,8 +143,8 @@ export function PublicNewsDetailPage() {
                       className="w-20 h-14 rounded-lg object-cover shrink-0 bg-surface-muted"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs text-muted-foreground tabular-nums">
-                        {formatDateLong(other.publishedAt ?? other.createdAt, locale)}
+                      <p className="text-sm text-muted-foreground tabular-nums">
+                        {formatDateLong(other.publishedAt ?? other.createdAt, 'bn')}
                       </p>
                       <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 mt-0.5 leading-snug">
                         {other.title}
@@ -160,28 +158,28 @@ export function PublicNewsDetailPage() {
 
           <Card className="p-5 space-y-3">
             <h2 className="text-base font-bold text-foreground">
-              {pick('দ্রুত সংযোগ', 'Quick Links')}
+              {'দ্রুত সংযোগ'}
             </h2>
             <div className="space-y-2 text-sm">
               <Link
                 href="/events"
                 className="flex items-center justify-between py-1.5 text-muted-foreground hover:text-primary transition-colors"
               >
-                <span>{pick('আসন্ন অনুষ্ঠান ও ক্যালেন্ডার', 'Upcoming Events')}</span>
+                <span>{'আসন্ন অনুষ্ঠান ও ক্যালেন্ডার'}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 href="/notices"
                 className="flex items-center justify-between py-1.5 text-muted-foreground hover:text-primary transition-colors"
               >
-                <span>{pick('প্রাতিষ্ঠানিক নোটিশ বোর্ড', 'Official Notice Board')}</span>
+                <span>{'প্রাতিষ্ঠানিক নোটিশ বোর্ড'}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 href="/gallery"
                 className="flex items-center justify-between py-1.5 text-muted-foreground hover:text-primary transition-colors"
               >
-                <span>{pick('ছবি ও ক্যাম্পাস গ্যালারি', 'Campus Photo Gallery')}</span>
+                <span>{'ছবি ও ক্যাম্পাস গ্যালারি'}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>

@@ -20,7 +20,6 @@ import {
   X,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   getCampusPhoto,
@@ -40,7 +39,6 @@ import { triggerPrint } from '@/src/lib/utils/cn';
 
 export function PublicTeachersListPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { pick } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
   const search = searchParams.get('q') ?? '';
   const deptFilter = searchParams.get('dept') ?? 'ALL';
@@ -98,11 +96,8 @@ export function PublicTeachersListPage() {
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <PageHeader
-        title={pick('শিক্ষকমণ্ডলী ও কর্মচারীবৃন্দ', 'Teachers & Staff Directory')}
-        description={pick(
-          'অত্র বিদ্যালয়ের দক্ষ ও নিবেদিতপ্রাণ শিক্ষকমণ্ডলী ও প্রশাসনিক কর্মকর্তাবৃন্দ।',
-          'Public faculty and administrative staff directory.'
-        )}
+        title={'শিক্ষকমণ্ডলী ও কর্মচারীবৃন্দ'}
+        description={'অত্র বিদ্যালয়ের দক্ষ ও নিবেদিতপ্রাণ শিক্ষকমণ্ডলী ও প্রশাসনিক কর্মকর্তাবৃন্দ।'}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -111,26 +106,26 @@ export function PublicTeachersListPage() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={pick('নাম বা পদবি খুঁজুন...', 'Search by name or designation...')}
+            placeholder={'নাম বা পদবি খুঁজুন...'}
             className="pl-9"
           />
         </div>
         <Select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
-          <option value="ALL">{pick('সকল বিভাগ', 'All Departments')}</option>
+          <option value="ALL">{'সকল বিভাগ'}</option>
           {departmentList.map((d) => (
             <option key={d.id} value={d.id}>{d.name}</option>
           ))}
         </Select>
         <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-          <option value="ALL">{pick('সকল ধরন', 'All Staff Types')}</option>
-          <option value={StaffType.TEACHER}>{pick('শিক্ষক', 'Teachers')}</option>
-          <option value={StaffType.OFFICER}>{pick('কর্মকর্তা', 'Officers')}</option>
-          <option value={StaffType.EMPLOYEE}>{pick('কর্মচারী', 'Employees')}</option>
+          <option value="ALL">{'সকল ধরন'}</option>
+          <option value={StaffType.TEACHER}>{'শিক্ষক'}</option>
+          <option value={StaffType.OFFICER}>{'কর্মকর্তা'}</option>
+          <option value={StaffType.EMPLOYEE}>{'কর্মচারী'}</option>
         </Select>
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState title={pick('কোনো শিক্ষক বা কর্মচারী পাওয়া যায়নি', 'No matching staff found')} />
+        <EmptyState title={'কোনো শিক্ষক বা কর্মচারী পাওয়া যায়নি'} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {filtered.map((member) => {
@@ -152,7 +147,7 @@ export function PublicTeachersListPage() {
                     />
                     <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/55 via-black/15 to-transparent pointer-events-none" />
                     {dept && (
-                      <span className="absolute bottom-2.5 left-3.5 text-xs font-semibold text-white/95">
+                      <span className="absolute bottom-2.5 left-3.5 text-sm font-semibold text-white/95">
                         {dept.name}
                       </span>
                     )}
@@ -166,7 +161,7 @@ export function PublicTeachersListPage() {
                       {member.designation}
                     </p>
                     {member.qualification && (
-                      <p className="flex items-center gap-1.5 text-xs text-muted-foreground pt-1">
+                      <p className="flex items-center gap-1.5 text-sm text-muted-foreground pt-1">
                         <GraduationCap className="w-3.5 h-3.5 text-primary shrink-0" />
                         <span className="truncate">{member.qualification}</span>
                       </p>
@@ -175,7 +170,7 @@ export function PublicTeachersListPage() {
                 </div>
 
                 <div className="px-4 pb-3.5 pt-2.5 border-t border-border/70 flex items-center justify-between text-sm font-semibold text-primary">
-                  <span>{pick('বিস্তারিত প্রোফাইল', 'View Profile')}</span>
+                  <span>{'বিস্তারিত প্রোফাইল'}</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </Link>

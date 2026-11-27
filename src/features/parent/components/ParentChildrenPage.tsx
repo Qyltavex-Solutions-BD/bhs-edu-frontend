@@ -16,7 +16,6 @@ import {
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -81,13 +80,12 @@ function ChildSwitcherBar({
   selectedStudentId: string;
   onChange: (id: string) => void;
 }) {
-  const { locale, pick } = useI18n();
   if (childrenList.length <= 1) return null;
   return (
     <Card className="p-3.5 flex flex-wrap items-center justify-between gap-3 bg-surface-muted/40">
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
         <Users className="w-4 h-4 text-primary" />
-        <span>{pick('সন্তান নির্বাচন করুন:', 'Select Child:')}</span>
+        <span>{'সন্তান নির্বাচন করুন:'}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {childrenList.map((c) => {
@@ -103,8 +101,8 @@ function ChildSwitcherBar({
                   : 'bg-surface text-foreground border-border hover:bg-surface-muted'
               }`}
             >
-              {locale === 'bn' ? c.student.nameBn || c.student.nameEn : c.student.nameEn} ·{' '}
-              {locale === 'bn' ? c.cls?.nameBn || c.cls?.name : c.cls?.name} ({c.sec?.name})
+              {c.student.nameBn || c.student.nameEn} ·{' '}
+              {c.cls?.nameBn || c.cls?.name} ({c.sec?.name})
             </button>
           );
         })}
@@ -116,14 +114,13 @@ function ChildSwitcherBar({
 export function ParentChildrenPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const { children } = useParentChildren(db);
-  const { locale, pick } = useI18n();
   if (isLoading || !db) return <LoadingSkeleton />;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('আমার সন্তানসমূহ', 'My Children')}
-        description={pick('অধ্যয়নরত সন্তানদের একাডেমিক প্রোফাইল', 'Academic profiles of your enrolled children')}
+        title={'আমার সন্তানসমূহ'}
+        description={'অধ্যয়নরত সন্তানদের একাডেমিক প্রোফাইল'}
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {children.map((c) => {
@@ -133,7 +130,7 @@ export function ParentChildrenPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-bold text-primary">
-                    {locale === 'bn' ? c.student.nameBn || c.student.nameEn : c.student.nameEn}
+                    {c.student.nameBn || c.student.nameEn}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-0.5">
                     {c.student.nameEn} · ID: <span className="font-mono">{c.student.studentId}</span>
@@ -143,40 +140,40 @@ export function ParentChildrenPage() {
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm bg-surface-muted/40 p-3 rounded-[var(--radius)] tabular-nums">
                 <div>
-                  <span className="text-muted-foreground">{pick('শ্রেণি ও শাখা:', 'Class & Section:')}</span>
+                  <span className="text-muted-foreground">{'শ্রেণি ও শাখা:'}</span>
                   <p className="font-semibold mt-0.5">
-                    {locale === 'bn' ? c.cls?.nameBn || c.cls?.name : c.cls?.name} ({c.sec?.name})
+                    {c.cls?.nameBn || c.cls?.name} ({c.sec?.name})
                   </p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">{pick('রোল নম্বর:', 'Roll Number:')}</span>
-                  <p className="font-semibold mt-0.5">{formatNumber(c.enrollment.roll, locale)}</p>
+                  <span className="text-muted-foreground">{'রোল নম্বর:'}</span>
+                  <p className="font-semibold mt-0.5">{formatNumber(c.enrollment.roll, 'bn')}</p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">{pick('বিভাগ:', 'Group:')}</span>
+                  <span className="text-muted-foreground">{'বিভাগ:'}</span>
                   <p className="font-semibold mt-0.5">
-                    {c.grp ? (locale === 'bn' ? c.grp.nameBn || c.grp.name : c.grp.name) : pick('সাধারণ', 'General')}
+                    {c.grp ? (c.grp.nameBn || c.grp.name) : 'সাধারণ'}
                   </p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">{pick('হাজিরা পদ্ধতি:', 'Attendance Mode:')}</span>
+                  <span className="text-muted-foreground">{'হাজিরা পদ্ধতি:'}</span>
                   <p className="font-semibold mt-0.5">{attCfg?.method ?? 'MANUAL'}</p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Link href={`/parent/children/${c.student.id}`}>
                   <Button variant="primary" size="sm">
-                    {pick('বিস্তারিত প্রোফাইল', 'View Details')}
+                    {'বিস্তারিত প্রোফাইল'}
                   </Button>
                 </Link>
                 <Link href="/parent/attendance">
                   <Button variant="outline" size="sm">
-                    {pick('হাজিরা', 'Attendance')}
+                    {'হাজিরা'}
                   </Button>
                 </Link>
                 <Link href="/parent/results">
                   <Button variant="outline" size="sm">
-                    {pick('ফলাফল', 'Results')}
+                    {'ফলাফল'}
                   </Button>
                 </Link>
               </div>

@@ -4,7 +4,7 @@ import { Providers } from '@/src/components/Providers';
 import '@/src/index.css';
 
 export const metadata: Metadata = {
-  title: 'ভোজেশ্বর উচ্চ বিদ্যালয় | Bhojeshwar High School (BHS)',
+  title: 'ভোজেশ্বর উচ্চ বিদ্যালয়',
   description:
     'ভোজেশ্বর উচ্চ বিদ্যালয় (স্থাপিত ১৯৭৮, EIIN: 113587), ভোজেশ্বর, নড়িয়া, শরীয়তপুর — আধুনিক স্কুল ম্যানেজমেন্ট ও ডিজিটাল শিক্ষা প্ল্যাটফর্ম।',
   icons: {

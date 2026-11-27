@@ -39,7 +39,6 @@ import {
 const isUuid = (id?: string) =>
   Boolean(id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id));
 import { useGetStaffQuery } from '@/src/features/staff/api/staff.api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { getTodayWeekDay, PERIOD_META, periodClock, SCHOOL_DAYS } from '@/src/lib/classRoutine';
 import { cn, triggerPrint } from '@/src/lib/utils/cn';
@@ -67,8 +66,6 @@ export function AcademicRoutine({
   db?: MockDatabase;
   year: AcademicYear;
 }) {
-  const { locale, pick } = useI18n();
-
   // API Mutations
   const [createRoutine, { isLoading: adding }] = useCreateClassRoutineMutation();
   const [updateRoutine] = useUpdateClassRoutineMutation();
@@ -246,9 +243,7 @@ export function AcademicRoutine({
   const [composerOpen, setComposerOpen] = useState(false);
 
   const schoolName =
-    locale === 'bn'
-      ? db?.schoolProfile?.name || 'বজ্রেশ্বর উচ্চ বিদ্যালয়'
-      : db?.schoolProfile?.nameEn || 'Vojesshor High School';
+    db?.schoolProfile?.name || 'বজ্রেশ্বর উচ্চ বিদ্যালয়';
 
   // Metrics
   const uniqueTeachersInSection = new Set(
@@ -307,7 +302,7 @@ export function AcademicRoutine({
           editingSlot?.subject?.name ||
           subjectsList.find((s) => s.id === form.classSubjectId)?.name ||
           resolveSubjectName(editingSlot) ||
-          pick('নির্বাচিত বিষয়', 'Selected Subject');
+          'নির্বাচিত বিষয়';
         const fallbackCs = {
           id: form.classSubjectId,
           subjectId: editingSlot?.subject?.id || form.classSubjectId,
@@ -596,7 +591,7 @@ export function AcademicRoutine({
     event.preventDefault();
 
     if (!schoolClass || !effectiveSectionId) {
-      toast.error(pick('শ্রেণি ও শাখা নির্বাচন করুন।', 'Please select class and section.'));
+      toast.error('শ্রেণি ও শাখা নির্বাচন করুন।');
       return;
     }
 
@@ -605,13 +600,13 @@ export function AcademicRoutine({
     // 3-Group Electives submission for Class 9/10
     if (usesGroup && routineType === 'group') {
       const entries = [
-        { group: scienceGroup, data: groupForm.science, label: pick('বিজ্ঞান', 'Science') },
-        { group: humanitiesGroup, data: groupForm.humanities, label: pick('মানবিক', 'Humanities') },
-        { group: businessGroup, data: groupForm.business, label: pick('ব্যবসায় শিক্ষা', 'Business Studies') },
+        { group: scienceGroup, data: groupForm.science, label: 'বিজ্ঞান' },
+        { group: humanitiesGroup, data: groupForm.humanities, label: 'মানবিক' },
+        { group: businessGroup, data: groupForm.business, label: 'ব্যবসায় শিক্ষা' },
       ].filter((item) => Boolean(item.group?.id && item.data.classSubjectId));
 
       if (entries.length === 0) {
-        toast.error(pick('কমপক্ষে একটি বিভাগের বিষয় নির্বাচন করুন।', 'Please select at least one department subject.'));
+        toast.error('কমপক্ষে একটি বিভাগের বিষয় নির্বাচন করুন।');
         return;
       }
 
@@ -634,7 +629,7 @@ export function AcademicRoutine({
               teacherAssignmentId: matchedAssignment?.id || undefined,
               day: form.day,
               periodNumber: form.periodNumber,
-              periodName: pick(clock.labelBn, clock.labelEn),
+              periodName: clock.labelBn,
               startTime: clock.startTime,
               endTime: clock.endTime,
               room: item.data.room.trim() || undefined,
@@ -644,14 +639,14 @@ export function AcademicRoutine({
         );
 
         toast.success(
-          pick('বিভাগভিত্তিক পিরিয়ডগুলো সফলভাবে রুটিনে যুক্ত হয়েছে।', 'Departmental periods added to routine successfully.')
+          'বিভাগভিত্তিক পিরিয়ডগুলো সফলভাবে রুটিনে যুক্ত হয়েছে।'
         );
         setComposerOpen(false);
       } catch (err: any) {
         toast.error(
           formatApiError(
             err,
-            pick('পিরিয়ড বসানো যায়নি। শিক্ষক বা রুম কনফ্লিক্ট হতে পারে।', 'Could not add departmental periods due to conflict.')
+            'পিরিয়ড বসানো যায়নি। শিক্ষক বা রুম কনফ্লিক্ট হতে পারে।'
           )
         );
       }
@@ -661,7 +656,7 @@ export function AcademicRoutine({
     // Edit / Update existing routine slot
     if (editingRoutineId) {
       if (!form.isBreak && !form.classSubjectId) {
-        toast.error(pick('পাঠদানের বিষয় নির্বাচন করুন।', 'Please select a subject.'));
+        toast.error('পাঠদানের বিষয় নির্বাচন করুন।');
         return;
       }
 
@@ -686,8 +681,8 @@ export function AcademicRoutine({
           day: form.day,
           periodNumber: form.periodNumber,
           periodName: form.isBreak
-            ? pick('টিফিন / বিরতি', 'Tiffin / Break')
-            : pick(clock.labelBn, clock.labelEn),
+            ? 'টিফিন / বিরতি'
+            : clock.labelBn,
           startTime: clock.startTime,
           endTime: clock.endTime,
           room: form.room.trim() || undefined,
@@ -695,20 +690,20 @@ export function AcademicRoutine({
         }).unwrap();
 
         toast.success(
-          pick('ক্লাস রুটিন পিরিয়ড সফলভাবে আপডেট করা হয়েছে।', 'Routine period updated successfully.')
+          'ক্লাস রুটিন পিরিয়ড সফলভাবে আপডেট করা হয়েছে।'
         );
         setComposerOpen(false);
         setEditingRoutineId(null);
         setEditingSlot(null);
       } catch (err: any) {
-        toast.error(formatApiError(err, pick('রুটিন আপডেট করা যায়নি।', 'Could not update the period.')));
+        toast.error(formatApiError(err, 'রুটিন আপডেট করা যায়নি।'));
       }
       return;
     }
 
     // Single / Common Slot Submission
     if (!form.isBreak && !form.classSubjectId) {
-      toast.error(pick('পাঠদানের বিষয় নির্বাচন করুন।', 'Please select a subject.'));
+      toast.error('পাঠদানের বিষয় নির্বাচন করুন।');
       return;
     }
 
@@ -732,8 +727,8 @@ export function AcademicRoutine({
         day: form.day,
         periodNumber: form.periodNumber,
         periodName: form.isBreak
-          ? pick('টিফিন / বিরতি', 'Tiffin / Break')
-          : pick(clock.labelBn, clock.labelEn),
+          ? 'টিফিন / বিরতি'
+          : clock.labelBn,
         startTime: clock.startTime,
         endTime: clock.endTime,
         room: form.room.trim() || undefined,
@@ -741,20 +736,20 @@ export function AcademicRoutine({
       }).unwrap();
 
       toast.success(
-        pick('ক্লাস রুটিনে পিরিয়ড সফলভাবে যুক্ত হয়েছে।', 'Routine period added successfully.')
+        'ক্লাস রুটিনে পিরিয়ড সফলভাবে যুক্ত হয়েছে।'
       );
       setComposerOpen(false);
     } catch (err: any) {
-      toast.error(formatApiError(err, pick('পিরিয়ড বসানো যায়নি।', 'Could not add the period.')));
+      toast.error(formatApiError(err, 'পিরিয়ড বসানো যায়নি।'));
     }
   };
 
   const onRemove = async (id: string) => {
     try {
       await deleteRoutine(id).unwrap();
-      toast.success(pick('পিরিয়ড মুছে ফেলা হয়েছে।', 'Period removed.'));
+      toast.success('পিরিয়ড মুছে ফেলা হয়েছে।');
     } catch (err: any) {
-      toast.error(formatApiError(err, pick('পিরিয়ড মোছা যায়নি।', 'Could not remove the period.')));
+      toast.error(formatApiError(err, 'পিরিয়ড মোছা যায়নি।'));
     }
   };
 
@@ -770,10 +765,10 @@ export function AcademicRoutine({
         endTime: clock.endTime,
       }).unwrap();
       toast.success(
-        pick('রুটিন পিরিয়ড সফলভাবে স্থানান্তরিত হয়েছে।', 'Period moved successfully.')
+        'রুটিন পিরিয়ড সফলভাবে স্থানান্তরিত হয়েছে।'
       );
     } catch (err: any) {
-      toast.error(formatApiError(err, pick('এই ঘরে পিরিয়ড সরানো যায়নি।', 'Could not move the period.')));
+      toast.error(formatApiError(err, 'এই ঘরে পিরিয়ড সরানো যায়নি।'));
     } finally {
       setDragRoutineId(null);
     }
@@ -787,21 +782,21 @@ export function AcademicRoutine({
     const gName = grp.name || '';
     if (gName === 'Science') {
       return (
-        <span className="font-bold text-xs text-sky-600 dark:text-sky-400 shrink-0" title="বিজ্ঞান বিভাগ">
+        <span className="font-bold text-sm text-sky-600 dark:text-sky-400 shrink-0" title="বিজ্ঞান বিভাগ">
           [বি]
         </span>
       );
     }
     if (gName === 'Humanities') {
       return (
-        <span className="font-bold text-xs text-purple-600 dark:text-purple-400 shrink-0" title="মানবিক বিভাগ">
+        <span className="font-bold text-sm text-purple-600 dark:text-purple-400 shrink-0" title="মানবিক বিভাগ">
           [মা]
         </span>
       );
     }
     if (gName === 'Business Studies') {
       return (
-        <span className="font-bold text-xs text-amber-600 dark:text-amber-400 shrink-0" title="ব্যবসায় শিক্ষা বিভাগ">
+        <span className="font-bold text-sm text-amber-600 dark:text-amber-400 shrink-0" title="ব্যবসায় শিক্ষা বিভাগ">
           [বা]
         </span>
       );
@@ -809,7 +804,7 @@ export function AcademicRoutine({
 
     const initial = (grp.nameBn || grp.name || '').charAt(0);
     return (
-      <span className="font-bold text-xs text-muted-foreground shrink-0">
+      <span className="font-bold text-sm text-muted-foreground shrink-0">
         [{initial}]
       </span>
     );
@@ -832,8 +827,8 @@ export function AcademicRoutine({
           <button
             type="button"
             onClick={() => openQuickAdd(day, period)}
-            className="w-full min-h-[72px] rounded-[var(--radius)] border border-dashed border-transparent group-hover:border-primary/40 hover:bg-primary/5 flex items-center justify-center text-xs text-muted-foreground/50 hover:text-primary transition-colors cursor-pointer no-print"
-            title={pick('এই পিরিয়ডে ক্লাস যুক্ত করুন', 'Add period here')}
+            className="w-full min-h-[72px] rounded-[var(--radius)] border border-dashed border-transparent group-hover:border-primary/40 hover:bg-primary/5 flex items-center justify-center text-sm text-muted-foreground/50 hover:text-primary transition-colors cursor-pointer no-print"
+            title={'এই পিরিয়ডে ক্লাস যুক্ত করুন'}
           >
             <Plus className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
             <span className="group-hover:hidden">—</span>
@@ -859,22 +854,22 @@ export function AcademicRoutine({
           <div
             onClick={() => openEditModal(slot)}
             className="rounded-[var(--radius)] border border-amber-500/30 bg-amber-500/10 p-2.5 cursor-pointer hover:border-amber-500/70 hover:shadow-xs transition-all"
-            title={pick('বিরতি / টিফিন সম্পাদনা করতে ক্লিক করুন', 'Click to edit break / tiffin')}
+            title={'বিরতি / টিফিন সম্পাদনা করতে ক্লিক করুন'}
           >
             <div className="flex items-start justify-between gap-1">
-              <p className="font-semibold text-amber-700 dark:text-amber-300 text-xs leading-snug">
-                {slot.periodName || pick('বিরতি / টিফিন', 'Break / Tiffin')}
+              <p className="font-semibold text-amber-700 dark:text-amber-300 text-sm leading-snug">
+                {slot.periodName || 'বিরতি / টিফিন'}
               </p>
               <div className="inline-flex items-center gap-0.5 shrink-0 no-print">
                 <button
                   type="button"
                   className="p-1 rounded text-muted-foreground hover:text-primary cursor-pointer transition-colors"
-                  aria-label={pick('পিরিয়ড সম্পাদনা করুন', 'Edit period')}
+                  aria-label={'পিরিয়ড সম্পাদনা করুন'}
                   onClick={(e) => {
                     e.stopPropagation();
                     openEditModal(slot);
                   }}
-                  title={pick('সম্পাদনা / পরিবর্তন', 'Edit period')}
+                  title={'সম্পাদনা / পরিবর্তন'}
                 >
                   <Pencil className="w-3 h-3" />
                 </button>
@@ -885,13 +880,13 @@ export function AcademicRoutine({
                     setDragRoutineId(slot.id);
                   }}
                   className="cursor-grab active:cursor-grabbing p-0.5 rounded text-amber-700/60 dark:text-amber-300/60 hover:bg-amber-500/20"
-                  title={pick('স্থান পরিবর্তন করতে ড্র্যাগ করুন', 'Drag to reschedule')}
+                  title={'স্থান পরিবর্তন করতে ড্র্যাগ করুন'}
                 >
                   <GripVertical className="w-3 h-3" />
                 </span>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1 tabular-nums">
+            <p className="text-sm text-muted-foreground mt-1 tabular-nums">
               {periodClock(slot.periodNumber).timeBn}
             </p>
           </div>
@@ -916,7 +911,7 @@ export function AcademicRoutine({
           <div
             onClick={() => openEditModal(cellSlots[0])}
             className="rounded-[var(--radius)] border border-border/70 bg-background p-1.5 transition-colors shadow-xs cursor-pointer hover:border-primary/50"
-            title={pick('পিরিয়ড সম্পাদনা করতে ক্লিক করুন', 'Click to edit period')}
+            title={'পিরিয়ড সম্পাদনা করতে ক্লিক করুন'}
           >
             <div className="divide-y divide-border/40">
               {cellSlots.map((slot) => {
@@ -932,23 +927,20 @@ export function AcademicRoutine({
                       openEditModal(slot);
                     }}
                     className="group/item flex items-center justify-between gap-1 py-1 px-1 rounded-sm cursor-pointer hover:bg-primary/10 transition-colors"
-                    title={pick(
-                      `${subjectName} — শিক্ষক: ${teacherName}${roomDisplay ? ` (${roomDisplay})` : ''} [ক্লিক করে সম্পাদনা করুন]`,
-                      `${subjectName} — Teacher: ${teacherName}${roomDisplay ? ` (${roomDisplay})` : ''} [Click to edit]`
-                    )}
+                    title={`${subjectName} — শিক্ষক: ${teacherName}${roomDisplay ? ` (${roomDisplay})` : ''} [ক্লিক করে সম্পাদনা করুন]`}
                   >
                     {/* Left: Group Tag + Subject Name + (Teacher Name) beside it */}
                     <div className="flex items-center gap-1 min-w-0">
                       {getGroupShortTag(slot)}
                       <span
-                        className="font-semibold text-foreground text-xs leading-none truncate group-hover/item:text-primary transition-colors"
+                        className="font-semibold text-foreground text-sm leading-none truncate group-hover/item:text-primary transition-colors"
                         title={subjectName}
                       >
                         {subjectName}
                       </span>
                       {teacherName && teacherName !== '—' && (
                         <span
-                          className="text-xs text-muted-foreground leading-none truncate shrink-0 max-w-[100px]"
+                          className="text-sm text-muted-foreground leading-none truncate shrink-0 max-w-[100px]"
                           title={teacherName}
                         >
                           ({teacherName})
@@ -958,7 +950,7 @@ export function AcademicRoutine({
 
                     {/* Right: Clean Short Room Number */}
                     {roomDisplay && (
-                      <span className="text-xs font-medium text-muted-foreground shrink-0 tabular-nums">
+                      <span className="text-sm font-medium text-muted-foreground shrink-0 tabular-nums">
                         {roomDisplay}
                       </span>
                     )}
@@ -975,11 +967,11 @@ export function AcademicRoutine({
                   e.stopPropagation();
                   openQuickAdd(day, period);
                 }}
-                className="mt-1 w-full py-0.5 text-xs text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1 border-t border-dashed border-border/40 cursor-pointer no-print"
-                title={pick('অন্য বিভাগ যুক্ত করুন', 'Add another department')}
+                className="mt-1 w-full py-0.5 text-sm text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1 border-t border-dashed border-border/40 cursor-pointer no-print"
+                title={'অন্য বিভাগ যুক্ত করুন'}
               >
                 <Plus className="w-2.5 h-2.5" />
-                <span>{pick('বিভাগ যোগ', '+ Add')}</span>
+                <span>{'বিভাগ যোগ'}</span>
               </button>
             )}
           </div>
@@ -1005,22 +997,22 @@ export function AcademicRoutine({
         <div
           onClick={() => openEditModal(slot)}
           className="rounded-[var(--radius)] border border-border/70 bg-background p-2.5 cursor-pointer hover:border-primary hover:bg-primary/[0.03] hover:shadow-xs transition-all group"
-          title={pick('রুটিন পিরিয়ড সম্পাদনা করতে ক্লিক করুন', 'Click to edit routine period')}
+          title={'রুটিন পিরিয়ড সম্পাদনা করতে ক্লিক করুন'}
         >
           <div className="flex items-start justify-between gap-1">
-            <p className="font-semibold text-foreground text-xs leading-snug line-clamp-1 group-hover:text-primary transition-colors">
+            <p className="font-semibold text-foreground text-sm leading-snug line-clamp-1 group-hover:text-primary transition-colors">
               {subjectName}
             </p>
             <span className="inline-flex items-center gap-0.5 shrink-0 no-print">
               <button
                 type="button"
                 className="p-0.5 rounded text-muted-foreground hover:text-primary cursor-pointer transition-colors"
-                aria-label={pick('পিরিয়ড সম্পাদনা করুন', 'Edit period')}
+                aria-label={'পিরিয়ড সম্পাদনা করুন'}
                 onClick={(e) => {
                   e.stopPropagation();
                   openEditModal(slot);
                 }}
-                title={pick('সম্পাদনা / পরিবর্তন', 'Edit period')}
+                title={'সম্পাদনা / পরিবর্তন'}
               >
                 <Pencil className="w-3 h-3" />
               </button>
@@ -1031,14 +1023,14 @@ export function AcademicRoutine({
                   setDragRoutineId(slot.id);
                 }}
                 className="cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-surface-muted"
-                title={pick('স্থান পরিবর্তন করতে ড্র্যাগ করুন', 'Drag to reschedule')}
+                title={'স্থান পরিবর্তন করতে ড্র্যাগ করুন'}
               >
                 <GripVertical className="w-3 h-3 text-muted-foreground" />
               </span>
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1 truncate">{teacherName}</p>
-          <p className="text-xs text-primary font-medium tabular-nums mt-0.5">{cleanRoom(slot.room) || '—'}</p>
+          <p className="text-sm text-muted-foreground mt-1 truncate">{teacherName}</p>
+          <p className="text-sm text-primary font-medium tabular-nums mt-0.5">{cleanRoom(slot.room) || '—'}</p>
         </div>
       </td>
     );
@@ -1051,21 +1043,19 @@ export function AcademicRoutine({
       return (
         <td
           key={period}
-          className="p-2.5 align-top border-r border-border/50 last:border-r-0 text-xs text-muted-foreground/60"
+          className="p-2.5 align-top border-r border-border/50 last:border-r-0 text-sm text-muted-foreground/60"
         >
-          {pick('বিরতি / অবসর', 'Free')}
+          {'বিরতি / অবসর'}
         </td>
       );
     }
 
     const subName = resolveSubjectName(slot);
-    const clsName = slot.class?.name || (locale === 'bn' ? schoolClass?.nameBn || schoolClass?.name : schoolClass?.name) || '';
+    const clsName = slot.class?.name || (schoolClass?.nameBn || schoolClass?.name) || '';
     const secName = slot.section?.name || section?.name || '';
     const grp = slot.group ? groupList.find((g) => g.id === slot.group?.id) ?? slot.group : null;
     const grpLabel = grp
-      ? locale === 'bn'
-        ? (grp as AcademicGroup).nameBn || grp.name
-        : grp.name
+      ? (grp as AcademicGroup).nameBn || grp.name
       : null;
 
     return (
@@ -1073,22 +1063,22 @@ export function AcademicRoutine({
         <div
           onClick={() => openEditModal(slot)}
           className="rounded-[var(--radius)] border border-primary/25 bg-primary/[0.04] p-2.5 shadow-xs cursor-pointer hover:border-primary hover:bg-primary/[0.08] hover:shadow-xs transition-all"
-          title={pick('রুটিন সম্পাদনা করতে ক্লিক করুন', 'Click to edit routine')}
+          title={'রুটিন সম্পাদনা করতে ক্লিক করুন'}
         >
           <div className="flex items-center justify-between gap-1 mb-1">
-            <p className="font-semibold text-foreground text-xs leading-snug line-clamp-1">
-              {slot.isBreak ? pick('বিরতি', 'Break') : subName}
+            <p className="font-semibold text-foreground text-sm leading-snug line-clamp-1">
+              {slot.isBreak ? 'বিরতি' : subName}
             </p>
             {grpLabel && (
-              <span className="px-1.5 py-0.2 rounded text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+              <span className="px-1.5 py-0.2 rounded text-sm font-bold bg-primary/10 text-primary border border-primary/20">
                 {grpLabel}
               </span>
             )}
           </div>
-          <p className="text-xs text-primary font-medium truncate">
+          <p className="text-sm text-primary font-medium truncate">
             {clsName} ({secName})
           </p>
-          <p className="text-xs text-muted-foreground tabular-nums mt-0.5">{cleanRoom(slot.room) || '—'}</p>
+          <p className="text-sm text-muted-foreground tabular-nums mt-0.5">{cleanRoom(slot.room) || '—'}</p>
         </div>
       </td>
     );
@@ -1115,7 +1105,7 @@ export function AcademicRoutine({
               )}
             >
               <Users className="w-4 h-4" />
-              {pick('শাখাভিত্তিক রুটিন', 'Section Timetable')}
+              {'শাখাভিত্তিক রুটিন'}
             </button>
             <button
               type="button"
@@ -1128,7 +1118,7 @@ export function AcademicRoutine({
               )}
             >
               <UserCheck className="w-4 h-4" />
-              {pick('শিক্ষকভিত্তিক সময়সূচি', 'Teacher Schedule')}
+              {'শিক্ষকভিত্তিক সময়সূচি'}
             </button>
           </div>
 
@@ -1136,12 +1126,12 @@ export function AcademicRoutine({
             {viewMode === 'section' && (
               <Button variant="primary" size="sm" onClick={() => openQuickAdd(WeekDay.SUNDAY, 1)}>
                 <Plus className="w-4 h-4" />
-                {pick('পিরিয়ড যুক্ত করুন', 'Add period')}
+                {'পিরিয়ড যুক্ত করুন'}
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={triggerPrint}>
               <Printer className="w-4 h-4" />
-              {pick('রুটিন প্রিন্ট', 'Print Routine')}
+              {'রুটিন প্রিন্ট'}
             </Button>
           </div>
         </div>
@@ -1149,7 +1139,7 @@ export function AcademicRoutine({
         <div className="pt-3 border-t border-border flex flex-wrap items-center justify-between gap-3">
           {viewMode === 'section' ? (
             <div className="flex flex-wrap items-center gap-3">
-              <FormField label={pick('শ্রেণি', 'Class')}>
+              <FormField label={'শ্রেণি'}>
                 <Select
                   value={schoolClass?.id ?? ''}
                   onChange={(event) => chooseClass(event.target.value)}
@@ -1157,13 +1147,13 @@ export function AcademicRoutine({
                 >
                   {classList.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {locale === 'bn' ? item.nameBn || item.name : item.name}
+                      {item.nameBn || item.name}
                     </option>
                   ))}
                 </Select>
               </FormField>
 
-              <FormField label={pick('শাখা', 'Section')}>
+              <FormField label={'শাখা'}>
                 <Select
                   value={effectiveSectionId}
                   onChange={(event) => chooseSection(event.target.value)}
@@ -1171,14 +1161,14 @@ export function AcademicRoutine({
                 >
                   {sections.map((item) => (
                     <option key={item.id} value={item.id}>
-                      {pick('শাখা:', 'Section:')} {item.name}
+                      {'শাখা:'} {item.name}
                     </option>
                   ))}
                 </Select>
               </FormField>
             </div>
           ) : (
-            <FormField label={pick('শিক্ষক নির্বাচন করুন', 'Select Teacher')}>
+            <FormField label={'শিক্ষক নির্বাচন করুন'}>
               <Select
                 value={effectiveTeacherId}
                 onChange={(event) => setSelectedTeacherId(event.target.value)}
@@ -1186,27 +1176,19 @@ export function AcademicRoutine({
               >
                 {teachers.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name} — {t.designation || pick('শিক্ষক', 'Teacher')}
+                    {t.name} — {t.designation || 'শিক্ষক'}
                   </option>
                 ))}
               </Select>
             </FormField>
           )}
 
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {viewMode === 'section'
-              ? pick(
-                  usesGroup
+              ? usesGroup
                     ? 'ক্লাস ৯–১০ এর ক্ষেত্রে বিভাগভিত্তিক পিরিয়ডে বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা একই বক্সে আলাদা কার্ডে প্রদর্শিত হয়।'
-                    : 'টিপস: যেকোনো পিরিয়ড ড্র্যাগ করে অন্য ঘরে সরানো যাবে অথবা খালি ঘরে ক্লিক করে সরাসরি ক্লাস বসানো যাবে।',
-                  usesGroup
-                    ? 'For Classes 9–10, departmental periods (Science, Humanities, Business) are neatly shown together in the same period box.'
-                    : 'Tip: Drag any period card to reschedule, or click an empty cell to add a class.'
-                )
-              : pick(
-                  'প্রতিটি শিক্ষকের সাপ্তাহিক পাঠদান ও অবসর সময়সূচি (শূন্য কনফ্লিক্ট)।',
-                  'Weekly class load and free periods per teacher (zero double-booking).'
-                )}
+                    : 'টিপস: যেকোনো পিরিয়ড ড্র্যাগ করে অন্য ঘরে সরানো যাবে অথবা খালি ঘরে ক্লিক করে সরাসরি ক্লাস বসানো যাবে।'
+              : 'প্রতিটি শিক্ষকের সাপ্তাহিক পাঠদান ও অবসর সময়সূচি (শূন্য কনফ্লিক্ট)।'}
           </p>
         </div>
       </Card>
@@ -1221,25 +1203,13 @@ export function AcademicRoutine({
               <div className="space-y-0.5">
                 <p className="text-sm font-semibold text-foreground">
                   {classSubjects.length === 0
-                    ? pick(
-                        `${schoolClass.nameBn || schoolClass.name} শ্রেণিতে এখনো কোনো বিষয় যুক্ত করা হয়নি`,
-                        `No subjects configured yet for ${schoolClass.name}`
-                      )
-                    : pick(
-                        `${schoolClass.nameBn || schoolClass.name} (${section?.name ?? ''}) শাখায় এখনো বিষয়ভিত্তিক শিক্ষক বণ্টন করা হয়নি`,
-                        `No subject-teacher assignments found yet for ${schoolClass.name} (${section?.name ?? ''})`
-                      )}
+                    ? `${schoolClass.nameBn || schoolClass.name} শ্রেণিতে এখনো কোনো বিষয় যুক্ত করা হয়নি`
+                    : `${schoolClass.nameBn || schoolClass.name} (${section?.name ?? ''}) শাখায় এখনো বিষয়ভিত্তিক শিক্ষক বণ্টন করা হয়নি`}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {classSubjects.length === 0
-                    ? pick(
-                        'সহজে রুটিন তৈরি করতে আগে ধাপ ৩-এ গিয়ে এই শ্রেণির বিষয়গুলো নির্ধারণ করুন।',
-                        'Configure subjects for this class in Step 3 first for smooth routine scheduling.'
-                      )
-                    : pick(
-                        'ধাপ ৪-এ গিয়ে বিষয়ভিত্তিক শিক্ষক নির্ধারণ করলে রুটিন তৈরির সময় শিক্ষক স্বয়ংক্রিয়ভাবে সিলেক্ট হবে।',
-                        'Assigning teachers in Step 4 auto-selects teachers when scheduling periods.'
-                      )}
+                    ? 'সহজে রুটিন তৈরি করতে আগে ধাপ ৩-এ গিয়ে এই শ্রেণির বিষয়গুলো নির্ধারণ করুন।'
+                    : 'ধাপ ৪-এ গিয়ে বিষয়ভিত্তিক শিক্ষক নির্ধারণ করলে রুটিন তৈরির সময় শিক্ষক স্বয়ংক্রিয়ভাবে সিলেক্ট হবে।'}
                 </p>
               </div>
             </div>
@@ -1247,18 +1217,18 @@ export function AcademicRoutine({
               {classSubjects.length === 0 && (
                 <Link
                   href="/admin/academic/class-subjects"
-                  className="inline-flex items-center gap-1.5 rounded-[var(--radius)] bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-[var(--radius)] bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
-                  {pick('ধাপ ৩: বিষয় যুক্ত করুন', 'Step 3: Add Subjects')}
+                  {'ধাপ ৩: বিষয় যুক্ত করুন'}
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               )}
               {assignments.length === 0 && (
                 <Link
                   href="/admin/academic/teacher-assignments"
-                  className="inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-surface-muted transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-[var(--radius)] border border-border bg-card px-3 py-1.5 text-sm font-semibold text-foreground hover:bg-surface-muted transition-colors"
                 >
-                  {pick('ধাপ ৪: শিক্ষক বণ্টন করুন', 'Step 4: Assign Teachers')}
+                  {'ধাপ ৪: শিক্ষক বণ্টন করুন'}
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               )}
@@ -1276,19 +1246,13 @@ export function AcademicRoutine({
         }}
         title={
           editingRoutineId
-            ? pick('রুটিন পিরিয়ড আপডেট করুন', 'Update Routine Period')
-            : pick('রুটিনে নতুন পিরিয়ড বসান', 'Schedule Routine Period')
+            ? 'রুটিন পিরিয়ড আপডেট করুন'
+            : 'রুটিনে নতুন পিরিয়ড বসান'
         }
         description={
           editingRoutineId
-            ? pick(
-                'নির্বাচিত পিরিয়ডের বিষয়, শিক্ষক, কক্ষ বা সময় পরিবর্তন করুন।',
-                'Update subject, teacher, room, or timing for this period.'
-              )
-            : pick(
-                'সরাসরি নির্বাচিত শ্রেণির রুটিনে নতুন পিরিয়ড যুক্ত করুন।',
-                'Add a subject period directly to the active section routine.'
-              )
+            ? 'নির্বাচিত পিরিয়ডের বিষয়, শিক্ষক, কক্ষ বা সময় পরিবর্তন করুন।'
+            : 'সরাসরি নির্বাচিত শ্রেণির রুটিনে নতুন পিরিয়ড যুক্ত করুন।'
         }
         size="lg"
       >
@@ -1300,19 +1264,19 @@ export function AcademicRoutine({
                 {section?.name || 'ক'}
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-primary">
-                  {pick('নির্বাচিত শ্রেণি ও শাখা', 'SELECTED SECTION')}
+                <p className="text-sm font-bold uppercase tracking-wider text-primary">
+                  {'নির্বাচিত শ্রেণি ও শাখা'}
                 </p>
                 <p className="text-sm font-bold text-foreground">
-                  {locale === 'bn' ? schoolClass?.nameBn || schoolClass?.name : schoolClass?.name} · {pick('শাখা', 'Section')} {section?.name || 'ক'}
+                  {schoolClass?.nameBn || schoolClass?.name} · {'শাখা'} {section?.name || 'ক'}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-xs uppercase font-bold text-muted-foreground">
-                {pick('ডিফল্ট কক্ষ', 'Default Room')}
+              <p className="text-sm uppercase font-bold text-muted-foreground">
+                {'ডিফল্ট কক্ষ'}
               </p>
-              <p className="text-xs font-semibold text-foreground">
+              <p className="text-sm font-semibold text-foreground">
                 {cleanRoom(form.room) || 'রুম ২০১'}
               </p>
             </div>
@@ -1325,33 +1289,33 @@ export function AcademicRoutine({
                 type="button"
                 onClick={() => setRoutineType('single')}
                 className={cn(
-                  'py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer text-center',
+                  'py-2 px-3 rounded-lg text-sm font-semibold transition-all cursor-pointer text-center',
                   routineType === 'single'
                     ? 'bg-background text-foreground shadow-xs font-bold'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                {pick('একক / সাধারণ বিষয়', 'Single / Common Subject')}
+                {'একক / সাধারণ বিষয়'}
               </button>
               <button
                 type="button"
                 onClick={() => setRoutineType('group')}
                 className={cn(
-                  'py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5',
+                  'py-2 px-3 rounded-lg text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5',
                   routineType === 'group'
                     ? 'bg-background text-primary shadow-xs font-bold'
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 <Layers className="w-3.5 h-3.5" />
-                {pick('বিভাগভিত্তিক (বিজ্ঞান + মানবিক + ব্যবসায়)', '3-Group Elective (Sci + Arts + Com)')}
+                {'বিভাগভিত্তিক (বিজ্ঞান + মানবিক + ব্যবসায়)'}
               </button>
             </div>
           )}
 
           {/* Department Selector when editing a Class 9/10 slot */}
           {usesGroup && editingRoutineId && (
-            <FormField label={pick('বিভাগ (গ্রুপ)', 'Department / Group')}>
+            <FormField label={'বিভাগ (গ্রুপ)'}>
               <Select
                 value={form.groupId}
                 onChange={(event) => {
@@ -1359,10 +1323,10 @@ export function AcademicRoutine({
                   setForm({ ...form, groupId: nextGId, classSubjectId: '' });
                 }}
               >
-                <option value="">{pick('সাধারণ (সকলের জন্য সমবেত)', 'General / Common for All')}</option>
+                <option value="">{'সাধারণ (সকলের জন্য সমবেত)'}</option>
                 {groupList.map((g) => (
                   <option key={g.id} value={g.id}>
-                    {locale === 'bn' ? g.nameBn || g.name : g.name}
+                    {g.nameBn || g.name}
                   </option>
                 ))}
               </Select>
@@ -1371,27 +1335,27 @@ export function AcademicRoutine({
 
           {/* Schedule Timing (Day & Period) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label={pick('সপ্তাহের বার *', 'Day of Week *')} required>
+            <FormField label={'সপ্তাহের বার *'} required>
               <Select
                 value={form.day}
                 onChange={(event) => setForm({ ...form, day: event.target.value as WeekDay })}
               >
                 {SCHOOL_DAYS.map((day) => (
                   <option key={day} value={day}>
-                    {pick(DAY_LABEL[day][0], DAY_LABEL[day][1])}
+                    {DAY_LABEL[day][0]}
                   </option>
                 ))}
               </Select>
             </FormField>
 
-            <FormField label={pick('সময় / পিরিয়ড *', 'Time / Period *')} required>
+            <FormField label={'সময় / পিরিয়ড *'} required>
               <Select
                 value={form.periodNumber}
                 onChange={(event) => setForm({ ...form, periodNumber: Number(event.target.value) })}
               >
                 {PERIOD_META.map((period) => (
                   <option key={period.period} value={period.period}>
-                    {pick(period.labelBn, period.labelEn)} · {pick(period.timeBn, period.timeEn)}
+                    {period.labelBn} · {period.timeBn}
                   </option>
                 ))}
               </Select>
@@ -1404,11 +1368,11 @@ export function AcademicRoutine({
               {/* Break Toggle */}
               <div className="flex items-center justify-between p-3 rounded-lg bg-surface-muted/60 border border-border">
                 <div>
-                  <p className="text-xs font-semibold text-foreground">
-                    {pick('টিফিন বা সাধারণ বিরতি?', 'Break or Tiffin Slot?')}
+                  <p className="text-sm font-semibold text-foreground">
+                    {'টিফিন বা সাধারণ বিরতি?'}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {pick('বিরতি নির্বাচন করলে বিষয় ও শিক্ষক নির্বাচনের প্রয়োজন নেই।', 'Break periods do not require subject or teacher.')}
+                  <p className="text-sm text-muted-foreground">
+                    {'বিরতি নির্বাচন করলে বিষয় ও শিক্ষক নির্বাচনের প্রয়োজন নেই।'}
                   </p>
                 </div>
                 <input
@@ -1423,7 +1387,7 @@ export function AcademicRoutine({
               {!form.isBreak && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* Subject */}
-                  <FormField label={pick('বিষয় *', 'Subject *')} required>
+                  <FormField label={'বিষয় *'} required>
                     <Select
                       value={form.classSubjectId}
                       onChange={(event) => {
@@ -1437,15 +1401,15 @@ export function AcademicRoutine({
                         });
                       }}
                     >
-                      <option value="">{pick('বিষয় বাছাই করুন', 'Select Subject')}</option>
+                      <option value="">{'বিষয় বাছাই করুন'}</option>
                       {selectableSubjects.map((cs) => {
                         const subName = cs.subject?.name || subjectsList.find((s) => s.id === cs.subjectId)?.name || '—';
                         const grp = cs.group || (cs.groupId ? groupList.find((g) => g.id === cs.groupId) : null);
-                        const grpTag = grp ? ` [${locale === 'bn' ? grp.nameBn || grp.name : grp.name}]` : '';
+                        const grpTag = grp ? ` [${grp.nameBn || grp.name}]` : '';
 
                         return (
                           <option key={cs.id} value={cs.id}>
-                            {subName}{grpTag} {cs.isOptional ? `(${pick('ঐচ্ছিক', 'Optional')})` : ''}
+                            {subName}{grpTag} {cs.isOptional ? `(${'ঐচ্ছিক'})` : ''}
                           </option>
                         );
                       })}
@@ -1453,19 +1417,19 @@ export function AcademicRoutine({
                   </FormField>
 
                   {/* Teacher */}
-                  <FormField label={pick('শিক্ষক', 'Teacher')}>
+                  <FormField label={'শিক্ষক'}>
                     <Select
                       value={form.staffId}
                       onChange={(event) => setForm({ ...form, staffId: event.target.value })}
                     >
-                      <option value="">{pick('শিক্ষক বাছাই করুন', 'Select Teacher')}</option>
+                      <option value="">{'শিক্ষক বাছাই করুন'}</option>
                       {(() => {
                         const list = getTeachersForSubject(form.classSubjectId);
                         if (form.staffId && !list.some((t) => t.id === form.staffId)) {
                           const matchedTeacher = teachers.find((t) => t.id === form.staffId) || {
                             id: form.staffId,
                             name: editingSlot?.teacher?.name || 'নির্ধারিত শিক্ষক',
-                            designation: editingSlot?.teacher?.designation || pick('শিক্ষক', 'Teacher'),
+                            designation: editingSlot?.teacher?.designation || 'শিক্ষক',
                           };
                           return [matchedTeacher as any, ...list];
                         }
@@ -1476,7 +1440,7 @@ export function AcademicRoutine({
                         );
                         return (
                           <option key={t.id} value={t.id}>
-                            {t.name} {isAssigned ? '★ [নির্ধারিত শিক্ষক]' : ''} ({t.designation || pick('শিক্ষক', 'Teacher')})
+                            {t.name} {isAssigned ? '★ [নির্ধারিত শিক্ষক]' : ''} ({t.designation || 'শিক্ষক'})
                           </option>
                         );
                       })}
@@ -1484,11 +1448,11 @@ export function AcademicRoutine({
                   </FormField>
 
                   {/* Room */}
-                  <FormField label={pick('কক্ষ নম্বর *', 'Room / Lab *')}>
+                  <FormField label={'কক্ষ নম্বর *'}>
                     <Input
                       value={form.room}
                       onChange={(event) => setForm({ ...form, room: event.target.value })}
-                      placeholder={pick('রুম ২০১', 'Room 201')}
+                      placeholder={'রুম ২০১'}
                     />
                   </FormField>
                 </div>
@@ -1500,28 +1464,25 @@ export function AcademicRoutine({
           {usesGroup && routineType === 'group' && (
             <div className="space-y-3.5">
               {/* Info Alert */}
-              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-200">
+              <div className="flex items-start gap-2.5 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm text-amber-800 dark:text-amber-200">
                 <Lightbulb className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
                 <p>
-                  {pick(
-                    'বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা বিভাগের শিক্ষার্থীরা একই সময়ে নিজ নিজ কক্ষে আলাদা বিষয়ে ক্লাসে অংশ নেবে।',
-                    'Science, Arts, and Commerce students will attend their respective elective subjects simultaneously in separate rooms.'
-                  )}
+                  {'বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা বিভাগের শিক্ষার্থীরা একই সময়ে নিজ নিজ কক্ষে আলাদা বিষয়ে ক্লাসে অংশ নেবে।'}
                 </p>
               </div>
 
               {/* 1. Science Group Card */}
               <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.03] dark:bg-emerald-500/[0.06] space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-emerald-600 text-white tracking-wide">
-                    {pick('বিজ্ঞান বিভাগ (SCIENCE GROUP)', 'SCIENCE GROUP')}
+                  <span className="px-2.5 py-0.5 rounded text-sm font-bold bg-emerald-600 text-white tracking-wide">
+                    {'বিজ্ঞান বিভাগ (SCIENCE GROUP)'}
                   </span>
-                  <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    {scienceSubjects.length} {pick('টি বিষয় উপলব্ধ', 'Subjects Available')}
+                  <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                    {scienceSubjects.length} {'টি বিষয় উপলব্ধ'}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <FormField label={pick('বিষয় *', 'Subject *')} required>
+                  <FormField label={'বিষয় *'} required>
                     <Select
                       value={groupForm.science.classSubjectId}
                       onChange={(e) => {
@@ -1538,19 +1499,19 @@ export function AcademicRoutine({
                         });
                       }}
                     >
-                      <option value="">{pick('বিষয় নির্বাচন করুন', 'Select Subject')}</option>
+                      <option value="">{'বিষয় নির্বাচন করুন'}</option>
                       {scienceSubjects.map((cs) => {
                         const subName = cs.subject?.name || subjectsList.find((s) => s.id === cs.subjectId)?.name || '—';
                         return (
                           <option key={cs.id} value={cs.id}>
-                            {subName} {cs.isOptional ? `(${pick('ঐচ্ছিক', 'Optional')})` : ''}
+                            {subName} {cs.isOptional ? `(${'ঐচ্ছিক'})` : ''}
                           </option>
                         );
                       })}
                     </Select>
                   </FormField>
 
-                  <FormField label={pick('শিক্ষক', 'Teacher')}>
+                  <FormField label={'শিক্ষক'}>
                     <Select
                       value={groupForm.science.staffId}
                       onChange={(e) =>
@@ -1560,16 +1521,16 @@ export function AcademicRoutine({
                         })
                       }
                     >
-                      <option value="">{pick('শিক্ষক বাছাই করুন', 'Select Teacher')}</option>
+                      <option value="">{'শিক্ষক বাছাই করুন'}</option>
                       {getTeachersForSubject(groupForm.science.classSubjectId).map((t) => (
                         <option key={t.id} value={t.id}>
-                          {t.name} ({t.designation || pick('শিক্ষক', 'Teacher')})
+                          {t.name} ({t.designation || 'শিক্ষক'})
                         </option>
                       ))}
                     </Select>
                   </FormField>
 
-                  <FormField label={pick('কক্ষ / ল্যাব *', 'Room / Lab *')}>
+                  <FormField label={'কক্ষ / ল্যাব *'}>
                     <Input
                       value={groupForm.science.room}
                       onChange={(e) =>
@@ -1578,7 +1539,7 @@ export function AcademicRoutine({
                           science: { ...groupForm.science, room: e.target.value },
                         })
                       }
-                      placeholder={pick('পদার্থবিজ্ঞান ল্যাব', 'Physics Lab')}
+                      placeholder={'পদার্থবিজ্ঞান ল্যাব'}
                     />
                   </FormField>
                 </div>
@@ -1587,15 +1548,15 @@ export function AcademicRoutine({
               {/* 2. Humanities / Arts Group Card */}
               <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/[0.03] dark:bg-amber-500/[0.06] space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-amber-600 text-white tracking-wide">
-                    {pick('মানবিক বিভাগ (HUMANITIES / ARTS GROUP)', 'ARTS / HUMANITIES GROUP')}
+                  <span className="px-2.5 py-0.5 rounded text-sm font-bold bg-amber-600 text-white tracking-wide">
+                    {'মানবিক বিভাগ (HUMANITIES / ARTS GROUP)'}
                   </span>
-                  <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">
-                    {humanitiesSubjects.length} {pick('টি বিষয় উপলব্ধ', 'Subjects Available')}
+                  <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                    {humanitiesSubjects.length} {'টি বিষয় উপলব্ধ'}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <FormField label={pick('বিষয় *', 'Subject *')} required>
+                  <FormField label={'বিষয় *'} required>
                     <Select
                       value={groupForm.humanities.classSubjectId}
                       onChange={(e) => {
@@ -1612,19 +1573,19 @@ export function AcademicRoutine({
                         });
                       }}
                     >
-                      <option value="">{pick('বিষয় নির্বাচন করুন', 'Select Subject')}</option>
+                      <option value="">{'বিষয় নির্বাচন করুন'}</option>
                       {humanitiesSubjects.map((cs) => {
                         const subName = cs.subject?.name || subjectsList.find((s) => s.id === cs.subjectId)?.name || '—';
                         return (
                           <option key={cs.id} value={cs.id}>
-                            {subName} {cs.isOptional ? `(${pick('ঐচ্ছিক', 'Optional')})` : ''}
+                            {subName} {cs.isOptional ? `(${'ঐচ্ছিক'})` : ''}
                           </option>
                         );
                       })}
                     </Select>
                   </FormField>
 
-                  <FormField label={pick('শিক্ষক', 'Teacher')}>
+                  <FormField label={'শিক্ষক'}>
                     <Select
                       value={groupForm.humanities.staffId}
                       onChange={(e) =>
@@ -1634,16 +1595,16 @@ export function AcademicRoutine({
                         })
                       }
                     >
-                      <option value="">{pick('শিক্ষক বাছাই করুন', 'Select Teacher')}</option>
+                      <option value="">{'শিক্ষক বাছাই করুন'}</option>
                       {getTeachersForSubject(groupForm.humanities.classSubjectId).map((t) => (
                         <option key={t.id} value={t.id}>
-                          {t.name} ({t.designation || pick('শিক্ষক', 'Teacher')})
+                          {t.name} ({t.designation || 'শিক্ষক'})
                         </option>
                       ))}
                     </Select>
                   </FormField>
 
-                  <FormField label={pick('কক্ষ / ল্যাব *', 'Room / Lab *')}>
+                  <FormField label={'কক্ষ / ল্যাব *'}>
                     <Input
                       value={groupForm.humanities.room}
                       onChange={(e) =>
@@ -1652,7 +1613,7 @@ export function AcademicRoutine({
                           humanities: { ...groupForm.humanities, room: e.target.value },
                         })
                       }
-                      placeholder={pick('রুম ২০৮', 'Room 208')}
+                      placeholder={'রুম ২০৮'}
                     />
                   </FormField>
                 </div>
@@ -1661,15 +1622,15 @@ export function AcademicRoutine({
               {/* 3. Commerce / Business Studies Group Card */}
               <div className="p-3.5 rounded-xl border border-sky-500/30 bg-sky-500/[0.03] dark:bg-sky-500/[0.06] space-y-2.5">
                 <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded text-xs font-bold bg-sky-600 text-white tracking-wide">
-                    {pick('ব্যবসায় শিক্ষা বিভাগ (COMMERCE / BUSINESS STUDIES GROUP)', 'COMMERCE / BUSINESS STUDIES GROUP')}
+                  <span className="px-2.5 py-0.5 rounded text-sm font-bold bg-sky-600 text-white tracking-wide">
+                    {'ব্যবসায় শিক্ষা বিভাগ (COMMERCE / BUSINESS STUDIES GROUP)'}
                   </span>
-                  <span className="text-xs font-semibold text-sky-600 dark:text-sky-400">
-                    {businessSubjects.length} {pick('টি বিষয় উপলব্ধ', 'Subjects Available')}
+                  <span className="text-sm font-semibold text-sky-600 dark:text-sky-400">
+                    {businessSubjects.length} {'টি বিষয় উপলব্ধ'}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <FormField label={pick('বিষয় *', 'Subject *')} required>
+                  <FormField label={'বিষয় *'} required>
                     <Select
                       value={groupForm.business.classSubjectId}
                       onChange={(e) => {
@@ -1686,19 +1647,19 @@ export function AcademicRoutine({
                         });
                       }}
                     >
-                      <option value="">{pick('বিষয় নির্বাচন করুন', 'Select Subject')}</option>
+                      <option value="">{'বিষয় নির্বাচন করুন'}</option>
                       {businessSubjects.map((cs) => {
                         const subName = cs.subject?.name || subjectsList.find((s) => s.id === cs.subjectId)?.name || '—';
                         return (
                           <option key={cs.id} value={cs.id}>
-                            {subName} {cs.isOptional ? `(${pick('ঐচ্ছিক', 'Optional')})` : ''}
+                            {subName} {cs.isOptional ? `(${'ঐচ্ছিক'})` : ''}
                           </option>
                         );
                       })}
                     </Select>
                   </FormField>
 
-                  <FormField label={pick('শিক্ষক', 'Teacher')}>
+                  <FormField label={'শিক্ষক'}>
                     <Select
                       value={groupForm.business.staffId}
                       onChange={(e) =>
@@ -1708,16 +1669,16 @@ export function AcademicRoutine({
                         })
                       }
                     >
-                      <option value="">{pick('শিক্ষক বাছাই করুন', 'Select Teacher')}</option>
+                      <option value="">{'শিক্ষক বাছাই করুন'}</option>
                       {getTeachersForSubject(groupForm.business.classSubjectId).map((t) => (
                         <option key={t.id} value={t.id}>
-                          {t.name} ({t.designation || pick('শিক্ষক', 'Teacher')})
+                          {t.name} ({t.designation || 'শিক্ষক'})
                         </option>
                       ))}
                     </Select>
                   </FormField>
 
-                  <FormField label={pick('কক্ষ / ল্যাব *', 'Room / Lab *')}>
+                  <FormField label={'কক্ষ / ল্যাব *'}>
                     <Input
                       value={groupForm.business.room}
                       onChange={(e) =>
@@ -1726,7 +1687,7 @@ export function AcademicRoutine({
                           business: { ...groupForm.business, room: e.target.value },
                         })
                       }
-                      placeholder={pick('রুম ২০৯', 'Room 209')}
+                      placeholder={'রুম ২০৯'}
                     />
                   </FormField>
                 </div>
@@ -1741,7 +1702,7 @@ export function AcademicRoutine({
                 type="button"
                 variant="destructive"
                 onClick={() => {
-                  if (confirm(pick('আপনি কি নিশ্চিত যে এই পিরিয়ডটি মুছে ফেলতে চান?', 'Are you sure you want to delete this period?'))) {
+                  if (confirm('আপনি কি নিশ্চিত যে এই পিরিয়ডটি মুছে ফেলতে চান?')) {
                     void onRemove(editingRoutineId);
                     setComposerOpen(false);
                     setEditingRoutineId(null);
@@ -1750,7 +1711,7 @@ export function AcademicRoutine({
                 }}
               >
                 <Trash2 className="w-4 h-4 mr-1" />
-                {pick('পিরিয়ড মুছুন', 'Delete')}
+                {'পিরিয়ড মুছুন'}
               </Button>
             ) : (
               <span />
@@ -1765,15 +1726,15 @@ export function AcademicRoutine({
                   setEditingSlot(null);
                 }}
               >
-                {pick('বাতিল', 'Cancel')}
+                {'বাতিল'}
               </Button>
               <Button type="submit" variant="primary" disabled={adding}>
                 <Check className="w-4 h-4 mr-1" />
                 {adding
-                  ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
+                  ? 'সংরক্ষণ হচ্ছে...'
                   : editingRoutineId
-                  ? pick('আপডেট সংরক্ষণ করুন', 'Update Period')
-                  : pick('রুটিনে যুক্ত করুন', 'Save to Routine')}
+                  ? 'আপডেট সংরক্ষণ করুন'
+                  : 'রুটিনে যুক্ত করুন'}
               </Button>
             </div>
           </div>
@@ -1786,53 +1747,47 @@ export function AcademicRoutine({
           <SchoolEmblem size={44} />
           <div>
             <h1 className="text-lg font-bold text-foreground">{schoolName}</h1>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {viewMode === 'section'
-                ? pick(
-                    `সাপ্তাহিক ক্লাস রুটিন ${year.name} · ${schoolClass?.nameBn ?? schoolClass?.name ?? ''} (শাখা: ${section?.name ?? ''})`,
-                    `Weekly Class Routine ${year.name} · ${schoolClass?.name ?? ''} (Section: ${section?.name ?? ''})`
-                  )
-                : pick(
-                    `শিক্ষকের সাপ্তাহিক রুটিন ${year.name} · ${selectedTeacher?.name ?? ''}`,
-                    `Teacher Weekly Schedule ${year.name} · ${selectedTeacher?.name ?? ''}`
-                  )}
+                ? `সাপ্তাহিক ক্লাস রুটিন ${year.name} · ${schoolClass?.nameBn ?? schoolClass?.name ?? ''} (শাখা: ${section?.name ?? ''})`
+                : `শিক্ষকের সাপ্তাহিক রুটিন ${year.name} · ${selectedTeacher?.name ?? ''}`}
             </p>
           </div>
         </div>
         {viewMode === 'section' && classTeacher && (
-          <p className="text-xs text-muted-foreground">
-            {pick('শ্রেণিশিক্ষক:', 'Class Teacher:')} {classTeacher.name}
+          <p className="text-sm text-muted-foreground">
+            {'শ্রেণিশিক্ষক:'} {classTeacher.name}
           </p>
         )}
       </div>
 
       {/* Weekly Grid */}
       <Card className="p-0 overflow-x-auto print-landscape">
-        <table className="w-full text-sm border-collapse min-w-[1040px]">
+        <table className="w-full text-base border-collapse min-w-[1040px]">
           <thead className="bg-surface-muted text-muted-foreground">
             <tr>
               <th className="p-3 border-b border-r border-border text-left font-semibold w-28">
-                {pick('বার', 'Day')}
+                {'বার'}
               </th>
               {PERIOD_META.slice(0, 3).map((period) => (
                 <th key={period.period} className="p-3 border-b border-r border-border/50 text-left">
-                  <div className="font-semibold text-foreground text-xs">{pick(period.labelBn, period.labelEn)}</div>
-                  <div className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                    {pick(period.timeBn, period.timeEn)}
+                  <div className="font-semibold text-foreground text-sm">{period.labelBn}</div>
+                  <div className="text-sm text-muted-foreground tabular-nums mt-0.5">
+                    {period.timeBn}
                   </div>
                 </th>
               ))}
               <th className="p-2.5 border-b border-x border-border text-center bg-surface-muted/80 w-24">
-                <div className="text-xs font-semibold text-primary">{pick('টিফিন', 'Tiffin')}</div>
-                <div className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                  {pick('০১:০০–০২:০০', '01:00–02:00')}
+                <div className="text-sm font-semibold text-primary">{'টিফিন'}</div>
+                <div className="text-sm text-muted-foreground tabular-nums mt-0.5">
+                  {'০১:০০–০২:০০'}
                 </div>
               </th>
               {PERIOD_META.slice(3).map((period) => (
                 <th key={period.period} className="p-3 border-b border-r border-border/50 last:border-r-0 text-left">
-                  <div className="font-semibold text-foreground text-xs">{pick(period.labelBn, period.labelEn)}</div>
-                  <div className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                    {pick(period.timeBn, period.timeEn)}
+                  <div className="font-semibold text-foreground text-sm">{period.labelBn}</div>
+                  <div className="text-sm text-muted-foreground tabular-nums mt-0.5">
+                    {period.timeBn}
                   </div>
                 </th>
               ))}
@@ -1845,8 +1800,8 @@ export function AcademicRoutine({
                   <div className="flex flex-col gap-1">
                     <StatusBadge enumName="WeekDay" value={day} />
                     {today === day && (
-                      <span className="text-xs font-semibold text-primary">
-                        {pick('আজকের দিন', 'Today')}
+                      <span className="text-sm font-semibold text-primary">
+                        {'আজকের দিন'}
                       </span>
                     )}
                   </div>
@@ -1859,10 +1814,10 @@ export function AcademicRoutine({
                     rowSpan={SCHOOL_DAYS.length}
                     className="p-2.5 border-x border-border bg-surface-muted/40 text-center align-middle"
                   >
-                    <div className="flex flex-col items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center gap-1 text-sm font-semibold text-muted-foreground">
                       <Clock className="w-4 h-4 text-primary" />
-                      <span>{pick('টিফিন', 'Tiffin')}</span>
-                      <span className="tabular-nums">{pick('১ ঘণ্টা', '60m')}</span>
+                      <span>{'টিফিন'}</span>
+                      <span className="tabular-nums">{'১ ঘণ্টা'}</span>
                     </div>
                   </td>
                 )}

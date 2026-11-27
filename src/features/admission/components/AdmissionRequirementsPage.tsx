@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatBdt, formatDateLong } from '@/src/lib/formatters';
 import { LoadingSkeleton, PageHeader, SchoolEmblem } from '@/src/components/shared/Feedback';
 import { Button, Card, Input } from '@/src/components/ui/primitives';
@@ -34,7 +33,6 @@ import {
 import { buildDefaultAdmissionValues } from '@/src/features/admission/mappers';
 
 export function AdmissionRequirementsPage() {
-  const { pick } = useI18n();
   const docs = [
     'শিক্ষার্থীর ১৭ ডিজিটের অনলাইন জন্ম নিবন্ধন সনদের ফটোকপি (বাংলা ও ইংরেজি — প্রথম ৪ ডিজিট জন্মসালের সাথে সামঞ্জস্যপূর্ণ)',
     'পিতা ও মাতার (অথবা উভয়েই মৃত হলে বৈধ অভিভাবকের) জাতীয় পরিচয়পত্রের (NID) ফটোকপি',
@@ -46,7 +44,7 @@ export function AdmissionRequirementsPage() {
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <PageHeader
-        title={pick('ভর্তির যোগ্যতা ও প্রয়োজনীয় কাগজপত্র', 'Eligibility & Required Documents')}
+        title={'ভর্তির যোগ্যতা ও প্রয়োজনীয় কাগজপত্র'}
       />
       <Card className="p-6 space-y-3">
         <ul className="space-y-3 text-base">
@@ -59,7 +57,7 @@ export function AdmissionRequirementsPage() {
         </ul>
         <div className="pt-4">
           <Link href="/admission/apply">
-            <Button variant="primary">{pick('অনলাইন আবেদন শুরু করুন', 'Start Online Application')}</Button>
+            <Button variant="primary">{'অনলাইন আবেদন শুরু করুন'}</Button>
           </Link>
         </div>
       </Card>

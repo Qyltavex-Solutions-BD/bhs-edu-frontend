@@ -7,7 +7,6 @@ import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -57,13 +56,12 @@ function useCurrentStudent(db: MockDatabase | undefined) {
 export function StudentExaminationsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const me = useCurrentStudent(db);
-  const { locale, pick } = useI18n();
   if (isLoading || !db || !me || !me.enrollment) return <LoadingSkeleton />;
 
   const exams = db.exams.filter((e) => e.classId === me.enrollment!.classId);
   return (
     <div className="space-y-6">
-      <PageHeader title={pick('পরীক্ষার সূচি', 'Examinations')} />
+      <PageHeader title={'পরীক্ষার সূচি'} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {exams.map((ex) => (
           <Card key={ex.id} className="p-5">
@@ -72,7 +70,7 @@ export function StudentExaminationsPage() {
               <StatusBadge enumName="ResultPublicationStatus" value={ex.resultStatus} />
             </div>
             <p className="text-sm text-muted-foreground mt-2 tabular-nums">
-              {formatDateLong(ex.startDate, locale)} – {formatDateLong(ex.endDate, locale)}
+              {formatDateLong(ex.startDate, 'bn')} – {formatDateLong(ex.endDate, 'bn')}
             </p>
           </Card>
         ))}

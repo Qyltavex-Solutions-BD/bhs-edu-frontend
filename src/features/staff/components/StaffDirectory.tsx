@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Eye, KeyRound, Pencil, Plus, Search, ShieldCheck, ShieldOff, Trash2, Users, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Card, Input, Modal, Select } from '@/src/components/ui/primitives';
@@ -36,7 +35,6 @@ export function StaffDirectory({
   kind?: StaffDirectoryKind;
   createOpen?: boolean;
 }) {
-  const { locale, pick } = useI18n();
   const [formOpen, setFormOpen] = useState(createOpen);
   const [editingMember, setEditingMember] = useState<Staff | null>(null);
   const [viewingMember, setViewingMember] = useState<Staff | null>(null);
@@ -100,21 +98,15 @@ export function StaffDirectory({
       await togglePortalAccess({ id: member.id, isActive: nextState }).unwrap();
       toast.success(
         nextState
-          ? pick(
-              `${member.name}-এর পোর্টাল অ্যাক্সেস চালু হয়েছে।`,
-              `Portal access enabled for ${member.name}.`
-            )
-          : pick(
-              `${member.name}-এর পোর্টাল অ্যাক্সেস বন্ধ করা হয়েছে।`,
-              `Portal access disabled for ${member.name}.`
-            )
+          ? `${member.name}-এর পোর্টাল অ্যাক্সেস চালু হয়েছে।`
+          : `${member.name}-এর পোর্টাল অ্যাক্সেস বন্ধ করা হয়েছে।`
       );
     } catch (err: unknown) {
       const e = err as { data?: { message?: string }; message?: string };
       toast.error(
         e?.data?.message ||
           e?.message ||
-          pick('পোর্টাল অ্যাক্সেস পরিবর্তন করা যায়নি।', 'Could not update portal access.')
+          'পোর্টাল অ্যাক্সেস পরিবর্তন করা যায়নি।'
       );
     }
   };
@@ -126,17 +118,14 @@ export function StaffDirectory({
         portalRole: member.staffType === StaffType.OFFICER ? 'ACCOUNTANT' : 'TEACHER',
       }).unwrap();
       toast.success(
-        pick(
-          `${member.name}-এর জন্য পোর্টাল লগইন অ্যাকাউন্ট তৈরি হয়েছে।`,
-          `Portal account created for ${member.name}.`
-        )
+        `${member.name}-এর জন্য পোর্টাল লগইন অ্যাকাউন্ট তৈরি হয়েছে।`
       );
     } catch (err: unknown) {
       const e = err as { data?: { message?: string }; message?: string };
       toast.error(
         e?.data?.message ||
           e?.message ||
-          pick('পোর্টাল অ্যাকাউন্ট তৈরি করা যায়নি।', 'Could not create portal account.')
+          'পোর্টাল অ্যাকাউন্ট তৈরি করা যায়নি।'
       );
     }
   };
@@ -145,11 +134,11 @@ export function StaffDirectory({
     if (!deletingMember) return;
     try {
       await deleteStaff(deletingMember.id).unwrap();
-      toast.success(pick('স্টাফ সদস্য সফলভাবে মুছে ফেলা হয়েছে।', 'Staff member deleted successfully.'));
+      toast.success('স্টাফ সদস্য সফলভাবে মুছে ফেলা হয়েছে।');
       setDeletingMember(null);
     } catch (err: unknown) {
       const e = err as { data?: { message?: string }; message?: string };
-      toast.error(e?.data?.message || e?.message || pick('মুছে ফেলা যায়নি।', 'Could not delete staff member.'));
+      toast.error(e?.data?.message || e?.message || 'মুছে ফেলা যায়নি।');
     }
   };
 
@@ -161,11 +150,11 @@ export function StaffDirectory({
   const activeEmployees = stats?.activeEmployees ?? 0;
   const formerTeachers = stats?.formerTeachers ?? 0;
   const tabs: Array<{ key: StaffDirectoryKind; label: string }> = [
-    { key: 'all', label: pick('সকল স্টাফ', 'All') },
-    { key: 'teachers', label: pick('শিক্ষক', 'Teachers') },
-    { key: 'officers', label: pick('কর্মকর্তা', 'Officers') },
-    { key: 'employees', label: pick('কর্মচারী', 'Employees') },
-    { key: 'former-teachers', label: pick('প্রাক্তন শিক্ষকবৃন্দ', 'Former Teachers') },
+    { key: 'all', label: 'সকল স্টাফ' },
+    { key: 'teachers', label: 'শিক্ষক' },
+    { key: 'officers', label: 'কর্মকর্তা' },
+    { key: 'employees', label: 'কর্মচারী' },
+    { key: 'former-teachers', label: 'প্রাক্তন শিক্ষকবৃন্দ' },
   ];
 
   const defaultCreateType =
@@ -185,7 +174,7 @@ export function StaffDirectory({
     setFormOpen(true);
   };
 
-  const numLocale = locale === 'bn' ? 'bn' : 'en';
+  const numLocale = 'bn';
 
   return (
     <div className="space-y-5">
@@ -193,7 +182,7 @@ export function StaffDirectory({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('বর্তমান শিক্ষক', 'Active Teachers')}
+            {'বর্তমান শিক্ষক'}
           </p>
           <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary tabular-nums mt-1">
             {formatNumber(activeTeachers, numLocale)}
@@ -201,7 +190,7 @@ export function StaffDirectory({
         </Card>
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('কর্মকর্তা', 'Officers')}
+            {'কর্মকর্তা'}
           </p>
           <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground tabular-nums mt-1">
             {formatNumber(activeOfficers, numLocale)}
@@ -209,7 +198,7 @@ export function StaffDirectory({
         </Card>
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('কর্মচারী', 'Employees')}
+            {'কর্মচারী'}
           </p>
           <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground tabular-nums mt-1">
             {formatNumber(activeEmployees, numLocale)}
@@ -217,7 +206,7 @@ export function StaffDirectory({
         </Card>
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('প্রাক্তন শিক্ষকবৃন্দ', 'Former Teachers')}
+            {'প্রাক্তন শিক্ষকবৃন্দ'}
           </p>
           <p className="text-2xl sm:text-3xl font-extrabold tracking-tight text-amber-600 dark:text-amber-400 tabular-nums mt-1">
             {formatNumber(formerTeachers, numLocale)}
@@ -252,7 +241,7 @@ export function StaffDirectory({
 
         <Button variant="primary" size="sm" onClick={openCreate}>
           <Plus className="w-4 h-4" />
-          <span>{pick('নতুন স্টাফ', 'Add staff')}</span>
+          <span>{'নতুন স্টাফ'}</span>
         </Button>
       </div>
 
@@ -263,7 +252,7 @@ export function StaffDirectory({
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder={pick('নাম, আইডি, পদবি বা মোবাইল দিয়ে খুঁজুন...', 'Search by name, ID, designation, or phone...')}
+            placeholder={'নাম, আইডি, পদবি বা মোবাইল দিয়ে খুঁজুন...'}
             className="pl-10 pr-9"
           />
           {search && (
@@ -286,12 +275,12 @@ export function StaffDirectory({
             }}
             className="w-full sm:w-48"
           >
-            <option value="ALL">{pick('সকল অবস্থা', 'All statuses')}</option>
-            <option value={StaffStatus.ACTIVE}>{pick('কর্মরত', 'Active')}</option>
-            <option value={StaffStatus.RETIRED}>{pick('অবসরপ্রাপ্ত', 'Retired')}</option>
-            <option value={StaffStatus.RESIGNED}>{pick('পদত্যাগকৃত', 'Resigned')}</option>
-            <option value={StaffStatus.TRANSFERRED}>{pick('বদলিজনিত', 'Transferred')}</option>
-            <option value={StaffStatus.TERMINATED}>{pick('অব্যাহতিপ্রাপ্ত', 'Terminated')}</option>
+            <option value="ALL">{'সকল অবস্থা'}</option>
+            <option value={StaffStatus.ACTIVE}>{'কর্মরত'}</option>
+            <option value={StaffStatus.RETIRED}>{'অবসরপ্রাপ্ত'}</option>
+            <option value={StaffStatus.RESIGNED}>{'পদত্যাগকৃত'}</option>
+            <option value={StaffStatus.TRANSFERRED}>{'বদলিজনিত'}</option>
+            <option value={StaffStatus.TERMINATED}>{'অব্যাহতিপ্রাপ্ত'}</option>
           </Select>
         )}
       </Card>
@@ -302,24 +291,24 @@ export function StaffDirectory({
           <table className="w-full min-w-[700px] lg:min-w-full text-base">
             <thead className="bg-surface-muted text-sm text-muted-foreground border-b border-border">
               <tr>
-                <th className="p-3.5 text-left whitespace-nowrap">{pick('আইডি', 'ID')}</th>
-                <th className="p-3.5 text-left whitespace-nowrap">{pick('নাম ও পদবি', 'Name & Designation')}</th>
-                <th className="p-3.5 text-left whitespace-nowrap">{pick('মোবাইল', 'Phone')}</th>
-                <th className="p-3.5 text-left whitespace-nowrap">{pick('ধরন', 'Type')}</th>
+                <th className="p-3.5 text-left whitespace-nowrap">{'আইডি'}</th>
+                <th className="p-3.5 text-left whitespace-nowrap">{'নাম ও পদবি'}</th>
+                <th className="p-3.5 text-left whitespace-nowrap">{'মোবাইল'}</th>
+                <th className="p-3.5 text-left whitespace-nowrap">{'ধরন'}</th>
                 <th className="p-3.5 text-left whitespace-nowrap">
                   {filter === 'former-teachers'
-                    ? pick('বিদায় / অবসরের তারিখ', 'Leaving Date')
-                    : pick('নিয়োগ', 'Employment')}
+                    ? 'বিদায় / অবসরের তারিখ'
+                    : 'নিয়োগ'}
                 </th>
-                <th className="p-3.5 text-left whitespace-nowrap">{pick('অবস্থা', 'Status')}</th>
-                <th className="p-3.5 text-right whitespace-nowrap">{pick('কার্যক্রম', 'Actions')}</th>
+                <th className="p-3.5 text-left whitespace-nowrap">{'অবস্থা'}</th>
+                <th className="p-3.5 text-right whitespace-nowrap">{'কার্যক্রম'}</th>
               </tr>
             </thead>
             <tbody className={`divide-y divide-border ${isFetching && !isLoading ? 'opacity-60' : ''}`}>
               {isLoading ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-base text-muted-foreground">
-                    {pick('তথ্য লোড হচ্ছে...', 'Loading staff...')}
+                    {'তথ্য লোড হচ্ছে...'}
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
@@ -328,12 +317,12 @@ export function StaffDirectory({
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Users className="w-8 h-8 opacity-50" />
                       <p className="text-base font-medium text-foreground">
-                        {pick('কোনো স্টাফ পাওয়া যায়নি', 'No staff members found')}
+                        {'কোনো স্টাফ পাওয়া যায়নি'}
                       </p>
                       <p className="text-sm">
                         {debouncedSearch
-                          ? pick('অনুসন্ধানের শব্দ পরিবর্তন করে আবার চেষ্টা করুন।', 'Try a different search keyword.')
-                          : pick('নতুন স্টাফ যুক্ত করতে "নতুন স্টাফ" বাটনে ক্লিক করুন।', 'Click "Add staff" to create a new member.')}
+                          ? 'অনুসন্ধানের শব্দ পরিবর্তন করে আবার চেষ্টা করুন।'
+                          : 'নতুন স্টাফ যুক্ত করতে "নতুন স্টাফ" বাটনে ক্লিক করুন।'}
                       </p>
                     </div>
                   </td>
@@ -380,7 +369,7 @@ export function StaffDirectory({
                         <StatusBadge enumName="StaffStatus" value={member.status} />
                         {(member as any).user ? (
                           <span
-                            className={`text-xs font-medium ${
+                            className={`text-sm font-medium ${
                               !(member as any).user.isActive
                                 ? 'text-destructive'
                                 : (member as any).user.mustSetPassword
@@ -389,10 +378,10 @@ export function StaffDirectory({
                             }`}
                           >
                             {!(member as any).user.isActive
-                              ? pick('পোর্টাল: বন্ধ রয়েছে', 'Portal: Disabled')
+                              ? 'পোর্টাল: বন্ধ রয়েছে'
                               : (member as any).user.mustSetPassword
-                                ? pick('পোর্টাল: পাসওয়ার্ড বাকি', 'Portal: Pending Setup')
-                                : pick('পোর্টাল: সক্রিয়', 'Portal: Active')}
+                                ? 'পোর্টাল: পাসওয়ার্ড বাকি'
+                                : 'পোর্টাল: সক্রিয়'}
                           </span>
                         ) : null}
                       </div>
@@ -408,8 +397,8 @@ export function StaffDirectory({
                             onClick={() => handleTogglePortalAccess(member)}
                             title={
                               (member as any).user.isActive
-                                ? pick('পোর্টাল অ্যাক্সেস বন্ধ করুন', 'Disable Portal Access')
-                                : pick('পোর্টাল অ্যাক্সেস চালু করুন', 'Enable Portal Access')
+                                ? 'পোর্টাল অ্যাক্সেস বন্ধ করুন'
+                                : 'পোর্টাল অ্যাক্সেস চালু করুন'
                             }
                           >
                             {(member as any).user.isActive ? (
@@ -428,7 +417,7 @@ export function StaffDirectory({
                               variant="outline"
                               disabled={creatingPortal}
                               onClick={() => handleGrantPortalAccess(member)}
-                              title={pick('পোর্টাল অ্যাক্সেস দিন', 'Grant Portal Access')}
+                              title={'পোর্টাল অ্যাক্সেস দিন'}
                             >
                               <KeyRound className="w-4 h-4 text-emerald-600" />
                             </Button>
@@ -439,7 +428,7 @@ export function StaffDirectory({
                           size="sm"
                           variant="outline"
                           onClick={() => setViewingMember(member)}
-                          title={pick('বিস্তারিত দেখুন', 'View Details')}
+                          title={'বিস্তারিত দেখুন'}
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -448,7 +437,7 @@ export function StaffDirectory({
                           size="sm"
                           variant="outline"
                           onClick={() => openEdit(member)}
-                          title={pick('সম্পাদনা করুন', 'Edit')}
+                          title={'সম্পাদনা করুন'}
                         >
                           <Pencil className="w-4 h-4" />
                         </Button>
@@ -459,7 +448,7 @@ export function StaffDirectory({
                           disabled={deleting}
                           onClick={() => setDeletingMember(member)}
                           className="text-destructive hover:text-destructive"
-                          title={pick('মুছে ফেলুন', 'Delete')}
+                          title={'মুছে ফেলুন'}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -476,10 +465,7 @@ export function StaffDirectory({
         {meta && meta.totalPages > 1 && (
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-border bg-surface-muted/30">
             <p className="text-sm text-muted-foreground">
-              {pick(
-                `মোট ${formatNumber(meta.total, 'bn')} জনের মধ্যে পৃষ্ঠা ${formatNumber(meta.page, 'bn')} / ${formatNumber(meta.totalPages, 'bn')}`,
-                `Page ${meta.page} of ${meta.totalPages} (${meta.total} total)`
-              )}
+              {`মোট ${formatNumber(meta.total, 'bn')} জনের মধ্যে পৃষ্ঠা ${formatNumber(meta.page, 'bn')} / ${formatNumber(meta.totalPages, 'bn')}`}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -489,7 +475,7 @@ export function StaffDirectory({
                 disabled={!meta.hasPreviousPage || isFetching}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
-                {pick('পূর্ববর্তী', 'Previous')}
+                {'পূর্ববর্তী'}
               </Button>
               <Button
                 type="button"
@@ -498,7 +484,7 @@ export function StaffDirectory({
                 disabled={!meta.hasNextPage || isFetching}
                 onClick={() => setPage((p) => p + 1)}
               >
-                {pick('পরবর্তী', 'Next')}
+                {'পরবর্তী'}
               </Button>
             </div>
           </div>
@@ -528,7 +514,7 @@ export function StaffDirectory({
       <Modal
         open={Boolean(deletingMember)}
         onClose={() => !deleting && setDeletingMember(null)}
-        title={pick('স্টাফ সদস্য মুছে ফেলুন', 'Delete Staff Member')}
+        title={'স্টাফ সদস্য মুছে ফেলুন'}
         maxWidth="max-w-md"
       >
         <div className="space-y-4">
@@ -536,16 +522,10 @@ export function StaffDirectory({
             <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="text-base font-semibold text-foreground">
-                {pick(
-                  `আপনি কি নিশ্চিতভাবে "${deletingMember?.nameBn || deletingMember?.name || ''}"-কে মুছে ফেলতে চান?`,
-                  `Are you sure you want to delete "${deletingMember?.name || ''}"?`
-                )}
+                {`আপনি কি নিশ্চিতভাবে "${deletingMember?.nameBn || deletingMember?.name || ''}"-কে মুছে ফেলতে চান?`}
               </p>
               <p className="text-sm text-muted-foreground">
-                {pick(
-                  'এই স্টাফের প্রোফাইল এবং আপলোডকৃত প্রোফাইল ছবি স্টোরেজ থেকে স্থায়ীভাবে মুছে যাবে। (ক্লাস রুটিন বা বিষয় বণ্টন থাকলে ডিলিট হবে না; তখন স্ট্যাটাস পরিবর্তন করুন।)',
-                  'Their profile and uploaded photo will be permanently removed from storage.'
-                )}
+                {'এই স্টাফের প্রোফাইল এবং আপলোডকৃত প্রোফাইল ছবি স্টোরেজ থেকে স্থায়ীভাবে মুছে যাবে। (ক্লাস রুটিন বা বিষয় বণ্টন থাকলে ডিলিট হবে না; তখন স্ট্যাটাস পরিবর্তন করুন।)'}
               </p>
             </div>
           </div>
@@ -557,7 +537,7 @@ export function StaffDirectory({
               disabled={deleting}
               onClick={() => setDeletingMember(null)}
             >
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button
               type="button"
@@ -565,7 +545,7 @@ export function StaffDirectory({
               disabled={deleting}
               onClick={confirmDelete}
             >
-              {deleting ? pick('মুছে ফেলা হচ্ছে...', 'Deleting...') : pick('মুছে ফেলুন', 'Delete')}
+              {deleting ? 'মুছে ফেলা হচ্ছে...' : 'মুছে ফেলুন'}
             </Button>
           </div>
         </div>

@@ -32,7 +32,6 @@ import {
   useSaveMarksBatchMutation,
 } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -84,8 +83,6 @@ function getAssignmentSubject(db: MockDatabase, classSubjectId: string) {
 export function TeacherClassesPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const teacher = useCurrentTeacher(db);
-  const { locale, pick } = useI18n();
-
   if (isLoading || !db || !teacher) return <LoadingSkeleton />;
 
   const myAssignments = db.teacherAssignments.filter((a) => a.staffId === teacher.id);
@@ -94,8 +91,8 @@ export function TeacherClassesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('আমার নির্ধারিত শ্রেণিসমূহ', 'My Assigned Classes')}
-        description={pick('আপনার নির্ধারিত শাখা ও বিষয়সমূহ', 'Sections and subjects scoped to your faculty assignment')}
+        title={'আমার নির্ধারিত শ্রেণিসমূহ'}
+        description={'আপনার নির্ধারিত শাখা ও বিষয়সমূহ'}
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {sectionIds.map((secId) => {
@@ -113,31 +110,31 @@ export function TeacherClassesPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-base font-bold text-primary">
-                      {locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name} — {pick('শাখা', 'Section')} {sec?.name}
+                      {cls?.nameBn || cls?.name} — {'শাখা'} {sec?.name}
                     </h3>
                     <p className="text-sm text-muted-foreground mt-0.5 tabular-nums">
-                      {pick('শিক্ষার্থী সংখ্যা:', 'Students:')} {formatNumber(studentCount, locale)}
+                      {'শিক্ষার্থী সংখ্যা:'} {formatNumber(studentCount, 'bn')}
                     </p>
                   </div>
                   {isClassTeacher && (
                     <span className="text-xs font-semibold text-foreground border border-accent/40 bg-accent/10 px-2 py-0.5 rounded">
-                      {pick('শ্রেণি শিক্ষক', 'Class Teacher')}
+                      {'শ্রেণি শিক্ষক'}
                     </span>
                   )}
                 </div>
                 <div className="mt-4 space-y-1.5">
                   <p className="text-sm font-semibold text-muted-foreground">
-                    {pick('নির্ধারিত বিষয়:', 'Assigned Subjects:')}
+                    {'নির্ধারিত বিষয়:'}
                   </p>
                   {secAssignments.map((a) => {
                     const sub = getAssignmentSubject(db, a.classSubjectId);
                     return (
                       <div key={a.id} className="flex items-center justify-between text-sm">
-                        <span>{locale === 'bn' ? sub?.nameBn || sub?.name : sub?.name}</span>
+                        <span>{sub?.nameBn || sub?.name}</span>
                         <span className={a.canEnterMarks ? 'text-success font-medium' : 'text-muted-foreground'}>
                           {a.canEnterMarks
-                            ? pick('নম্বর এন্ট্রি সক্রিয়', 'Can Enter Marks')
-                            : pick('শুধু দেখুন', 'View Only')}
+                            ? 'নম্বর এন্ট্রি সক্রিয়'
+                            : 'শুধু দেখুন'}
                         </span>
                       </div>
                     );
@@ -147,12 +144,12 @@ export function TeacherClassesPage() {
               <div className="flex gap-2 pt-2 border-t border-border">
                 <Link href={`/teacher/classes/${secId}`} className="flex-1">
                   <Button variant="primary" size="sm" className="w-full">
-                    {pick('শাখা বিস্তারিত', 'Section Details')}
+                    {'শাখা বিস্তারিত'}
                   </Button>
                 </Link>
                 <Link href="/teacher/attendance">
                   <Button variant="outline" size="sm">
-                    {pick('হাজিরা', 'Attendance')}
+                    {'হাজিরা'}
                   </Button>
                 </Link>
               </div>

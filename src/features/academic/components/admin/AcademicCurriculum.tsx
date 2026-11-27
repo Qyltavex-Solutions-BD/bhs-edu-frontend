@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { ListChecks } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import { Button, Modal, SegmentedTabs } from '@/src/components/ui/primitives';
 import type { AcademicYear } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
@@ -19,7 +18,6 @@ export function AcademicCurriculum({
   year: AcademicYear;
   section: 'curriculum' | 'books' | 'catalog';
 }) {
-  const { pick } = useI18n();
   const [activeView, setActiveView] = useState<'curriculum' | 'books'>(
     section === 'books' ? 'books' : 'curriculum',
   );
@@ -34,18 +32,18 @@ export function AcademicCurriculum({
           items={[
             {
               value: 'curriculum',
-              label: pick('শ্রেণির বিষয়', 'Class Subjects'),
+              label: 'শ্রেণির বিষয়',
             },
             {
               value: 'books',
-              label: pick('পাঠ্যবই', 'Textbooks'),
+              label: 'পাঠ্যবই',
             },
           ]}
         />
 
         <Button type="button" variant="outline" onClick={() => setCatalogOpen(true)}>
           <ListChecks className="w-4 h-4" />
-          {pick('মাস্টার বিষয় তালিকা', 'Master Subject Catalog')}
+          {'মাস্টার বিষয় তালিকা'}
         </Button>
       </div>
 
@@ -58,11 +56,8 @@ export function AcademicCurriculum({
       <Modal
         open={catalogOpen}
         onClose={() => setCatalogOpen(false)}
-        title={pick('মাস্টার বিষয় তালিকা', 'Master Subject Catalog')}
-        description={pick(
-          'নতুন বা কাস্টম কোনো বিষয় প্রয়োজন হলে এখান থেকে যোগ বা সম্পাদনা করুন।',
-          'Add or update custom subjects here if needed beyond the default NCTB catalog.',
-        )}
+        title={'মাস্টার বিষয় তালিকা'}
+        description={'নতুন বা কাস্টম কোনো বিষয় প্রয়োজন হলে এখান থেকে যোগ বা সম্পাদনা করুন।'}
         size="xl"
       >
         <SubjectCatalogPanel db={db} />

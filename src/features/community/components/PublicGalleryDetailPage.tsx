@@ -32,7 +32,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { MasonryPhotoAlbum } from 'react-photo-album';
 
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -62,7 +61,6 @@ type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
 export function PublicGalleryDetailPage() {
   const { id } = useParams();
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { pick } = useI18n();
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
   const gal = db.galleries.find((g) => g.id === id && g.isPublished);
   if (!gal) return <div className="max-w-[1440px] mx-auto p-6"><EmptyState /></div>;
@@ -73,7 +71,7 @@ export function PublicGalleryDetailPage() {
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <Link href="/gallery" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
-        <ArrowLeft className="w-4 h-4" /> {pick('গ্যালারিতে ফিরুন', 'Back to Gallery')}
+        <ArrowLeft className="w-4 h-4" /> {'গ্যালারিতে ফিরুন'}
       </Link>
       <PageHeader
         title={gal.title}
@@ -83,7 +81,7 @@ export function PublicGalleryDetailPage() {
       />
       {items.length === 0 ? (
         <EmptyState
-          title={pick('এই অ্যালবামে এখনো কোনো ছবি বা ভিডিও নেই', 'No media items in this album yet')}
+          title={'এই অ্যালবামে এখনো কোনো ছবি বা ভিডিও নেই'}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -122,7 +120,7 @@ export function PublicGalleryDetailPage() {
                         className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
                       >
                         <ExternalLink className="w-4 h-4" />
-                        {pick('ভিডিও দেখুন', 'Watch Video')}
+                        {'ভিডিও দেখুন'}
                       </a>
                     </div>
                   )}

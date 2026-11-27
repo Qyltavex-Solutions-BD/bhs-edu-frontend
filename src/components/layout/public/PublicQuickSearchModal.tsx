@@ -28,8 +28,6 @@ interface PublicQuickSearchModalProps {
   hasAnySearchResult: boolean;
   onNavigate: (to: string) => void;
   searchInputRef: React.RefObject<HTMLInputElement | null>;
-  locale: string;
-  pick: (bn: string, en: string) => string;
 }
 
 export function PublicQuickSearchModal({
@@ -41,8 +39,8 @@ export function PublicQuickSearchModal({
   hasAnySearchResult,
   onNavigate,
   searchInputRef,
-  locale,
-  pick,
+  
+  
 }: PublicQuickSearchModalProps) {
   return (
     <AnimatePresence>
@@ -63,7 +61,7 @@ export function PublicQuickSearchModal({
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-label={pick('দ্রুত অনুসন্ধান', 'Quick search')}
+            aria-label={'দ্রুত অনুসন্ধান'}
             className="w-full max-w-xl bg-surface text-foreground border border-border rounded-[var(--radius)] shadow-2xl overflow-hidden"
           >
             {/* Search Input Row */}
@@ -74,10 +72,7 @@ export function PublicQuickSearchModal({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder={pick(
-                  'নোটিশ, শিক্ষক, শ্রেণি, বিষয় বা ফলাফল খুঁজুন...',
-                  'Search notices, teachers, classes, subjects or results...'
-                )}
+                placeholder={'নোটিশ, শিক্ষক, শ্রেণি, বিষয় বা ফলাফল খুঁজুন...'}
                 className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground focus:outline-none"
               />
               {searchQuery && (
@@ -86,13 +81,13 @@ export function PublicQuickSearchModal({
                   onClick={() => onSearchChange('')}
                   className="text-sm text-muted-foreground hover:text-foreground cursor-pointer"
                 >
-                  {pick('মুছুন', 'Clear')}
+                  {'মুছুন'}
                 </button>
               )}
               <button
                 type="button"
                 onClick={onClose}
-                aria-label={pick('বন্ধ করুন', 'Close')}
+                aria-label={'বন্ধ করুন'}
                 className="h-7 w-7 inline-flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -104,13 +99,10 @@ export function PublicQuickSearchModal({
               {!hasAnySearchResult ? (
                 <div className="py-10 text-center space-y-1">
                   <p className="text-base font-medium text-foreground">
-                    {pick('কোনো তথ্য পাওয়া যায়নি', 'No matching results found')}
+                    {'কোনো তথ্য পাওয়া যায়নি'}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {pick(
-                      'অন্য কোনো শব্দ লিখে চেষ্টা করুন (যেমন: ফলাফল, ভর্তি, রুটিন, নোটিশ)',
-                      'Try another keyword such as results, admission, routine, or notice.'
-                    )}
+                    {'অন্য কোনো শব্দ লিখে চেষ্টা করুন (যেমন: ফলাফল, ভর্তি, রুটিন, নোটিশ)'}
                   </p>
                 </div>
               ) : (
@@ -118,10 +110,10 @@ export function PublicQuickSearchModal({
                   {/* Quick Shortcuts */}
                   {searchResults.shortcuts.length > 0 && (
                     <div className="space-y-1">
-                      <p className="px-2 text-xs font-semibold text-muted-foreground">
+                      <p className="px-2 text-sm font-semibold text-muted-foreground">
                         {searchQuery
-                          ? pick('দ্রুত লিংক', 'Quick Links')
-                          : pick('জনপ্রিয় সেবাসমূহ', 'Popular Shortcuts')}
+                          ? 'দ্রুত লিংক'
+                          : 'জনপ্রিয় সেবাসমূহ'}
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                         {searchResults.shortcuts.map((item) => {
@@ -138,10 +130,10 @@ export function PublicQuickSearchModal({
                               </span>
                               <span className="min-w-0 flex-1">
                                 <span className="block text-sm font-semibold text-foreground group-hover:text-primary truncate">
-                                  {locale === 'bn' ? item.labelBn : item.labelEn}
+                                  {item.labelBn}
                                 </span>
-                                <span className="block text-xs text-muted-foreground truncate">
-                                  {locale === 'bn' ? item.descBn : item.descEn}
+                                <span className="block text-sm text-muted-foreground truncate">
+                                  {item.descBn}
                                 </span>
                               </span>
                             </button>
@@ -154,10 +146,10 @@ export function PublicQuickSearchModal({
                   {/* Matching Notices */}
                   {searchResults.notices.length > 0 && (
                     <div className="space-y-1">
-                      <p className="px-2 text-xs font-semibold text-muted-foreground">
+                      <p className="px-2 text-sm font-semibold text-muted-foreground">
                         {searchQuery
-                          ? pick('বিজ্ঞপ্তি ও নোটিশ', 'Matching Notices')
-                          : pick('সর্বশেষ বিজ্ঞপ্তি', 'Recent Notices')}
+                          ? 'বিজ্ঞপ্তি ও নোটিশ'
+                          : 'সর্বশেষ বিজ্ঞপ্তি'}
                       </p>
                       <div className="space-y-0.5">
                         {searchResults.notices.map((notice) => (
@@ -174,7 +166,7 @@ export function PublicQuickSearchModal({
                               </span>
                               {notice.isUrgent && (
                                 <span className="px-2 py-0.5 rounded bg-[#C81E24] text-white text-xs font-semibold leading-none shrink-0">
-                                  {pick('জরুরি', 'Urgent')}
+                                  {'জরুরি'}
                                 </span>
                               )}
                             </div>
@@ -188,8 +180,8 @@ export function PublicQuickSearchModal({
                   {/* Matching Staff */}
                   {searchResults.staff.length > 0 && (
                     <div className="space-y-1">
-                      <p className="px-2 text-xs font-semibold text-muted-foreground">
-                        {pick('শিক্ষকমণ্ডলী ও কর্মচারী', 'Teachers & Staff')}
+                      <p className="px-2 text-sm font-semibold text-muted-foreground">
+                        {'শিক্ষকমণ্ডলী ও কর্মচারী'}
                       </p>
                       <div className="space-y-0.5">
                         {searchResults.staff.map((person) => (
@@ -203,7 +195,7 @@ export function PublicQuickSearchModal({
                               <p className="text-sm font-semibold text-foreground group-hover:text-primary truncate">
                                 {person.name}
                               </p>
-                              <p className="text-xs text-muted-foreground truncate">
+                              <p className="text-sm text-muted-foreground truncate">
                                 {person.designation}
                               </p>
                             </div>
@@ -217,8 +209,8 @@ export function PublicQuickSearchModal({
                   {/* Matching Classes & Subjects */}
                   {searchResults.academics.length > 0 && (
                     <div className="space-y-1">
-                      <p className="px-2 text-xs font-semibold text-muted-foreground">
-                        {pick('শ্রেণি ও পাঠ্যবিষয়', 'Classes & Subjects')}
+                      <p className="px-2 text-sm font-semibold text-muted-foreground">
+                        {'শ্রেণি ও পাঠ্যবিষয়'}
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                         {searchResults.academics.map((entry) => (
@@ -232,7 +224,7 @@ export function PublicQuickSearchModal({
                               <span className="block text-sm font-medium text-foreground group-hover:text-primary truncate">
                                 {entry.label}
                               </span>
-                              <span className="block text-xs text-muted-foreground">
+                              <span className="block text-sm text-muted-foreground">
                                 {entry.meta}
                               </span>
                             </span>
@@ -247,11 +239,11 @@ export function PublicQuickSearchModal({
             </div>
 
             {/* Search Footer Hint */}
-            <div className="px-4 py-2.5 border-t border-border bg-surface-muted/50 flex items-center justify-between text-xs text-muted-foreground">
+            <div className="px-4 py-2.5 border-t border-border bg-surface-muted/50 flex items-center justify-between text-sm text-muted-foreground">
               <span>
-                {pick('ভোজেশ্বর উচ্চ বিদ্যালয় · দ্রুত নেভিগেশন', 'Bhojeshwar High School · Quick Navigation')}
+                {'ভোজেশ্বর উচ্চ বিদ্যালয় · দ্রুত নেভিগেশন'}
               </span>
-              <span className="hidden sm:inline font-mono text-xs">ESC</span>
+              <span className="hidden sm:inline font-mono text-sm">ESC</span>
             </div>
           </motion.div>
         </motion.div>

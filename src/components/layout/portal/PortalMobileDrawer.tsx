@@ -16,8 +16,6 @@ interface PortalMobileDrawerProps {
   openMenus: Record<string, boolean>;
   onToggleMenu: (to: string) => void;
   onLogout: () => void;
-  locale: string;
-  pick: (bn: string, en: string) => string;
 }
 
 export function PortalMobileDrawer({
@@ -28,8 +26,8 @@ export function PortalMobileDrawer({
   openMenus,
   onToggleMenu,
   onLogout,
-  locale,
-  pick,
+  
+  
 }: PortalMobileDrawerProps) {
   if (!isOpen) return null;
 
@@ -53,7 +51,7 @@ export function PortalMobileDrawer({
           <div className="flex items-center gap-2">
             <SchoolEmblem size={28} />
             <span className="text-sm font-bold text-white truncate">
-              {pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}
+              {'ভোজেশ্বর উচ্চ বিদ্যালয়'}
             </span>
           </div>
           <button type="button" onClick={onClose} className="p-1.5 text-white/80 hover:text-white cursor-pointer">
@@ -66,8 +64,8 @@ export function PortalMobileDrawer({
           {navGroups.map((group) => (
             <div key={group.id}>
               {group.labelEn && (
-                <p className="px-3 pt-3.5 pb-1.5 text-xs sm:text-[13px] font-bold text-white uppercase tracking-wider">
-                  {locale === 'bn' ? group.labelBn : group.labelEn}
+                <p className="px-3 pt-3.5 pb-1.5 text-sm font-bold text-white uppercase tracking-wider">
+                  {group.labelBn}
                 </p>
               )}
               <div className="space-y-0.5">
@@ -90,7 +88,7 @@ export function PortalMobileDrawer({
                         )}
                       >
                         <Icon className={cn('w-4.5 h-4.5 shrink-0', selfActive ? 'text-[#1C6440]' : 'text-white/90')} />
-                        <span className="truncate flex-1">{locale === 'bn' ? item.labelBn : item.labelEn}</span>
+                        <span className="truncate flex-1">{item.labelBn}</span>
                         {item.badge && (
                           <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#DF6153] text-white leading-none shrink-0">
                             {item.badge}
@@ -114,7 +112,7 @@ export function PortalMobileDrawer({
                         )}
                       >
                         <Icon className="w-4.5 h-4.5 shrink-0 text-white/90" />
-                        <span className="truncate flex-1 text-left">{locale === 'bn' ? item.labelBn : item.labelEn}</span>
+                        <span className="truncate flex-1 text-left">{item.labelBn}</span>
                         {item.badge && (
                           <span className="mr-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-[#DF6153] text-white leading-none shrink-0">
                             {item.badge}
@@ -138,7 +136,7 @@ export function PortalMobileDrawer({
                                     : 'text-white/90 hover:text-white hover:bg-white/10'
                                 )}
                               >
-                                {locale === 'bn' ? child.labelBn : child.labelEn}
+                                {child.labelBn}
                               </Link>
                             );
                           })}
@@ -164,7 +162,7 @@ export function PortalMobileDrawer({
             }}
           >
             <LogOut className="w-4 h-4" />
-            {pick('লগ আউট', 'Sign Out')}
+            {'লগ আউট'}
           </Button>
         </div>
       </div>

@@ -7,7 +7,6 @@ import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -56,11 +55,10 @@ function useCurrentStudent(db: MockDatabase | undefined) {
 
 export function StudentLibraryPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { pick } = useI18n();
   if (isLoading || !db) return <LoadingSkeleton />;
   return (
     <div className="space-y-6">
-      <PageHeader title={pick('বিদ্যালয় গ্রন্থাগার', 'School Library Catalog')} />
+      <PageHeader title={'বিদ্যালয় গ্রন্থাগার'} />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {db.libraryBooks.map((b) => (
           <Card key={b.id} className="p-5 space-y-1.5">

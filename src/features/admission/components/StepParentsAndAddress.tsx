@@ -3,7 +3,6 @@
 import React from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { PhoneCall, ShieldAlert } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import type { SchoolClass } from '@/src/types/entities';
 import type { PrimaryGuardianType } from '@/src/types/proposed/future';
 import {
@@ -28,7 +27,6 @@ export function StepParentsAndAddress({
   form,
   selectedClass,
 }: StepParentsAndAddressProps) {
-  const { pick } = useI18n();
   const {
     register,
     watch,
@@ -89,17 +87,17 @@ export function StepParentsAndAddress({
   }> = [
     {
       value: 'FATHER',
-      label: pick('পিতা', 'Father'),
+      label: 'পিতা',
       disabled: !fatherAlive,
     },
     {
       value: 'MOTHER',
-      label: pick('মাতা', 'Mother'),
+      label: 'মাতা',
       disabled: !motherAlive,
     },
     {
       value: 'LEGAL_GUARDIAN',
-      label: pick('বৈধ অভিভাবক', 'Legal Guardian'),
+      label: 'বৈধ অভিভাবক',
       disabled: false,
     },
   ];
@@ -109,7 +107,7 @@ export function StepParentsAndAddress({
       {/* 1. Father's Information */}
       <div className="space-y-4">
         <AdmissionSectionHeader
-          title={pick('১. পিতার তথ্য', '1. Father’s Information')}
+          title={'১. পিতার তথ্য'}
           rightSlot={
             <div className="inline-flex border border-border/80 rounded-xl overflow-hidden divide-x divide-border/80 text-sm font-semibold">
               <button
@@ -121,7 +119,7 @@ export function StepParentsAndAddress({
                     : 'bg-surface text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {pick('জীবিত', 'Alive')}
+                {'জীবিত'}
               </button>
               <button
                 type="button"
@@ -132,7 +130,7 @@ export function StepParentsAndAddress({
                     : 'bg-surface text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {pick('মৃত', 'Deceased')}
+                {'মৃত'}
               </button>
             </div>
           }
@@ -140,7 +138,7 @@ export function StepParentsAndAddress({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <AdmissionField
-            label={pick('পিতার নাম (বাংলায়)', 'Father’s Name (Bangla)')}
+            label={'পিতার নাম (বাংলায়)'}
             required
             error={errors.fatherNameBn?.message}
           >
@@ -151,7 +149,7 @@ export function StepParentsAndAddress({
           </AdmissionField>
 
           <AdmissionField
-            label={pick('পিতার নাম (ইংরেজিতে বড় অক্ষরে)', 'Father’s Name (English — BLOCK LETTERS)')}
+            label={'পিতার নাম (ইংরেজিতে বড় অক্ষরে)'}
             required
             error={errors.fatherNameEn?.message}
           >
@@ -170,17 +168,14 @@ export function StepParentsAndAddress({
           <AdmissionField
             label={
               fatherAlive
-                ? pick('পিতার এনআইডি নম্বর', 'Father’s NID Number')
-                : pick('পিতার এনআইডি নম্বর (সংগ্রহে থাকলে — ঐচ্ছিক)', 'Father’s NID Number (If Available — Optional)')
+                ? 'পিতার এনআইডি নম্বর'
+                : 'পিতার এনআইডি নম্বর (সংগ্রহে থাকলে — ঐচ্ছিক)'
             }
             required={fatherAlive && rules.requiresParentNid}
             hint={
               fatherAlive
-                ? pick('১০, ১৩ অথবা ১৭ ডিজিট', '10, 13, or 17 digits')
-                : pick(
-                    'বোর্ড রেজিস্ট্রেশনে (eSIF) সহায়ক—না থাকলে খালি রাখা যাবে।',
-                    'Helpful for board registration (eSIF); optional if unavailable.'
-                  )
+                ? '১০, ১৩ অথবা ১৭ ডিজিট'
+                : 'বোর্ড রেজিস্ট্রেশনে (eSIF) সহায়ক—না থাকলে খালি রাখা যাবে।'
             }
             error={errors.fatherNid?.message}
           >
@@ -201,7 +196,7 @@ export function StepParentsAndAddress({
           {fatherAlive && (
             <>
               <AdmissionField
-                label={pick('পিতার মোবাইল নম্বর', 'Father’s Mobile Number')}
+                label={'পিতার মোবাইল নম্বর'}
                 required={primaryGuardianType === 'FATHER'}
                 error={errors.fatherPhone?.message}
               >
@@ -220,7 +215,7 @@ export function StepParentsAndAddress({
               </AdmissionField>
 
               <AdmissionField
-                label={pick('পিতার পেশা', 'Father’s Occupation')}
+                label={'পিতার পেশা'}
                 error={errors.fatherOccupation?.message}
               >
                 <AdmissionInput
@@ -236,7 +231,7 @@ export function StepParentsAndAddress({
       {/* 2. Mother's Information (Strictly Mother's own fields — NO household income mixed in) */}
       <div className="space-y-4">
         <AdmissionSectionHeader
-          title={pick('২. মাতার তথ্য', '2. Mother’s Information')}
+          title={'২. মাতার তথ্য'}
           rightSlot={
             <div className="inline-flex border border-border/80 rounded-xl overflow-hidden divide-x divide-border/80 text-sm font-semibold">
               <button
@@ -248,7 +243,7 @@ export function StepParentsAndAddress({
                     : 'bg-surface text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {pick('জীবিত', 'Alive')}
+                {'জীবিত'}
               </button>
               <button
                 type="button"
@@ -259,7 +254,7 @@ export function StepParentsAndAddress({
                     : 'bg-surface text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {pick('মৃত', 'Deceased')}
+                {'মৃত'}
               </button>
             </div>
           }
@@ -267,7 +262,7 @@ export function StepParentsAndAddress({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <AdmissionField
-            label={pick('মাতার নাম (বাংলায়)', 'Mother’s Name (Bangla)')}
+            label={'মাতার নাম (বাংলায়)'}
             required
             error={errors.motherNameBn?.message}
           >
@@ -278,7 +273,7 @@ export function StepParentsAndAddress({
           </AdmissionField>
 
           <AdmissionField
-            label={pick('মাতার নাম (ইংরেজিতে বড় অক্ষরে)', 'Mother’s Name (English — BLOCK LETTERS)')}
+            label={'মাতার নাম (ইংরেজিতে বড় অক্ষরে)'}
             required
             error={errors.motherNameEn?.message}
           >
@@ -297,17 +292,14 @@ export function StepParentsAndAddress({
           <AdmissionField
             label={
               motherAlive
-                ? pick('মাতার এনআইডি নম্বর', 'Mother’s NID Number')
-                : pick('মাতার এনআইডি নম্বর (সংগ্রহে থাকলে — ঐচ্ছিক)', 'Mother’s NID Number (If Available — Optional)')
+                ? 'মাতার এনআইডি নম্বর'
+                : 'মাতার এনআইডি নম্বর (সংগ্রহে থাকলে — ঐচ্ছিক)'
             }
             required={motherAlive && rules.requiresParentNid}
             hint={
               motherAlive
-                ? pick('১০, ১৩ অথবা ১৭ ডিজিট', '10, 13, or 17 digits')
-                : pick(
-                    'বোর্ড রেজিস্ট্রেশনে (eSIF) সহায়ক—না থাকলে খালি রাখা যাবে।',
-                    'Helpful for board registration (eSIF); optional if unavailable.'
-                  )
+                ? '১০, ১৩ অথবা ১৭ ডিজিট'
+                : 'বোর্ড রেজিস্ট্রেশনে (eSIF) সহায়ক—না থাকলে খালি রাখা যাবে।'
             }
             error={errors.motherNid?.message}
           >
@@ -328,7 +320,7 @@ export function StepParentsAndAddress({
           {motherAlive && (
             <>
               <AdmissionField
-                label={pick('মাতার মোবাইল নম্বর', 'Mother’s Mobile Number')}
+                label={'মাতার মোবাইল নম্বর'}
                 required={primaryGuardianType === 'MOTHER'}
                 error={errors.motherPhone?.message}
               >
@@ -347,7 +339,7 @@ export function StepParentsAndAddress({
               </AdmissionField>
 
               <AdmissionField
-                label={pick('মাতার পেশা', 'Mother’s Occupation')}
+                label={'মাতার পেশা'}
                 error={errors.motherOccupation?.message}
               >
                 <AdmissionInput
@@ -363,14 +355,8 @@ export function StepParentsAndAddress({
       {/* 3. Primary Contact, Household Income & Legal Guardian */}
       <div className="space-y-4">
         <AdmissionSectionHeader
-          title={pick(
-            '৩. প্রাথমিক যোগাযোগকারী অভিভাবক ও পারিবারিক তথ্য',
-            '3. Primary Contact Guardian & Family Information'
-          )}
-          subtitle={pick(
-            'জরুরি প্রয়োজন, উপস্থিতি এসএমএস ও বিদ্যালয়ের নোটিশের জন্য প্রাথমিক অভিভাবক নির্ধারণ করুন।',
-            'Select the primary guardian for emergency contact, attendance SMS, and school notices.'
-          )}
+          title={'৩. প্রাথমিক যোগাযোগকারী অভিভাবক ও পারিবারিক তথ্য'}
+          subtitle={'জরুরি প্রয়োজন, উপস্থিতি এসএমএস ও বিদ্যালয়ের নোটিশের জন্য প্রাথমিক অভিভাবক নির্ধারণ করুন।'}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
@@ -379,7 +365,7 @@ export function StepParentsAndAddress({
             <label className="block text-base font-semibold text-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <PhoneCall className="w-4 h-4 text-primary" />
-                {pick('প্রাথমিক যোগাযোগকারী অভিভাবক', 'Primary Contact Guardian')}
+                {'প্রাথমিক যোগাযোগকারী অভিভাবক'}
               </span>
               <span className="text-destructive ml-1">*</span>
             </label>
@@ -406,7 +392,7 @@ export function StepParentsAndAddress({
               })}
             </div>
             {errors.primaryGuardianType && (
-              <p className="text-xs text-destructive font-medium">
+              <p className="text-sm text-destructive font-medium">
                 {errors.primaryGuardianType.message}
               </p>
             )}
@@ -414,7 +400,7 @@ export function StepParentsAndAddress({
 
           {/* Combined Household / Guardian Monthly Income (Properly placed outside Mother's section) */}
           <AdmissionField
-            label={pick('পরিবারের মাসিক আয় (টাকা — ঐচ্ছিক)', 'Family Monthly Income (BDT — Optional)')}
+            label={'পরিবারের মাসিক আয় (টাকা — ঐচ্ছিক)'}
           >
             <AdmissionInput
               value={watch('guardianMonthlyIncome')}
@@ -431,19 +417,13 @@ export function StepParentsAndAddress({
         {/* Legal Guardian Toggle or Mandatory Notice */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
           {bothParentsDeceased ? (
-            <p className="text-xs font-medium text-destructive inline-flex items-center gap-1.5">
+            <p className="text-sm font-medium text-destructive inline-flex items-center gap-1.5">
               <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-              {pick(
-                'পিতা ও মাতা উভয়েই মৃত হওয়ায় বৈধ অভিভাবকের তথ্য প্রদান বাধ্যতামূলক।',
-                'Both parents are deceased; legal guardian details are required.'
-              )}
+              {'পিতা ও মাতা উভয়েই মৃত হওয়ায় বৈধ অভিভাবকের তথ্য প্রদান বাধ্যতামূলক।'}
             </p>
           ) : primaryGuardianType === 'LEGAL_GUARDIAN' ? (
-            <p className="text-xs text-muted-foreground">
-              {pick(
-                'বৈধ অভিভাবককে প্রাথমিক যোগাযোগকারী হিসেবে নির্বাচন করা হয়েছে—নিচের তথ্যগুলো পূরণ করুন।',
-                'Legal Guardian is set as primary contact—complete the details below.'
-              )}
+            <p className="text-sm text-muted-foreground">
+              {'বৈধ অভিভাবককে প্রাথমিক যোগাযোগকারী হিসেবে নির্বাচন করা হয়েছে—নিচের তথ্যগুলো পূরণ করুন।'}
             </p>
           ) : (
             <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
@@ -454,10 +434,7 @@ export function StepParentsAndAddress({
                 className="w-4 h-4 rounded-[3px] accent-primary"
               />
               <span>
-                {pick(
-                  'পিতা-মাতা ব্যতীত ভিন্ন বৈধ অভিভাবকের তথ্য যুক্ত করুন (ঐচ্ছিক)',
-                  'Add separate legal guardian details (Optional)'
-                )}
+                {'পিতা-মাতা ব্যতীত ভিন্ন বৈধ অভিভাবকের তথ্য যুক্ত করুন (ঐচ্ছিক)'}
               </span>
             </label>
           )}
@@ -466,7 +443,7 @@ export function StepParentsAndAddress({
         {showLegalGuardian && (
           <div className="p-5 rounded-2xl border border-border/80 bg-surface-muted/20 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <AdmissionField
-              label={pick('বৈধ অভিভাবকের নাম (বাংলায়)', 'Legal Guardian Name (Bangla)')}
+              label={'বৈধ অভিভাবকের নাম (বাংলায়)'}
               required
               error={errors.legalGuardianNameBn?.message}
             >
@@ -474,7 +451,7 @@ export function StepParentsAndAddress({
             </AdmissionField>
 
             <AdmissionField
-              label={pick('বৈধ অভিভাবকের নাম (ইংরেজিতে)', 'Legal Guardian Name (English)')}
+              label={'বৈধ অভিভাবকের নাম (ইংরেজিতে)'}
             >
               <AdmissionInput
                 value={watch('legalGuardianNameEn')}
@@ -487,7 +464,7 @@ export function StepParentsAndAddress({
             </AdmissionField>
 
             <AdmissionField
-              label={pick('শিক্ষার্থীর সাথে সম্পর্ক', 'Relationship')}
+              label={'শিক্ষার্থীর সাথে সম্পর্ক'}
               required
               error={errors.legalGuardianRelation?.message}
             >
@@ -498,7 +475,7 @@ export function StepParentsAndAddress({
             </AdmissionField>
 
             <AdmissionField
-              label={pick('বৈধ অভিভাবকের মোবাইল নম্বর', 'Legal Guardian Mobile')}
+              label={'বৈধ অভিভাবকের মোবাইল নম্বর'}
               required
               error={errors.legalGuardianPhone?.message}
             >
@@ -517,7 +494,7 @@ export function StepParentsAndAddress({
             </AdmissionField>
 
             <AdmissionField
-              label={pick('বৈধ অভিভাবকের এনআইডি নম্বর', 'Legal Guardian NID')}
+              label={'বৈধ অভিভাবকের এনআইডি নম্বর'}
               error={errors.legalGuardianNid?.message}
             >
               <AdmissionInput
@@ -535,7 +512,7 @@ export function StepParentsAndAddress({
             </AdmissionField>
 
             <AdmissionField
-              label={pick('বৈধ অভিভাবকের ঠিকানা', 'Legal Guardian Address')}
+              label={'বৈধ অভিভাবকের ঠিকানা'}
               required={bothParentsDeceased}
               error={errors.legalGuardianAddress?.message}
             >
@@ -552,11 +529,11 @@ export function StepParentsAndAddress({
       <div className="space-y-5">
         <div className="space-y-4">
           <AdmissionSectionHeader
-            title={pick('৪. স্থায়ী ঠিকানা', '4. Permanent Address')}
+            title={'৪. স্থায়ী ঠিকানা'}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <AdmissionField
-              label={pick('গ্রাম / মহল্লা / বাসা নং', 'Village / House & Road')}
+              label={'গ্রাম / মহল্লা / বাসা নং'}
               required
               error={errors.permanentAddressParts?.village?.message}
               className="sm:col-span-2"
@@ -568,7 +545,7 @@ export function StepParentsAndAddress({
             </AdmissionField>
 
             <AdmissionField
-              label={pick('ডাকঘর', 'Post Office')}
+              label={'ডাকঘর'}
               required
               error={errors.permanentAddressParts?.postOffice?.message}
             >
@@ -579,7 +556,7 @@ export function StepParentsAndAddress({
             </AdmissionField>
 
             <AdmissionField
-              label={pick('পোস্ট কোড (ঐচ্ছিক)', 'Post Code (Optional)')}
+              label={'পোস্ট কোড (ঐচ্ছিক)'}
               error={errors.permanentAddressParts?.postCode?.message}
             >
               <AdmissionInput
@@ -599,7 +576,7 @@ export function StepParentsAndAddress({
             </AdmissionField>
 
             <AdmissionField
-              label={pick('উপজেলা / থানা', 'Upazila / Thana')}
+              label={'উপজেলা / থানা'}
               required
               error={errors.permanentAddressParts?.upazila?.message}
               className="sm:col-span-1 lg:col-span-2"
@@ -611,7 +588,7 @@ export function StepParentsAndAddress({
             </AdmissionField>
 
             <AdmissionField
-              label={pick('জেলা', 'District')}
+              label={'জেলা'}
               required
               error={errors.permanentAddressParts?.district?.message}
               className="sm:col-span-1 lg:col-span-2"
@@ -626,7 +603,7 @@ export function StepParentsAndAddress({
 
         <div className="space-y-4">
           <AdmissionSectionHeader
-            title={pick('৫. বর্তমান ঠিকানা', '5. Present Address')}
+            title={'৫. বর্তমান ঠিকানা'}
             rightSlot={
               <label className="inline-flex items-center gap-2 text-sm text-foreground cursor-pointer select-none">
                 <input
@@ -635,7 +612,7 @@ export function StepParentsAndAddress({
                   onChange={(e) => handleToggleSameAddress(e.target.checked)}
                   className="w-4 h-4 rounded-[3px] accent-primary"
                 />
-                <span>{pick('স্থায়ী ঠিকানার অনুরূপ', 'Same as permanent address')}</span>
+                <span>{'স্থায়ী ঠিকানার অনুরূপ'}</span>
               </label>
             }
           />
@@ -643,12 +620,12 @@ export function StepParentsAndAddress({
           {sameAsPermanent ? (
             <div className="px-4 py-3 rounded-2xl border border-border/80 bg-surface-muted/30 text-base text-muted-foreground">
               {formatStructuredAddress(permanentAddressParts) ||
-                pick('স্থায়ী ঠিকানা পূরণ করলে এখানে স্বয়ংক্রিয়ভাবে যুক্ত হবে।', 'Mirrors permanent address.')}
+                'স্থায়ী ঠিকানা পূরণ করলে এখানে স্বয়ংক্রিয়ভাবে যুক্ত হবে।'}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <AdmissionField
-                label={pick('গ্রাম / মহল্লা / বাসা নং', 'Village / House & Road')}
+                label={'গ্রাম / মহল্লা / বাসা নং'}
                 required
                 error={errors.presentAddressParts?.village?.message}
                 className="sm:col-span-2"
@@ -660,7 +637,7 @@ export function StepParentsAndAddress({
               </AdmissionField>
 
               <AdmissionField
-                label={pick('ডাকঘর', 'Post Office')}
+                label={'ডাকঘর'}
                 required
                 error={errors.presentAddressParts?.postOffice?.message}
               >
@@ -671,7 +648,7 @@ export function StepParentsAndAddress({
               </AdmissionField>
 
               <AdmissionField
-                label={pick('পোস্ট কোড (ঐচ্ছিক)', 'Post Code (Optional)')}
+                label={'পোস্ট কোড (ঐচ্ছিক)'}
                 error={errors.presentAddressParts?.postCode?.message}
               >
                 <AdmissionInput
@@ -691,7 +668,7 @@ export function StepParentsAndAddress({
               </AdmissionField>
 
               <AdmissionField
-                label={pick('উপজেলা / থানা', 'Upazila / Thana')}
+                label={'উপজেলা / থানা'}
                 required
                 error={errors.presentAddressParts?.upazila?.message}
                 className="sm:col-span-1 lg:col-span-2"
@@ -703,7 +680,7 @@ export function StepParentsAndAddress({
               </AdmissionField>
 
               <AdmissionField
-                label={pick('জেলা', 'District')}
+                label={'জেলা'}
                 required
                 error={errors.presentAddressParts?.district?.message}
                 className="sm:col-span-1 lg:col-span-2"

@@ -7,7 +7,6 @@ import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -57,13 +56,12 @@ function useCurrentStudent(db: MockDatabase | undefined) {
 export function StudentRoutinePage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const me = useCurrentStudent(db);
-  const { locale, pick } = useI18n();
   if (isLoading || !db || !me || !me.enrollment) return <LoadingSkeleton />;
 
   const routines = db.classRoutines.filter((r) => r.sectionId === me.enrollment!.sectionId);
   return (
     <div className="space-y-6">
-      <PageHeader title={pick('আমার ক্লাস রুটিন', 'My Class Routine')} />
+      <PageHeader title={'আমার ক্লাস রুটিন'} />
       <div className="space-y-4">
         {DAYS_ORDER.map((day) => {
           const items = routines
@@ -73,7 +71,7 @@ export function StudentRoutinePage() {
           return (
             <Card key={day} className="p-4">
               <h3 className="text-base font-bold text-primary mb-2">
-                {locale === 'bn' ? dayMeta?.bn ?? day : dayMeta?.en ?? day}
+                {dayMeta?.bn ?? day}
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {items.map((r) => {
@@ -82,11 +80,11 @@ export function StudentRoutinePage() {
                   const sub = db.subjects.find((s) => s.id === cs?.subjectId);
                   return (
                     <div key={r.id} className="p-3 rounded border border-border bg-surface-muted/40">
-                      <p className="text-xs font-semibold text-primary tabular-nums">
-                        {formatTime12h(r.startTime, locale)} – {formatTime12h(r.endTime, locale)}
+                      <p className="text-sm font-semibold text-primary tabular-nums">
+                        {formatTime12h(r.startTime, 'bn')} – {formatTime12h(r.endTime, 'bn')}
                       </p>
                       <p className="text-base font-semibold mt-1">
-                        {locale === 'bn' ? sub?.nameBn || sub?.name : sub?.name}
+                        {sub?.nameBn || sub?.name}
                       </p>
                     </div>
                   );

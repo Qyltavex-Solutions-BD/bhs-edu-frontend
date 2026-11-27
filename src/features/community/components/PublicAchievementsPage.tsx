@@ -32,7 +32,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { MasonryPhotoAlbum } from 'react-photo-album';
 
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -60,7 +59,6 @@ type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
 
 export function PublicAchievementsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null);
@@ -102,11 +100,8 @@ export function PublicAchievementsPage() {
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-8">
       <PageHeader
-        title={pick('অর্জন ও কৃতী শিক্ষার্থী', 'Achievements & Alumni')}
-        description={pick(
-          'ভোজেশ্বর উচ্চ বিদ্যালয়ের স্মরণীয় মুহূর্ত, জাতীয় ও মেধা তালিকায় স্থানপ্রাপ্ত কৃতি শিক্ষার্থী এবং বিশিষ্ট প্রাক্তন শিক্ষার্থীদের মেসনারি স্মৃতি গ্যালারি।',
-          'A responsive masonry showcase honoring board toppers, science innovators, and distinguished alumni of Bhojeshwar High School.'
-        )}
+        title={'অর্জন ও কৃতী শিক্ষার্থী'}
+        description={'ভোজেশ্বর উচ্চ বিদ্যালয়ের স্মরণীয় মুহূর্ত, জাতীয় ও মেধা তালিকায় স্থানপ্রাপ্ত কৃতি শিক্ষার্থী এবং বিশিষ্ট প্রাক্তন শিক্ষার্থীদের মেসনারি স্মৃতি গ্যালারি।'}
       />
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -115,7 +110,7 @@ export function PublicAchievementsPage() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={pick('অর্জন, শিক্ষার্থী বা ব্যাচ দিয়ে খুঁজুন...', 'Search by title, student name, or batch...')}
+            placeholder={'অর্জন, শিক্ষার্থী বা ব্যাচ দিয়ে খুঁজুন...'}
             className="pl-9"
           />
         </div>
@@ -124,16 +119,16 @@ export function PublicAchievementsPage() {
           onChange={(e) => setTypeFilter(e.target.value)}
           className="w-full sm:w-60"
         >
-          <option value="ALL">{pick('সব ক্যাটাগরি', 'All Categories')}</option>
-          <option value={AchievementType.INSTITUTION_ACHIEVEMENT}>{pick('প্রাতিষ্ঠানিক অর্জন', 'Institution Award')}</option>
-          <option value={AchievementType.STUDENT_STAR}>{pick('কৃতী শিক্ষার্থী', 'Student Star')}</option>
-          <option value={AchievementType.NOTABLE_ALUMNI}>{pick('কৃতী প্রাক্তন শিক্ষার্থী', 'Notable Alumni')}</option>
+          <option value="ALL">{'সব ক্যাটাগরি'}</option>
+          <option value={AchievementType.INSTITUTION_ACHIEVEMENT}>{'প্রাতিষ্ঠানিক অর্জন'}</option>
+          <option value={AchievementType.STUDENT_STAR}>{'কৃতী শিক্ষার্থী'}</option>
+          <option value={AchievementType.NOTABLE_ALUMNI}>{'কৃতী প্রাক্তন শিক্ষার্থী'}</option>
         </Select>
       </div>
 
       {filtered.length === 0 ? (
         <EmptyState
-          title={pick('কোনো অর্জন পাওয়া যায়নি', 'No matching achievements found')}
+          title={'কোনো অর্জন পাওয়া যায়নি'}
         />
       ) : (
         <div className="w-full">
@@ -176,17 +171,17 @@ export function PublicAchievementsPage() {
                         {isAlumni ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500 text-white shadow-md backdrop-blur-sm">
                             <GraduationCap className="w-3.5 h-3.5" />
-                            <span>{pick('কৃতি প্রাক্তন শিক্ষার্থী', 'Notable Alumni')}</span>
+                            <span>{'কৃতি প্রাক্তন শিক্ষার্থী'}</span>
                           </span>
                         ) : isStudentStar ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-primary-foreground shadow-md backdrop-blur-sm">
                             <Sparkles className="w-3.5 h-3.5" />
-                            <span>{pick('কৃতি শিক্ষার্থী', 'Student Star')}</span>
+                            <span>{'কৃতি শিক্ষার্থী'}</span>
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-600 text-white shadow-md backdrop-blur-sm">
                             <Trophy className="w-3.5 h-3.5" />
-                            <span>{pick('প্রাতিষ্ঠানিক স্বীকৃতি', 'Institution Milestone')}</span>
+                            <span>{'প্রাতিষ্ঠানিক স্বীকৃতি'}</span>
                           </span>
                         )}
                       </div>
@@ -194,7 +189,7 @@ export function PublicAchievementsPage() {
                       {/* Top Right: Batch Pill */}
                       {ach.batch && (
                         <div className="absolute top-3 right-3 z-10">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-black/60 text-white border border-white/20 backdrop-blur-md tabular-nums">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-black/60 text-white border border-white/20 backdrop-blur-md tabular-nums">
                             {ach.batch}
                           </span>
                         </div>
@@ -207,7 +202,7 @@ export function PublicAchievementsPage() {
                             {ach.personName}
                           </p>
                         )}
-                        <p className="text-xs font-medium text-white/90 line-clamp-1 mt-0.5">
+                        <p className="text-sm font-medium text-white/90 line-clamp-1 mt-0.5">
                           {ach.title}
                         </p>
                       </div>
@@ -216,7 +211,7 @@ export function PublicAchievementsPage() {
                       <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 backdrop-blur-[2px]">
                         <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-slate-900 text-xs font-bold shadow-xl">
                           <Maximize2 className="w-3.5 h-3.5 text-primary" />
-                          <span>{pick('বিস্তারিত সাফল্যগাথা', 'View Story')}</span>
+                          <span>{'বিস্তারিত সাফল্যগাথা'}</span>
                         </span>
                       </div>
                     </div>
@@ -224,17 +219,17 @@ export function PublicAchievementsPage() {
                     {/* Card Bottom Description Block */}
                     {ach.description && (
                       <div className="p-4 bg-surface border-t border-border flex flex-col justify-between gap-2.5 flex-1">
-                        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                           {ach.description}
                         </p>
-                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-xs font-semibold text-primary">
+                        <div className="flex items-center justify-between pt-2 border-t border-border/60 text-sm font-semibold text-primary">
                           <span className="inline-flex items-center gap-1 group-hover:underline">
-                            <span>{pick('সম্পূর্ণ বিবরণী', 'Full Details')}</span>
+                            <span>{'সম্পূর্ণ বিবরণী'}</span>
                             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                           </span>
                           {ach.achievedAt && (
-                            <span className="text-[11px] text-muted-foreground tabular-nums">
-                              {formatDateShort(ach.achievedAt, locale)}
+                            <span className="text-sm text-muted-foreground tabular-nums">
+                              {formatDateShort(ach.achievedAt, 'bn')}
                             </span>
                           )}
                         </div>
@@ -293,17 +288,17 @@ export function PublicAchievementsPage() {
                       {selectedAchievement.type === AchievementType.NOTABLE_ALUMNI ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500 text-white">
                           <GraduationCap className="w-3.5 h-3.5" />
-                          <span>{pick('কৃতি প্রাক্তন শিক্ষার্থী', 'Notable Alumni')}</span>
+                          <span>{'কৃতি প্রাক্তন শিক্ষার্থী'}</span>
                         </span>
                       ) : selectedAchievement.type === AchievementType.STUDENT_STAR ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary text-primary-foreground">
                           <Sparkles className="w-3.5 h-3.5" />
-                          <span>{pick('কৃতি শিক্ষার্থী', 'Student Star')}</span>
+                          <span>{'কৃতি শিক্ষার্থী'}</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-600 text-white">
                           <Trophy className="w-3.5 h-3.5" />
-                          <span>{pick('প্রাতিষ্ঠানিক স্বীকৃতি', 'Institution Milestone')}</span>
+                          <span>{'প্রাতিষ্ঠানিক স্বীকৃতি'}</span>
                         </span>
                       )}
 
@@ -314,8 +309,8 @@ export function PublicAchievementsPage() {
                       )}
 
                       {selectedAchievement.achievedAt && (
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          · {formatDateShort(selectedAchievement.achievedAt, locale)}
+                        <span className="text-sm text-muted-foreground tabular-nums">
+                          · {formatDateShort(selectedAchievement.achievedAt, 'bn')}
                         </span>
                       )}
                     </div>
@@ -344,7 +339,7 @@ export function PublicAchievementsPage() {
                       size="sm"
                       onClick={() => setSelectedAchievement(null)}
                     >
-                      {pick('বন্ধ করুন', 'Close')}
+                      {'বন্ধ করুন'}
                     </Button>
                   </div>
                 </div>

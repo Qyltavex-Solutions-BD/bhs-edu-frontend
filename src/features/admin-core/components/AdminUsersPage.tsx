@@ -27,7 +27,6 @@ import {
   useUpdateSchoolProfileMutation,
 } from '@/src/store/api';
 import { PrintableIdCardSheet } from '@/src/components/print/PrintDocuments';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import {
@@ -88,7 +87,6 @@ export function AdminUsersPage({
   const { id: userIdParam } = useParams();
   const { data: db, isLoading } = useGetBootstrapQuery();
   const [togglePerm] = useToggleRolePermissionMutation();
-  const { locale, pick } = useI18n();
   const [tab, setTab] = useState(defaultTab);
   const [moduleFilter, setModuleFilter] = useState('ALL');
 
@@ -99,11 +97,8 @@ export function AdminUsersPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('ব্যবহারকারী, রোল ও অডিট লগ', 'Users, RBAC Permissions & Audit Logs')}
-        description={pick(
-          'রোল-ভিত্তিক পারমিশন ম্যাট্রিক্স এবং সিস্টেম অ্যাক্টিভিটি লগ। (দ্রষ্টব্য: চূড়ান্ত নিরাপত্তা সর্বদা ব্যাকএন্ডে যাচাই হয়)',
-          'Role-based permission matrix and audit logs. (Note: Real security enforcement occurs server-side.)'
-        )}
+        title={'ব্যবহারকারী, রোল ও অডিট লগ'}
+        description={'রোল-ভিত্তিক পারমিশন ম্যাট্রিক্স এবং সিস্টেম অ্যাক্টিভিটি লগ। (দ্রষ্টব্য: চূড়ান্ত নিরাপত্তা সর্বদা ব্যাকএন্ডে যাচাই হয়)'}
       />
 
       {selectedUser && (
@@ -112,7 +107,7 @@ export function AdminUsersPage({
             <p className="text-base font-bold">{selectedUser.name}</p>
             <p className="text-sm text-muted-foreground">{selectedUser.email} · {selectedUser.phone}</p>
           </div>
-          <Link href="/admin/users"><Button variant="outline" size="sm">{pick('সব ব্যবহারকারী', 'All Users')}</Button></Link>
+          <Link href="/admin/users"><Button variant="outline" size="sm">{'সব ব্যবহারকারী'}</Button></Link>
         </Card>
       )}
 
@@ -120,22 +115,22 @@ export function AdminUsersPage({
         value={tab}
         onChange={setTab}
         items={[
-          { value: 'users', label: pick('ব্যবহারকারী', 'Users'), count: db.users.length },
-          { value: 'roles', label: pick('রোলসমূহ', 'Roles'), count: db.roles.length },
-          { value: 'permissions', label: pick('পারমিশন ম্যাট্রিক্স', 'Permission Matrix') },
-          { value: 'audit', label: pick('অডিট লগ', 'Audit Logs'), count: db.auditLogs.length },
+          { value: 'users', label: 'ব্যবহারকারী', count: db.users.length },
+          { value: 'roles', label: 'রোলসমূহ', count: db.roles.length },
+          { value: 'permissions', label: 'পারমিশন ম্যাট্রিক্স' },
+          { value: 'audit', label: 'অডিট লগ', count: db.auditLogs.length },
         ]}
       />
 
       {tab === 'users' && (
         <Card className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead className="bg-surface-muted text-sm text-muted-foreground">
               <tr>
-                <th className="p-3 text-left">{pick('নাম', 'Name')}</th>
-                <th className="p-3 text-left">{pick('ইমেইল / ফোন', 'Contact')}</th>
-                <th className="p-3 text-left">{pick('রোল', 'Assigned Role')}</th>
-                <th className="p-3 text-left">{pick('অবস্থা', 'Status')}</th>
+                <th className="p-3 text-left">{'নাম'}</th>
+                <th className="p-3 text-left">{'ইমেইল / ফোন'}</th>
+                <th className="p-3 text-left">{'রোল'}</th>
+                <th className="p-3 text-left">{'অবস্থা'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -150,7 +145,7 @@ export function AdminUsersPage({
                     <td className="p-3 text-sm text-muted-foreground tabular-nums">{u.email} · {u.phone}</td>
                     <td className="p-3 text-sm font-mono">{role?.name ?? '—'}</td>
                     <td className="p-3">
-                      <StatusBadge value={u.isActive ? 'ACTIVE' : 'INACTIVE'} customLabel={u.isActive ? pick('সক্রিয়', 'Active') : pick('নিষ্ক্রিয়', 'Inactive')} customTone={u.isActive ? 'success' : 'neutral'} />
+                      <StatusBadge value={u.isActive ? 'ACTIVE' : 'INACTIVE'} customLabel={u.isActive ? 'সক্রিয়' : 'নিষ্ক্রিয়'} customTone={u.isActive ? 'success' : 'neutral'} />
                     </td>
                   </tr>
                 );
@@ -172,7 +167,7 @@ export function AdminUsersPage({
                 </div>
                 <p className="text-sm text-muted-foreground">{r.description}</p>
                 <p className="text-sm text-foreground pt-2 border-t border-border tabular-nums">
-                  {formatNumber(count, locale)} {pick('টি অনুমতি নির্ধারিত', 'permissions assigned')}
+                  {formatNumber(count, 'bn')} {'টি অনুমতি নির্ধারিত'}
                 </p>
               </Card>
             );
@@ -182,12 +177,12 @@ export function AdminUsersPage({
 
       {tab === 'permissions' && (
         <Card className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead className="bg-surface-muted text-muted-foreground">
               <tr>
-                <th className="p-3 text-left sticky left-0 bg-surface-muted">{pick('পারমিশন', 'Permission')}</th>
+                <th className="p-3 text-left sticky left-0 bg-surface-muted">{'পারমিশন'}</th>
                 {db.roles.slice(0, 6).map((r) => (
-                  <th key={r.id} className="p-3 text-center font-mono text-xs">{r.name}</th>
+                  <th key={r.id} className="p-3 text-center font-mono text-sm">{r.name}</th>
                 ))}
               </tr>
             </thead>
@@ -206,7 +201,7 @@ export function AdminUsersPage({
                           checked={checked}
                           onChange={() => {
                             togglePerm({ roleId: r.id, permissionId: perm.id });
-                            toast.success(pick('পারমিশন আপডেট হয়েছে', 'Permission updated'));
+                            toast.success('পারমিশন আপডেট হয়েছে');
                           }}
                           className="w-4 h-4 accent-primary cursor-pointer"
                         />
@@ -224,7 +219,7 @@ export function AdminUsersPage({
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <Select value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)} className="w-52">
-              <option value="ALL">{pick('সকল মডিউল', 'All Modules')}</option>
+              <option value="ALL">{'সকল মডিউল'}</option>
               {Array.from(new Set(db.auditLogs.map((l) => l.module))).map((m) => (
                 <option key={m} value={m}>{m}</option>
               ))}
@@ -234,17 +229,17 @@ export function AdminUsersPage({
               size="sm"
               onClick={() => exportToCsv(db.auditLogs as unknown as Record<string, unknown>[], 'audit-logs.csv')}
             >
-              {pick('CSV এক্সপোর্ট', 'Export Audit CSV')}
+              {'CSV এক্সপোর্ট'}
             </Button>
           </div>
           <Card className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-base">
               <thead className="bg-surface-muted text-sm text-muted-foreground">
                 <tr>
-                  <th className="p-3 text-left">{pick('তারিখ', 'Date')}</th>
-                  <th className="p-3 text-left">{pick('মডিউল', 'Module')}</th>
-                  <th className="p-3 text-left">{pick('অ্যাকশন', 'Action')}</th>
-                  <th className="p-3 text-left">{pick('বিস্তারিত', 'Details')}</th>
+                  <th className="p-3 text-left">{'তারিখ'}</th>
+                  <th className="p-3 text-left">{'মডিউল'}</th>
+                  <th className="p-3 text-left">{'অ্যাকশন'}</th>
+                  <th className="p-3 text-left">{'বিস্তারিত'}</th>
                   <th className="p-3 text-left">IP</th>
                 </tr>
               </thead>
@@ -253,7 +248,7 @@ export function AdminUsersPage({
                   .filter((l) => moduleFilter === 'ALL' || l.module === moduleFilter)
                   .map((l) => (
                     <tr key={l.id}>
-                      <td className="p-3 tabular-nums whitespace-nowrap">{formatDateShort(l.createdAt, locale)}</td>
+                      <td className="p-3 tabular-nums whitespace-nowrap">{formatDateShort(l.createdAt, 'bn')}</td>
                       <td className="p-3 font-medium text-primary">{l.module}</td>
                       <td className="p-3 font-mono">{l.action}</td>
                       <td className="p-3 text-muted-foreground">{l.details}</td>

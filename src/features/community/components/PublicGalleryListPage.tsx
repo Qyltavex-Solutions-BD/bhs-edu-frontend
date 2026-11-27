@@ -32,7 +32,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { MasonryPhotoAlbum } from 'react-photo-album';
 
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -60,7 +59,6 @@ type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
 
 export function PublicGalleryListPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('ALL');
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
@@ -94,11 +92,8 @@ export function PublicGalleryListPage() {
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <PageHeader
-        title={pick('ছবি ও ভিডিও গ্যালারি', 'Photo & Video Gallery')}
-        description={pick(
-          'বিদ্যালয়ের ক্যাম্পাস, বিজ্ঞান মেলা, ক্রীড়া ও সাংস্কৃতিক আয়োজনের নির্বাচিত অ্যালবামসমূহ।',
-          'Browse campus life, science fairs, sports, and cultural program albums.'
-        )}
+        title={'ছবি ও ভিডিও গ্যালারি'}
+        description={'বিদ্যালয়ের ক্যাম্পাস, বিজ্ঞান মেলা, ক্রীড়া ও সাংস্কৃতিক আয়োজনের নির্বাচিত অ্যালবামসমূহ।'}
       />
 
       <div className="flex flex-col sm:flex-row gap-3">
@@ -107,7 +102,7 @@ export function PublicGalleryListPage() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={pick('অ্যালবামের নাম, ক্যাটাগরি বা ক্যাপশন দিয়ে খুঁজুন...', 'Search albums by title, category, or caption...')}
+            placeholder={'অ্যালবামের নাম, ক্যাটাগরি বা ক্যাপশন দিয়ে খুঁজুন...'}
             className="pl-9"
           />
         </div>
@@ -116,7 +111,7 @@ export function PublicGalleryListPage() {
           onChange={(e) => setCategory(e.target.value)}
           className="w-full sm:w-56"
         >
-          <option value="ALL">{pick('সব ক্যাটাগরি', 'All Categories')}</option>
+          <option value="ALL">{'সব ক্যাটাগরি'}</option>
           {categories.map((cat) => (
             <option key={cat} value={cat}>
               {cat}
@@ -127,8 +122,8 @@ export function PublicGalleryListPage() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title={pick('কোনো অ্যালবাম পাওয়া যায়নি', 'No matching gallery albums')}
-          description={pick('অনুগ্রহ করে অন্য শব্দ বা ক্যাটাগরি নির্বাচন করে চেষ্টা করুন।', 'Try another search keyword or category.')}
+          title={'কোনো অ্যালবাম পাওয়া যায়নি'}
+          description={'অনুগ্রহ করে অন্য শব্দ বা ক্যাটাগরি নির্বাচন করে চেষ্টা করুন।'}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -149,7 +144,7 @@ export function PublicGalleryListPage() {
                         </div>
                         <div>
                           {gal.category && (
-                            <p className="text-xs font-medium text-white/75">{gal.category}</p>
+                            <p className="text-sm font-medium text-white/75">{gal.category}</p>
                           )}
                           <h3 className="text-base font-bold leading-snug line-clamp-2 mt-0.5">
                             {gal.title}
@@ -165,7 +160,7 @@ export function PublicGalleryListPage() {
                       />
                     )}
                     <span className="absolute top-3 right-3 px-2.5 py-0.5 rounded bg-black/65 text-white text-xs font-medium tabular-nums inline-flex items-center gap-1.5">
-                      {formatNumber(media.length, locale)} {pick('টি মিডিয়া', 'items')}
+                      {formatNumber(media.length, 'bn')} {'টি মিডিয়া'}
                       {videoCount > 0 && <Film className="w-3 h-3" />}
                     </span>
                   </div>

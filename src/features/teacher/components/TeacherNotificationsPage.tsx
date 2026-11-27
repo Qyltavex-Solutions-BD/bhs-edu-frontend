@@ -32,7 +32,6 @@ import {
   useSaveMarksBatchMutation,
 } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -84,7 +83,6 @@ function getAssignmentSubject(db: MockDatabase, classSubjectId: string) {
 export function TeacherNotificationsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const [markRead] = useMarkNotificationReadMutation();
-  const { locale, pick } = useI18n();
   if (isLoading || !db) return <LoadingSkeleton />;
 
   const items = db.notifications.filter((n) => n.targetRoles.includes('TEACHER'));
@@ -92,11 +90,11 @@ export function TeacherNotificationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('নোটিফিকেশন', 'Notifications')}
-        description={pick('পরীক্ষা, হাজিরা ও প্রশাসনিক বার্তা', 'Exam, attendance, and administrative alerts')}
+        title={'নোটিফিকেশন'}
+        description={'পরীক্ষা, হাজিরা ও প্রশাসনিক বার্তা'}
         actions={
           <Button variant="outline" size="sm" onClick={() => markRead({})}>
-            {pick('সব পঠিত করুন', 'Mark All Read')}
+            {'সব পঠিত করুন'}
           </Button>
         }
       />
@@ -105,15 +103,15 @@ export function TeacherNotificationsPage() {
           <Card key={n.id} className={`p-4 ${!n.isRead ? 'border-primary/40 bg-primary/5' : ''}`}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-base font-semibold">{locale === 'bn' ? n.titleBn : n.titleEn}</p>
-                <p className="text-sm text-muted-foreground mt-1">{locale === 'bn' ? n.bodyBn : n.bodyEn}</p>
-                <p className="text-xs text-muted-foreground mt-2 tabular-nums">
-                  {formatDateLong(n.createdAt, locale)}
+                <p className="text-base font-semibold">{n.titleBn}</p>
+                <p className="text-sm text-muted-foreground mt-1">{n.bodyBn}</p>
+                <p className="text-sm text-muted-foreground mt-2 tabular-nums">
+                  {formatDateLong(n.createdAt, 'bn')}
                 </p>
               </div>
               {!n.isRead && (
                 <Button variant="ghost" size="sm" onClick={() => markRead({ id: n.id })}>
-                  {pick('পঠিত', 'Mark Read')}
+                  {'পঠিত'}
                 </Button>
               )}
             </div>

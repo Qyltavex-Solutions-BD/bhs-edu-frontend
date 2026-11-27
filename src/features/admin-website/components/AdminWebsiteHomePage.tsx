@@ -34,7 +34,6 @@ import {
   useUpdateSchoolProfileMutation,
   useUpsertCmsItemMutation,
 } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   getCampusPhoto,
@@ -152,7 +151,6 @@ export function AdminWebsiteHomePage({
   const [deleteCms] = useDeleteCmsItemMutation();
   const [toggleCms] = useToggleCmsItemMutation();
   const [reorderCms] = useReorderCmsItemsMutation();
-  const { locale, pick } = useI18n();
   const [tab, setTab] = useState(defaultTab);
 
   // Branding Profile State
@@ -238,7 +236,7 @@ export function AdminWebsiteHomePage({
       email: profileForm.email.trim(),
       address: profileForm.address.trim(),
     }).unwrap();
-    toast.success(pick('প্রতিষ্ঠানের ব্র্যান্ডিং ও প্রোফাইল সংরক্ষিত হয়েছে।', 'School branding & profile saved.'));
+    toast.success('প্রতিষ্ঠানের ব্র্যান্ডিং ও প্রোফাইল সংরক্ষিত হয়েছে।');
   };
 
   const handleSaveContact = async (e: React.FormEvent) => {
@@ -249,7 +247,7 @@ export function AdminWebsiteHomePage({
       email: contactForm.email.trim(),
       mapUrl: contactForm.mapUrl.trim(),
     }).unwrap();
-    toast.success(pick('যোগাযোগ ও ম্যাপ তথ্য হালনাগাদ হয়েছে।', 'Contact info & map link updated.'));
+    toast.success('যোগাযোগ ও ম্যাপ তথ্য হালনাগাদ হয়েছে।');
   };
 
   const openBannerEditor = (b?: WebsiteBanner) => {
@@ -267,7 +265,7 @@ export function AdminWebsiteHomePage({
   const handleSaveBanner = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bannerForm.title.trim()) {
-      toast.error(pick('ব্যানারের শিরোনাম লিখুন।', 'Enter a banner title.'));
+      toast.error('ব্যানারের শিরোনাম লিখুন।');
       return;
     }
     await upsertCms({
@@ -281,7 +279,7 @@ export function AdminWebsiteHomePage({
         isActive: bannerForm.isActive,
       },
     }).unwrap();
-    toast.success(pick('হিরো ব্যানার সংরক্ষিত হয়েছে।', 'Hero banner saved.'));
+    toast.success('হিরো ব্যানার সংরক্ষিত হয়েছে।');
     setBannerModalOpen(false);
   };
 
@@ -291,7 +289,7 @@ export function AdminWebsiteHomePage({
     const [moved] = next.splice(fromIdx, 1);
     next.splice(toIdx, 0, moved);
     await reorderCms({ collection: 'banners', orderedIds: next.map((x) => x.id) }).unwrap();
-    toast.success(pick('ব্যানারের ক্রম হালনাগাদ হয়েছে।', 'Banner order updated.'));
+    toast.success('ব্যানারের ক্রম হালনাগাদ হয়েছে।');
   };
 
   const openLinkEditor = (ql?: QuickLink) => {
@@ -308,7 +306,7 @@ export function AdminWebsiteHomePage({
   const handleSaveLink = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!linkForm.title.trim() || !linkForm.url.trim()) {
-      toast.error(pick('লিংকের শিরোনাম ও URL লিখুন।', 'Enter link title and URL.'));
+      toast.error('লিংকের শিরোনাম ও URL লিখুন।');
       return;
     }
     await upsertCms({
@@ -321,7 +319,7 @@ export function AdminWebsiteHomePage({
         isActive: linkForm.isActive,
       },
     }).unwrap();
-    toast.success(pick('দ্রুত লিংক সংরক্ষিত হয়েছে।', 'Quick link saved.'));
+    toast.success('দ্রুত লিংক সংরক্ষিত হয়েছে।');
     setLinkModalOpen(false);
   };
 
@@ -331,22 +329,19 @@ export function AdminWebsiteHomePage({
     const [moved] = next.splice(fromIdx, 1);
     next.splice(toIdx, 0, moved);
     await reorderCms({ collection: 'quickLinks', orderedIds: next.map((x) => x.id) }).unwrap();
-    toast.success(pick('দ্রুত লিংকের ক্রম হালনাগাদ হয়েছে।', 'Quick link order updated.'));
+    toast.success('দ্রুত লিংকের ক্রম হালনাগাদ হয়েছে।');
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('ওয়েবসাইট হোম ও ব্র্যান্ডিং', 'Website Home & Branding')}
-        description={pick(
-          'পাবলিক ওয়েবসাইটের ব্র্যান্ডিং প্রোফাইল, হিরো ব্যানার স্লাইডার, দ্রুত লিংক এবং যোগাযোগের তথ্য এক জায়গা থেকে নিয়ন্ত্রণ করুন।',
-          'Manage school branding profile, homepage hero banners, quick links, and public contact info in one place.'
-        )}
+        title={'ওয়েবসাইট হোম ও ব্র্যান্ডিং'}
+        description={'পাবলিক ওয়েবসাইটের ব্র্যান্ডিং প্রোফাইল, হিরো ব্যানার স্লাইডার, দ্রুত লিংক এবং যোগাযোগের তথ্য এক জায়গা থেকে নিয়ন্ত্রণ করুন।'}
         actions={
           <Link href="/" target="_blank" rel="noopener noreferrer">
             <Button variant="outline" size="sm" className="whitespace-nowrap">
               <ExternalLink className="w-4 h-4" />
-              {pick('পাবলিক হোমপেজ দেখুন', 'View Homepage')}
+              {'পাবলিক হোমপেজ দেখুন'}
             </Button>
           </Link>
         }
@@ -356,10 +351,10 @@ export function AdminWebsiteHomePage({
         value={tab}
         onChange={setTab}
         items={[
-          { value: 'branding', label: pick('বিদ্যালয় প্রোফাইল ও ব্র্যান্ডিং', 'School Branding') },
-          { value: 'banners', label: pick('হিরো ব্যানার স্লাইডার', 'Hero Banners'), count: db.banners.length },
-          { value: 'quick-links', label: pick('দ্রুত লিংক', 'Quick Links'), count: db.quickLinks.length },
-          { value: 'contact', label: pick('যোগাযোগ ও ম্যাপ', 'Contact & Map') },
+          { value: 'branding', label: 'বিদ্যালয় প্রোফাইল ও ব্র্যান্ডিং' },
+          { value: 'banners', label: 'হিরো ব্যানার স্লাইডার', count: db.banners.length },
+          { value: 'quick-links', label: 'দ্রুত লিংক', count: db.quickLinks.length },
+          { value: 'contact', label: 'যোগাযোগ ও ম্যাপ' },
         ]}
       />
 
@@ -371,44 +366,41 @@ export function AdminWebsiteHomePage({
               <div>
                 <p className="font-bold text-base text-foreground">{db.schoolProfile.name}</p>
                 <p className="text-sm text-muted-foreground">
-                  {pick(
-                    'অফিসিয়াল BHS মনোগ্রাম ও ব্র্যান্ডিং — হেডার, ফুটার, লগইন পেজ এবং প্রিন্টযোগ্য সকল ডকুমেন্টে প্রদর্শিত হয়।',
-                    'Official BHS monogram & identity — reflected across header, footer, login, and A4 print sheets.'
-                  )}
+                  {'অফিসিয়াল BHS মনোগ্রাম ও ব্র্যান্ডিং — হেডার, ফুটার, লগইন পেজ এবং প্রিন্টযোগ্য সকল ডকুমেন্টে প্রদর্শিত হয়।'}
                 </p>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label={pick('বিদ্যালয়ের নাম', 'বিদ্যালয়ের নাম')} required>
-                <Input value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })} />
+              <FormField label={'বিদ্যালয়ের নাম'} required>
+                <Input placeholder="বিদ্যালয়ের নাম লিখুন" value={profileForm.name} onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })} />
               </FormField>
-              <FormField label={pick('বিদ্যালয়ের মূলমন্ত্র (Motto)', 'School Motto')}>
-                <Input value={profileForm.motto} onChange={(e) => setProfileForm({ ...profileForm, motto: e.target.value })} />
+              <FormField label={'বিদ্যালয়ের মূলমন্ত্র (Motto)'}>
+                <Input placeholder="বিদ্যালয়ের মূলমন্ত্র (Motto) লিখুন" value={profileForm.motto} onChange={(e) => setProfileForm({ ...profileForm, motto: e.target.value })} />
               </FormField>
-              <FormField label={pick('স্থাপিত সন', 'Established Year')}>
-                <Input value={profileForm.establishedYear} onChange={(e) => setProfileForm({ ...profileForm, establishedYear: e.target.value })} />
+              <FormField label={'স্থাপিত সন'}>
+                <Input placeholder="স্থাপিত সন লিখুন" value={profileForm.establishedYear} onChange={(e) => setProfileForm({ ...profileForm, establishedYear: e.target.value })} />
               </FormField>
               <FormField label="EIIN">
-                <Input value={profileForm.eiin} onChange={(e) => setProfileForm({ ...profileForm, eiin: e.target.value })} />
+                <Input placeholder="EIIN লিখুন" value={profileForm.eiin} onChange={(e) => setProfileForm({ ...profileForm, eiin: e.target.value })} />
               </FormField>
-              <FormField label={pick('বিদ্যালয় কোড', 'School Code')}>
-                <Input value={profileForm.schoolCode} onChange={(e) => setProfileForm({ ...profileForm, schoolCode: e.target.value })} />
+              <FormField label={'বিদ্যালয় কোড'}>
+                <Input placeholder="বিদ্যালয় কোড লিখুন" value={profileForm.schoolCode} onChange={(e) => setProfileForm({ ...profileForm, schoolCode: e.target.value })} />
               </FormField>
-              <FormField label={pick('অফিস ফোন', 'Office Phone')}>
-                <Input value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} />
+              <FormField label={'অফিস ফোন'}>
+                <Input placeholder="মোবাইল নম্বর লিখুন (যেমন: 017XXXXXXXX)" value={profileForm.phone} onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })} />
               </FormField>
-              <FormField label={pick('অফিস ইমেইল', 'Office Email')}>
-                <Input value={profileForm.email} onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })} />
+              <FormField label={'অফিস ইমেইল'}>
+                <Input placeholder="ইমেইল ঠিকানা লিখুন" value={profileForm.email} onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })} />
               </FormField>
               <div className="sm:col-span-2">
-                <FormField label={pick('সম্পূর্ণ ঠিকানা', 'Full Address')} required>
-                  <Input value={profileForm.address} onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })} />
+                <FormField label={'সম্পূর্ণ ঠিকানা'} required>
+                  <Input placeholder="সম্পূর্ণ ঠিকানা লিখুন" value={profileForm.address} onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })} />
                 </FormField>
               </div>
             </div>
             <Button type="submit" variant="primary" disabled={savingProfile}>
               <Save className="w-4 h-4" />
-              {savingProfile ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('ব্র্যান্ডিং সংরক্ষণ করুন', 'Save Branding')}
+              {savingProfile ? 'সংরক্ষণ হচ্ছে...' : 'ব্র্যান্ডিং সংরক্ষণ করুন'}
             </Button>
           </form>
         </Card>
@@ -418,14 +410,11 @@ export function AdminWebsiteHomePage({
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              {pick(
-                'ড্র্যাগ-অ্যান্ড-ড্রপ বা তীর বাটন দিয়ে স্লাইডের ক্রম সাজান। নতুন ব্যানার যুক্ত করলে হোমপেজে সাথে সাথে দেখাবে।',
-                'Drag and drop or use arrows to reorder homepage hero slides.'
-              )}
+              {'ড্র্যাগ-অ্যান্ড-ড্রপ বা তীর বাটন দিয়ে স্লাইডের ক্রম সাজান। নতুন ব্যানার যুক্ত করলে হোমপেজে সাথে সাথে দেখাবে।'}
             </p>
             <Button variant="primary" size="sm" onClick={() => openBannerEditor()} className="whitespace-nowrap">
               <Plus className="w-4 h-4" />
-              {pick('নতুন ব্যানার যুক্ত করুন', 'Add Banner Slide')}
+              {'নতুন ব্যানার যুক্ত করুন'}
             </Button>
           </div>
 
@@ -449,7 +438,7 @@ export function AdminWebsiteHomePage({
                   <div className="min-w-0">
                     <p className="text-base font-bold text-foreground truncate">{b.title}</p>
                     <p className="text-sm text-muted-foreground truncate">{b.subtitle}</p>
-                    <p className="text-xs font-mono text-primary mt-0.5">{b.link ?? '/about'}</p>
+                    <p className="text-sm font-mono text-primary mt-0.5">{b.link ?? '/about'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -474,7 +463,7 @@ export function AdminWebsiteHomePage({
                   <Switch
                     checked={b.isActive}
                     onChange={() => toggleCms({ collection: 'banners', id: b.id, field: 'isActive' })}
-                    label={b.isActive ? pick('সক্রিয়', 'Active') : pick('বন্ধ', 'Hidden')}
+                    label={b.isActive ? 'সক্রিয়' : 'বন্ধ'}
                   />
                   <Button variant="outline" size="sm" onClick={() => openBannerEditor(b)}>
                     <Pencil className="w-3.5 h-3.5" />
@@ -484,7 +473,7 @@ export function AdminWebsiteHomePage({
                     size="sm"
                     onClick={async () => {
                       await deleteCms({ collection: 'banners', id: b.id }).unwrap();
-                      toast.success(pick('ব্যানার মুছে ফেলা হয়েছে।', 'Banner removed.'));
+                      toast.success('ব্যানার মুছে ফেলা হয়েছে।');
                     }}
                   >
                     <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -500,14 +489,11 @@ export function AdminWebsiteHomePage({
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              {pick(
-                'হোমপেজ ও ফুটারের গুরুত্বপূর্ণ দ্রুত লিংকগুলোর ক্রম ও অবস্থা এখান থেকে নিয়ন্ত্রণ করুন।',
-                'Control homepage and footer quick links order and visibility.'
-              )}
+              {'হোমপেজ ও ফুটারের গুরুত্বপূর্ণ দ্রুত লিংকগুলোর ক্রম ও অবস্থা এখান থেকে নিয়ন্ত্রণ করুন।'}
             </p>
             <Button variant="primary" size="sm" onClick={() => openLinkEditor()} className="whitespace-nowrap">
               <Plus className="w-4 h-4" />
-              {pick('নতুন লিংক যুক্ত করুন', 'Add Quick Link')}
+              {'নতুন লিংক যুক্ত করুন'}
             </Button>
           </div>
 
@@ -530,7 +516,7 @@ export function AdminWebsiteHomePage({
                   <GripVertical className="w-4 h-4 text-muted-foreground shrink-0" />
                   <div className="min-w-0">
                     <p className="text-base font-semibold text-foreground">{ql.title}</p>
-                    <p className="text-xs font-mono text-muted-foreground">{ql.url}</p>
+                    <p className="text-sm font-mono text-muted-foreground">{ql.url}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -553,7 +539,7 @@ export function AdminWebsiteHomePage({
                   <Switch
                     checked={ql.isActive}
                     onChange={() => toggleCms({ collection: 'quickLinks', id: ql.id, field: 'isActive' })}
-                    label={ql.isActive ? pick('সক্রিয়', 'Active') : pick('বন্ধ', 'Hidden')}
+                    label={ql.isActive ? 'সক্রিয়' : 'বন্ধ'}
                   />
                   <Button variant="outline" size="sm" onClick={() => openLinkEditor(ql)}>
                     <Pencil className="w-3.5 h-3.5" />
@@ -563,7 +549,7 @@ export function AdminWebsiteHomePage({
                     size="sm"
                     onClick={async () => {
                       await deleteCms({ collection: 'quickLinks', id: ql.id }).unwrap();
-                      toast.success(pick('লিংক মুছে ফেলা হয়েছে।', 'Quick link removed.'));
+                      toast.success('লিংক মুছে ফেলা হয়েছে।');
                     }}
                   >
                     <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -581,36 +567,33 @@ export function AdminWebsiteHomePage({
             <div className="flex items-center justify-between gap-3 pb-3 border-b border-border">
               <div>
                 <h3 className="text-base font-bold text-foreground">
-                  {pick('যোগাযোগ ও ক্যাম্পাস ম্যাপ তথ্য', 'Contact & Campus Map Information')}
+                  {'যোগাযোগ ও ক্যাম্পাস ম্যাপ তথ্য'}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {pick(
-                    'এখানে আপডেট করলে যোগাযোগ পেজ এবং ওয়েবসাইট ফুটারে সাথে সাথে পরিবর্তন হবে।',
-                    'Updates here appear immediately on the public Contact page and website footer.'
-                  )}
+                  {'এখানে আপডেট করলে যোগাযোগ পেজ এবং ওয়েবসাইট ফুটারে সাথে সাথে পরিবর্তন হবে।'}
                 </p>
               </div>
               <Link href="/contact" target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary hover:underline whitespace-nowrap">
-                {pick('যোগাযোগ পেজ ↗', 'Contact Page ↗')}
+                {'যোগাযোগ পেজ ↗'}
               </Link>
             </div>
-            <FormField label={pick('বিদ্যালয়ের ঠিকানা', 'School Address')} required>
-              <Textarea rows={2} value={contactForm.address} onChange={(e) => setContactForm({ ...contactForm, address: e.target.value })} />
+            <FormField label={'বিদ্যালয়ের ঠিকানা'} required>
+              <Textarea placeholder="বিদ্যালয়ের ঠিকানা লিখুন..." rows={2} value={contactForm.address} onChange={(e) => setContactForm({ ...contactForm, address: e.target.value })} />
             </FormField>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label={pick('অফিস হেল্পলাইন নম্বর', 'Office Helpline Phone')}>
-                <Input value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })} />
+              <FormField label={'অফিস হেল্পলাইন নম্বর'}>
+                <Input placeholder="মোবাইল নম্বর লিখুন (যেমন: 017XXXXXXXX)" value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })} />
               </FormField>
-              <FormField label={pick('অফিসিয়াল ইমেইল', 'Official Email')}>
-                <Input value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} />
+              <FormField label={'অফিসিয়াল ইমেইল'}>
+                <Input placeholder="ইমেইল ঠিকানা লিখুন" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} />
               </FormField>
             </div>
-            <FormField label={pick('Google Maps ডিরেকশন লিংক', 'Google Maps Direction URL')}>
-              <Input value={contactForm.mapUrl} onChange={(e) => setContactForm({ ...contactForm, mapUrl: e.target.value })} />
+            <FormField label={'Google Maps ডিরেকশন লিংক'}>
+              <Input placeholder="সঠিক লিংক (URL) লিখুন" value={contactForm.mapUrl} onChange={(e) => setContactForm({ ...contactForm, mapUrl: e.target.value })} />
             </FormField>
             <Button type="submit" variant="primary" disabled={savingContact}>
               <Save className="w-4 h-4" />
-              {savingContact ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('যোগাযোগ তথ্য সংরক্ষণ করুন', 'Save Contact Info')}
+              {savingContact ? 'সংরক্ষণ হচ্ছে...' : 'যোগাযোগ তথ্য সংরক্ষণ করুন'}
             </Button>
           </form>
         </Card>
@@ -620,41 +603,41 @@ export function AdminWebsiteHomePage({
       <Modal
         open={bannerModalOpen}
         onClose={() => setBannerModalOpen(false)}
-        title={bannerForm.id ? pick('হিরো ব্যানার সম্পাদনা', 'Edit Hero Banner') : pick('নতুন হিরো ব্যানার', 'New Hero Banner')}
+        title={bannerForm.id ? 'হিরো ব্যানার সম্পাদনা' : 'নতুন হিরো ব্যানার'}
         maxWidth="max-w-xl"
       >
         <form onSubmit={handleSaveBanner} className="space-y-4">
-          <FormField label={pick('ব্যানারের শিরোনাম', 'Banner Title')} required>
-            <Input value={bannerForm.title} onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })} />
+          <FormField label={'ব্যানারের শিরোনাম'} required>
+            <Input placeholder="ব্যানারের শিরোনাম লিখুন" value={bannerForm.title} onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })} />
           </FormField>
-          <FormField label={pick('উপ-শিরোনাম / বিবরণ', 'Subtitle / Description')}>
-            <Textarea rows={2} value={bannerForm.subtitle} onChange={(e) => setBannerForm({ ...bannerForm, subtitle: e.target.value })} />
+          <FormField label={'উপ-শিরোনাম / বিবরণ'}>
+            <Textarea placeholder="উপ-শিরোনাম / বিবরণ লিখুন..." rows={2} value={bannerForm.subtitle} onChange={(e) => setBannerForm({ ...bannerForm, subtitle: e.target.value })} />
           </FormField>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label={pick('বাটনের গন্তব্য লিংক', 'Destination Route')}>
+            <FormField label={'বাটনের গন্তব্য লিংক'}>
               <Select value={bannerForm.link} onChange={(e) => setBannerForm({ ...bannerForm, link: e.target.value })}>
-                <option value="/about">{pick('/about — বিদ্যালয় পরিচিতি', '/about — About School')}</option>
-                <option value="/results">{pick('/results — অনলাইন ফলাফল', '/results — Online Results')}</option>
-                <option value="/academics/resources">{pick('/academics/resources — ডিজিটাল রিসোর্স', '/academics/resources — Digital Resources')}</option>
-                <option value="/about/facilities">{pick('/about/facilities — ল্যাব ও সুবিধা', '/about/facilities — Facilities')}</option>
-                <option value="/academics/library">{pick('/academics/library — পাঠাগার', '/academics/library — Library')}</option>
-                <option value="/admission">{pick('/admission — ভর্তি তথ্য', '/admission — Admission Info')}</option>
+                <option value="/about">{'/about — বিদ্যালয় পরিচিতি'}</option>
+                <option value="/results">{'/results — অনলাইন ফলাফল'}</option>
+                <option value="/academics/resources">{'/academics/resources — ডিজিটাল রিসোর্স'}</option>
+                <option value="/about/facilities">{'/about/facilities — ল্যাব ও সুবিধা'}</option>
+                <option value="/academics/library">{'/academics/library — পাঠাগার'}</option>
+                <option value="/admission">{'/admission — ভর্তি তথ্য'}</option>
               </Select>
             </FormField>
-            <FormField label={pick('ক্যাম্পাস ছবি (প্রিসেট)', 'Campus Photo Preset')}>
+            <FormField label={'ক্যাম্পাস ছবি (প্রিসেট)'}>
               <Select
                 value={BANNER_PRESET_IMAGES.some((p) => p.value === bannerForm.image) ? bannerForm.image : 'campus-heritage'}
                 onChange={(e) => setBannerForm({ ...bannerForm, image: e.target.value })}
               >
                 {BANNER_PRESET_IMAGES.map((p) => (
                   <option key={p.value} value={p.value}>
-                    {locale === 'bn' ? p.labelBn : p.labelEn}
+                    {p.labelBn}
                   </option>
                 ))}
               </Select>
             </FormField>
           </div>
-          <FormField label={pick('অথবা নিজস্ব ব্যানার ছবি আপলোড করুন', 'Or Upload Custom Banner Photo')}>
+          <FormField label={'অথবা নিজস্ব ব্যানার ছবি আপলোড করুন'}>
             <input
               type="file"
               accept="image/*"
@@ -669,11 +652,11 @@ export function AdminWebsiteHomePage({
             <Switch
               checked={bannerForm.isActive}
               onChange={(v) => setBannerForm({ ...bannerForm, isActive: v })}
-              label={pick('হোমপেজে সক্রিয় রাখুন', 'Active on Homepage')}
+              label={'হোমপেজে সক্রিয় রাখুন'}
             />
             <Button type="submit" variant="primary" disabled={savingItem}>
               <Save className="w-4 h-4" />
-              {pick('সংরক্ষণ করুন', 'Save Banner')}
+              {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -683,24 +666,24 @@ export function AdminWebsiteHomePage({
       <Modal
         open={linkModalOpen}
         onClose={() => setLinkModalOpen(false)}
-        title={linkForm.id ? pick('দ্রুত লিংক সম্পাদনা', 'Edit Quick Link') : pick('নতুন দ্রুত লিংক', 'New Quick Link')}
+        title={linkForm.id ? 'দ্রুত লিংক সম্পাদনা' : 'নতুন দ্রুত লিংক'}
       >
         <form onSubmit={handleSaveLink} className="space-y-4">
-          <FormField label={pick('লিংকের শিরোনাম', 'Link Title')} required>
-            <Input value={linkForm.title} onChange={(e) => setLinkForm({ ...linkForm, title: e.target.value })} />
+          <FormField label={'লিংকের শিরোনাম'} required>
+            <Input placeholder="সঠিক লিংক (URL) লিখুন" value={linkForm.title} onChange={(e) => setLinkForm({ ...linkForm, title: e.target.value })} />
           </FormField>
-          <FormField label={pick('লিংক পাথ / URL', 'URL Path')} required>
+          <FormField label={'লিংক পাথ / URL'} required>
             <Input value={linkForm.url} onChange={(e) => setLinkForm({ ...linkForm, url: e.target.value })} placeholder="/academics/syllabus" />
           </FormField>
           <div className="flex items-center justify-between pt-2">
             <Switch
               checked={linkForm.isActive}
               onChange={(v) => setLinkForm({ ...linkForm, isActive: v })}
-              label={pick('সক্রিয়', 'Active')}
+              label={'সক্রিয়'}
             />
             <Button type="submit" variant="primary" disabled={savingItem}>
               <Save className="w-4 h-4" />
-              {pick('সংরক্ষণ করুন', 'Save Link')}
+              {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>

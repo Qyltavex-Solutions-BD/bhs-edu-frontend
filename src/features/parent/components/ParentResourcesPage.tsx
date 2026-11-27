@@ -16,7 +16,6 @@ import {
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -81,13 +80,12 @@ function ChildSwitcherBar({
   selectedStudentId: string;
   onChange: (id: string) => void;
 }) {
-  const { locale, pick } = useI18n();
   if (childrenList.length <= 1) return null;
   return (
     <Card className="p-3.5 flex flex-wrap items-center justify-between gap-3 bg-surface-muted/40">
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
         <Users className="w-4 h-4 text-primary" />
-        <span>{pick('সন্তান নির্বাচন করুন:', 'Select Child:')}</span>
+        <span>{'সন্তান নির্বাচন করুন:'}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {childrenList.map((c) => {
@@ -103,8 +101,8 @@ function ChildSwitcherBar({
                   : 'bg-surface text-foreground border-border hover:bg-surface-muted'
               }`}
             >
-              {locale === 'bn' ? c.student.nameBn || c.student.nameEn : c.student.nameEn} ·{' '}
-              {locale === 'bn' ? c.cls?.nameBn || c.cls?.name : c.cls?.name} ({c.sec?.name})
+              {c.student.nameBn || c.student.nameEn} ·{' '}
+              {c.cls?.nameBn || c.cls?.name} ({c.sec?.name})
             </button>
           );
         })}
@@ -115,14 +113,13 @@ function ChildSwitcherBar({
 
 export function ParentResourcesPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   if (isLoading || !db) return <LoadingSkeleton />;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('শিক্ষা রিসোর্স', 'Academic Resources')}
-        description={pick('সন্তানদের পাঠ্যসহায়ক ডিজিটাল কনটেন্ট', 'Class learning materials and study sheets')}
+        title={'শিক্ষা রিসোর্স'}
+        description={'সন্তানদের পাঠ্যসহায়ক ডিজিটাল কনটেন্ট'}
       />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {db.digitalResources.map((r) => {
@@ -130,9 +127,9 @@ export function ParentResourcesPage() {
           return (
             <Card key={r.id} className="p-5 flex flex-col justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold text-primary flex items-center gap-1">
+                <p className="text-sm font-semibold text-primary flex items-center gap-1">
                   <MonitorPlay className="w-3.5 h-3.5" />
-                  {r.resourceType} · {locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name}
+                  {r.resourceType} · {cls?.nameBn || cls?.name}
                 </p>
                 <h3 className="text-base font-bold mt-2">{r.title}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{r.description}</p>
@@ -140,9 +137,9 @@ export function ParentResourcesPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => toast.info(pick('ডাউনলোড প্রস্তুত', 'Download ready'))}
+                onClick={() => toast.info('ডাউনলোড প্রস্তুত')}
               >
-                {pick('দেখুন', 'View')}
+                {'দেখুন'}
               </Button>
             </Card>
           );

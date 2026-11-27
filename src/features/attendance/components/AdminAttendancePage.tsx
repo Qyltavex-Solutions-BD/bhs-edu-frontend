@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { useAcademicYearSelection } from '@/src/views/admin/AcademicFoundation';
-import { useI18n } from '@/src/lib/i18n';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import {
   useGetAttendanceAcademicYearsQuery,
@@ -23,7 +22,6 @@ export function AdminAttendancePage({
   const { data: years = [], isLoading: loadingYears } = useGetAttendanceAcademicYearsQuery();
   const { data: classes = [], isLoading: loadingClasses } = useGetAttendanceClassesQuery();
   const { data: sections = [], isLoading: loadingSections } = useGetAttendanceSectionsQuery();
-  const { pick } = useI18n();
   const year = useAcademicYearSelection(years);
 
   if (loadingYears || loadingClasses || loadingSections || !year) {
@@ -32,32 +30,20 @@ export function AdminAttendancePage({
 
   const copy = {
     daily: {
-      title: pick('দৈনিক হাজিরা ও গেট', 'Daily Attendance & Gate'),
-      description: pick(
-        'RFID গেট পাঞ্চের অটোমেটেড হাজিরা, ডিভাইস ত্রুটিতে ম্যানুয়াল ওভাররাইড এবং লাইভ গেট ফিড।',
-        'Automated RFID gate attendance, manual fault override, and live gate punch feed.'
-      ),
+      title: 'দৈনিক হাজিরা ও গেট',
+      description: 'RFID গেট পাঞ্চের অটোমেটেড হাজিরা, ডিভাইস ত্রুটিতে ম্যানুয়াল ওভাররাইড এবং লাইভ গেট ফিড।',
     },
     reports: {
-      title: pick('মাসিক উপস্থিতি রিপোর্ট', 'Monthly Attendance Report'),
-      description: pick(
-        'শাখাভিত্তিক বিস্তারিত পরিসংখ্যান, শ্রেণিভিত্তিক সারসংক্ষেপ এবং ৭৫%-এর নিচে ঝুঁকিপূর্ণ শিক্ষার্থী শনাক্তকরণ।',
-        'Monthly section register breakdown, school-wide class summary, and <75% attendance risk tracking.'
-      ),
+      title: 'মাসিক উপস্থিতি রিপোর্ট',
+      description: 'শাখাভিত্তিক বিস্তারিত পরিসংখ্যান, শ্রেণিভিত্তিক সারসংক্ষেপ এবং ৭৫%-এর নিচে ঝুঁকিপূর্ণ শিক্ষার্থী শনাক্তকরণ।',
     },
     sms: {
-      title: pick('হাজিরা এসএমএস লগ', 'Attendance SMS Logs'),
-      description: pick(
-        'অভিভাবকদের কাছে প্রেরিত অনুপস্থিতি নোটিফিকেশন ইতিহাস; ব্যর্থ বার্তা এক ক্লিকে পুনরায় পাঠান।',
-        'Audit guardian absent SMS alerts with filtering and single or batch retry for failed deliveries.'
-      ),
+      title: 'হাজিরা এসএমএস লগ',
+      description: 'অভিভাবকদের কাছে প্রেরিত অনুপস্থিতি নোটিফিকেশন ইতিহাস; ব্যর্থ বার্তা এক ক্লিকে পুনরায় পাঠান।',
     },
     settings: {
-      title: pick('হাজিরা নিয়ম ও সময়সীমা', 'Attendance Rules & Cutoff'),
-      description: pick(
-        'দেরির সময়সীমা, RFID কার্ড প্রস্তুতি এবং অনুপস্থিতিতে স্বয়ংক্রিয় SMS নিয়ম নির্ধারণ।',
-        'Configure late cutoff times, RFID card coverage, and automated absent SMS rules.'
-      ),
+      title: 'হাজিরা নিয়ম ও সময়সীমা',
+      description: 'দেরির সময়সীমা, RFID কার্ড প্রস্তুতি এবং অনুপস্থিতিতে স্বয়ংক্রিয় SMS নিয়ম নির্ধারণ।',
     },
   }[defaultTab];
 

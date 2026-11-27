@@ -29,8 +29,6 @@ interface StarPhoto {
 
 interface StarsMasonryAlbumProps {
   stars: Achievement[];
-  locale: 'bn' | 'en';
-  pick: (bn: string, en?: string) => string;
 }
 
 // Preset visual dimensions to create an authentic, balanced Masonry flow
@@ -43,7 +41,7 @@ const MASONRY_DIMENSIONS = [
   { width: 950, height: 900 },  // Square
 ];
 
-export function StarsMasonryAlbum({ stars, locale, pick }: StarsMasonryAlbumProps) {
+export function StarsMasonryAlbum({ stars, }: StarsMasonryAlbumProps) {
   const [selectedStar, setSelectedStar] = useState<Achievement | null>(null);
 
   if (!stars || stars.length === 0) return null;
@@ -67,16 +65,13 @@ export function StarsMasonryAlbum({ stars, locale, pick }: StarsMasonryAlbumProp
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-bold tracking-wide uppercase">
             <Trophy className="w-3.5 h-3.5 text-primary" />
-            <span>{pick('আমাদের গৌরব ও কীর্তি গ্যালারি', 'Hall of Fame & Pride Gallery')}</span>
+            <span>{'আমাদের গৌরব ও কীর্তি গ্যালারি'}</span>
           </div>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground">
-            {pick('বিদ্যালয়ের কৃতি শিক্ষার্থী ও অ্যালামনাই', 'Stars of Our Institution')}
+            {'বিদ্যালয়ের কৃতি শিক্ষার্থী ও অ্যালামনাই'}
           </h2>
           <p className="text-base text-muted-foreground max-w-2xl">
-            {pick(
-              'ভোজেশ্বর উচ্চ বিদ্যালয়ের স্মরণীয় মুহূর্ত, জাতীয় ও মেধা তালিকায় স্থানপ্রাপ্ত কৃতি শিক্ষার্থী এবং বিশিষ্ট প্রাক্তন শিক্ষার্থীদের মেসনারি স্মৃতি গ্যালারি।',
-              'A responsive masonry showcase honoring board toppers, science innovators, and distinguished alumni of Bhojeshwar High School.'
-            )}
+            {'ভোজেশ্বর উচ্চ বিদ্যালয়ের স্মরণীয় মুহূর্ত, জাতীয় ও মেধা তালিকায় স্থানপ্রাপ্ত কৃতি শিক্ষার্থী এবং বিশিষ্ট প্রাক্তন শিক্ষার্থীদের মেসনারি স্মৃতি গ্যালারি।'}
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -84,7 +79,7 @@ export function StarsMasonryAlbum({ stars, locale, pick }: StarsMasonryAlbumProp
             href="/achievements"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-surface hover:bg-surface-muted text-sm font-semibold text-primary border border-border hover:border-primary/40 transition-all group"
           >
-            <span>{pick('সব কৃতি শিক্ষার্থী ও অর্জন', 'View All Stars & Achievements')}</span>
+            <span>{'সব কৃতি শিক্ষার্থী ও অর্জন'}</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
@@ -132,12 +127,12 @@ export function StarsMasonryAlbum({ stars, locale, pick }: StarsMasonryAlbumProp
                       {isAlumni ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500 text-white shadow-md backdrop-blur-sm">
                           <GraduationCap className="w-3.5 h-3.5" />
-                          <span>{pick('কৃতি প্রাক্তন শিক্ষার্থী', 'Notable Alumni')}</span>
+                          <span>{'কৃতি প্রাক্তন শিক্ষার্থী'}</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-primary text-primary-foreground shadow-md backdrop-blur-sm">
                           <Sparkles className="w-3.5 h-3.5" />
-                          <span>{pick('কৃতি শিক্ষার্থী', 'Student Star')}</span>
+                          <span>{'কৃতি শিক্ষার্থী'}</span>
                         </span>
                       )}
                     </div>
@@ -145,7 +140,7 @@ export function StarsMasonryAlbum({ stars, locale, pick }: StarsMasonryAlbumProp
                     {/* Top Right: Batch Pill */}
                     {ach.batch && (
                       <div className="absolute top-3 right-3 z-10">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-black/60 text-white border border-white/20 backdrop-blur-md tabular-nums">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-black/60 text-white border border-white/20 backdrop-blur-md tabular-nums">
                           {ach.batch}
                         </span>
                       </div>
@@ -165,7 +160,7 @@ export function StarsMasonryAlbum({ stars, locale, pick }: StarsMasonryAlbumProp
                     <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 backdrop-blur-[2px]">
                       <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white text-slate-900 text-sm font-bold shadow-xl">
                         <Maximize2 className="w-4 h-4 text-primary" />
-                        <span>{pick('বিস্তারিত সাফল্যগাথা', 'View Story')}</span>
+                        <span>{'বিস্তারিত সাফল্যগাথা'}</span>
                       </span>
                     </div>
                   </div>
@@ -178,11 +173,11 @@ export function StarsMasonryAlbum({ stars, locale, pick }: StarsMasonryAlbumProp
                       </p>
                       <div className="flex items-center justify-between pt-2 border-t border-border/60 text-sm font-semibold text-primary">
                         <span className="inline-flex items-center gap-1 group-hover:underline">
-                          <span>{pick('সম্পূর্ণ বিবরণী', 'Full Details')}</span>
+                          <span>{'সম্পূর্ণ বিবরণী'}</span>
                           <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                         </span>
                         {ach.achievedAt && (
-                          <span className="text-xs text-muted-foreground tabular-nums">
+                          <span className="text-sm text-muted-foreground tabular-nums">
                             {ach.achievedAt.split('-')[0]}
                           </span>
                         )}
@@ -248,12 +243,12 @@ export function StarsMasonryAlbum({ stars, locale, pick }: StarsMasonryAlbumProp
                       {selectedStar.type === AchievementType.NOTABLE_ALUMNI ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500 text-white">
                           <GraduationCap className="w-3.5 h-3.5" />
-                          <span>{pick('বিশিষ্ট প্রাক্তন শিক্ষার্থী', 'Notable Alumni')}</span>
+                          <span>{'বিশিষ্ট প্রাক্তন শিক্ষার্থী'}</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary text-primary-foreground">
                           <Sparkles className="w-3.5 h-3.5" />
-                          <span>{pick('কৃতি শিক্ষার্থী', 'Student Star')}</span>
+                          <span>{'কৃতি শিক্ষার্থী'}</span>
                         </span>
                       )}
 
@@ -284,9 +279,9 @@ export function StarsMasonryAlbum({ stars, locale, pick }: StarsMasonryAlbumProp
                     <Link
                       href="/achievements"
                       onClick={() => setSelectedStar(null)}
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
                     >
-                      <span>{pick('সকল অর্জন তালিকায় দেখুন', 'View in Achievements list')}</span>
+                      <span>{'সকল অর্জন তালিকায় দেখুন'}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
 
@@ -295,7 +290,7 @@ export function StarsMasonryAlbum({ stars, locale, pick }: StarsMasonryAlbumProp
                       size="sm"
                       onClick={() => setSelectedStar(null)}
                     >
-                      {pick('বন্ধ করুন', 'Close')}
+                      {'বন্ধ করুন'}
                     </Button>
                   </div>
                 </div>

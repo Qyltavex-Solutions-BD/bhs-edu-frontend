@@ -15,7 +15,6 @@ import {
   useGetBootstrapQuery,
   useSaveConsolidatedConfigMutation,
 } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { ExamType, ResultStatus } from '@/src/types/enums';
@@ -49,7 +48,6 @@ function resolveLetterFromGpa(gpa: number, isPassed: boolean): string {
 
 export function ConsolidatedResultsView() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [saveConsolidatedConfig, { isLoading: savingConfig }] = useSaveConsolidatedConfigMutation();
   const [createExam, { isLoading: creatingExam }] = useCreateExamMutation();
 
@@ -181,10 +179,10 @@ export function ConsolidatedResultsView() {
         sectionId: enr.sectionId,
         roll: enr.roll,
         studentId: stu?.studentId ?? enr.studentId,
-        studentName: locale === 'bn' ? stu?.nameBn || stu?.nameEn || '—' : stu?.nameEn || '—',
+        studentName: stu?.nameBn || stu?.nameEn || '—',
         studentNameEn: stu?.nameEn ?? '',
         sectionName: sec?.name ?? '—',
-        groupName: grp ? (locale === 'bn' ? grp.nameBn : grp.name) : null,
+        groupName: grp ? (grp.nameBn) : null,
         sourceScores,
         weightedMarks: finalMarks,
         weightedGpa: finalGpa,
@@ -212,7 +210,7 @@ export function ConsolidatedResultsView() {
       if (a.merit !== null && b.merit !== null) return a.merit - b.merit;
       return b.weightedMarks - a.weightedMarks || a.roll - b.roll;
     });
-  }, [db, selectedExam, activeConfigs, locale]);
+  }, [db, selectedExam, activeConfigs, 'bn']);
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -265,11 +263,11 @@ export function ConsolidatedResultsView() {
   const handleSaveConfig = async () => {
     if (!selectedExam) return;
     if (draftSelectedItems.length < 2) {
-      toast.warning(pick('সমন্বিত ফলাফলের জন্য অন্তত ২টি উৎস পরীক্ষা নির্বাচন করুন।', 'Select at least 2 source exams.'));
+      toast.warning('সমন্বিত ফলাফলের জন্য অন্তত ২টি উৎস পরীক্ষা নির্বাচন করুন।');
       return;
     }
     if (draftWeightTotal !== 100) {
-      toast.error(pick('ওয়েটেজের মোট যোগফল ঠিক ১০০% হতে হবে।', 'Total weightage must equal exactly 100%.'));
+      toast.error('ওয়েটেজের মোট যোগফল ঠিক ১০০% হতে হবে।');
       return;
     }
     try {
@@ -277,16 +275,16 @@ export function ConsolidatedResultsView() {
         consolidatedExamId: selectedExam.id,
         items: draftSelectedItems,
       }).unwrap();
-      toast.success(pick('সমন্বিত ফলাফলের ওয়েটেজ কনফিগারেশন সংরক্ষিত হয়েছে।', 'Consolidated weightage configuration saved.'));
+      toast.success('সমন্বিত ফলাফলের ওয়েটেজ কনফিগারেশন সংরক্ষিত হয়েছে।');
       setShowConfigModal(false);
     } catch {
-      toast.error(pick('ওয়েটেজ সংরক্ষণ করা যায়নি।', 'Failed to save consolidated configuration.'));
+      toast.error('ওয়েটেজ সংরক্ষণ করা যায়নি।');
     }
   };
 
   const handleCreateConsolidated = async () => {
     if (!db || !newName.trim() || !newClassId || !newYearId) {
-      toast.warning(pick('সকল প্রয়োজনীয় তথ্য পূরণ করুন।', 'Please fill in all required fields.'));
+      toast.warning('সকল প্রয়োজনীয় তথ্য পূরণ করুন।');
       return;
     }
     const defaultScale = db.gradingScales.find((g) => g.isDefault) ?? db.gradingScales[0];
@@ -304,13 +302,10 @@ export function ConsolidatedResultsView() {
       setShowCreateModal(false);
       setNewName('');
       toast.success(
-        pick(
-          'নতুন সমন্বিত পরীক্ষা তৈরি হয়েছে। এখন উৎস পরীক্ষার ওয়েটেজ নির্ধারণ করুন।',
-          'Consolidated exam created. Now configure source exam weightages.'
-        )
+        'নতুন সমন্বিত পরীক্ষা তৈরি হয়েছে। এখন উৎস পরীক্ষার ওয়েটেজ নির্ধারণ করুন।'
       );
     } catch {
-      toast.error(pick('সমন্বিত পরীক্ষা তৈরি করা যায়নি।', 'Failed to create consolidated exam.'));
+      toast.error('সমন্বিত পরীক্ষা তৈরি করা যায়নি।');
     }
   };
 
@@ -336,7 +331,7 @@ export function ConsolidatedResultsView() {
       return rowObj;
     });
     exportToCsv(rows, `consolidated-result-${selectedExam.id}.csv`);
-    toast.success(pick('সমন্বিত ফলাফল CSV ডাউনলোড হয়েছে।', 'Consolidated result CSV exported.'));
+    toast.success('সমন্বিত ফলাফল CSV ডাউনলোড হয়েছে।');
   };
 
   if (isLoading || !db) return <LoadingSkeleton rows={8} />;
@@ -344,11 +339,8 @@ export function ConsolidatedResultsView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('সমন্বিত চূড়ান্ত ফলাফল (Consolidated Result)', 'Consolidated Final Result Builder')}
-        description={pick(
-          'একাধিক টার্ম পরীক্ষার শতকরা ওয়েটেজ (মোট ১০০%) নির্ধারণ করে বাৎসরিক চূড়ান্ত মেধাতালিকা ও প্রিন্টযোগ্য রেজিস্টার তৈরি করুন।',
-          'Combine multiple term examinations with custom percentage weightages (total 100%) to generate annual consolidated merit lists.'
-        )}
+        title={'সমন্বিত চূড়ান্ত ফলাফল (Consolidated Result)'}
+        description={'একাধিক টার্ম পরীক্ষার শতকরা ওয়েটেজ (মোট ১০০%) নির্ধারণ করে বাৎসরিক চূড়ান্ত মেধাতালিকা ও প্রিন্টযোগ্য রেজিস্টার তৈরি করুন।'}
         actions={
           <>
             <Button
@@ -361,7 +353,7 @@ export function ConsolidatedResultsView() {
               }}
             >
               <Plus className="w-4 h-4" />
-              {pick('নতুন সমন্বিত পরীক্ষা', 'New Consolidated Exam')}
+              {'নতুন সমন্বিত পরীক্ষা'}
             </Button>
             <Button
               variant="outline"
@@ -370,7 +362,7 @@ export function ConsolidatedResultsView() {
               onClick={openConfigModal}
             >
               <Settings2 className="w-4 h-4" />
-              {pick('ওয়েটেজ কনফিগার', 'Configure Weights')}
+              {'ওয়েটেজ কনফিগার'}
             </Button>
             <Button
               variant="outline"
@@ -379,7 +371,7 @@ export function ConsolidatedResultsView() {
               onClick={handleExportCsv}
             >
               <Download className="w-4 h-4" />
-              {pick('CSV এক্সপোর্ট', 'Export CSV')}
+              {'CSV এক্সপোর্ট'}
             </Button>
             <Button
               variant="primary"
@@ -388,7 +380,7 @@ export function ConsolidatedResultsView() {
               onClick={() => setShowPrintModal(true)}
             >
               <Printer className="w-4 h-4" />
-              {pick('প্রিন্ট শিট (A4)', 'Print Sheet (A4)')}
+              {'প্রিন্ট শিট (A4)'}
             </Button>
           </>
         }
@@ -398,7 +390,7 @@ export function ConsolidatedResultsView() {
       <Card className="p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
           <div className="sm:col-span-2 lg:col-span-5">
-            <FormField label={pick('সমন্বিত পরীক্ষা নির্বাচন করুন', 'Select Consolidated Examination')}>
+            <FormField label={'সমন্বিত পরীক্ষা নির্বাচন করুন'}>
               <Select
                 value={activeExamId}
                 onChange={(e) => {
@@ -411,20 +403,20 @@ export function ConsolidatedResultsView() {
                     const cls = db.classes.find((c) => c.id === ex.classId);
                     return (
                       <option key={ex.id} value={ex.id}>
-                        {ex.name} — {locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name}
+                        {ex.name} — {cls?.nameBn || cls?.name}
                       </option>
                     );
                   })
                 ) : (
-                  <option value="">{pick('কোনো সমন্বিত পরীক্ষা নেই', 'No consolidated exams')}</option>
+                  <option value="">{'কোনো সমন্বিত পরীক্ষা নেই'}</option>
                 )}
               </Select>
             </FormField>
           </div>
           <div className="sm:col-span-1 lg:col-span-3">
-            <FormField label={pick('শাখা ফিল্টার', 'Filter Section')}>
+            <FormField label={'শাখা ফিল্টার'}>
               <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
-                <option value="ALL">{pick('সকল শাখা', 'All Sections')}</option>
+                <option value="ALL">{'সকল শাখা'}</option>
                 {classSections.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -434,12 +426,12 @@ export function ConsolidatedResultsView() {
             </FormField>
           </div>
           <div className="sm:col-span-1 lg:col-span-4">
-            <FormField label={pick('শিক্ষার্থী খুঁজুন', 'Search Student')}>
+            <FormField label={'শিক্ষার্থী খুঁজুন'}>
               <div className="relative">
                 <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <Input
                   className="pl-9"
-                  placeholder={pick('নাম, আইডি বা রোল...', 'Name, ID, or roll...')}
+                  placeholder={'নাম, আইডি বা রোল...'}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -451,16 +443,16 @@ export function ConsolidatedResultsView() {
         {/* Active Weightage Formula Banner */}
         {selectedExam && (
           <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="font-semibold text-muted-foreground inline-flex items-center gap-1.5">
                 <Scale className="w-4 h-4 text-primary" />
-                {pick('সক্রিয় ওয়েটেজ সূত্র:', 'Active Weightage Formula:')}
+                {'সক্রিয় ওয়েটেজ সূত্র:'}
               </span>
               {activeConfigs.length === 0 ? (
                 <StatusBadge
                   value="UNCONFIGURED"
                   customTone="warning"
-                  customLabel={pick('কোনো উৎস পরীক্ষা যুক্ত করা হয়নি', 'No source exams configured')}
+                  customLabel={'কোনো উৎস পরীক্ষা যুক্ত করা হয়নি'}
                 />
               ) : (
                 activeConfigs.map((cfg) => (
@@ -470,7 +462,7 @@ export function ConsolidatedResultsView() {
                   >
                     <span>{cfg.sourceExamName}</span>
                     <span className="font-bold text-primary">
-                      {formatNumber(cfg.weightagePercentage, locale)}%
+                      {formatNumber(cfg.weightagePercentage, 'bn')}%
                     </span>
                   </span>
                 ))
@@ -480,7 +472,7 @@ export function ConsolidatedResultsView() {
               <StatusBadge
                 value="WEIGHT_TOTAL"
                 customTone={configWeightSum === 100 ? 'success' : 'destructive'}
-                customLabel={`${pick('মোট ওয়েটেজ:', 'Total Weight:')} ${formatNumber(configWeightSum, locale)}%`}
+                customLabel={`${'মোট ওয়েটেজ:'} ${formatNumber(configWeightSum, 'bn')}%`}
               />
             )}
           </div>
@@ -491,54 +483,48 @@ export function ConsolidatedResultsView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5">
           <p className="text-base font-bold text-foreground">
-            {pick('মোট তালিকাভুক্ত শিক্ষার্থী', 'Enrolled Students')}
+            {'মোট তালিকাভুক্ত শিক্ষার্থী'}
           </p>
           <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-foreground">
-            {formatNumber(stats.total, locale)}{' '}
-            <span className="text-sm font-medium text-muted-foreground">{pick('জন', '')}</span>
+            {formatNumber(stats.total, 'bn')}{' '}
+            <span className="text-sm font-medium text-muted-foreground">{'জন'}</span>
           </p>
           <p className="mt-1.5 text-sm text-muted-foreground tabular-nums truncate">
-            {selectedExam ? selectedExam.name : pick('কনফিগারেশন নির্বাচন করুন', 'Select configuration')}
+            {selectedExam ? selectedExam.name : 'কনফিগারেশন নির্বাচন করুন'}
           </p>
         </Card>
 
         <Card className="p-5">
           <p className="text-base font-bold text-foreground">
-            {pick('সমন্বিত উত্তীর্ণ ও পাসের হার', 'Consolidated Passed & Rate')}
+            {'সমন্বিত উত্তীর্ণ ও পাসের হার'}
           </p>
           <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-success">
-            {formatNumber(stats.passed, locale)}{' '}
-            <span className="text-sm font-medium text-muted-foreground">({formatNumber(stats.passRate, locale)}%)</span>
+            {formatNumber(stats.passed, 'bn')}{' '}
+            <span className="text-sm font-medium text-muted-foreground">({formatNumber(stats.passRate, 'bn')}%)</span>
           </p>
           <p className="mt-1.5 text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `উত্তীর্ণ ${formatNumber(stats.passed, 'bn')} · অনুত্তীর্ণ ${formatNumber(stats.total - stats.passed, 'bn')}`,
-              `Passed ${stats.passed} · Failed ${stats.total - stats.passed}`
-            )}
+            {`উত্তীর্ণ ${formatNumber(stats.passed, 'bn')} · অনুত্তীর্ণ ${formatNumber(stats.total - stats.passed, 'bn')}`}
           </p>
         </Card>
 
         <Card className="p-5">
           <p className="text-base font-bold text-foreground">
-            {pick('চূড়ান্ত জিপিএ ৫.০০', 'Final GPA 5.00')}
+            {'চূড়ান্ত জিপিএ ৫.০০'}
           </p>
           <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-primary">
-            {formatNumber(stats.gpa5, locale)}{' '}
-            <span className="text-sm font-medium text-muted-foreground">{pick('জন', '')}</span>
+            {formatNumber(stats.gpa5, 'bn')}{' '}
+            <span className="text-sm font-medium text-muted-foreground">{'জন'}</span>
           </p>
           <p className="mt-1.5 text-sm text-muted-foreground tabular-nums">
             {stats.total > 0
-              ? pick(
-                  `মোট শিক্ষার্থীর ${formatNumber(Math.round((stats.gpa5 / stats.total) * 100), locale)}%`,
-                  `${Math.round((stats.gpa5 / stats.total) * 100)}% of total`
-                )
-              : pick('কোনো ফলাফল নেই', 'No results')}
+              ? `মোট শিক্ষার্থীর ${formatNumber(Math.round((stats.gpa5 / stats.total) * 100), 'bn')}%`
+              : 'কোনো ফলাফল নেই'}
           </p>
         </Card>
 
         <Card className="p-5">
           <p className="text-base font-bold text-foreground">
-            {pick('অসম্পূর্ণ / অনুত্তীর্ণ', 'Incomplete / Failed')}
+            {'অসম্পূর্ণ / অনুত্তীর্ণ'}
           </p>
           <p
             className={cn(
@@ -546,18 +532,15 @@ export function ConsolidatedResultsView() {
               stats.total - stats.passed > 0 ? 'text-destructive' : 'text-foreground'
             )}
           >
-            {formatNumber(stats.total - stats.passed, locale)}{' '}
-            <span className="text-sm font-medium text-muted-foreground">{pick('জন', '')}</span>
+            {formatNumber(stats.total - stats.passed, 'bn')}{' '}
+            <span className="text-sm font-medium text-muted-foreground">{'জন'}</span>
           </p>
           <p className="mt-1.5 text-sm text-muted-foreground tabular-nums truncate">
             {stats.incomplete > 0
-              ? pick(
-                  `${formatNumber(stats.incomplete, locale)} জনের উৎস পরীক্ষার ফল অসম্পূর্ণ`,
-                  `${stats.incomplete} missing source result`
-                )
+              ? `${formatNumber(stats.incomplete, 'bn')} জনের উৎস পরীক্ষার ফল অসম্পূর্ণ`
               : stats.total - stats.passed > 0
-                ? pick('সমন্বিত মূল্যায়নে অনুত্তীর্ণ', 'Failed in combined assessment')
-                : pick('সকল শিক্ষার্থী উত্তীর্ণ', 'All students passed')}
+                ? 'সমন্বিত মূল্যায়নে অনুত্তীর্ণ'
+                : 'সকল শিক্ষার্থী উত্তীর্ণ'}
           </p>
         </Card>
       </div>
@@ -567,11 +550,8 @@ export function ConsolidatedResultsView() {
         {!selectedExam ? (
           <div className="p-6">
             <EmptyState
-              title={pick('কোনো সমন্বিত পরীক্ষা পাওয়া যায়নি', 'No Consolidated Examination Yet')}
-              description={pick(
-                'একাধিক টার্ম পরীক্ষা একত্রিত করে চূড়ান্ত বাৎসরিক ফলাফল তৈরি করতে একটি নতুন সমন্বিত পরীক্ষা তৈরি করুন।',
-                'Create a new consolidated examination to combine multiple term exams into a single annual result sheet.'
-              )}
+              title={'কোনো সমন্বিত পরীক্ষা পাওয়া যায়নি'}
+              description={'একাধিক টার্ম পরীক্ষা একত্রিত করে চূড়ান্ত বাৎসরিক ফলাফল তৈরি করতে একটি নতুন সমন্বিত পরীক্ষা তৈরি করুন।'}
               action={
                 <Button
                   size="sm"
@@ -582,7 +562,7 @@ export function ConsolidatedResultsView() {
                     setShowCreateModal(true);
                   }}
                 >
-                  {pick('নতুন সমন্বিত পরীক্ষা তৈরি করুন', 'Create Consolidated Exam')}
+                  {'নতুন সমন্বিত পরীক্ষা তৈরি করুন'}
                 </Button>
               }
             />
@@ -590,15 +570,12 @@ export function ConsolidatedResultsView() {
         ) : activeConfigs.length === 0 ? (
           <div className="p-6">
             <EmptyState
-              title={pick('উৎস পরীক্ষার ওয়েটেজ নির্ধারণ করা হয়নি', 'Source Exam Weightages Not Configured')}
-              description={pick(
-                'সমন্বিত ফলাফল গণনা করতে এই শ্রেণির অন্তত ২টি টার্ম পরীক্ষা নির্বাচন করে মোট ১০০% ওয়েটেজ দিন।',
-                'Select at least 2 term exams for this class and assign percentage weights totaling 100%.'
-              )}
+              title={'উৎস পরীক্ষার ওয়েটেজ নির্ধারণ করা হয়নি'}
+              description={'সমন্বিত ফলাফল গণনা করতে এই শ্রেণির অন্তত ২টি টার্ম পরীক্ষা নির্বাচন করে মোট ১০০% ওয়েটেজ দিন।'}
               action={
                 <Button size="sm" variant="primary" onClick={openConfigModal}>
                   <Settings2 className="w-4 h-4" />
-                  {pick('ওয়েটেজ কনফিগার করুন', 'Configure Weights Now')}
+                  {'ওয়েটেজ কনফিগার করুন'}
                 </Button>
               }
             />
@@ -608,21 +585,21 @@ export function ConsolidatedResultsView() {
             <table className="w-full min-w-[760px] text-base">
               <thead>
                 <tr className="border-b border-border bg-surface-muted/70 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  <th className="px-4 py-3 text-center w-16">{pick('মেধা', 'Merit')}</th>
-                  <th className="px-3 py-3 text-center w-16">{pick('রোল', 'Roll')}</th>
-                  <th className="px-4 py-3 text-left">{pick('শিক্ষার্থী ও শাখা', 'Student & Section')}</th>
+                  <th className="px-4 py-3 text-center w-16">{'মেধা'}</th>
+                  <th className="px-3 py-3 text-center w-16">{'রোল'}</th>
+                  <th className="px-4 py-3 text-left">{'শিক্ষার্থী ও শাখা'}</th>
                   {activeConfigs.map((cfg) => (
                     <th key={cfg.id} className="px-3 py-3 text-center">
                       <div>{cfg.sourceExamName}</div>
-                      <div className="text-xs font-semibold text-primary normal-case">
-                        ({formatNumber(cfg.weightagePercentage, locale)}%)
+                      <div className="text-sm font-semibold text-primary normal-case">
+                        ({formatNumber(cfg.weightagePercentage, 'bn')}%)
                       </div>
                     </th>
                   ))}
-                  <th className="px-3 py-3 text-right">{pick('সমন্বিত নম্বর', 'Weighted Marks')}</th>
-                  <th className="px-3 py-3 text-right">{pick('চূড়ান্ত GPA', 'Final GPA')}</th>
-                  <th className="px-3 py-3 text-center">{pick('গ্রেড', 'Grade')}</th>
-                  <th className="px-4 py-3 text-center">{pick('অবস্থা', 'Status')}</th>
+                  <th className="px-3 py-3 text-right">{'সমন্বিত নম্বর'}</th>
+                  <th className="px-3 py-3 text-right">{'চূড়ান্ত GPA'}</th>
+                  <th className="px-3 py-3 text-center">{'গ্রেড'}</th>
+                  <th className="px-4 py-3 text-center">{'অবস্থা'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border tabular-nums">
@@ -637,19 +614,19 @@ export function ConsolidatedResultsView() {
                               : 'bg-surface-muted text-foreground'
                           }`}
                         >
-                          #{formatNumber(row.merit, locale)}
+                          #{formatNumber(row.merit, 'bn')}
                         </span>
                       ) : (
                         <span className="text-muted-foreground font-medium">—</span>
                       )}
                     </td>
                     <td className="px-3 py-3 text-center font-medium text-foreground">
-                      {formatNumber(row.roll, locale)}
+                      {formatNumber(row.roll, 'bn')}
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-semibold text-foreground">{row.studentName}</div>
                       <div className="text-sm text-muted-foreground font-medium">
-                        <span className="font-mono">{row.studentId}</span> · {pick('শাখা', 'Sec')}: {row.sectionName}
+                        <span className="font-mono">{row.studentId}</span> · {'শাখা'}: {row.sectionName}
                         {row.groupName ? ` · ${row.groupName}` : ''}
                       </div>
                     </td>
@@ -659,19 +636,19 @@ export function ConsolidatedResultsView() {
                         <td key={cfg.id} className="px-3 py-3 text-center">
                           {!sc || sc.marks === null ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-warning/10 text-warning border border-warning/25">
-                              {pick('ফলাফল নেই', 'Missing')}
+                              {'ফলাফল নেই'}
                             </span>
                           ) : (
                             <div>
                               <span className="font-medium text-foreground">
-                                {formatNumber(sc.marks, locale)}
+                                {formatNumber(sc.marks, 'bn')}
                               </span>
                               <div
                                 className={`text-sm ${
                                   sc.status === ResultStatus.PASS ? 'text-muted-foreground font-medium' : 'text-destructive font-semibold'
                                 }`}
                               >
-                                GPA {formatNumber(sc.gpa ?? 0, locale, 2)}
+                                GPA {formatNumber(sc.gpa ?? 0, 'bn', 2)}
                               </div>
                             </div>
                           )}
@@ -679,10 +656,10 @@ export function ConsolidatedResultsView() {
                       );
                     })}
                     <td className="px-3 py-3 text-right font-medium text-foreground">
-                      {formatNumber(row.weightedMarks, locale, 1)}
+                      {formatNumber(row.weightedMarks, 'bn', 1)}
                     </td>
                     <td className="px-3 py-3 text-right font-semibold text-foreground">
-                      {formatNumber(row.weightedGpa, locale, 2)}
+                      {formatNumber(row.weightedGpa, 'bn', 2)}
                     </td>
                     <td className="px-3 py-3 text-center">
                       <span
@@ -699,11 +676,11 @@ export function ConsolidatedResultsView() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       {row.isPassed ? (
-                        <StatusBadge value="PASS" customTone="success" customLabel={pick('উত্তীর্ণ', 'PASS')} />
+                        <StatusBadge value="PASS" customTone="success" customLabel={'উত্তীর্ণ'} />
                       ) : row.isIncomplete ? (
-                        <StatusBadge value="INCOMPLETE" customTone="warning" customLabel={pick('অসম্পূর্ণ', 'INCOMPLETE')} />
+                        <StatusBadge value="INCOMPLETE" customTone="warning" customLabel={'অসম্পূর্ণ'} />
                       ) : (
-                        <StatusBadge value="FAIL" customTone="destructive" customLabel={pick('অনুত্তীর্ণ', 'FAIL')} />
+                        <StatusBadge value="FAIL" customTone="destructive" customLabel={'অনুত্তীর্ণ'} />
                       )}
                     </td>
                   </tr>
@@ -718,35 +695,29 @@ export function ConsolidatedResultsView() {
       <Modal
         open={showConfigModal}
         onClose={() => setShowConfigModal(false)}
-        title={pick('উৎস পরীক্ষা ও ওয়েটেজ কনফিগারেশন', 'Source Exam Weightage Configuration')}
+        title={'উৎস পরীক্ষা ও ওয়েটেজ কনফিগারেশন'}
         description={
           selectedExam
-            ? `${selectedExam.name} — ${locale === 'bn' ? selectedClass?.nameBn : selectedClass?.name}`
+            ? `${selectedExam.name} — ${selectedClass?.nameBn}`
             : undefined
         }
         maxWidth="max-w-2xl"
       >
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-md bg-surface-muted border border-border text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-md bg-surface-muted border border-border text-sm">
             <span className="text-foreground font-medium">
-              {pick(
-                'অন্তত ২টি পরীক্ষা নির্বাচন করুন এবং মোট ওয়েটেজ ঠিক ১০০% নির্ধারণ করুন।',
-                'Select at least 2 source exams and ensure the total weightage equals exactly 100%.'
-              )}
+              {'অন্তত ২টি পরীক্ষা নির্বাচন করুন এবং মোট ওয়েটেজ ঠিক ১০০% নির্ধারণ করুন।'}
             </span>
             <StatusBadge
               value="DRAFT_TOTAL"
               customTone={draftWeightTotal === 100 ? 'success' : 'destructive'}
-              customLabel={`${pick('বর্তমান মোট:', 'Current Total:')} ${formatNumber(draftWeightTotal, locale)}%`}
+              customLabel={`${'বর্তমান মোট:'} ${formatNumber(draftWeightTotal, 'bn')}%`}
             />
           </div>
 
           {eligibleSourceExams.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground border border-dashed border-border rounded-md">
-              {pick(
-                'এই শ্রেণি ও শিক্ষাবর্ষে কোনো সাধারণ পরীক্ষা পাওয়া যায়নি। আগে অন্তত ২টি পরীক্ষা তৈরি করুন।',
-                'No regular examinations found for this class and academic year. Create at least 2 exams first.'
-              )}
+              {'এই শ্রেণি ও শিক্ষাবর্ষে কোনো সাধারণ পরীক্ষা পাওয়া যায়নি। আগে অন্তত ২টি পরীক্ষা তৈরি করুন।'}
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -778,14 +749,14 @@ export function ConsolidatedResultsView() {
                       />
                       <div>
                         <div className="font-semibold text-sm text-foreground">{ex.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {pick('প্রক্রিয়াকৃত ফলাফল:', 'Processed Results:')}{' '}
-                          {formatNumber(resCount, locale)}
+                        <div className="text-sm text-muted-foreground">
+                          {'প্রক্রিয়াকৃত ফলাফল:'}{' '}
+                          {formatNumber(resCount, 'bn')}
                         </div>
                       </div>
                     </label>
                     <div className="flex items-center gap-2">
-                      <input
+                      <input placeholder="সংখ্যা লিখুন"
                         type="number"
                         min={0}
                         max={100}
@@ -800,7 +771,7 @@ export function ConsolidatedResultsView() {
                         }}
                         className="w-20 h-9 px-2.5 text-sm font-semibold text-right tabular-nums rounded-md border border-border bg-surface disabled:bg-surface-muted disabled:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
                       />
-                      <span className="text-xs font-bold text-muted-foreground">%</span>
+                      <span className="text-sm font-bold text-muted-foreground">%</span>
                     </div>
                   </div>
                 );
@@ -810,7 +781,7 @@ export function ConsolidatedResultsView() {
 
           {eligibleSourceExams.length >= 2 && (
             <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
-              <span className="text-xs text-muted-foreground">{pick('দ্রুত অনুপাত:', 'Quick Presets:')}</span>
+              <span className="text-sm text-muted-foreground">{'দ্রুত অনুপাত:'}</span>
               <Button
                 size="sm"
                 variant="outline"
@@ -858,14 +829,14 @@ export function ConsolidatedResultsView() {
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
             <Button variant="outline" onClick={() => setShowConfigModal(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button
               variant="primary"
               disabled={savingConfig || draftSelectedItems.length < 2 || draftWeightTotal !== 100}
               onClick={handleSaveConfig}
             >
-              {pick('ওয়েটেজ সংরক্ষণ করুন', 'Save Weightage Config')}
+              {'ওয়েটেজ সংরক্ষণ করুন'}
             </Button>
           </div>
         </div>
@@ -875,27 +846,27 @@ export function ConsolidatedResultsView() {
       <Modal
         open={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        title={pick('নতুন সমন্বিত ফলাফল পরীক্ষা তৈরি করুন', 'Create New Consolidated Examination')}
+        title={'নতুন সমন্বিত ফলাফল পরীক্ষা তৈরি করুন'}
         maxWidth="max-w-md"
       >
         <div className="space-y-4">
-          <FormField label={pick('সমন্বিত পরীক্ষার নাম', 'Consolidated Exam Title')} required>
+          <FormField label={'সমন্বিত পরীক্ষার নাম'} required>
             <Input
-              placeholder={pick('যেমন: বার্ষিক সমন্বিত চূড়ান্ত ফলাফল ২০২৬', 'e.g., Annual Consolidated Result 2026')}
+              placeholder={'যেমন: বার্ষিক সমন্বিত চূড়ান্ত ফলাফল ২০২৬'}
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
             />
           </FormField>
-          <FormField label={pick('শ্রেণি', 'Class')} required>
+          <FormField label={'শ্রেণি'} required>
             <Select value={newClassId} onChange={(e) => setNewClassId(e.target.value)}>
               {db.classes.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {locale === 'bn' ? c.nameBn : c.name}
+                  {c.nameBn}
                 </option>
               ))}
             </Select>
           </FormField>
-          <FormField label={pick('শিক্ষাবর্ষ', 'Academic Year')} required>
+          <FormField label={'শিক্ষাবর্ষ'} required>
             <Select value={newYearId} onChange={(e) => setNewYearId(e.target.value)}>
               {db.academicYears.map((y) => (
                 <option key={y.id} value={y.id}>
@@ -906,10 +877,10 @@ export function ConsolidatedResultsView() {
           </FormField>
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
             <Button variant="outline" onClick={() => setShowCreateModal(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button variant="primary" disabled={creatingExam} onClick={handleCreateConsolidated}>
-              {pick('তৈরি করুন', 'Create Exam')}
+              {'তৈরি করুন'}
             </Button>
           </div>
         </div>
@@ -919,25 +890,25 @@ export function ConsolidatedResultsView() {
       <Modal
         open={showPrintModal}
         onClose={() => setShowPrintModal(false)}
-        title={pick('সমন্বিত চূড়ান্ত ফলাফল শিট (ল্যান্ডস্কেপ A4)', 'Consolidated Final Result Sheet (Landscape A4)')}
+        title={'সমন্বিত চূড়ান্ত ফলাফল শিট (ল্যান্ডস্কেপ A4)'}
         maxWidth="max-w-6xl"
       >
         {selectedExam && (
           <div className="space-y-4">
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setShowPrintModal(false)}>
-                {pick('বন্ধ করুন', 'Close')}
+                {'বন্ধ করুন'}
               </Button>
               <Button variant="primary" size="sm" onClick={() => triggerPrint()}>
                 <Printer className="w-4 h-4" />
-                {pick('ল্যান্ডস্কেপ A4 প্রিন্ট করুন', 'Print Landscape A4')}
+                {'ল্যান্ডস্কেপ A4 প্রিন্ট করুন'}
               </Button>
             </div>
             <div className="overflow-x-auto pb-2">
               <PrintableConsolidatedResultSheet
                 school={db.schoolProfile}
                 title={selectedExam.name}
-                className={locale === 'bn' ? selectedClass?.nameBn || selectedClass?.name || '' : selectedClass?.name || ''}
+                className={selectedClass?.nameBn || selectedClass?.name || ''}
                 academicYear={selectedYear?.name ?? '2026'}
                 sources={activeConfigs.map((c) => ({
                   examId: c.sourceExamId,

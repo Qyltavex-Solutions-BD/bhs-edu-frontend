@@ -27,7 +27,6 @@ import {
   Users,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatNumber, formatTime12h } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -56,7 +55,7 @@ import type { SyllabusExamTerm, SyllabusFile } from '@/src/types/entities';
 function getWeekdayLabel(dateStr: string, locale: 'bn' | 'en'): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     weekday: 'long',
   }).format(d);
 }
@@ -65,7 +64,7 @@ function getMonthLabel(yearMonth: string, locale: 'bn' | 'en'): string {
   const [y, m] = yearMonth.split('-').map(Number);
   if (!y || !m) return yearMonth;
   const d = new Date(y, m - 1, 1);
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     month: 'long',
   }).format(d);
 }
@@ -211,27 +210,23 @@ const STRUCTURED_DOC_SECTIONS: Record<AcademicDocumentType, StructuredDocSection
 
 export function PublicClassesPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-8">
       <PageHeader
-        title={pick('শ্রেণি ও শাখাসমূহ (৬ষ্ঠ–১০ম)', 'Classes & Sections (6–10)')}
-        description={pick(
-          'প্রতিটি শ্রেণির সক্রিয় শাখা, দায়িত্বপ্রাপ্ত শ্রেণিশিক্ষক, নির্ধারিত বিষয় ও পাঠ্যপুস্তকের তথ্য দেখুন।',
-          'Browse active sections, assigned class teachers, configured subjects, and textbooks for every class.'
-        )}
+        title={'শ্রেণি ও শাখাসমূহ (৬ষ্ঠ–১০ম)'}
+        description={'প্রতিটি শ্রেণির সক্রিয় শাখা, দায়িত্বপ্রাপ্ত শ্রেণিশিক্ষক, নির্ধারিত বিষয় ও পাঠ্যপুস্তকের তথ্য দেখুন।'}
         actions={
           <>
             <Link href="/academics/routines">
               <Button variant="outline" size="sm" className="whitespace-nowrap">
-                <Clock className="w-4 h-4" /> {pick('ক্লাস রুটিন', 'Class Routines')}
+                <Clock className="w-4 h-4" /> {'ক্লাস রুটিন'}
               </Button>
             </Link>
             <Link href="/academics/subjects">
               <Button variant="outline" size="sm" className="whitespace-nowrap">
-                <Layers className="w-4 h-4" /> {pick('সকল বিষয়', 'All Subjects')}
+                <Layers className="w-4 h-4" /> {'সকল বিষয়'}
               </Button>
             </Link>
           </>
@@ -258,67 +253,61 @@ export function PublicClassesPage() {
               <div className="space-y-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold text-primary">
+                    <p className="text-sm font-semibold text-primary">
                       {cls.numericValue >= 9
-                        ? pick('মাধ্যমিক স্তর (এসএসসি)', 'Secondary Level (SSC)')
-                        : pick('নিম্ন মাধ্যমিক স্তর', 'Junior Secondary Level')}
+                        ? 'মাধ্যমিক স্তর (এসএসসি)'
+                        : 'নিম্ন মাধ্যমিক স্তর'}
                     </p>
                     <h2 className="text-xl font-bold text-foreground mt-1">
-                      {locale === 'bn' ? cls.nameBn : cls.name}
+                      {cls.nameBn}
                     </h2>
                   </div>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-[var(--radius)] bg-surface-muted border border-border text-foreground tabular-nums whitespace-nowrap">
-                    {pick(`${formatNumber(secs.length, 'bn')}টি শাখা`, `${secs.length} Sections`)}
+                  <span className="text-sm font-semibold px-2.5 py-1 rounded-[var(--radius)] bg-surface-muted border border-border text-foreground tabular-nums whitespace-nowrap">
+                    {`${formatNumber(secs.length, 'bn')}টি শাখা`}
                   </span>
                 </div>
 
                 {/* Quick metrics */}
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div className="p-3 rounded-[var(--radius)] bg-surface-muted/50 border border-border">
-                    <p className="text-xs text-muted-foreground">{pick('নির্ধারিত বিষয়', 'Subjects')}</p>
+                    <p className="text-sm text-muted-foreground">{'নির্ধারিত বিষয়'}</p>
                     <p className="text-base font-bold text-foreground tabular-nums mt-0.5">
-                      {formatNumber(csList.length, locale)}
+                      {formatNumber(csList.length, 'bn')}
                     </p>
                   </div>
                   <div className="p-3 rounded-[var(--radius)] bg-surface-muted/50 border border-border">
-                    <p className="text-xs text-muted-foreground">{pick('পাঠ্যপুস্তক', 'Textbooks')}</p>
+                    <p className="text-sm text-muted-foreground">{'পাঠ্যপুস্তক'}</p>
                     <p className="text-base font-bold text-foreground tabular-nums mt-0.5">
-                      {formatNumber(classBooks.length, locale)}
+                      {formatNumber(classBooks.length, 'bn')}
                     </p>
                   </div>
                 </div>
 
                 {/* Sections & Class Teachers */}
                 <div className="space-y-1.5 text-sm">
-                  <p className="text-xs font-semibold text-muted-foreground">
-                    {pick('শাখা ও শ্রেণিশিক্ষক:', 'Sections & Class Teachers:')}
+                  <p className="text-sm font-semibold text-muted-foreground">
+                    {'শাখা ও শ্রেণিশিক্ষক:'}
                   </p>
                   <div className="space-y-1">
                     {leadSecTeacher.slice(0, 2).map((item) => (
                       <div key={item.secName} className="flex items-center justify-between gap-2 text-sm">
                         <span className="font-medium text-foreground">
-                          {pick(`শাখা ${item.secName}`, `Section ${item.secName}`)}
+                          {`শাখা ${item.secName}`}
                         </span>
                         <span className="text-muted-foreground truncate">{item.teacherName}</span>
                       </div>
                     ))}
                     {secs.length > 2 && (
-                      <p className="text-xs text-muted-foreground">
-                        {pick(
-                          `সকল শাখা: ${secs.map((s) => s.name).join(', ')}`,
-                          `All sections: ${secs.map((s) => s.name).join(', ')}`
-                        )}
+                      <p className="text-sm text-muted-foreground">
+                        {`সকল শাখা: ${secs.map((s) => s.name).join(', ')}`}
                       </p>
                     )}
                   </div>
                 </div>
 
                 {cls.numericValue >= 9 && (
-                  <p className="text-xs text-foreground bg-primary/5 border border-primary/15 rounded-[var(--radius)] px-3 py-2">
-                    {pick(
-                      'বিভাগসমূহ: বিজ্ঞান, মানবিক, ব্যবসায় শিক্ষা',
-                      'Streams: Science, Humanities, Business Studies'
-                    )}
+                  <p className="text-sm text-foreground bg-primary/5 border border-primary/15 rounded-[var(--radius)] px-3 py-2">
+                    {'বিভাগসমূহ: বিজ্ঞান, মানবিক, ব্যবসায় শিক্ষা'}
                   </p>
                 )}
               </div>
@@ -328,14 +317,14 @@ export function PublicClassesPage() {
                   href={`/academics/classes/${cls.id}`}
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline whitespace-nowrap"
                 >
-                  {pick('বিস্তারিত ও বিষয় দেখুন', 'View Details & Subjects')}
+                  {'বিস্তারিত ও বিষয় দেখুন'}
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link
                   href={`/academics/routines?classId=${cls.id}`}
                   className="text-sm font-medium text-muted-foreground hover:text-primary whitespace-nowrap"
                 >
-                  {pick('রুটিন →', 'Routine →')}
+                  {'রুটিন →'}
                 </Link>
               </div>
             </Card>

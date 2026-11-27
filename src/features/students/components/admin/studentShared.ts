@@ -4,7 +4,7 @@ import type { MockDatabase } from '@/src/mocks/seed';
 export function classLabel(db: MockDatabase, classId: string, locale: string) {
   const item = db.classes.find((row) => row.id === classId);
   if (!item) return '—';
-  return locale === 'bn' ? item.nameBn || item.name : item.name;
+  return item.nameBn || item.name;
 }
 
 export function errorMessage(err: unknown, fallback: string) {
@@ -55,7 +55,7 @@ export function getStudentAge(dob?: string | null, locale = 'bn') {
     years -= 1;
     months += 12;
   }
-  if (locale === 'bn') {
+  if (true) {
     const toBn = (n: number) => String(n).replace(/[0-9]/g, (d) => '০১২৩৪৫৬৭৮৯'[Number(d)]);
     return `${toBn(years)} বছর ${toBn(months)} মাস`;
   }

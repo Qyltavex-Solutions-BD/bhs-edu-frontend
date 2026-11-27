@@ -33,7 +33,7 @@ import { BookType } from '@/src/types/enums';
 import type { AcademicYear, Book, SchoolClass, Subject } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
 import { errorMessage } from './shared';
-import { BOOK_TYPE_LABELS, useAcademicI18n } from '../academic.i18n';
+import { BOOK_TYPE_LABELS } from '../academic.labels';
 import { bookSchema, type BookFormValues } from '../academic.schema';
 
 const isUuid = (val?: string) =>
@@ -56,7 +56,6 @@ export function BooksPanel({
   db?: MockDatabase;
   year?: AcademicYear;
 }) {
-  const { isBn, locale, t, dict } = useAcademicI18n();
 
   // Queries
   const { data: realClasses } = useGetSchoolClassesQuery();
@@ -228,7 +227,7 @@ export function BooksPanel({
           displayOrder: values.displayOrder,
           isActive: values.isActive,
         }).unwrap();
-        toast.success(t(dict.books.updateSuccess));
+        toast.success('পাঠ্যবই হালনাগাদ হয়েছে।');
       } else {
         await createBook({
           classId: values.classId,
@@ -238,11 +237,11 @@ export function BooksPanel({
           type: values.type,
           displayOrder: values.displayOrder,
         }).unwrap();
-        toast.success(t(dict.books.createSuccess));
+        toast.success('নতুন পাঠ্যবই যুক্ত হয়েছে।');
       }
       closeModal();
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.books.saveFailed)));
+      toast.error(errorMessage(err, 'পাঠ্যবই সংরক্ষণ করা যায়নি।'));
     }
   };
 
@@ -252,9 +251,9 @@ export function BooksPanel({
         id: book.id,
         isActive: !book.isActive,
       }).unwrap();
-      toast.success(t(dict.books.updateSuccess));
+      toast.success('পাঠ্যবই হালনাগাদ হয়েছে।');
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.books.saveFailed)));
+      toast.error(errorMessage(err, 'পাঠ্যবই সংরক্ষণ করা যায়নি।'));
     }
   };
 
@@ -266,10 +265,10 @@ export function BooksPanel({
     if (!deleteTarget) return;
     try {
       await deleteBook(deleteTarget.id).unwrap();
-      toast.success(t(dict.books.deleteSuccess));
+      toast.success('পাঠ্যবই মুছে ফেলা হয়েছে।');
       setDeleteTarget(null);
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.books.deleteFailed)));
+      toast.error(errorMessage(err, 'পাঠ্যবই মুছে ফেলা যায়নি।'));
     }
   };
 
@@ -279,7 +278,7 @@ export function BooksPanel({
       const nameBn = relSubject.nameBn || relSubject.name;
       const nameEn = relSubject.name;
       return {
-        displayTitle: isBn ? nameBn || nameEn : nameEn,
+        displayTitle: nameBn || nameEn,
         code: relSubject.officialCode,
         category: relSubject.category,
       };
@@ -288,7 +287,7 @@ export function BooksPanel({
     const nameBn = item?.nameBn || item?.name;
     const nameEn = item?.name || subjectId;
     return {
-      displayTitle: isBn ? nameBn || nameEn : nameEn,
+      displayTitle: nameBn || nameEn,
       code: item?.officialCode,
       category: item?.category,
     };
@@ -333,9 +332,7 @@ export function BooksPanel({
       <Card className="p-4 bg-gradient-to-r from-surface to-surface-muted border-border">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <p className="text-base text-muted-foreground">
-            {isBn
-              ? 'শ্রেণিভিত্তিক এনসিটিবি অনুমোদিত মূল পাঠ্যবই, ব্যাকরণ ও সহপাঠ দ্রুতপঠনের তালিকা।'
-              : 'Class-wise NCTB prescribed textbooks, grammar, and supplementary reader catalog.'}
+            {'শ্রেণিভিত্তিক এনসিটিবি অনুমোদিত মূল পাঠ্যবই, ব্যাকরণ ও সহপাঠ দ্রুতপঠনের তালিকা।'}
           </p>
 
           <div className="flex items-center gap-2 w-full md:w-auto">
@@ -345,12 +342,12 @@ export function BooksPanel({
               size="sm"
               onClick={() => refetchBooks()}
               disabled={fetchingBooks}
-              title={isBn ? 'রিফ্রেশ করুন' : 'Refresh'}
+              title={'রিফ্রেশ করুন'}
             >
               <RefreshCw className={`w-4 h-4 ${fetchingBooks ? 'animate-spin' : ''}`} />
             </Button>
             <Button type="button" variant="primary" onClick={startCreate} className="flex-1 md:flex-initial">
-              <Plus className="w-4 h-4" /> {t(dict.books.newBookButton)}
+              <Plus className="w-4 h-4" /> {'নতুন পাঠ্যবই'}
             </Button>
           </div>
         </div>
@@ -358,11 +355,11 @@ export function BooksPanel({
         {/* Class Selection Tabs */}
         <div className="mt-4 pt-3 border-t border-border flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-muted-foreground whitespace-nowrap mr-1">
-            {t(dict.books.classLabel)}:
+            {'শ্রেণি'}:
           </span>
           {classList.map((cls) => {
             const isSelected = cls.id === selectedClassId;
-            const clsName = isBn ? cls.nameBn || cls.name : cls.name;
+            const clsName = cls.nameBn || cls.name;
             return (
               <button
                 key={cls.id}
@@ -388,9 +385,9 @@ export function BooksPanel({
             <Layers className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{t(dict.books.statsTotal)}</p>
+            <p className="text-sm text-muted-foreground">{'মোট পাঠ্যবই'}</p>
             <p className="text-xl font-bold text-foreground tabular-nums">
-              {formatNumber(stats.total, locale)}
+              {formatNumber(stats.total, 'bn')}
             </p>
           </div>
         </Card>
@@ -400,9 +397,9 @@ export function BooksPanel({
             <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{t(dict.books.statsTextbook)}</p>
+            <p className="text-sm text-muted-foreground">{'মূল পাঠ্যবই'}</p>
             <p className="text-xl font-bold text-foreground tabular-nums">
-              {formatNumber(stats.textbooks, locale)}
+              {formatNumber(stats.textbooks, 'bn')}
             </p>
           </div>
         </Card>
@@ -412,9 +409,9 @@ export function BooksPanel({
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{t(dict.books.statsSupplementary)}</p>
+            <p className="text-sm text-muted-foreground">{'সহপাঠ'}</p>
             <p className="text-xl font-bold text-foreground tabular-nums">
-              {formatNumber(stats.supplementary, locale)}
+              {formatNumber(stats.supplementary, 'bn')}
             </p>
           </div>
         </Card>
@@ -424,9 +421,9 @@ export function BooksPanel({
             <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{t(dict.books.statsGrammar)}</p>
+            <p className="text-sm text-muted-foreground">{'ব্যাকরণ'}</p>
             <p className="text-xl font-bold text-foreground tabular-nums">
-              {formatNumber(stats.grammar, locale)}
+              {formatNumber(stats.grammar, 'bn')}
             </p>
           </div>
         </Card>
@@ -440,7 +437,7 @@ export function BooksPanel({
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t(dict.books.searchPlaceholder)}
+              placeholder={'বইয়ের নাম বা কোড দিয়ে খুঁজুন...'}
               className="pl-10"
             />
             {searchQuery && (
@@ -461,10 +458,10 @@ export function BooksPanel({
               onChange={(e) => setSubjectFilter(e.target.value)}
               className="w-full lg:w-44"
             >
-              <option value="all">{t(dict.books.allSubjects)}</option>
+              <option value="all">{'সকল বিষয়'}</option>
               {subjectList.map((sub) => (
                 <option key={sub.id} value={sub.id}>
-                  {isBn ? sub.nameBn || sub.name : sub.name}
+                  {sub.nameBn || sub.name}
                 </option>
               ))}
             </Select>
@@ -475,10 +472,10 @@ export function BooksPanel({
               onChange={(e) => setTypeFilter(e.target.value)}
               className="w-full lg:w-40"
             >
-              <option value="all">{t(dict.books.allTypes)}</option>
+              <option value="all">{'সব ধরনের বই'}</option>
               {Object.values(BookType).map((bt) => (
                 <option key={bt} value={bt}>
-                  {BOOK_TYPE_LABELS[bt] ? (isBn ? BOOK_TYPE_LABELS[bt].bn : BOOK_TYPE_LABELS[bt].en) : bt}
+                  {BOOK_TYPE_LABELS[bt] ? (BOOK_TYPE_LABELS[bt]) : bt}
                 </option>
               ))}
             </Select>
@@ -489,15 +486,15 @@ export function BooksPanel({
               onChange={(e) => setStatusFilter(e.target.value as any)}
               className="w-full lg:w-36"
             >
-              <option value="all">{t(dict.classSubjects.allStatuses)}</option>
-              <option value="active">{t(dict.classSubjects.activeOnly)}</option>
-              <option value="inactive">{t(dict.classSubjects.inactiveOnly)}</option>
+              <option value="all">{'সকল অবস্থা'}</option>
+              <option value="active">{'শুধু সক্রিয়'}</option>
+              <option value="inactive">{'শুধু নিষ্ক্রিয়'}</option>
             </Select>
 
             {hasActiveFilters && (
               <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
                 <X className="w-4 h-4 mr-1" />
-                {t(dict.classSubjects.resetFilters)}
+                {'ফিল্টার রিসেট করুন'}
               </Button>
             )}
           </div>
@@ -509,26 +506,26 @@ export function BooksPanel({
         <table className="w-full text-base">
           <thead className="bg-surface-muted text-sm text-muted-foreground border-b border-border">
             <tr>
-              <th className="p-3.5 text-left w-16">{t(dict.books.orderLabel)}</th>
-              <th className="p-3.5 text-left">{t(dict.books.nameLabel)}</th>
-              <th className="p-3.5 text-left">{t(dict.books.subjectLabel)}</th>
-              <th className="p-3.5 text-left">{t(dict.books.codeLabel)}</th>
-              <th className="p-3.5 text-left">{t(dict.books.typeLabel)}</th>
-              <th className="p-3.5 text-left">{t(dict.common.status)}</th>
-              <th className="p-3.5 text-right">{t(dict.common.actions)}</th>
+              <th className="p-3.5 text-left w-16">{'ক্রম'}</th>
+              <th className="p-3.5 text-left">{'বইয়ের নাম'}</th>
+              <th className="p-3.5 text-left">{'বিষয়'}</th>
+              <th className="p-3.5 text-left">{'বিষয় কোড'}</th>
+              <th className="p-3.5 text-left">{'বইয়ের ধরন'}</th>
+              <th className="p-3.5 text-left">{'অবস্থা'}</th>
+              <th className="p-3.5 text-right">{'কাজ'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {loadingBooks ? (
               <tr>
                 <td colSpan={7} className="p-8 text-center text-base text-muted-foreground">
-                  {t(dict.common.loading)}
+                  {'লোড হচ্ছে...'}
                 </td>
               </tr>
             ) : filteredBooks.length === 0 ? (
               <tr>
                 <td colSpan={7} className="p-8 text-center text-base text-muted-foreground">
-                  <p className="font-medium">{t(dict.books.emptyBooks)}</p>
+                  <p className="font-medium">{'এই শ্রেণির জন্য কোনো পাঠ্যবই পাওয়া যায়নি।'}</p>
                   {hasActiveFilters && (
                     <Button
                       type="button"
@@ -537,7 +534,7 @@ export function BooksPanel({
                       onClick={handleResetFilters}
                       className="mt-2 text-primary"
                     >
-                      {t(dict.classSubjects.resetFilters)}
+                      {'ফিল্টার রিসেট করুন'}
                     </Button>
                   )}
                 </td>
@@ -549,9 +546,7 @@ export function BooksPanel({
                   (book as BookWithRelations).subject
                 );
                 const typeLabel = BOOK_TYPE_LABELS[book.type]
-                  ? isBn
-                    ? BOOK_TYPE_LABELS[book.type].bn
-                    : BOOK_TYPE_LABELS[book.type].en
+                  ? BOOK_TYPE_LABELS[book.type]
                   : book.type;
                 const typeColor = typeBadgeColors[book.type] || 'bg-surface-muted text-muted-foreground';
 
@@ -559,7 +554,7 @@ export function BooksPanel({
                   <tr key={book.id} className="hover:bg-surface-muted/40 transition-colors">
                     <td className="p-3.5 text-sm text-muted-foreground font-semibold">
                       <span className="tabular-nums">
-                        {formatNumber(book.displayOrder ?? index + 1, locale)}
+                        {formatNumber(book.displayOrder ?? index + 1, 'bn')}
                       </span>
                     </td>
 
@@ -594,13 +589,13 @@ export function BooksPanel({
                       <button
                         type="button"
                         onClick={() => handleToggleActive(book)}
-                        title={isBn ? 'অবস্থা পরিবর্তন করুন' : 'Toggle status'}
+                        title={'অবস্থা পরিবর্তন করুন'}
                         className="cursor-pointer"
                       >
                         <StatusBadge
                           value={book.isActive ? 'ACTIVE' : 'INACTIVE'}
                           customLabel={
-                            book.isActive ? t(dict.common.active) : t(dict.common.inactive)
+                            book.isActive ? 'সক্রিয়' : 'বন্ধ'
                           }
                           customTone={book.isActive ? 'success' : 'neutral'}
                         />
@@ -615,7 +610,7 @@ export function BooksPanel({
                         onClick={() => startEdit(book)}
                       >
                         <Pencil className="w-4 h-4" />
-                        {t(dict.common.edit)}
+                        {'সম্পাদনা'}
                       </Button>
                       <Button
                         type="button"
@@ -639,9 +634,7 @@ export function BooksPanel({
       {booksMeta.total > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
           <span>
-            {isBn
-              ? `মোট ${formatNumber(booksMeta.total, 'bn')} টি বই · পৃষ্ঠা ${formatNumber(booksMeta.page, 'bn')} / ${formatNumber(booksMeta.totalPages, 'bn')}`
-              : `Total ${booksMeta.total} books · Page ${booksMeta.page} / ${booksMeta.totalPages}`}
+            {`মোট ${formatNumber(booksMeta.total, 'bn')} টি বই · পৃষ্ঠা ${formatNumber(booksMeta.page, 'bn')} / ${formatNumber(booksMeta.totalPages, 'bn')}`}
           </span>
           <div className="flex items-center gap-2">
             <Button
@@ -651,7 +644,7 @@ export function BooksPanel({
               disabled={!booksMeta.hasPreviousPage || fetchingBooks}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
-              {isBn ? 'পূর্ববর্তী' : 'Previous'}
+              {'পূর্ববর্তী'}
             </Button>
             <Button
               type="button"
@@ -660,7 +653,7 @@ export function BooksPanel({
               disabled={!booksMeta.hasNextPage || fetchingBooks}
               onClick={() => setPage((p) => p + 1)}
             >
-              {isBn ? 'পরবর্তী' : 'Next'}
+              {'পরবর্তী'}
             </Button>
           </div>
         </div>
@@ -670,12 +663,12 @@ export function BooksPanel({
       <Modal
         open={modalOpen}
         onClose={closeModal}
-        title={editingId ? t(dict.books.editTitle) : t(dict.books.newTitle)}
-        description={t(dict.books.modalDescription)}
+        title={editingId ? 'পাঠ্যবই সম্পাদনা' : 'নতুন পাঠ্যবই যুক্ত করুন'}
+        description={'নির্দিষ্ট শ্রেণি ও বিষয়ের জন্য পাঠ্যবই বা সহপাঠের তথ্য দিন।'}
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label={t(dict.books.classLabel)} required error={errors.classId?.message}>
+            <FormField label={'শ্রেণি'} required error={errors.classId?.message}>
               <Select
                 value={watch('classId')}
                 onChange={(e) => setValue('classId', e.target.value, { shouldValidate: true })}
@@ -683,55 +676,55 @@ export function BooksPanel({
               >
                 {classList.map((cls) => (
                   <option key={cls.id} value={cls.id}>
-                    {isBn ? cls.nameBn || cls.name : cls.name}
+                    {cls.nameBn || cls.name}
                   </option>
                 ))}
               </Select>
             </FormField>
 
-            <FormField label={t(dict.books.subjectLabel)} required error={errors.subjectId?.message}>
+            <FormField label={'বিষয়'} required error={errors.subjectId?.message}>
               <Select
                 value={formSubjectId}
                 onChange={(e) => setValue('subjectId', e.target.value, { shouldValidate: true })}
               >
                 {subjectList.map((sub) => (
                   <option key={sub.id} value={sub.id}>
-                    {isBn ? sub.nameBn || sub.name : sub.name}
+                    {sub.nameBn || sub.name}
                   </option>
                 ))}
               </Select>
             </FormField>
           </div>
 
-          <FormField label={t(dict.books.nameLabel)} required error={errors.name?.message}>
+          <FormField label={'বইয়ের নাম'} required error={errors.name?.message}>
             <Input
               {...register('name')}
-              placeholder={t(dict.books.namePlaceholder)}
+              placeholder={'যেমন: চারুপাঠ, আনন্দপাঠ বা সাধারণ গণিত'}
             />
           </FormField>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
             {!isJuniorClass ? (
-              <FormField label={t(dict.books.codeLabel)} error={errors.bookCode?.message}>
+              <FormField label={'বিষয় কোড'} error={errors.bookCode?.message}>
                 <Input
                   {...register('bookCode')}
-                  placeholder={t(dict.books.codePlaceholder)}
+                  placeholder={'যেমন: ১০১, ১০৭ (শুধুমাত্র ৯ম–১০ম শ্রেণির জন্য)'}
                 />
               </FormField>
             ) : (
-              <div className="p-2.5 rounded-lg bg-surface-muted border border-border text-xs text-muted-foreground flex items-center h-10 mt-2">
-                <span>{isBn ? '৬ষ্ঠ–৮ম শ্রেণির জন্য কোনো বিষয় কোড নেই।' : 'No subject code applies to Class 6–8.'}</span>
+              <div className="p-2.5 rounded-lg bg-surface-muted border border-border text-sm text-muted-foreground flex items-center h-10 mt-2">
+                <span>{'৬ষ্ঠ–৮ম শ্রেণির জন্য কোনো বিষয় কোড নেই।'}</span>
               </div>
             )}
 
-            <FormField label={t(dict.books.typeLabel)} required error={errors.type?.message}>
+            <FormField label={'বইয়ের ধরন'} required error={errors.type?.message}>
               <Select
                 value={formType}
                 onChange={(e) => setValue('type', e.target.value as BookType, { shouldValidate: true })}
               >
                 {Object.values(BookType).map((bt) => (
                   <option key={bt} value={bt}>
-                    {BOOK_TYPE_LABELS[bt] ? (isBn ? BOOK_TYPE_LABELS[bt].bn : BOOK_TYPE_LABELS[bt].en) : bt}
+                    {BOOK_TYPE_LABELS[bt] ? (BOOK_TYPE_LABELS[bt]) : bt}
                   </option>
                 ))}
               </Select>
@@ -739,8 +732,8 @@ export function BooksPanel({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
-            <FormField label={t(dict.books.orderLabel)} error={errors.displayOrder?.message}>
-              <Input
+            <FormField label={'ক্রম'} error={errors.displayOrder?.message}>
+              <Input placeholder="ক্রম লিখুন"
                 type="number"
                 {...register('displayOrder', { valueAsNumber: true })}
                 min={1}
@@ -751,21 +744,21 @@ export function BooksPanel({
               <Switch
                 checked={formIsActive}
                 onChange={(val) => setValue('isActive', val)}
-                label={t(dict.common.active)}
+                label={'সক্রিয়'}
               />
             </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={closeModal}>
-              {t(dict.common.cancel)}
+              {'বাতিল'}
             </Button>
             <Button type="submit" variant="primary" disabled={saving}>
               {saving
-                ? t(dict.common.saving)
+                ? 'সংরক্ষণ হচ্ছে...'
                 : editingId
-                  ? t(dict.common.update)
-                  : t(dict.common.save)}
+                  ? 'হালনাগাদ করুন'
+                  : 'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -775,13 +768,11 @@ export function BooksPanel({
         open={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
-        title={isBn ? 'পাঠ্যবই মুছে ফেলুন' : 'Delete Book'}
+        title={'পাঠ্যবই মুছে ফেলুন'}
         description={
-          isBn
-            ? `আপনি কি নিশ্চিতভাবে "${deleteTarget?.name ?? ''}" পাঠ্যবইটি তালিকা থেকে মুছতে চান?`
-            : `Are you sure you want to delete "${deleteTarget?.name ?? ''}"?`
+          `আপনি কি নিশ্চিতভাবে "${deleteTarget?.name ?? ''}" পাঠ্যবইটি তালিকা থেকে মুছতে চান?`
         }
-        confirmLabel={isBn ? 'মুছে ফেলুন' : 'Delete'}
+        confirmLabel={'মুছে ফেলুন'}
         destructive
         loading={deleting}
       />

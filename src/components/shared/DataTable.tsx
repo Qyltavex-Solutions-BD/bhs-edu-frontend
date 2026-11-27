@@ -5,7 +5,6 @@ import { ArrowUpDown, Download, Search, ChevronLeft, ChevronRight } from 'lucide
 import { Button, Input } from '@/src/components/ui/primitives';
 import { EmptyState, LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { exportToCsv } from '@/src/lib/utils/cn';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 
 export interface DataColumn<T extends object> {
@@ -60,7 +59,6 @@ export function DataTable<T extends object>({
   renderMobileCard,
   server,
 }: DataTableProps<T>) {
-  const { t, locale, pick } = useI18n();
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [globalFilter, setGlobalFilter] = useState('');
@@ -130,16 +128,10 @@ export function DataTable<T extends object>({
   const paginationSummary = useMemo(() => {
     if (server?.meta) {
       const { total, page, totalPages } = server.meta;
-      return pick(
-        `মোট ${formatNumber(total, 'bn')} টি তথ্য · পৃষ্ঠা ${formatNumber(page, 'bn')} / ${formatNumber(Math.max(1, totalPages), 'bn')}`,
-        `${total} records · Page ${page} of ${Math.max(1, totalPages)}`,
-      );
+      return `মোট ${formatNumber(total, 'bn')} টি তথ্য · পৃষ্ঠা ${formatNumber(page, 'bn')} / ${formatNumber(Math.max(1, totalPages), 'bn')}`;
     }
-    return pick(
-      `মোট ${formatNumber(totalFiltered, 'bn')} টি তথ্য · পৃষ্ঠা ${formatNumber(safePageIndex + 1, 'bn')} / ${formatNumber(pageCount, 'bn')}`,
-      `Showing ${totalFiltered} records · Page ${safePageIndex + 1} of ${pageCount}`
-    );
-  }, [server, totalFiltered, safePageIndex, pageCount, pick]);
+    return `মোট ${formatNumber(totalFiltered, 'bn')} টি তথ্য · পৃষ্ঠা ${formatNumber(safePageIndex + 1, 'bn')} / ${formatNumber(pageCount, 'bn')}`;
+  }, [server, totalFiltered, safePageIndex, pageCount]);
 
   if (isLoading && !server) return <LoadingSkeleton rows={6} />;
 
@@ -150,7 +142,7 @@ export function DataTable<T extends object>({
           <div className="relative w-full sm:max-w-xs">
             <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <Input
-              aria-label={searchPlaceholder ?? t('cta.search')}
+              aria-label={searchPlaceholder ?? 'অনুসন্ধান...'}
               maxLength={server ? 150 : undefined}
               value={server ? server.search : globalFilter}
               onChange={(e) => {
@@ -158,7 +150,7 @@ export function DataTable<T extends object>({
                 setGlobalFilter(e.target.value);
                 setPageIndex(0);
               }}
-              placeholder={searchPlaceholder ?? t('cta.search')}
+              placeholder={searchPlaceholder ?? 'অনুসন্ধান...'}
               className="pl-9"
             />
           </div>
@@ -167,7 +159,7 @@ export function DataTable<T extends object>({
             {exportFilename && (
               <Button variant="outline" size="sm" onClick={handleExport} disabled={server ? (server.exporting || !server.meta?.total) : totalFiltered === 0}>
                 <Download className="w-3.5 h-3.5" />
-                {t('cta.exportCsv')}
+                {'CSV ডাউনলোড'}
               </Button>
             )}
           </div>
@@ -258,7 +250,7 @@ export function DataTable<T extends object>({
                 disabled={server ? !server.meta?.hasPreviousPage : safePageIndex <= 0}
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
-                {locale === 'bn' ? 'পূর্ববর্তী' : 'Prev'}
+                {'পূর্ববর্তী'}
               </Button>
               <Button
                 variant="outline"
@@ -266,7 +258,7 @@ export function DataTable<T extends object>({
                 onClick={() => server?.meta ? server.onPage(server.meta.page + 1) : setPageIndex((p) => Math.min(pageCount - 1, p + 1))}
                 disabled={server ? !server.meta?.hasNextPage : safePageIndex >= pageCount - 1}
               >
-                {locale === 'bn' ? 'পরবর্তী' : 'Next'}
+                {'পরবর্তী'}
                 <ChevronRight className="w-3.5 h-3.5" />
               </Button>
             </div>

@@ -32,7 +32,6 @@ import {
   useSaveMarksBatchMutation,
 } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -84,7 +83,6 @@ function getAssignmentSubject(db: MockDatabase, classSubjectId: string) {
 export function TeacherStudentsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const teacher = useCurrentTeacher(db);
-  const { locale, pick } = useI18n();
   const [search, setSearch] = useState('');
   const [sectionFilter, setSectionFilter] = useState('ALL');
 
@@ -117,14 +115,14 @@ export function TeacherStudentsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('আমার নির্ধারিত শিক্ষার্থী', 'My Assigned Students')}
-        description={pick('শুধুমাত্র আপনার পাঠদানকৃত শাখাসমূহের শিক্ষার্থী', 'Scoped to your assigned sections')}
+        title={'আমার নির্ধারিত শিক্ষার্থী'}
+        description={'শুধুমাত্র আপনার পাঠদানকৃত শাখাসমূহের শিক্ষার্থী'}
       />
       <Card className="p-4 flex flex-col sm:flex-row gap-3">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder={pick('নাম বা শিক্ষার্থী আইডি দিয়ে খুঁজুন...', 'Search by name or student ID...')}
+          placeholder={'নাম বা শিক্ষার্থী আইডি দিয়ে খুঁজুন...'}
           className="sm:max-w-xs"
         />
         <Select
@@ -132,12 +130,12 @@ export function TeacherStudentsPage() {
           onChange={(e) => setSectionFilter(e.target.value)}
           className="sm:max-w-xs"
         >
-          <option value="ALL">{pick('সকল নির্ধারিত শাখা', 'All Assigned Sections')}</option>
+          <option value="ALL">{'সকল নির্ধারিত শাখা'}</option>
           {mySections.map((s) => {
             const cls = db.classes.find((c) => c.id === s.classId);
             return (
               <option key={s.id} value={s.id}>
-                {locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name} ({s.name})
+                {cls?.nameBn || cls?.name} ({s.name})
               </option>
             );
           })}
@@ -146,14 +144,14 @@ export function TeacherStudentsPage() {
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead className="bg-surface-muted/70 text-sm text-muted-foreground border-b border-border">
               <tr>
-                <th className="px-4 py-3 text-left">{pick('আইডি ও রোল', 'ID & Roll')}</th>
-                <th className="px-4 py-3 text-left">{pick('শিক্ষার্থীর নাম', 'Student Name')}</th>
-                <th className="px-4 py-3 text-left">{pick('শ্রেণি ও শাখা', 'Class & Section')}</th>
-                <th className="px-4 py-3 text-left">{pick('অভিভাবক', 'Primary Guardian')}</th>
-                <th className="px-4 py-3 text-left">{pick('অবস্থা', 'Status')}</th>
+                <th className="px-4 py-3 text-left">{'আইডি ও রোল'}</th>
+                <th className="px-4 py-3 text-left">{'শিক্ষার্থীর নাম'}</th>
+                <th className="px-4 py-3 text-left">{'শ্রেণি ও শাখা'}</th>
+                <th className="px-4 py-3 text-left">{'অভিভাবক'}</th>
+                <th className="px-4 py-3 text-left">{'অবস্থা'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border tabular-nums">
@@ -161,19 +159,19 @@ export function TeacherStudentsPage() {
                 <tr key={enr.id}>
                   <td className="px-4 py-3">
                     <p className="font-mono text-sm">{stu.studentId}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {pick('রোল:', 'Roll:')} {formatNumber(enr.roll, locale)}
+                    <p className="text-sm text-muted-foreground">
+                      {'রোল:'} {formatNumber(enr.roll, 'bn')}
                     </p>
                   </td>
                   <td className="px-4 py-3 font-medium">
-                    {locale === 'bn' ? stu.nameBn || stu.nameEn : stu.nameEn}
+                    {stu.nameBn || stu.nameEn}
                   </td>
                   <td className="px-4 py-3 text-sm">
-                    {locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name} ({sec?.name})
+                    {cls?.nameBn || cls?.name} ({sec?.name})
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <p>{parent?.name ?? '—'}</p>
-                    <p className="text-xs text-muted-foreground">{parent?.phone ?? '—'}</p>
+                    <p className="text-sm text-muted-foreground">{parent?.phone ?? '—'}</p>
                   </td>
                   <td className="px-4 py-3">
                     <StatusBadge enumName="StudentStatus" value={stu.status} />

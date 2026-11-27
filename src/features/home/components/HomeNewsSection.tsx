@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 import type { News } from '@/src/types/entities';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong } from '@/src/lib/formatters';
 import { getNewsPhoto } from '@/src/components/shared/Feedback';
 
@@ -16,8 +15,6 @@ interface HomeNewsSectionProps {
 }
 
 export function HomeNewsSection({ news }: HomeNewsSectionProps) {
-  const { locale, pick } = useI18n();
-
   const publishedNews = [...(news ?? [])]
     .filter((n) => n.isPublished)
     .sort((a, b) => {
@@ -42,20 +39,17 @@ export function HomeNewsSection({ news }: HomeNewsSectionProps) {
       <div className="flex items-end justify-between gap-4 border-b border-border pb-3.5">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-            {pick('সাম্প্রতিক সংবাদ', 'Latest Campus News')}
+            {'সাম্প্রতিক সংবাদ'}
           </h2>
           <p className="text-base text-muted-foreground mt-1">
-            {pick(
-              'বিদ্যালয়ের সহশিক্ষা, বিজ্ঞান চর্চা ও শিক্ষার্থীদের সাম্প্রতিক সাফল্যের প্রতিবেদন',
-              'Stories from campus life, science fairs, and student achievements'
-            )}
+            {'বিদ্যালয়ের সহশিক্ষা, বিজ্ঞান চর্চা ও শিক্ষার্থীদের সাম্প্রতিক সাফল্যের প্রতিবেদন'}
           </p>
         </div>
         <Link
           href="/news"
           className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline whitespace-nowrap shrink-0"
         >
-          <span>{pick('সব সংবাদ', 'All News')}</span>
+          <span>{'সব সংবাদ'}</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
@@ -82,7 +76,7 @@ export function HomeNewsSection({ news }: HomeNewsSectionProps) {
                 <div className="lg:col-span-6 p-6 sm:p-7 flex flex-col justify-between gap-4">
                   <div className="space-y-2.5">
                     <p className="text-sm text-primary font-semibold tabular-nums">
-                      {formatDateLong(lead.publishedAt ?? lead.createdAt, locale)}
+                      {formatDateLong(lead.publishedAt ?? lead.createdAt, 'bn')}
                     </p>
                     <h3 className="text-xl sm:text-2xl font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
                       {lead.title}
@@ -92,7 +86,7 @@ export function HomeNewsSection({ news }: HomeNewsSectionProps) {
                     </p>
                   </div>
                   <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
-                    <span>{pick('সম্পূর্ণ সংবাদ পড়ুন', 'Read Full Story')}</span>
+                    <span>{'সম্পূর্ণ সংবাদ পড়ুন'}</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </span>
                 </div>
@@ -124,7 +118,7 @@ export function HomeNewsSection({ news }: HomeNewsSectionProps) {
                     </div>
                     <div className="p-5 space-y-2">
                       <p className="text-sm font-semibold text-primary tabular-nums">
-                        {formatDateLong(item.publishedAt ?? item.createdAt, locale)}
+                        {formatDateLong(item.publishedAt ?? item.createdAt, 'bn')}
                       </p>
                       <h3 className="text-base sm:text-lg font-bold text-foreground group-hover:text-primary transition-colors leading-snug line-clamp-2">
                         {item.title}
@@ -135,7 +129,7 @@ export function HomeNewsSection({ news }: HomeNewsSectionProps) {
                     </div>
                   </div>
                   <div className="px-5 pb-4 pt-2 border-t border-border/60 flex items-center justify-between text-sm font-semibold text-primary">
-                    <span>{pick('বিস্তারিত পড়ুন', 'Read More')}</span>
+                    <span>{'বিস্তারিত পড়ুন'}</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </div>
                 </Link>
@@ -155,7 +149,7 @@ export function HomeNewsSection({ news }: HomeNewsSectionProps) {
                     <div className="md:col-span-7 p-6 sm:p-7 flex flex-col justify-between gap-4 order-2 md:order-1">
                       <div className="space-y-2.5">
                         <p className="text-sm font-semibold text-primary tabular-nums">
-                          {formatDateLong(item.publishedAt ?? item.createdAt, locale)}
+                          {formatDateLong(item.publishedAt ?? item.createdAt, 'bn')}
                         </p>
                         <h3 className="text-lg sm:text-xl font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
                           {item.title}
@@ -165,7 +159,7 @@ export function HomeNewsSection({ news }: HomeNewsSectionProps) {
                         </p>
                       </div>
                       <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
-                        <span>{pick('সম্পূর্ণ সংবাদ পড়ুন', 'Read Full Story')}</span>
+                        <span>{'সম্পূর্ণ সংবাদ পড়ুন'}</span>
                         <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                       </span>
                     </div>

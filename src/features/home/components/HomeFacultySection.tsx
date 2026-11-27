@@ -6,7 +6,6 @@ import { motion } from 'motion/react';
 import { ArrowRight } from 'lucide-react';
 import type { Department, Staff } from '@/src/types/entities';
 import { StaffStatus, StaffType } from '@/src/types/enums';
-import { useI18n } from '@/src/lib/i18n';
 import { getStaffPortrait } from '@/src/components/shared/Feedback';
 
 const EASE_OUT = [0.22, 1, 0.36, 1] as const;
@@ -17,8 +16,6 @@ interface HomeFacultySectionProps {
 }
 
 export function HomeFacultySection({ staff, departments }: HomeFacultySectionProps) {
-  const { pick } = useI18n();
-
   const teachersPreview = (staff ?? [])
     .filter((s) => s.staffType === StaffType.TEACHER && s.status === StaffStatus.ACTIVE)
     .sort((a, b) => a.displayOrder - b.displayOrder)
@@ -35,23 +32,20 @@ export function HomeFacultySection({ staff, departments }: HomeFacultySectionPro
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-primary">
-            {pick('একাডেমিক শিক্ষকমণ্ডলী', 'Academic Faculty')}
+            {'একাডেমিক শিক্ষকমণ্ডলী'}
           </p>
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-            {pick('অভিজ্ঞ শিক্ষকমণ্ডলী', 'Faculty & Teachers')}
+            {'অভিজ্ঞ শিক্ষকমণ্ডলী'}
           </h2>
           <p className="text-base text-muted-foreground mt-1">
-            {pick(
-              'বিষয়ভিত্তিক দক্ষ, নিবেদিতপ্রাণ ও অভিজ্ঞ শিক্ষকমণ্ডলীর তত্ত্বাবধানে পাঠদান।',
-              'Dedicated subject specialists mentoring Classes 6–10 across all streams.'
-            )}
+            {'বিষয়ভিত্তিক দক্ষ, নিবেদিতপ্রাণ ও অভিজ্ঞ শিক্ষকমণ্ডলীর তত্ত্বাবধানে পাঠদান।'}
           </p>
         </div>
         <Link
           href="/about/teachers"
           className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline whitespace-nowrap shrink-0"
         >
-          <span>{pick('সকল শিক্ষক দেখুন', 'View All Teachers')}</span>
+          <span>{'সকল শিক্ষক দেখুন'}</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
@@ -98,7 +92,7 @@ export function HomeFacultySection({ staff, departments }: HomeFacultySectionPro
               </div>
 
               <div className="px-4 pb-3.5 pt-2.5 border-t border-border/70 flex items-center justify-between text-sm font-semibold text-primary">
-                <span>{pick('প্রোফাইল দেখুন', 'View Profile')}</span>
+                <span>{'প্রোফাইল দেখুন'}</span>
                 <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </div>
             </Link>

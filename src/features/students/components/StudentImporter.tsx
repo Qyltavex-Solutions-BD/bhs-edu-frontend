@@ -3,13 +3,11 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { useImportStudentsMutation } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { Button, Card, Input } from '@/src/components/ui/primitives';
 import { errorMessage } from './admin/studentShared';
 import type { MockDatabase } from '@/src/mocks/seed';
 
 export function StudentImporter({ db, yearId }: { db: MockDatabase; yearId: string }) {
-  const { pick } = useI18n();
   const [importStudents, { isLoading }] = useImportStudentsMutation();
   const [rows, setRows] = useState<Array<Record<string, string>>>([]);
   const [fileName, setFileName] = useState('');
@@ -32,19 +30,19 @@ export function StudentImporter({ db, yearId }: { db: MockDatabase; yearId: stri
   const commit = async () => {
     const ready = rows.filter((_, index) => !preview[index]?.problem);
     if (!ready.length) {
-      toast.error(pick('সঠিক সারি নেই।', 'There are no valid rows.'));
+      toast.error('সঠিক সারি নেই।');
       return;
     }
     try {
       const result = await importStudents({ academicYearId: yearId, rows: ready }).unwrap();
-      toast.success(pick(`${result.created} জন ভর্তি হয়েছে।`, `${result.created} students admitted.`));
+      toast.success(`${result.created} জন ভর্তি হয়েছে।`);
       if (result.errors.length) {
         toast.error(result.errors.map((item) => `${item.row}: ${item.message}`).join(' '));
       }
       setRows([]);
       setFileName('');
     } catch (err) {
-      toast.error(errorMessage(err, pick('আমদানি হয়নি।', 'Import failed.')));
+      toast.error(errorMessage(err, 'আমদানি হয়নি।'));
     }
   };
 
@@ -74,15 +72,15 @@ export function StudentImporter({ db, yearId }: { db: MockDatabase; yearId: stri
       {!!preview.length && (
         <>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-base">
               <thead className="text-muted-foreground">
                 <tr>
                   <th className="p-2 text-left">#</th>
-                  <th className="p-2 text-left">{pick('নাম', 'Name')}</th>
-                  <th className="p-2 text-left">{pick('শ্রেণি', 'Class')}</th>
-                  <th className="p-2 text-left">{pick('শাখা', 'Section')}</th>
-                  <th className="p-2 text-left">{pick('রোল', 'Roll')}</th>
-                  <th className="p-2 text-left">{pick('যাচাই', 'Check')}</th>
+                  <th className="p-2 text-left">{'নাম'}</th>
+                  <th className="p-2 text-left">{'শ্রেণি'}</th>
+                  <th className="p-2 text-left">{'শাখা'}</th>
+                  <th className="p-2 text-left">{'রোল'}</th>
+                  <th className="p-2 text-left">{'যাচাই'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -93,7 +91,7 @@ export function StudentImporter({ db, yearId }: { db: MockDatabase; yearId: stri
                     <td className="p-2">{row.className}</td>
                     <td className="p-2">{row.sectionName}</td>
                     <td className="p-2">{row.roll}</td>
-                    <td className="p-2">{row.problem ? pick('অসম্পূর্ণ', 'Incomplete') : pick('ঠিক আছে', 'Ready')}</td>
+                    <td className="p-2">{row.problem ? 'অসম্পূর্ণ' : 'ঠিক আছে'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -101,7 +99,7 @@ export function StudentImporter({ db, yearId }: { db: MockDatabase; yearId: stri
           </div>
           <div className="flex justify-end">
             <Button variant="primary" disabled={isLoading} onClick={commit}>
-              {pick('সঠিক সারি ভর্তি করুন', 'Admit valid rows')}
+              {'সঠিক সারি ভর্তি করুন'}
             </Button>
           </div>
         </>

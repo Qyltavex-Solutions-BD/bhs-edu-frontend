@@ -8,7 +8,6 @@ import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -58,17 +57,16 @@ function useCurrentStudent(db: MockDatabase | undefined) {
 export function StudentNoticesPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const { data: noticePage } = useGetPublicNoticesQuery({ limit: 20 });
-  const { locale, pick } = useI18n();
   if (isLoading || !db) return <LoadingSkeleton />;
   return (
     <div className="space-y-6">
-      <PageHeader title={pick('নোটিশ', 'Notices')} />
+      <PageHeader title={'নোটিশ'} />
       <div className="space-y-3">
         {(noticePage?.items ?? []).map((n) => (
           <Card key={n.id} className="p-5">
             <h3 className="text-base font-semibold">{n.title}</h3>
-            <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
-              {formatDateLong(n.publishedAt ?? n.createdAt, locale)}
+            <p className="text-sm text-muted-foreground tabular-nums mt-0.5">
+              {formatDateLong(n.publishedAt ?? n.createdAt, 'bn')}
             </p>
             <p className="text-base mt-2 leading-relaxed">{n.description}</p>
           </Card>

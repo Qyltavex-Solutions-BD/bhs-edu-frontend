@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Pencil, User } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort } from '@/src/lib/formatters';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Modal } from '@/src/components/ui/primitives';
@@ -21,27 +20,26 @@ export function StaffViewModal({
   member: Staff | null;
   onEdit: (member: Staff) => void;
 }) {
-  const { locale, pick } = useI18n();
   if (!member) return null;
 
-  const numLocale = locale === 'bn' ? 'bn' : 'en';
+  const numLocale = 'bn';
   const photoUrl = resolveStaffPhotoUrl(member.photo);
 
   const genderLabel = (g?: Gender | null) => {
     if (!g) return '—';
-    if (g === Gender.MALE) return pick('পুরুষ', 'Male');
-    if (g === Gender.FEMALE) return pick('নারী', 'Female');
-    return pick('অন্যান্য', 'Other');
+    if (g === Gender.MALE) return 'পুরুষ';
+    if (g === Gender.FEMALE) return 'নারী';
+    return 'অন্যান্য';
   };
 
   const religionLabel = (r?: Religion | null) => {
     if (!r) return '—';
     const map: Record<Religion, string> = {
-      [Religion.ISLAM]: pick('ইসলাম', 'Islam'),
-      [Religion.HINDUISM]: pick('হিন্দু', 'Hinduism'),
-      [Religion.CHRISTIANITY]: pick('খ্রিস্টান', 'Christianity'),
-      [Religion.BUDDHISM]: pick('বৌদ্ধ', 'Buddhism'),
-      [Religion.OTHER]: pick('অন্যান্য', 'Other'),
+      [Religion.ISLAM]: 'ইসলাম',
+      [Religion.HINDUISM]: 'হিন্দু',
+      [Religion.CHRISTIANITY]: 'খ্রিস্টান',
+      [Religion.BUDDHISM]: 'বৌদ্ধ',
+      [Religion.OTHER]: 'অন্যান্য',
     };
     return map[r] ?? r;
   };
@@ -51,7 +49,7 @@ export function StaffViewModal({
 
   const InfoRow = ({ label, value }: { label: string; value: React.ReactNode }) => (
     <div className="space-y-0.5">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
       <p className="text-base font-medium text-foreground break-words">{value || '—'}</p>
     </div>
   );
@@ -60,7 +58,7 @@ export function StaffViewModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={pick('স্টাফ প্রোফাইল বিবরণ', 'Staff Profile Details')}
+      title={'স্টাফ প্রোফাইল বিবরণ'}
       maxWidth="max-w-3xl"
     >
       <div className="space-y-6">
@@ -102,35 +100,35 @@ export function StaffViewModal({
         {/* Section 1: Institutional Details */}
         <div className="space-y-3">
           <h4 className="text-sm font-bold text-primary border-b border-border pb-1.5">
-            {pick('১. প্রাতিষ্ঠানিক তথ্য', '1. Institutional Details')}
+            {'১. প্রাতিষ্ঠানিক তথ্য'}
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <InfoRow
-              label={pick('পূর্ণ নাম', 'Full Name')}
+              label={'পূর্ণ নাম'}
               value={member.nameBn || member.name}
             />
             <InfoRow
-              label={pick('স্টাফ আইডি', 'Staff ID')}
+              label={'স্টাফ আইডি'}
               value={member.employeeId ? <span className="font-mono">{member.employeeId}</span> : '—'}
             />
             <InfoRow
-              label={pick('পদবি', 'Designation')}
+              label={'পদবি'}
               value={member.designation}
             />
             <InfoRow
-              label={pick('ধরন', 'Staff Type')}
+              label={'ধরন'}
               value={<StatusBadge enumName="StaffType" value={member.staffType} />}
             />
             <InfoRow
-              label={pick('নিয়োগের ধরন', 'Employment Type')}
+              label={'নিয়োগের ধরন'}
               value={<StatusBadge enumName="EmploymentType" value={member.employmentType} />}
             />
             <InfoRow
-              label={pick('শিক্ষাগত যোগ্যতা', 'Qualification')}
+              label={'শিক্ষাগত যোগ্যতা'}
               value={member.qualification}
             />
             <InfoRow
-              label={pick('যোগদানের তারিখ', 'Joining Date')}
+              label={'যোগদানের তারিখ'}
               value={
                 member.joiningDate
                   ? formatDateShort(member.joiningDate, numLocale)
@@ -138,12 +136,12 @@ export function StaffViewModal({
               }
             />
             <InfoRow
-              label={pick('অবস্থা (Status)', 'Status')}
+              label={'অবস্থা (Status)'}
               value={<StatusBadge enumName="StaffStatus" value={member.status} />}
             />
             {member.status !== StaffStatus.ACTIVE && (
               <InfoRow
-                label={pick('বিদায় / অবসরের তারিখ', 'Leaving Date')}
+                label={'বিদায় / অবসরের তারিখ'}
                 value={
                   member.leavingDate
                     ? formatDateShort(member.leavingDate, numLocale)
@@ -157,40 +155,40 @@ export function StaffViewModal({
         {/* Section 2: Personal & Contact Information */}
         <div className="space-y-3">
           <h4 className="text-sm font-bold text-primary border-b border-border pb-1.5">
-            {pick('২. ব্যক্তিগত ও যোগাযোগের তথ্য', '2. Personal & Contact Information')}
+            {'২. ব্যক্তিগত ও যোগাযোগের তথ্য'}
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <InfoRow label={pick('মোবাইল নম্বর', 'Phone')} value={member.phone} />
-            <InfoRow label={pick('ইমেইল', 'Email')} value={member.email} />
+            <InfoRow label={'মোবাইল নম্বর'} value={member.phone} />
+            <InfoRow label={'ইমেইল'} value={member.email} />
             <InfoRow
-              label={pick('জরুরি যোগাযোগ', 'Emergency Phone')}
+              label={'জরুরি যোগাযোগ'}
               value={member.emergencyContact}
             />
-            <InfoRow label={pick('জাতীয় পরিচয়পত্র (NID)', 'NID')} value={member.nid} />
-            <InfoRow label={pick('লিঙ্গ', 'Gender')} value={genderLabel(member.gender)} />
-            <InfoRow label={pick('ধর্ম', 'Religion')} value={religionLabel(member.religion)} />
+            <InfoRow label={'জাতীয় পরিচয়পত্র (NID)'} value={member.nid} />
+            <InfoRow label={'লিঙ্গ'} value={genderLabel(member.gender)} />
+            <InfoRow label={'ধর্ম'} value={religionLabel(member.religion)} />
             <InfoRow
-              label={pick('রক্তের গ্রুপ', 'Blood Group')}
+              label={'রক্তের গ্রুপ'}
               value={bloodLabel(member.bloodGroup)}
             />
             <InfoRow
-              label={pick('জন্ম তারিখ', 'Date of Birth')}
+              label={'জন্ম তারিখ'}
               value={
                 member.dateOfBirth
                   ? formatDateShort(member.dateOfBirth, numLocale)
                   : '—'
               }
             />
-            <InfoRow label={pick('পিতার নাম', 'Father’s Name')} value={member.fatherName} />
-            <InfoRow label={pick('মাতার নাম', 'Mother’s Name')} value={member.motherName} />
+            <InfoRow label={'পিতার নাম'} value={member.fatherName} />
+            <InfoRow label={'মাতার নাম'} value={member.motherName} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
             <InfoRow
-              label={pick('বর্তমান ঠিকানা', 'Present Address')}
+              label={'বর্তমান ঠিকানা'}
               value={member.presentAddress}
             />
             <InfoRow
-              label={pick('স্থায়ী ঠিকানা', 'Permanent Address')}
+              label={'স্থায়ী ঠিকানা'}
               value={member.permanentAddress}
             />
           </div>
@@ -198,7 +196,7 @@ export function StaffViewModal({
 
         <div className="flex justify-end gap-2 pt-3 border-t border-border">
           <Button type="button" variant="outline" onClick={onClose}>
-            {pick('বন্ধ করুন', 'Close')}
+            {'বন্ধ করুন'}
           </Button>
           <Button
             type="button"
@@ -209,7 +207,7 @@ export function StaffViewModal({
             }}
           >
             <Pencil className="w-4 h-4" />
-            <span>{pick('সম্পাদনা করুন', 'Edit Profile')}</span>
+            <span>{'সম্পাদনা করুন'}</span>
           </Button>
         </div>
       </div>

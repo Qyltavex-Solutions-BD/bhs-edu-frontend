@@ -3,7 +3,6 @@
 import React, { useMemo, useState } from 'react';
 import { CheckCircle2, IdCard, Printer, Search, Users } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -26,8 +25,6 @@ import {
 
 export function ExamAdmitCardsView() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
-
   const [selectedExamId, setSelectedExamId] = useState('exam-ann-10');
   const [sectionFilter, setSectionFilter] = useState('ALL');
   const [groupFilter, setGroupFilter] = useState('ALL');
@@ -52,7 +49,7 @@ export function ExamAdmitCardsView() {
     if (!db || !activeExam) return [];
     const cls = db.classes.find((c) => c.id === activeExam.classId);
     const year = db.academicYears.find((y) => y.id === activeExam.academicYearId);
-    const { seatLookup } = buildSeatPlanRooms(db, activeExam, locale);
+    const { seatLookup } = buildSeatPlanRooms(db, activeExam, 'bn');
     const examRoutines = db.examRoutines
       .filter((r) => !r.isDeleted && r.examId === activeExam.id)
       .sort((a, b) => a.examDate.localeCompare(b.examDate) || a.startTime.localeCompare(b.startTime));
@@ -75,7 +72,7 @@ export function ExamAdmitCardsView() {
         const stu = db.students.find((s) => s.id === enr.studentId);
         const sec = db.sections.find((s) => s.id === enr.sectionId);
         const grp = enr.groupId ? db.academicGroups.find((g) => g.id === enr.groupId) : null;
-        const { fatherName, motherName } = resolveStudentParents(db, enr.studentId, locale);
+        const { fatherName, motherName } = resolveStudentParents(db, enr.studentId, 'bn');
         const seatInfo = seatLookup.get(enr.id);
 
         const schedule = examRoutines
@@ -94,7 +91,7 @@ export function ExamAdmitCardsView() {
               startTime: rt.startTime,
               endTime: rt.endTime,
               subjectCode: sub?.officialCode ?? '—',
-              subjectName: locale === 'bn' ? sub?.nameBn || sub?.name || '—' : sub?.name || '—',
+              subjectName: sub?.nameBn || sub?.name || '—',
               roomNo: rt.roomNo ?? seatInfo?.roomNo ?? null,
             };
           });
@@ -111,9 +108,9 @@ export function ExamAdmitCardsView() {
             motherName,
             photo: stu?.photo ?? null,
             roll: enr.roll,
-            className: locale === 'bn' ? cls?.nameBn || cls?.name || '' : cls?.name || '',
+            className: cls?.nameBn || cls?.name || '',
             sectionName: sec?.name ?? '',
-            groupName: grp ? (locale === 'bn' ? grp.nameBn : grp.name) : null,
+            groupName: grp ? (grp.nameBn) : null,
             hallRoom: seatInfo ? `${seatInfo.roomNo}${seatInfo.buildingName ? ` (${seatInfo.buildingName})` : ''}` : null,
             seatNo: seatInfo?.seatNo ?? null,
           },
@@ -126,7 +123,7 @@ export function ExamAdmitCardsView() {
           props,
         };
       });
-  }, [db, activeExam, locale, sectionFilter, groupFilter, search]);
+  }, [db, activeExam, 'bn', sectionFilter, groupFilter, search]);
 
   if (isLoading || !db) return <LoadingSkeleton rows={6} />;
 
@@ -166,14 +163,8 @@ export function ExamAdmitCardsView() {
           >
             <Printer className="w-4 h-4" />
             {selectedItems.length > 0
-              ? pick(
-                  `নির্বাচিত ${formatNumber(selectedItems.length, locale)}টি প্রবেশপত্র প্রিন্ট`,
-                  `Bulk Print ${selectedItems.length} Selected`
-                )
-              : pick(
-                  `সকল (${formatNumber(bulkTargets.length, locale)}) প্রবেশপত্র প্রিন্ট`,
-                  `Bulk Print All (${bulkTargets.length})`
-                )}
+              ? `নির্বাচিত ${formatNumber(selectedItems.length, 'bn')}টি প্রবেশপত্র প্রিন্ট`
+              : `সকল (${formatNumber(bulkTargets.length, 'bn')}) প্রবেশপত্র প্রিন্ট`}
           </Button>
         }
       />
@@ -182,61 +173,49 @@ export function ExamAdmitCardsView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('মোট পরীক্ষার্থী', 'Total Examinees')}
+            {'মোট পরীক্ষার্থী'}
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
-            {formatNumber(admitCardItems.length, locale)}
+            {formatNumber(admitCardItems.length, 'bn')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `শ্রেণি: ${locale === 'bn' ? activeClass?.nameBn || activeClass?.name || '—' : activeClass?.name || '—'}`,
-              `Class: ${activeClass?.name || '—'}`
-            )}
+            {`শ্রেণি: ${activeClass?.nameBn || activeClass?.name || '—'}`}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('প্রবেশপত্র প্রস্তুতি স্থিতি', 'Admit Card Preparation')}
+            {'প্রবেশপত্র প্রস্তুতি স্থিতি'}
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
-            {formatNumber(readyCount, locale)} / {formatNumber(admitCardItems.length, locale)}
+            {formatNumber(readyCount, 'bn')} / {formatNumber(admitCardItems.length, 'bn')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `রুটিনযুক্ত ${formatNumber(readyCount, 'bn')} · বাকি ${formatNumber(Math.max(0, admitCardItems.length - readyCount), 'bn')}`,
-              `Prepared ${readyCount} · Missing routine ${Math.max(0, admitCardItems.length - readyCount)}`
-            )}
+            {`রুটিনযুক্ত ${formatNumber(readyCount, 'bn')} · বাকি ${formatNumber(Math.max(0, admitCardItems.length - readyCount), 'bn')}`}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('আসন নির্ধারিত শিক্ষার্থী', 'Seats Assigned')}
+            {'আসন নির্ধারিত শিক্ষার্থী'}
           </p>
           <p className={cn('mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums', assignedSeatsCount === admitCardItems.length && admitCardItems.length > 0 ? 'text-success' : 'text-foreground')}>
-            {formatNumber(assignedSeatsCount, locale)}
+            {formatNumber(assignedSeatsCount, 'bn')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `সিট নির্ধারিত ${formatNumber(assignedSeatsCount, 'bn')} · অনির্ধারিত ${formatNumber(Math.max(0, admitCardItems.length - assignedSeatsCount), 'bn')}`,
-              `Assigned ${assignedSeatsCount} · Unassigned ${Math.max(0, admitCardItems.length - assignedSeatsCount)}`
-            )}
+            {`সিট নির্ধারিত ${formatNumber(assignedSeatsCount, 'bn')} · অনির্ধারিত ${formatNumber(Math.max(0, admitCardItems.length - assignedSeatsCount), 'bn')}`}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('নির্বাচিত প্রিন্ট তালিকা', 'Selected for Print')}
+            {'নির্বাচিত প্রিন্ট তালিকা'}
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
-            {formatNumber(selectedItems.length || admitCardItems.length, locale)}
+            {formatNumber(selectedItems.length || admitCardItems.length, 'bn')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {pick(
-              selectedItems.length > 0 ? `${formatNumber(selectedItems.length, 'bn')}টি কার্ড নির্বাচিত` : 'সকল কার্ড প্রিন্টের জন্য প্রস্তুত',
-              selectedItems.length > 0 ? `${selectedItems.length} card(s) selected` : 'All cards ready for print'
-            )}
+            {selectedItems.length > 0 ? `${formatNumber(selectedItems.length, 'bn')}টি কার্ড নির্বাচিত` : 'সকল কার্ড প্রিন্টের জন্য প্রস্তুত'}
           </p>
         </Card>
       </div>
@@ -244,7 +223,7 @@ export function ExamAdmitCardsView() {
       {/* Filters */}
       <Card className="p-4 flex flex-wrap items-end gap-3">
         <div className="flex-1 min-w-[230px]">
-          <label className="block text-xs text-muted-foreground mb-1">{pick('পরীক্ষা নির্বাচন করুন', 'Examination')}</label>
+          <label className="block text-sm text-muted-foreground mb-1">{'পরীক্ষা নির্বাচন করুন'}</label>
           <Select
             value={resolvedExamId}
             onChange={(e) => {
@@ -263,12 +242,12 @@ export function ExamAdmitCardsView() {
         </div>
 
         <div className="w-40">
-          <label className="block text-xs text-muted-foreground mb-1">{pick('শাখা', 'Section')}</label>
+          <label className="block text-sm text-muted-foreground mb-1">{'শাখা'}</label>
           <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
-            <option value="ALL">{pick('সকল শাখা', 'All Sections')}</option>
+            <option value="ALL">{'সকল শাখা'}</option>
             {classSections.map((s) => (
               <option key={s.id} value={s.id}>
-                {pick('শাখা', 'Section')} {s.name}
+                {'শাখা'} {s.name}
               </option>
             ))}
           </Select>
@@ -276,12 +255,12 @@ export function ExamAdmitCardsView() {
 
         {isNineTen && (
           <div className="w-44">
-            <label className="block text-xs text-muted-foreground mb-1">{pick('বিভাগ', 'Group')}</label>
+            <label className="block text-sm text-muted-foreground mb-1">{'বিভাগ'}</label>
             <Select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
-              <option value="ALL">{pick('সকল বিভাগ', 'All Groups')}</option>
+              <option value="ALL">{'সকল বিভাগ'}</option>
               {db.academicGroups.map((g) => (
                 <option key={g.id} value={g.id}>
-                  {locale === 'bn' ? g.nameBn : g.name}
+                  {g.nameBn}
                 </option>
               ))}
             </Select>
@@ -293,7 +272,7 @@ export function ExamAdmitCardsView() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={pick('নাম, রোল বা আইডি...', 'Name, roll or ID...')}
+            placeholder={'নাম, রোল বা আইডি...'}
             className="pl-9"
           />
         </div>
@@ -302,8 +281,8 @@ export function ExamAdmitCardsView() {
       {/* Examinees List */}
       {admitCardItems.length === 0 ? (
         <EmptyState
-          title={pick('কোনো পরীক্ষার্থী পাওয়া যায়নি', 'No examinees found')}
-          description={pick('অনুগ্রহ করে অন্য পরীক্ষা বা শাখা নির্বাচন করুন।', 'Try selecting a different exam or section.')}
+          title={'কোনো পরীক্ষার্থী পাওয়া যায়নি'}
+          description={'অনুগ্রহ করে অন্য পরীক্ষা বা শাখা নির্বাচন করুন।'}
         />
       ) : (
         <Card className="overflow-hidden">
@@ -316,15 +295,15 @@ export function ExamAdmitCardsView() {
                       type="checkbox"
                       checked={allFilteredChecked}
                       onChange={(e) => toggleAll(e.target.checked)}
-                      aria-label={pick('সব নির্বাচন করুন', 'Select all')}
+                      aria-label={'সব নির্বাচন করুন'}
                     />
                   </th>
-                  <th className="px-3 py-3 text-center w-16">{pick('রোল', 'Roll')}</th>
-                  <th className="px-4 py-3 text-left">{pick('শিক্ষার্থী ও আইডি', 'Student & ID')}</th>
-                  <th className="px-3 py-3 text-left">{pick('শাখা ও বিভাগ', 'Section & Group')}</th>
-                  <th className="px-3 py-3 text-left">{pick('নির্ধারিত কক্ষ ও আসন', 'Assigned Hall & Seat')}</th>
-                  <th className="px-3 py-3 text-center">{pick('রুটিন বিষয়', 'Subjects')}</th>
-                  <th className="px-4 py-3 text-right">{pick('প্রবেশপত্র', 'Admit Card')}</th>
+                  <th className="px-3 py-3 text-center w-16">{'রোল'}</th>
+                  <th className="px-4 py-3 text-left">{'শিক্ষার্থী ও আইডি'}</th>
+                  <th className="px-3 py-3 text-left">{'শাখা ও বিভাগ'}</th>
+                  <th className="px-3 py-3 text-left">{'নির্ধারিত কক্ষ ও আসন'}</th>
+                  <th className="px-3 py-3 text-center">{'রুটিন বিষয়'}</th>
+                  <th className="px-4 py-3 text-right">{'প্রবেশপত্র'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border tabular-nums">
@@ -341,10 +320,10 @@ export function ExamAdmitCardsView() {
                           }
                         />
                       </td>
-                      <td className="px-3 py-3 text-center font-medium">{formatNumber(st.roll, locale)}</td>
+                      <td className="px-3 py-3 text-center font-medium">{formatNumber(st.roll, 'bn')}</td>
                       <td className="px-4 py-3">
                         <div className="font-semibold text-foreground">
-                          {locale === 'bn' ? st.nameBn || st.nameEn : st.nameEn}
+                          {st.nameBn || st.nameEn}
                         </div>
                         <p className="text-sm font-mono text-muted-foreground">{st.studentId}</p>
                       </td>
@@ -358,16 +337,16 @@ export function ExamAdmitCardsView() {
                       </td>
                       <td className="px-3 py-3 text-sm">
                         <span className="font-medium text-foreground">
-                          {st.hallRoom || pick('নির্ধারিত হয়নি', 'Not Assigned')}
+                          {st.hallRoom || 'নির্ধারিত হয়নি'}
                         </span>
                         {st.seatNo && (
                           <span className="block text-muted-foreground">
-                            {pick('আসন নং:', 'Seat #')} {formatNumber(st.seatNo, locale)}
+                            {'আসন নং:'} {formatNumber(st.seatNo, 'bn')}
                           </span>
                         )}
                       </td>
                       <td className="px-3 py-3 text-center text-sm font-medium">
-                        {formatNumber(item.props.schedule.length, locale)}
+                        {formatNumber(item.props.schedule.length, 'bn')}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <Button
@@ -376,7 +355,7 @@ export function ExamAdmitCardsView() {
                           onClick={() => setPreviewCard(item.props)}
                         >
                           <Printer className="w-3.5 h-3.5" />
-                          {pick('দেখুন ও প্রিন্ট', 'Preview & Print')}
+                          {'দেখুন ও প্রিন্ট'}
                         </Button>
                       </td>
                     </tr>
@@ -392,7 +371,7 @@ export function ExamAdmitCardsView() {
       <Modal
         open={Boolean(previewCard)}
         onClose={() => setPreviewCard(null)}
-        title={pick('প্রাতিষ্ঠানিক প্রবেশপত্র প্রিভিউ', 'Official Admit Card Preview')}
+        title={'প্রাতিষ্ঠানিক প্রবেশপত্র প্রিভিউ'}
         size="xl"
       >
         {previewCard && (
@@ -400,7 +379,7 @@ export function ExamAdmitCardsView() {
             <div className="flex justify-end no-print">
               <Button onClick={() => triggerPrint()}>
                 <Printer className="w-4 h-4" />
-                {pick('প্রবেশপত্র প্রিন্ট করুন', 'Print Admit Card')}
+                {'প্রবেশপত্র প্রিন্ট করুন'}
               </Button>
             </div>
             <PrintableExamAdmitCard {...previewCard} />
@@ -412,23 +391,17 @@ export function ExamAdmitCardsView() {
       <Modal
         open={bulkOpen}
         onClose={() => setBulkOpen(false)}
-        title={pick(
-          `বাল্ক প্রবেশপত্র প্রিন্ট (${formatNumber(bulkTargets.length, locale)} জন)`,
-          `Bulk Print Admit Cards (${bulkTargets.length} students)`
-        )}
+        title={`বাল্ক প্রবেশপত্র প্রিন্ট (${formatNumber(bulkTargets.length, 'bn')} জন)`}
         size="xl"
       >
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 no-print text-sm text-muted-foreground">
             <span>
-              {pick(
-                'প্রতিটি শিক্ষার্থীর প্রবেশপত্র পৃথক A4 পৃষ্ঠায় স্বয়ংক্রিয়ভাবে প্রিন্ট হবে।',
-                'Each student admit card automatically prints on its own crisp A4 page.'
-              )}
+              {'প্রতিটি শিক্ষার্থীর প্রবেশপত্র পৃথক A4 পৃষ্ঠায় স্বয়ংক্রিয়ভাবে প্রিন্ট হবে।'}
             </span>
             <Button onClick={() => triggerPrint()} className="whitespace-nowrap shrink-0">
               <Printer className="w-4 h-4" />
-              {pick('সবগুলো প্রিন্ট করুন', 'Print All Pages')}
+              {'সবগুলো প্রিন্ট করুন'}
             </Button>
           </div>
           <PrintableBulkExamAdmitCards items={bulkTargets.map((t) => t.props)} />

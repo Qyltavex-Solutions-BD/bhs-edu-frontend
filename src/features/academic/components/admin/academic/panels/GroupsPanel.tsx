@@ -14,7 +14,6 @@ import { Button, Card, FormField, Input, Modal, Switch, Textarea } from '@/src/c
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import type { AcademicGroup } from '@/src/types/entities';
 import { errorMessage } from './shared';
-import { useAcademicI18n } from '../academic.i18n';
 import { groupSchema, type GroupFormValues } from '../academic.schema';
 
 const defaultValues: GroupFormValues = {
@@ -25,7 +24,6 @@ const defaultValues: GroupFormValues = {
 };
 
 export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
-  const { isBn, t, dict } = useAcademicI18n();
 
   const { data: realGroups } = useGetAcademicGroupsQuery();
   const groupList = realGroups && realGroups.length > 0 ? realGroups : (groups ?? []);
@@ -84,7 +82,7 @@ export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
           description: values.description?.trim() || undefined,
           isActive: values.isActive,
         }).unwrap();
-        toast.success(t(dict.groups.updateSuccess));
+        toast.success('বিভাগ হালনাগাদ হয়েছে।');
       } else {
         await createGroup({
           name: values.name.trim(),
@@ -92,11 +90,11 @@ export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
           description: values.description?.trim() || undefined,
           isActive: values.isActive,
         }).unwrap();
-        toast.success(t(dict.groups.createSuccess));
+        toast.success('নতুন বিভাগ যুক্ত হয়েছে।');
       }
       closeModal();
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.groups.saveFailed)));
+      toast.error(errorMessage(err, 'বিভাগ সংরক্ষণ হয়নি।'));
     }
   };
 
@@ -105,28 +103,26 @@ export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-foreground">
-            {isBn ? 'বিভাগ ব্যবস্থাপনা' : 'Academic Groups'}
+            {'বিভাগ ব্যবস্থাপনা'}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {isBn
-              ? '৯ম ও ১০ম শ্রেণির বিভাগসমূহ (বিজ্ঞান, মানবিক, ব্যবসায় শিক্ষা) পরিচালনা করুন।'
-              : 'Manage streams for classes 9 and 10 (Science, Humanities, Business Studies).'}
+            {'৯ম ও ১০ম শ্রেণির বিভাগসমূহ (বিজ্ঞান, মানবিক, ব্যবসায় শিক্ষা) পরিচালনা করুন।'}
           </p>
         </div>
         <Button type="button" variant="primary" onClick={startCreate}>
           <Plus className="w-4 h-4" />
-          {t(dict.groups.newTitle)}
+          {'নতুন বিভাগ (৯ম–১০ম)'}
         </Button>
       </div>
 
       <Card className="divide-y divide-border">
         {groupList.length === 0 ? (
           <div className="p-8 text-center text-base text-muted-foreground">
-            {t(dict.groups.noGroups)}
+            {'কোনো বিভাগ পাওয়া যায়নি।'}
           </div>
         ) : (
           groupList.map((group) => {
-            const displayName = isBn ? group.nameBn || group.name : group.name;
+            const displayName = group.nameBn || group.name;
             const secondaryName =
               group.nameBn && group.nameBn !== displayName
                 ? ` (${group.nameBn})`
@@ -156,7 +152,7 @@ export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
                 <div className="flex items-center gap-2">
                   <StatusBadge
                     value={group.isActive ? 'ACTIVE' : 'INACTIVE'}
-                    customLabel={group.isActive ? t(dict.common.active) : t(dict.common.inactive)}
+                    customLabel={group.isActive ? 'সক্রিয়' : 'বন্ধ'}
                     customTone={group.isActive ? 'success' : 'neutral'}
                   />
                   <Button
@@ -164,7 +160,7 @@ export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
                     variant="outline"
                     size="sm"
                     onClick={() => startEdit(group)}
-                    title={t(dict.common.edit)}
+                    title={'সম্পাদনা'}
                   >
                     <Pencil className="w-4 h-4" />
                   </Button>
@@ -178,33 +174,31 @@ export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
       <Modal
         open={modalOpen}
         onClose={closeModal}
-        title={editingId ? t(dict.groups.editTitle) : t(dict.groups.newTitle)}
+        title={editingId ? 'বিভাগ সম্পাদনা' : 'নতুন বিভাগ (৯ম–১০ম)'}
         description={
-          isBn
-            ? 'বিভাগের ইংরেজি ও বাংলা নাম এবং সংক্ষিপ্ত বিবরণ লিখুন।'
-            : 'Enter the English and Bengali group names and description.'
+          'বিভাগের ইংরেজি ও বাংলা নাম এবং সংক্ষিপ্ত বিবরণ লিখুন।'
         }
         size="md"
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <FormField label={t(dict.groups.nameEnLabel)} required error={errors.name?.message}>
+          <FormField label={'ইংরেজি নাম'} required error={errors.name?.message}>
             <Input
               {...register('name')}
-              placeholder={t(dict.groups.nameEnPlaceholder)}
+              placeholder="যেমন: Science"
             />
           </FormField>
 
-          <FormField label={t(dict.groups.nameBnLabel)} error={errors.nameBn?.message}>
+          <FormField label={'বাংলা নাম'} error={errors.nameBn?.message}>
             <Input
               {...register('nameBn')}
-              placeholder={t(dict.groups.nameBnPlaceholder)}
+              placeholder={'বিজ্ঞান'}
             />
           </FormField>
 
-          <FormField label={t(dict.groups.descLabel)} error={errors.description?.message}>
+          <FormField label={'বিবরণ'} error={errors.description?.message}>
             <Textarea
               {...register('description')}
-              placeholder={t(dict.groups.descPlaceholder)}
+              placeholder={'বিভাগের সংক্ষিপ্ত বিবরণ...'}
             />
           </FormField>
 
@@ -212,20 +206,20 @@ export function GroupsPanel({ groups }: { groups?: AcademicGroup[] }) {
             <Switch
               checked={isActive}
               onChange={(checked) => setValue('isActive', checked)}
-              label={t(dict.common.active)}
+              label={'সক্রিয়'}
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={closeModal}>
-              {t(dict.common.cancel)}
+              {'বাতিল'}
             </Button>
             <Button type="submit" variant="primary" disabled={saving}>
               {saving
-                ? t(dict.common.saving)
+                ? 'সংরক্ষণ হচ্ছে...'
                 : editingId
-                  ? t(dict.common.update)
-                  : t(dict.common.save)}
+                  ? 'হালনাগাদ করুন'
+                  : 'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>

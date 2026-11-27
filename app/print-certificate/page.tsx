@@ -10,7 +10,6 @@ import {
 } from '@/src/components/print/PrintDocuments';
 import { PrintableAdmissionFormDocument } from '@/src/features/admission';
 import { Button } from '@/src/components/ui/primitives';
-import { useI18n } from '@/src/lib/i18n';
 import {
   CERT_PRINT_STORAGE_PREFIX,
   decodeCertificatePrintPayload,
@@ -20,7 +19,6 @@ import { exportNodeToA4Pdf } from '@/src/lib/utils/pdfExport';
 
 function PrintCertificateContent() {
   const searchParams = useSearchParams();
-  const { pick } = useI18n();
   const key = searchParams.get('key');
   const [payload, setPayload] = useState<CertificatePrintPayload | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -112,13 +110,10 @@ function PrintCertificateContent() {
       <div className="min-h-screen bg-white text-[#111111] flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-2 border border-neutral-300 rounded-md p-6">
           <p className="text-base font-semibold">
-            {pick('প্রিন্টের জন্য ডকুমেন্ট পাওয়া যায়নি।', 'Document data for printing was not found.')}
+            {'প্রিন্টের জন্য ডকুমেন্ট পাওয়া যায়নি।'}
           </p>
           <p className="text-sm text-neutral-600">
-            {pick(
-              'অনুগ্রহ করে মূল পাতা থেকে আবার "প্রিন্ট করুন" বাটনে ক্লিক করুন।',
-              'Please click "Print" again from the main page.'
-            )}
+            {'অনুগ্রহ করে মূল পাতা থেকে আবার "প্রিন্ট করুন" বাটনে ক্লিক করুন।'}
           </p>
         </div>
       </div>
@@ -158,11 +153,11 @@ function PrintCertificateContent() {
           ) : (
             <Download className="w-4 h-4" />
           )}
-          <span>{pick('PDF ডাউনলোড করুন', 'Download PDF')}</span>
+          <span>{'PDF ডাউনলোড করুন'}</span>
         </Button>
         <Button type="button" variant="primary" size="sm" onClick={() => window.print()}>
           <Printer className="w-4 h-4" />
-          <span>{pick('প্রিন্ট করুন', 'Print')}</span>
+          <span>{'প্রিন্ট করুন'}</span>
         </Button>
       </div>
 

@@ -9,7 +9,6 @@ import {
   useGetAcademicEventsQuery,
   useUpdateAcademicEventMutation,
 } from '@/src/services/academic';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort } from '@/src/lib/formatters';
 import { Button, Card, FormField, Input, Modal, Select, Textarea } from '@/src/components/ui/primitives';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
@@ -37,7 +36,6 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-
 const isUuid = (val?: string) => Boolean(val && UUID_REGEX.test(val));
 
 export function AcademicCalendar({ db, year }: { db?: MockDatabase; year: AcademicYear }) {
-  const { locale, pick } = useI18n();
   const { data: realEvents } = useGetAcademicEventsQuery(
     isUuid(year?.id) ? { academicYearId: year.id } : undefined,
     { skip: !isUuid(year?.id) }
@@ -100,13 +98,13 @@ export function AcademicCalendar({ db, year }: { db?: MockDatabase; year: Academ
       }
       toast.success(
         form.id
-          ? pick('ইভেন্ট আপডেট হয়েছে।', 'Event updated.')
-          : pick('ইভেন্ট যোগ হয়েছে।', 'Event added.')
+          ? 'ইভেন্ট আপডেট হয়েছে।'
+          : 'ইভেন্ট যোগ হয়েছে।'
       );
       setForm(EMPTY);
       setOpen(false);
     } catch (err) {
-      toast.error(errorMessage(err, pick('ইভেন্ট সংরক্ষণ হয়নি।', 'Could not save the event.')));
+      toast.error(errorMessage(err, 'ইভেন্ট সংরক্ষণ হয়নি।'));
     }
   };
 
@@ -114,9 +112,9 @@ export function AcademicCalendar({ db, year }: { db?: MockDatabase; year: Academ
     try {
       await deleteEvent(id).unwrap();
       if (form.id === id) setForm(EMPTY);
-      toast.success(pick('ইভেন্ট মুছে ফেলা হয়েছে।', 'Event removed.'));
+      toast.success('ইভেন্ট মুছে ফেলা হয়েছে।');
     } catch (err) {
-      toast.error(errorMessage(err, pick('ইভেন্ট মোছা যায়নি।', 'Could not remove the event.')));
+      toast.error(errorMessage(err, 'ইভেন্ট মোছা যায়নি।'));
     }
   };
 
@@ -131,45 +129,45 @@ export function AcademicCalendar({ db, year }: { db?: MockDatabase; year: Academ
             setOpen(true);
           }}
         >
-          {pick('ছুটি বা ইভেন্ট', 'Add date')}
+          {'ছুটি বা ইভেন্ট'}
         </Button>
       </div>
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={form.id ? pick('ইভেন্ট সম্পাদনা', 'Edit event') : pick('ছুটি বা ইভেন্ট', 'Holiday or event')}
-        description={pick('তারিখ এই শিক্ষাবর্ষের ক্যালেন্ডারে যায়।', 'The date is stored on this academic year.')}
+        title={form.id ? 'ইভেন্ট সম্পাদনা' : 'ছুটি বা ইভেন্ট'}
+        description={'তারিখ এই শিক্ষাবর্ষের ক্যালেন্ডারে যায়।'}
       >
         <form onSubmit={onSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <FormField label={pick('ধরন', 'Type')}>
+          <FormField label={'ধরন'}>
             <Select
               value={form.eventType}
               onChange={(e) => setForm({ ...form, eventType: e.target.value as AcademicEventType })}
             >
-              <option value={AcademicEventType.HOLIDAY}>{pick('ছুটি', 'Holiday')}</option>
-              <option value={AcademicEventType.EVENT}>{pick('অনুষ্ঠান', 'Event')}</option>
-              <option value={AcademicEventType.ADMISSION}>{pick('ভর্তি', 'Admission')}</option>
-              <option value={AcademicEventType.OTHER}>{pick('অন্যান্য', 'Other')}</option>
+              <option value={AcademicEventType.HOLIDAY}>{'ছুটি'}</option>
+              <option value={AcademicEventType.EVENT}>{'অনুষ্ঠান'}</option>
+              <option value={AcademicEventType.ADMISSION}>{'ভর্তি'}</option>
+              <option value={AcademicEventType.OTHER}>{'অন্যান্য'}</option>
             </Select>
           </FormField>
-          <FormField label={pick('শিরোনাম', 'Title')}>
-            <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
+          <FormField label={'শিরোনাম'}>
+            <Input placeholder="শিরোনাম লিখুন" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
           </FormField>
-          <FormField label={pick('শুরু', 'Start')}>
+          <FormField label={'শুরু'}>
             <Input type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} required />
           </FormField>
-          <FormField label={pick('শেষ', 'End')}>
+          <FormField label={'শেষ'}>
             <Input type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} required />
           </FormField>
           <div className="sm:col-span-2">
-            <FormField label={pick('বিবরণ', 'Description')}>
-              <Textarea rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <FormField label={'বিবরণ'}>
+              <Textarea placeholder="বিবরণ লিখুন..." rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </FormField>
           </div>
           <div className="sm:col-span-2 flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{pick('বাতিল', 'Cancel')}</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>{'বাতিল'}</Button>
             <Button type="submit" variant="primary" disabled={saving}>
-              {form.id ? pick('আপডেট', 'Update') : pick('যোগ করুন', 'Add')}
+              {form.id ? 'আপডেট' : 'যোগ করুন'}
             </Button>
           </div>
         </form>
@@ -177,46 +175,46 @@ export function AcademicCalendar({ db, year }: { db?: MockDatabase; year: Academ
 
       <Card className="overflow-x-auto">
         <div className="p-5 pb-3 border-b border-border">
-          <h3 className="text-base font-bold text-foreground">{pick('এই শিক্ষাবর্ষের ক্যালেন্ডার', 'Calendar for this year')}</h3>
+          <h3 className="text-base font-bold text-foreground">{'এই শিক্ষাবর্ষের ক্যালেন্ডার'}</h3>
         </div>
-        <table className="w-full text-sm">
+        <table className="w-full text-base">
           <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border">
             <tr>
-              <th className="p-3 text-left">{pick('তারিখ', 'Dates')}</th>
-              <th className="p-3 text-left">{pick('ধরন', 'Type')}</th>
-              <th className="p-3 text-left">{pick('শিরোনাম', 'Title')}</th>
-              <th className="p-3 text-right">{pick('কাজ', 'Actions')}</th>
+              <th className="p-3 text-left">{'তারিখ'}</th>
+              <th className="p-3 text-left">{'ধরন'}</th>
+              <th className="p-3 text-left">{'শিরোনাম'}</th>
+              <th className="p-3 text-right">{'কাজ'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {events.length === 0 && (
               <tr>
                 <td colSpan={4} className="p-6 text-muted-foreground">
-                  {pick('এই শিক্ষাবর্ষে এখনো কোনো ইভেন্ট নেই।', 'No events for this academic year yet.')}
+                  {'এই শিক্ষাবর্ষে এখনো কোনো ইভেন্ট নেই।'}
                 </td>
               </tr>
             )}
             {events.map((event) => (
               <tr key={event.id} className="hover:bg-surface-muted/30">
                 <td className="p-3 whitespace-nowrap tabular-nums text-muted-foreground">
-                  {formatDateShort(event.startDate, locale)}
-                  {event.endDate !== event.startDate ? ` – ${formatDateShort(event.endDate, locale)}` : ''}
+                  {formatDateShort(event.startDate, 'bn')}
+                  {event.endDate !== event.startDate ? ` – ${formatDateShort(event.endDate, 'bn')}` : ''}
                 </td>
                 <td className="p-3">
                   <StatusBadge enumName="AcademicEventType" value={event.eventType} />
                 </td>
                 <td className="p-3">
                   <p className="font-semibold text-foreground">{event.title}</p>
-                  {event.description && <p className="text-xs text-muted-foreground mt-0.5">{event.description}</p>}
+                  {event.description && <p className="text-sm text-muted-foreground mt-0.5">{event.description}</p>}
                 </td>
                 <td className="p-3 text-right whitespace-nowrap">
                   <Button type="button" variant="ghost" size="sm" onClick={() => fill(event)}>
                     <Pencil className="w-4 h-4" />
-                    {pick('সম্পাদনা', 'Edit')}
+                    {'সম্পাদনা'}
                   </Button>
                   <Button type="button" variant="ghost" size="sm" disabled={removing} onClick={() => onRemove(event.id)}>
                     <Trash2 className="w-4 h-4" />
-                    {pick('মুছুন', 'Remove')}
+                    {'মুছুন'}
                   </Button>
                 </td>
               </tr>

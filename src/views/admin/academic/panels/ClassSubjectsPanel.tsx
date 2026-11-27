@@ -38,7 +38,7 @@ import { formatNumber } from '@/src/lib/formatters';
 import type { AcademicGroup, AcademicYear, ClassSubject, SchoolClass, Subject } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
 import { errorMessage } from './shared';
-import { CATEGORY_LABELS, useAcademicI18n } from '../academic.i18n';
+import { CATEGORY_LABELS } from '../academic.labels';
 import {
   assignClassSubjectSchema,
   type AssignClassSubjectFormValues,
@@ -54,7 +54,6 @@ export function ClassSubjectsPanel({
   db?: MockDatabase;
   year: AcademicYear;
 }) {
-  const { isBn, locale, t, dict } = useAcademicI18n();
 
   // Queries
   const { data: realClasses, isLoading: loadingClasses } = useGetSchoolClassesQuery();
@@ -238,17 +237,17 @@ export function ClassSubjectsPanel({
     return {
       nameBn,
       nameEn,
-      displayTitle: isBn ? nameBn || nameEn : nameEn,
-      subtitle: isBn && nameBn && nameEn !== nameBn ? nameEn : undefined,
+      displayTitle: nameBn || nameEn,
+      subtitle: true && nameBn && nameEn !== nameBn ? nameEn : undefined,
       code,
       category,
     };
   };
 
   const groupLabel = (groupId?: string | null) => {
-    if (!groupId) return t(dict.classSubjects.commonGroup);
+    if (!groupId) return 'কমন (সব বিভাগ)';
     const item = groupList.find((entry) => entry.id === groupId);
-    return isBn ? item?.nameBn || item?.name || groupId : item?.name || groupId;
+    return item?.nameBn || item?.name || groupId;
   };
 
   // Set of already assigned subject IDs for current class & selected group
@@ -358,11 +357,11 @@ export function ClassSubjectsPanel({
         isOptional: values.isOptional,
         displayOrder: classSubjectsAll.length + 1,
       }).unwrap();
-      toast.success(t(dict.classSubjects.assignSuccess));
+      toast.success('বিষয় সফলভাবে পাঠ্যক্রমে যুক্ত হয়েছে।');
       setValue('isOptional', false);
       setAddModalOpen(false);
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.classSubjects.assignFailed)));
+      toast.error(errorMessage(err, 'বিষয় যুক্ত করা যায়নি।'));
     }
   };
 
@@ -377,9 +376,9 @@ export function ClassSubjectsPanel({
           }).unwrap()
         )
       );
-      toast.success(t(dict.classSubjects.updateSuccess));
+      toast.success('পাঠ্যক্রম সফলভাবে হালনাগাদ হয়েছে।');
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.classSubjects.updateFailed)));
+      toast.error(errorMessage(err, 'হালনাগাদ করা যায়নি।'));
     }
   };
 
@@ -394,9 +393,9 @@ export function ClassSubjectsPanel({
           }).unwrap()
         )
       );
-      toast.success(t(dict.classSubjects.updateSuccess));
+      toast.success('পাঠ্যক্রম সফলভাবে হালনাগাদ হয়েছে।');
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.classSubjects.updateFailed)));
+      toast.error(errorMessage(err, 'হালনাগাদ করা যায়নি।'));
     }
   };
 
@@ -408,10 +407,10 @@ export function ClassSubjectsPanel({
     if (!removeTarget || removeTarget.length === 0) return;
     try {
       await Promise.all(removeTarget.map((entry) => deleteSubject(entry.id).unwrap()));
-      toast.success(t(dict.classSubjects.removeSuccess));
+      toast.success('বিষয় পাঠ্যক্রম থেকে সরানো হয়েছে।');
       setRemoveTarget(null);
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.classSubjects.removeFailed)));
+      toast.error(errorMessage(err, 'বিষয় সরানো যায়নি।'));
     }
   };
 
@@ -423,13 +422,11 @@ export function ClassSubjectsPanel({
         toAcademicYearId: selectedYearId || year.id,
       }).unwrap();
       toast.success(
-        isBn
-          ? `${formatNumber(result.copiedCount, 'bn')}টি বিষয় কপি হয়েছে, ${formatNumber(result.skippedCount, 'bn')}টি আগে থেকে ছিল।`
-          : `Copied ${result.copiedCount} subjects. ${result.skippedCount} were already present.`
+        `${formatNumber(result.copiedCount, 'bn')}টি বিষয় কপি হয়েছে, ${formatNumber(result.skippedCount, 'bn')}টি আগে থেকে ছিল।`
       );
       setRolloverModalOpen(false);
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.classSubjects.rolloverFailed)));
+      toast.error(errorMessage(err, 'পাঠ্যক্রম কপি করা যায়নি।'));
     }
   };
 
@@ -439,8 +436,8 @@ export function ClassSubjectsPanel({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <p className="text-base text-muted-foreground">
           {usesGroup
-            ? t(dict.classSubjects.streamGuidance910)
-            : t(dict.classSubjects.streamGuidanceGeneral)}
+            ? '৯ম–১০ম শ্রেণিতে কমন বিষয় সবার, বিভাগের বিষয় শুধু নির্দিষ্ট বিভাগের। একাধিক বিষয় ঐচ্ছিক রাখা যায়; শিক্ষার্থী পরে একটি পছন্দ করবে।'
+            : '৬ষ্ঠ–৮ম শ্রেণিতে বিভাগ নেই। সব বিষয় সব শিক্ষার্থীর জন্য প্রযোজ্য।'}
         </p>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -451,7 +448,7 @@ export function ClassSubjectsPanel({
             disabled={yearList.filter((item) => item.id !== selectedYearId).length === 0}
           >
             <Copy className="w-4 h-4" />
-            <span>{t(dict.classSubjects.copyButton)}</span>
+            <span>{'সক্রিয় বিষয় কপি করুন'}</span>
           </Button>
           <Button
             type="button"
@@ -460,7 +457,7 @@ export function ClassSubjectsPanel({
             disabled={!selectedClassId}
           >
             <Plus className="w-4 h-4" />
-            <span>{t(dict.classSubjects.addButton)}</span>
+            <span>{'পাঠ্যক্রমে যুক্ত করুন'}</span>
           </Button>
         </div>
       </div>
@@ -470,11 +467,11 @@ export function ClassSubjectsPanel({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-muted-foreground mr-1">
-              {t(dict.classSubjects.classLabel)}:
+              {'শ্রেণি'}:
             </span>
             {classList.map((cls) => {
               const isSelected = cls.id === selectedClassId;
-              const clsName = isBn ? cls.nameBn || cls.name : cls.name;
+              const clsName = cls.nameBn || cls.name;
               return (
                 <button
                   key={cls.id}
@@ -504,10 +501,10 @@ export function ClassSubjectsPanel({
             disabled={fetchingClassSubjects}
             onClick={() => refetchClassSubjects()}
             className="gap-1.5"
-            title={isBn ? 'রিফ্রেশ' : 'Refresh'}
+            title={'রিফ্রেশ'}
           >
             <RefreshCw className={`w-4 h-4 ${fetchingClassSubjects ? 'animate-spin' : ''}`} />
-            <span>{isBn ? 'রিফ্রেশ' : 'Refresh'}</span>
+            <span>{'রিফ্রেশ'}</span>
           </Button>
         </div>
 
@@ -517,7 +514,7 @@ export function ClassSubjectsPanel({
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t(dict.classSubjects.searchPlaceholder)}
+              placeholder={'বিষয় বা কোড দিয়ে খুঁজুন...'}
               className="pl-10 pr-9"
             />
             {searchQuery && (
@@ -538,13 +535,13 @@ export function ClassSubjectsPanel({
                 onChange={(e) => setGroupFilter(e.target.value)}
                 className="w-full lg:w-44"
               >
-                <option value="all">{t(dict.classSubjects.allGroups)}</option>
-                <option value="common">{t(dict.classSubjects.commonGroup)}</option>
+                <option value="all">{'সব বিষয়'}</option>
+                <option value="common">{'কমন (সব বিভাগ)'}</option>
                 {groupList
                   .filter((group) => group.isActive)
                   .map((group) => (
                     <option key={group.id} value={group.id}>
-                      {isBn ? group.nameBn || group.name : group.name}
+                      {group.nameBn || group.name}
                     </option>
                   ))}
               </Select>
@@ -555,9 +552,9 @@ export function ClassSubjectsPanel({
               onChange={(e) => setTypeFilter(e.target.value as any)}
               className="w-full lg:w-36"
             >
-              <option value="all">{isBn ? 'সকল ধরন' : 'All Types'}</option>
-              <option value="compulsory">{t(dict.classSubjects.compulsoryBadge)}</option>
-              <option value="optional">{t(dict.classSubjects.optionalBadge)}</option>
+              <option value="all">{'সকল ধরন'}</option>
+              <option value="compulsory">{'আবশ্যিক'}</option>
+              <option value="optional">{'ঐচ্ছিক'}</option>
             </Select>
 
             <Select
@@ -565,14 +562,14 @@ export function ClassSubjectsPanel({
               onChange={(e) => setStatusFilter(e.target.value as any)}
               className="w-full lg:w-36"
             >
-              <option value="all">{t(dict.classSubjects.allStatuses)}</option>
-              <option value="active">{t(dict.classSubjects.activeOnly)}</option>
-              <option value="inactive">{t(dict.classSubjects.inactiveOnly)}</option>
+              <option value="all">{'সকল অবস্থা'}</option>
+              <option value="active">{'শুধু সক্রিয়'}</option>
+              <option value="inactive">{'শুধু নিষ্ক্রিয়'}</option>
             </Select>
 
             {hasActiveFilters && (
               <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
-                {t(dict.classSubjects.resetFilters)}
+                {'ফিল্টার রিসেট করুন'}
               </Button>
             )}
           </div>
@@ -584,13 +581,13 @@ export function ClassSubjectsPanel({
         <table className="w-full text-base">
           <thead className="bg-surface-muted/80 border-b border-border text-sm text-muted-foreground">
             <tr>
-              <th className="p-3.5 text-center w-14">{t(dict.classSubjects.orderColumn)}</th>
-              <th className="p-3.5 text-left w-24">{t(dict.classSubjects.codeColumn)}</th>
-              <th className="p-3.5 text-left">{t(dict.classSubjects.subjectColumn)}</th>
-              <th className="p-3.5 text-left">{t(dict.classSubjects.groupColumn)}</th>
-              <th className="p-3.5 text-left">{t(dict.classSubjects.typeColumn)}</th>
-              <th className="p-3.5 text-left">{t(dict.classSubjects.statusColumn)}</th>
-              <th className="p-3.5 text-right">{t(dict.classSubjects.actionColumn)}</th>
+              <th className="p-3.5 text-center w-14">{'ক্রম'}</th>
+              <th className="p-3.5 text-left w-24">{'কোড'}</th>
+              <th className="p-3.5 text-left">{'বিষয়'}</th>
+              <th className="p-3.5 text-left">{'বিভাগ'}</th>
+              <th className="p-3.5 text-left">{'ধরন'}</th>
+              <th className="p-3.5 text-left">{'অবস্থা'}</th>
+              <th className="p-3.5 text-right">{'কাজ'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -630,21 +627,17 @@ export function ClassSubjectsPanel({
                     </div>
                     <p className="text-base font-semibold text-foreground">
                       {hasActiveFilters
-                        ? t(dict.classSubjects.noFilterResults)
-                        : t(dict.classSubjects.emptyClassSubjects)}
+                        ? 'অনুসন্ধানের সাথে কোনো বিষয় মিলছে না।'
+                        : 'এই শ্রেণিতে এখনো কোনো বিষয় যুক্ত করা হয়নি।'}
                     </p>
                     <p className="text-sm text-muted-foreground text-center">
                       {hasActiveFilters
-                        ? isBn
-                          ? 'ফিল্টারের শর্ত পরিবর্তন করুন অথবা ফিল্টার রিসেট করুন।'
-                          : 'Try adjusting your filters or reset them to view all subjects.'
-                        : isBn
-                          ? 'ওপরের "+ নতুন বিষয় যুক্ত করুন" বাটনে ক্লিক করে পাঠ্যক্রমে বিষয় যুক্ত করুন।'
-                          : 'Click "Add subject" above to assign subjects to this class.'}
+                        ? 'ফিল্টারের শর্ত পরিবর্তন করুন অথবা ফিল্টার রিসেট করুন।'
+                        : 'ওপরের "+ নতুন বিষয় যুক্ত করুন" বাটনে ক্লিক করে পাঠ্যক্রমে বিষয় যুক্ত করুন।'}
                     </p>
                     {hasActiveFilters && (
                       <Button type="button" variant="outline" size="sm" onClick={handleResetFilters}>
-                        {t(dict.classSubjects.resetFilters)}
+                        {'ফিল্টার রিসেট করুন'}
                       </Button>
                     )}
                   </div>
@@ -656,7 +649,7 @@ export function ClassSubjectsPanel({
                 const categoryObj = resolved.category
                   ? CATEGORY_LABELS[resolved.category]
                   : undefined;
-                const categoryLabel = categoryObj ? t(categoryObj) : undefined;
+                const categoryLabel = categoryObj ? categoryObj : undefined;
                 const uniqueGroupIds = Array.from(
                   new Set(entries.map((e) => e.groupId).filter((g): g is string => Boolean(g)))
                 );
@@ -668,7 +661,7 @@ export function ClassSubjectsPanel({
                   >
                     <td className="p-3.5 text-center text-sm font-semibold text-muted-foreground">
                       <span className="tabular-nums">
-                        {formatNumber(index + 1, locale)}
+                        {formatNumber(index + 1, 'bn')}
                       </span>
                     </td>
 
@@ -718,7 +711,7 @@ export function ClassSubjectsPanel({
                           </div>
                         ) : (
                           <span className="text-sm font-medium text-muted-foreground">
-                            {t(dict.classSubjects.commonGroup)}
+                            {'কমন (সব বিভাগ)'}
                           </span>
                         )
                       ) : (
@@ -732,17 +725,15 @@ export function ClassSubjectsPanel({
                         className="cursor-pointer transition-transform active:scale-95"
                         onClick={() => handleToggleOptional(entries)}
                         title={
-                          isBn
-                            ? 'ক্লিক করে আবশ্যিক/ঐচ্ছিক পরিবর্তন করুন'
-                            : 'Click to toggle compulsory/optional'
+                          'ক্লিক করে আবশ্যিক/ঐচ্ছিক পরিবর্তন করুন'
                         }
                       >
                         <StatusBadge
                           value={item.isOptional ? 'OPTIONAL' : 'COMPULSORY'}
                           customLabel={
                             item.isOptional
-                              ? t(dict.classSubjects.optionalBadge)
-                              : t(dict.classSubjects.compulsoryBadge)
+                              ? 'ঐচ্ছিক'
+                              : 'আবশ্যিক'
                           }
                           customTone={item.isOptional ? 'warning' : 'success'}
                         />
@@ -755,15 +746,13 @@ export function ClassSubjectsPanel({
                         className="cursor-pointer transition-transform active:scale-95"
                         onClick={() => handleToggleActive(entries)}
                         title={
-                          isBn
-                            ? 'ক্লিক করে সক্রিয়/নিষ্ক্রিয় পরিবর্তন করুন'
-                            : 'Click to toggle active status'
+                          'ক্লিক করে সক্রিয়/নিষ্ক্রিয় পরিবর্তন করুন'
                         }
                       >
                         <StatusBadge
                           value={item.isActive ? 'ACTIVE' : 'INACTIVE'}
                           customLabel={
-                            item.isActive ? t(dict.common.active) : t(dict.common.inactive)
+                            item.isActive ? 'সক্রিয়' : 'বন্ধ'
                           }
                           customTone={item.isActive ? 'success' : 'neutral'}
                         />
@@ -780,7 +769,7 @@ export function ClassSubjectsPanel({
                         className="text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-900/40 gap-1"
                       >
                         <Trash2 className="w-4 h-4" />
-                        <span>{t(dict.classSubjects.removeButton)}</span>
+                        <span>{'সরান'}</span>
                       </Button>
                     </td>
                   </tr>
@@ -794,9 +783,7 @@ export function ClassSubjectsPanel({
       {csMeta.total > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
           <span>
-            {isBn
-              ? `মোট ${formatNumber(csMeta.total, 'bn')} টি বিষয় · পৃষ্ঠা ${formatNumber(csMeta.page, 'bn')} / ${formatNumber(csMeta.totalPages, 'bn')}`
-              : `Total ${csMeta.total} subjects · Page ${csMeta.page} / ${csMeta.totalPages}`}
+            {`মোট ${formatNumber(csMeta.total, 'bn')} টি বিষয় · পৃষ্ঠা ${formatNumber(csMeta.page, 'bn')} / ${formatNumber(csMeta.totalPages, 'bn')}`}
           </span>
           <div className="flex items-center gap-2">
             <Button
@@ -806,7 +793,7 @@ export function ClassSubjectsPanel({
               disabled={!csMeta.hasPreviousPage || fetchingClassSubjects}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
-              {isBn ? 'পূর্ববর্তী' : 'Previous'}
+              {'পূর্ববর্তী'}
             </Button>
             <Button
               type="button"
@@ -815,7 +802,7 @@ export function ClassSubjectsPanel({
               disabled={!csMeta.hasNextPage || fetchingClassSubjects}
               onClick={() => setPage((p) => p + 1)}
             >
-              {isBn ? 'পরবর্তী' : 'Next'}
+              {'পরবর্তী'}
             </Button>
           </div>
         </div>
@@ -825,17 +812,15 @@ export function ClassSubjectsPanel({
       <Modal
         open={addModalOpen}
         onClose={() => setAddModalOpen(false)}
-        title={isBn ? 'পাঠ্যক্রমে নতুন বিষয় যুক্ত করুন' : 'Add Subject to Curriculum'}
+        title={'পাঠ্যক্রমে নতুন বিষয় যুক্ত করুন'}
         description={
-          isBn
-            ? `${currentClass?.nameBn || currentClass?.name || ''} শ্রেণির জন্য নতুন বিষয় নির্বাচন করুন।`
-            : `Select a subject to add to ${currentClass?.name || 'this class'}.`
+          `${currentClass?.nameBn || currentClass?.name || ''} শ্রেণির জন্য নতুন বিষয় নির্বাচন করুন।`
         }
         size="md"
       >
         <form onSubmit={handleSubmit(onAssign)} className="space-y-4">
           <FormField
-            label={t(dict.classSubjects.subjectLabel)}
+            label={'বিষয়'}
             required
             error={errors.subjectId?.message}
           >
@@ -846,18 +831,16 @@ export function ClassSubjectsPanel({
             >
               {availableSubjects.length === 0 ? (
                 <option value="">
-                  {isBn
-                    ? '— সব বিষয় যুক্ত আছে'
-                    : '— All subjects assigned —'}
+                  {'— সব বিষয় যুক্ত আছে'}
                 </option>
               ) : (
                 <>
                   <option value="" disabled>
-                    {t(dict.classSubjects.selectSubjectPlaceholder)}
+                    {'বিষয় নির্বাচন করুন'}
                   </option>
                   {availableSubjects.map((subject) => (
                     <option key={subject.id} value={subject.id}>
-                      {isBn ? subject.nameBn || subject.name : subject.name}
+                      {subject.nameBn || subject.name}
                     </option>
                   ))}
                 </>
@@ -866,17 +849,17 @@ export function ClassSubjectsPanel({
           </FormField>
 
           {usesGroup && (
-            <FormField label={t(dict.classSubjects.groupLabel)}>
+            <FormField label={'বিভাগ'}>
               <Select
                 value={formGroupId}
                 onChange={(e) => setValue('groupId', e.target.value)}
               >
-                <option value="">{t(dict.classSubjects.commonGroup)}</option>
+                <option value="">{'কমন (সব বিভাগ)'}</option>
                 {groupList
                   .filter((group) => group.isActive)
                   .map((group) => (
                     <option key={group.id} value={group.id}>
-                      {isBn ? group.nameBn || group.name : group.name}
+                      {group.nameBn || group.name}
                     </option>
                   ))}
               </Select>
@@ -887,13 +870,13 @@ export function ClassSubjectsPanel({
             <Switch
               checked={formIsOptional}
               onChange={(val) => setValue('isOptional', val)}
-              label={t(dict.classSubjects.optionalSwitch)}
+              label={'ঐচ্ছিক / চতুর্থ বিষয়'}
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={() => setAddModalOpen(false)}>
-              {t(dict.common.cancel)}
+              {'বাতিল'}
             </Button>
             <Button
               type="submit"
@@ -901,7 +884,7 @@ export function ClassSubjectsPanel({
               disabled={assigning || !selectedClassId || !formSubjectId || availableSubjects.length === 0}
             >
               <Plus className="w-4 h-4" />
-              <span>{assigning ? t(dict.classSubjects.adding) : t(dict.classSubjects.addButton)}</span>
+              <span>{assigning ? 'যুক্ত হচ্ছে...' : 'পাঠ্যক্রমে যুক্ত করুন'}</span>
             </Button>
           </div>
         </form>
@@ -911,12 +894,12 @@ export function ClassSubjectsPanel({
       <Modal
         open={rolloverModalOpen}
         onClose={() => setRolloverModalOpen(false)}
-        title={t(dict.classSubjects.copyButton)}
-        description={t(dict.classSubjects.rolloverNotice)}
+        title={'সক্রিয় বিষয় কপি করুন'}
+        description={'যে বিষয় এই শিক্ষাবর্ষে আগে থেকে যুক্ত আছে তা অপরিবর্তিত থাকবে।'}
         size="md"
       >
         <div className="space-y-4">
-          <FormField label={t(dict.classSubjects.copyFromLabel)}>
+          <FormField label={'যে বছর থেকে কপি করবেন'}>
             <Select
               value={fromYearId}
               onChange={(e) => setFromYearId(e.target.value)}
@@ -933,7 +916,7 @@ export function ClassSubjectsPanel({
 
           <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={() => setRolloverModalOpen(false)}>
-              {t(dict.common.cancel)}
+              {'বাতিল'}
             </Button>
             <Button
               type="button"
@@ -942,7 +925,7 @@ export function ClassSubjectsPanel({
               onClick={handleRollover}
             >
               <Copy className="w-4 h-4" />
-              <span>{copying ? t(dict.classSubjects.copying) : t(dict.classSubjects.copyButton)}</span>
+              <span>{copying ? 'কপি হচ্ছে...' : 'সক্রিয় বিষয় কপি করুন'}</span>
             </Button>
           </div>
         </div>
@@ -952,15 +935,13 @@ export function ClassSubjectsPanel({
         open={Boolean(removeTarget)}
         onClose={() => setRemoveTarget(null)}
         onConfirm={confirmRemove}
-        title={isBn ? 'বিষয় সরিয়ে ফেলুন' : 'Remove Subject'}
+        title={'বিষয় সরিয়ে ফেলুন'}
         description={
           removeTarget && removeTarget.length > 0
-            ? isBn
-              ? `আপনি কি নিশ্চিতভাবে '${resolveSubject(removeTarget[0]).displayTitle}' বিষয়টিকে পাঠ্যক্রম থেকে সরাতে চান?`
-              : `Are you sure you want to remove '${resolveSubject(removeTarget[0]).displayTitle}' from this curriculum?`
+            ? `আপনি কি নিশ্চিতভাবে '${resolveSubject(removeTarget[0]).displayTitle}' বিষয়টিকে পাঠ্যক্রম থেকে সরাতে চান?`
             : ''
         }
-        confirmLabel={isBn ? 'সরিয়ে ফেলুন' : 'Remove'}
+        confirmLabel={'সরিয়ে ফেলুন'}
         destructive
         loading={removing}
       />

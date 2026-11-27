@@ -7,7 +7,6 @@ import {
   useGetPortalNoticeDocumentMutation,
   useGetPortalNoticesQuery,
 } from '@/src/features/notices/api/notices.api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { PageHeader } from '@/src/components/shared/Feedback';
 import {
@@ -39,7 +38,6 @@ export function PortalNoticesView({
   descriptionBn,
   descriptionEn,
 }: PortalNoticesViewProps) {
-  const { locale, pick } = useI18n();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [urgentFilter, setUrgentFilter] = useState<'all' | 'urgent'>('all');
@@ -88,7 +86,7 @@ export function PortalNoticesView({
     } catch (error) {
       toast.error(
         (error as { message?: string }).message ??
-          pick('ডকুমেন্ট খোলা যায়নি।', 'Could not open the document.')
+          'ডকুমেন্ট খোলা যায়নি।'
       );
     }
   };
@@ -112,19 +110,19 @@ export function PortalNoticesView({
           key={aud}
           className="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-muted text-muted-foreground border border-border"
         >
-          {lbl ? pick(lbl.bn, lbl.en) : aud}
+          {lbl ? lbl.bn : aud}
         </span>
       );
     });
 
   return (
     <div className="space-y-6">
-      <PageHeader title={pick(titleBn, titleEn)} description={pick(descriptionBn, descriptionEn)} />
+      <PageHeader title={titleBn} description={descriptionBn} />
 
       <Card className="divide-y divide-border overflow-hidden">
         {/* Search & Filter Toolbar */}
         <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_13rem]">
-          <FormField label={pick('বিজ্ঞপ্তি খুঁজুন', 'Search notices')}>
+          <FormField label={'বিজ্ঞপ্তি খুঁজুন'}>
             <div className="relative">
               <Search
                 aria-hidden="true"
@@ -134,12 +132,12 @@ export function PortalNoticesView({
                 type="search"
                 value={search}
                 className="pl-9 text-base"
-                placeholder={pick('শিরোনাম বা স্মারক নম্বর', 'Title or memo number')}
+                placeholder={'শিরোনাম বা স্মারক নম্বর'}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
           </FormField>
-          <FormField label={pick('ধরন', 'Priority')}>
+          <FormField label={'ধরন'}>
             <Select
               value={urgentFilter}
               className="text-base"
@@ -148,8 +146,8 @@ export function PortalNoticesView({
                 setPage(1);
               }}
             >
-              <option value="all">{pick('সকল নোটিশ', 'All Notices')}</option>
-              <option value="urgent">{pick('শুধুমাত্র জরুরি', 'Urgent Only')}</option>
+              <option value="all">{'সকল নোটিশ'}</option>
+              <option value="urgent">{'শুধুমাত্র জরুরি'}</option>
             </Select>
           </FormField>
         </div>
@@ -174,7 +172,7 @@ export function PortalNoticesView({
           {!loadingNotices && noticesError && (
             <div className="py-12 px-4 text-center">
               <p role="alert" className="text-base font-semibold text-destructive">
-                {pick('নোটিশ লোড করা যায়নি।', 'Could not load notices.')}
+                {'নোটিশ লোড করা যায়নি।'}
               </p>
             </div>
           )}
@@ -187,24 +185,18 @@ export function PortalNoticesView({
                 </div>
                 <div className="space-y-1">
                   <p className="text-base font-semibold text-foreground">
-                    {pick('কোনো নোটিশ পাওয়া যায়নি', 'No matching notices found')}
+                    {'কোনো নোটিশ পাওয়া যায়নি'}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {hasFilters
-                      ? pick(
-                          'আপনার অনুসন্ধান বা ফিল্টারের সাথে কোনো নোটিশ মেলেনি।',
-                          'No notices match your current search or filter.'
-                        )
-                      : pick(
-                          'আপনার পোর্টালের জন্য এখনো কোনো নোটিশ প্রকাশিত হয়নি।',
-                          'No notices have been published for your portal yet.'
-                        )}
+                      ? 'আপনার অনুসন্ধান বা ফিল্টারের সাথে কোনো নোটিশ মেলেনি।'
+                      : 'আপনার পোর্টালের জন্য এখনো কোনো নোটিশ প্রকাশিত হয়নি।'}
                   </p>
                 </div>
                 {hasFilters && (
                   <Button type="button" variant="outline" size="sm" onClick={resetFilters}>
                     <RotateCcw className="w-3.5 h-3.5" />
-                    {pick('ফিল্টার রিসেট করুন', 'Reset Filters')}
+                    {'ফিল্টার রিসেট করুন'}
                   </Button>
                 )}
               </div>
@@ -221,16 +213,16 @@ export function PortalNoticesView({
                     <NoticeFormatBadge notice={n} showSize />
                     {renderAudienceBadges(n)}
                     {n.isUrgent && (
-                      <span className="text-xs font-semibold text-destructive">
-                        {pick('জরুরি', 'Urgent')}
+                      <span className="text-sm font-semibold text-destructive">
+                        {'জরুরি'}
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-3 pt-1">
                   <div className="text-sm text-muted-foreground tabular-nums">
-                    {n.memoNo ? `${pick('স্মারক:', 'Memo:')} ${n.memoNo} · ` : ''}
-                    {formatDateShort(n.publishedAt ?? n.createdAt, locale)}
+                    {n.memoNo ? `${'স্মারক:'} ${n.memoNo} · ` : ''}
+                    {formatDateShort(n.publishedAt ?? n.createdAt, 'bn')}
                   </div>
                   <Button
                     type="button"
@@ -240,7 +232,7 @@ export function PortalNoticesView({
                     className="shrink-0"
                   >
                     <Eye className="h-4 w-4" />
-                    {pick('দেখুন', 'View')}
+                    {'দেখুন'}
                   </Button>
                 </div>
               </div>
@@ -253,19 +245,19 @@ export function PortalNoticesView({
             <thead className="bg-surface-muted text-sm text-muted-foreground">
               <tr>
                 <th scope="col" className="p-3.5 text-left font-semibold">
-                  {pick('বিষয়', 'Notice')}
+                  {'বিষয়'}
                 </th>
                 <th scope="col" className="p-3.5 text-left font-semibold">
-                  {pick('স্মারক নং', 'Memo No.')}
+                  {'স্মারক নং'}
                 </th>
                 <th scope="col" className="p-3.5 text-left font-semibold">
-                  {pick('প্রাপক', 'Audience')}
+                  {'প্রাপক'}
                 </th>
                 <th scope="col" className="p-3.5 text-left font-semibold">
-                  {pick('তারিখ', 'Published')}
+                  {'তারিখ'}
                 </th>
                 <th scope="col" className="p-3.5 text-right font-semibold">
-                  {pick('ডকুমেন্ট', 'Document')}
+                  {'ডকুমেন্ট'}
                 </th>
               </tr>
             </thead>
@@ -296,7 +288,7 @@ export function PortalNoticesView({
                 <tr>
                   <td colSpan={5} className="py-12 px-4 text-center">
                     <p role="alert" className="text-base font-semibold text-destructive">
-                      {pick('নোটিশ লোড করা যায়নি।', 'Could not load notices.')}
+                      {'নোটিশ লোড করা যায়নি।'}
                     </p>
                   </td>
                 </tr>
@@ -311,24 +303,18 @@ export function PortalNoticesView({
                       </div>
                       <div className="space-y-1">
                         <p className="text-base font-semibold text-foreground">
-                          {pick('কোনো নোটিশ পাওয়া যায়নি', 'No matching notices found')}
+                          {'কোনো নোটিশ পাওয়া যায়নি'}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {hasFilters
-                            ? pick(
-                                'আপনার অনুসন্ধান বা ফিল্টারের সাথে কোনো নোটিশ মেলেনি।',
-                                'No notices match your current search or filter.'
-                              )
-                            : pick(
-                                'আপনার পোর্টালের জন্য এখনো কোনো নোটিশ প্রকাশিত হয়নি।',
-                                'No notices have been published for your portal yet.'
-                              )}
+                            ? 'আপনার অনুসন্ধান বা ফিল্টারের সাথে কোনো নোটিশ মেলেনি।'
+                            : 'আপনার পোর্টালের জন্য এখনো কোনো নোটিশ প্রকাশিত হয়নি।'}
                         </p>
                       </div>
                       {hasFilters && (
                         <Button type="button" variant="outline" size="sm" onClick={resetFilters}>
                           <RotateCcw className="w-3.5 h-3.5" />
-                          {pick('ফিল্টার রিসেট করুন', 'Reset Filters')}
+                          {'ফিল্টার রিসেট করুন'}
                         </Button>
                       )}
                     </div>
@@ -345,8 +331,8 @@ export function PortalNoticesView({
                       <div className="mt-1.5 flex flex-wrap items-center gap-2">
                         <NoticeFormatBadge notice={n} showSize />
                         {n.isUrgent && (
-                          <span className="text-xs font-semibold text-destructive">
-                            {pick('জরুরি', 'Urgent')}
+                          <span className="text-sm font-semibold text-destructive">
+                            {'জরুরি'}
                           </span>
                         )}
                       </div>
@@ -359,7 +345,7 @@ export function PortalNoticesView({
                     </td>
                     <td className="whitespace-nowrap p-3.5 text-sm text-muted-foreground">
                       <span className="tabular-nums">
-                        {formatDateShort(n.publishedAt ?? n.createdAt, locale)}
+                        {formatDateShort(n.publishedAt ?? n.createdAt, 'bn')}
                       </span>
                     </td>
                     <td className="p-3.5 text-right">
@@ -370,7 +356,7 @@ export function PortalNoticesView({
                         onClick={() => void openPreview(n)}
                       >
                         <Eye className="h-4 w-4" />
-                        {pick('দেখুন', 'View')}
+                        {'দেখুন'}
                       </Button>
                     </td>
                   </tr>
@@ -382,7 +368,7 @@ export function PortalNoticesView({
         {totalPages > 1 && (
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm text-muted-foreground">
             <span className="tabular-nums">
-              {pick('পৃষ্ঠা', 'Page')} {formatNumber(page, locale)} / {formatNumber(totalPages, locale)}
+              {'পৃষ্ঠা'} {formatNumber(page, 'bn')} / {formatNumber(totalPages, 'bn')}
             </span>
             <div className="flex items-center gap-2">
               <Button
@@ -392,7 +378,7 @@ export function PortalNoticesView({
                 disabled={page <= 1 || loadingNotices}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
               >
-                {pick('পূর্ববর্তী', 'Previous')}
+                {'পূর্ববর্তী'}
               </Button>
               <Button
                 type="button"
@@ -401,7 +387,7 @@ export function PortalNoticesView({
                 disabled={page >= totalPages || loadingNotices}
                 onClick={() => setPage((p) => p + 1)}
               >
-                {pick('পরবর্তী', 'Next')}
+                {'পরবর্তী'}
               </Button>
             </div>
           </div>

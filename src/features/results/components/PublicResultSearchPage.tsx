@@ -6,7 +6,6 @@ import { useParams, useSearchParams } from '@/src/lib/navigation';
 import { Search, Printer, ShieldAlert, Info, RotateCcw, Award } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/features/bootstrap';
 import { useSearchPublicResultMutation } from '../api/public-results.api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { Button, Card, FormField, Input, Select } from '@/src/components/ui/primitives';
 import { LoadingSkeleton, PageHeader } from '@/src/components/shared/Feedback';
@@ -21,8 +20,6 @@ export function PublicResultSearchPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const [searchResult, { data: resData, isLoading: searching, reset: resetMutation }] =
     useSearchPublicResultMutation();
-  const { locale, pick } = useI18n();
-
   const [examId, setExamId] = useState(params.get('examId') ?? 'exam-hy-10');
   const [classId, setClassId] = useState(params.get('classId') ?? 'cls-10');
   const [roll, setRoll] = useState('1');
@@ -63,15 +60,12 @@ export function PublicResultSearchPage() {
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <div className="no-print">
         <PageHeader
-          title={pick('অনলাইন ফলাফল অনুসন্ধান', 'Public Examination Result Search')}
-          description={pick(
-            'লগইন ছাড়াই প্রকাশিত পরীক্ষার ফলাফল ও প্রিন্টযোগ্য মার্কশিট যাচাই করুন। শিক্ষার্থীর ব্যক্তিগত তথ্য (ঠিকানা, জন্ম সনদ, অভিভাবকের ফোন) সর্বদা সুরক্ষিত রাখা হয়।',
-            'Verify published examination results and print official marksheets without login. Draft/withheld records and private student PII remain strictly protected.'
-          )}
+          title={'অনলাইন ফলাফল অনুসন্ধান'}
+          description={'লগইন ছাড়াই প্রকাশিত পরীক্ষার ফলাফল ও প্রিন্টযোগ্য মার্কশিট যাচাই করুন। শিক্ষার্থীর ব্যক্তিগত তথ্য (ঠিকানা, জন্ম সনদ, অভিভাবকের ফোন) সর্বদা সুরক্ষিত রাখা হয়।'}
           actions={
             <Link href="/academics/examination">
               <Button variant="outline" size="sm" className="whitespace-nowrap">
-                {pick('পরীক্ষার রুটিন ও গ্রেডিং', 'Exam Routine & Grading')}
+                {'পরীক্ষার রুটিন ও গ্রেডিং'}
               </Button>
             </Link>
           }
@@ -81,7 +75,7 @@ export function PublicResultSearchPage() {
       {/* Board-Style Search Form */}
       <Card className="p-6 no-print space-y-5">
         <form onSubmit={handleSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-          <FormField label={pick('পরীক্ষা নির্বাচন করুন', 'Examination')} required>
+          <FormField label={'পরীক্ষা নির্বাচন করুন'} required>
             <Select
               value={examId}
               onChange={(e) => {
@@ -98,25 +92,25 @@ export function PublicResultSearchPage() {
             </Select>
           </FormField>
 
-          <FormField label={pick('শ্রেণি', 'Class')} required>
+          <FormField label={'শ্রেণি'} required>
             <Select value={classId} onChange={(e) => setClassId(e.target.value)}>
               {db.classes.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {locale === 'bn' ? c.nameBn : c.name}
+                  {c.nameBn}
                 </option>
               ))}
             </Select>
           </FormField>
 
-          <FormField label={pick('রোল নম্বর', 'Roll Number')}>
+          <FormField label={'রোল নম্বর'}>
             <Input
               value={roll}
               onChange={(e) => setRoll(e.target.value)}
-              placeholder={pick('যেমন: 1, 2, 3', 'e.g. 1, 2, 3')}
+              placeholder={'যেমন: 1, 2, 3'}
             />
           </FormField>
 
-          <FormField label={pick('অথবা শিক্ষার্থী আইডি / রেজি. নং', 'Or Student ID / Reg No')}>
+          <FormField label={'অথবা শিক্ষার্থী আইডি / রেজি. নং'}>
             <Input
               value={studentIdOrReg}
               onChange={(e) => setStudentIdOrReg(e.target.value)}
@@ -129,24 +123,18 @@ export function PublicResultSearchPage() {
               <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
               <span>
                 {publishedExams.length > 0
-                  ? pick(
-                      `বর্তমানে প্রকাশিত ফলাফল: ${publishedExams.map((e) => e.name).join(' ও ')}। রোল নম্বর বা শিক্ষার্থী আইডি দিয়ে অনুসন্ধান করুন।`,
-                      `Currently published: ${publishedExams.map((e) => e.name).join(', ')}. Search using Roll Number or Student ID.`
-                    )
-                  : pick(
-                      'রোল নম্বর অথবা শিক্ষার্থী আইডি প্রদান করে ফলাফল অনুসন্ধান করুন।',
-                      'Enter Roll Number or Student ID to search published examination results.'
-                    )}
+                  ? `বর্তমানে প্রকাশিত ফলাফল: ${publishedExams.map((e) => e.name).join(' ও ')}। রোল নম্বর বা শিক্ষার্থী আইডি দিয়ে অনুসন্ধান করুন।`
+                  : 'রোল নম্বর অথবা শিক্ষার্থী আইডি প্রদান করে ফলাফল অনুসন্ধান করুন।'}
               </span>
             </p>
             <div className="flex items-center gap-2 shrink-0">
               <Button type="button" variant="outline" onClick={handleReset} className="whitespace-nowrap">
                 <RotateCcw className="w-4 h-4" />
-                {pick('রিসেট', 'Reset')}
+                {'রিসেট'}
               </Button>
               <Button type="submit" variant="primary" disabled={searching} className="whitespace-nowrap">
                 <Search className="w-4 h-4" />
-                {searching ? pick('অনুসন্ধান চলছে...', 'Searching...') : pick('ফলাফল দেখুন', 'Get Result')}
+                {searching ? 'অনুসন্ধান চলছে...' : 'ফলাফল দেখুন'}
               </Button>
             </div>
           </div>
@@ -160,13 +148,13 @@ export function PublicResultSearchPage() {
           <div>
             <h3 className="text-base font-bold text-foreground">
               {resData.status === 'WITHHELD'
-                ? pick('ফলাফল স্থগিত (Withheld)', 'Result Withheld')
+                ? 'ফলাফল স্থগিত (Withheld)'
                 : resData.status === 'NOT_PUBLISHED'
-                  ? pick('ফলাফল এখনো প্রকাশিত হয়নি', 'Result Not Yet Published')
-                  : pick('কোনো ফলাফল পাওয়া যায়নি', 'No Result Found')}
+                  ? 'ফলাফল এখনো প্রকাশিত হয়নি'
+                  : 'কোনো ফলাফল পাওয়া যায়নি'}
             </h3>
             <p className="text-base text-muted-foreground mt-1">
-              {locale === 'bn' ? resData.messageBn : resData.messageEn}
+              {resData.messageBn}
             </p>
           </div>
         </Card>
@@ -180,28 +168,28 @@ export function PublicResultSearchPage() {
               <div className="flex items-center gap-2">
                 <Award className="w-5 h-5 text-primary shrink-0" />
                 <span className="font-bold text-foreground text-base">
-                  {locale === 'bn' ? resData.student.nameBn : resData.student.nameEn}
+                  {resData.student.nameBn}
                 </span>
               </div>
               <StatusBadge enumName="ResultStatus" value={resData.summary.resultStatus} />
               <span className="text-muted-foreground tabular-nums">
-                {pick('জিপিএ:', 'GPA:')}{' '}
+                {'জিপিএ:'}{' '}
                 <strong className="text-foreground">
-                  {formatNumber(resData.summary.gpa ?? 0, locale, 2)} ({resData.summary.letterGrade})
+                  {formatNumber(resData.summary.gpa ?? 0, 'bn', 2)} ({resData.summary.letterGrade})
                 </strong>
               </span>
               {resData.summary.meritPosition && (
                 <span className="text-muted-foreground tabular-nums">
-                  {pick('মেধাক্রম:', 'Merit:')}{' '}
+                  {'মেধাক্রম:'}{' '}
                   <strong className="text-primary">
-                    {formatNumber(resData.summary.meritPosition, locale)}
+                    {formatNumber(resData.summary.meritPosition, 'bn')}
                   </strong>
                 </span>
               )}
             </div>
             <Button variant="primary" size="sm" onClick={triggerPrint} className="whitespace-nowrap shrink-0">
               <Printer className="w-4 h-4" />
-              {pick('মার্কশিট প্রিন্ট / পিডিএফ', 'Print / Download Marksheet')}
+              {'মার্কশিট প্রিন্ট / পিডিএফ'}
             </Button>
           </Card>
 

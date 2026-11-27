@@ -32,7 +32,6 @@ import {
   useSaveMarksBatchMutation,
 } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -83,14 +82,13 @@ function getAssignmentSubject(db: MockDatabase, classSubjectId: string) {
 
 export function TeacherResourcesPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   if (isLoading || !db) return <LoadingSkeleton />;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('ডিজিটাল শিক্ষা রিসোর্স', 'Academic & Digital Resources')}
-        description={pick('শ্রেণিভিত্তিক লেকচার শিট, পাঠ্যবই ও মাল্টিমিডিয়া কনটেন্ট', 'Class-wise learning materials and digital slides')}
+        title={'ডিজিটাল শিক্ষা রিসোর্স'}
+        description={'শ্রেণিভিত্তিক লেকচার শিট, পাঠ্যবই ও মাল্টিমিডিয়া কনটেন্ট'}
       />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {db.digitalResources.map((r) => {
@@ -98,12 +96,12 @@ export function TeacherResourcesPage() {
           return (
             <Card key={r.id} className="p-5 flex flex-col justify-between gap-3">
               <div>
-                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mb-2">
+                <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground mb-2">
                   <span className="inline-flex items-center gap-1 font-medium text-primary">
                     <MonitorPlay className="w-3.5 h-3.5" />
                     {r.resourceType}
                   </span>
-                  <span>{locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name}</span>
+                  <span>{cls?.nameBn || cls?.name}</span>
                 </div>
                 <h3 className="text-base font-bold">{r.title}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{r.description}</p>
@@ -111,9 +109,9 @@ export function TeacherResourcesPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => toast.info(pick('রিসোর্স প্রিভিউ প্রস্তুত', 'Resource preview ready'))}
+                onClick={() => toast.info('রিসোর্স প্রিভিউ প্রস্তুত')}
               >
-                {pick('রিসোর্স খুলুন', 'Open Material')}
+                {'রিসোর্স খুলুন'}
               </Button>
             </Card>
           );

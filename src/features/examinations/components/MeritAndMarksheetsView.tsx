@@ -19,7 +19,6 @@ import {
 } from '@/src/features/examinations/api/examinations.api';
 import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
 import { useGetSectionsQuery } from '@/src/services/academic/section.api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { ExamType, ResultStatus } from '@/src/types/enums';
@@ -59,7 +58,6 @@ const FALLBACK_SCHOOL_PROFILE: SchoolProfile = {
 };
 
 export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: string }) {
-  const { locale, pick } = useI18n();
   const { data: db } = useGetBootstrapQuery();
   const { data: examsRes, isLoading: loadingExams } = useGetExamsQuery({
     limit: 100,
@@ -276,7 +274,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
       return {
         roll: row.roll,
         studentId: row.studentId,
-        studentName: locale === 'bn' ? row.nameBn || row.name : row.name,
+        studentName: row.nameBn || row.name,
         sectionName: row.section,
         groupName: null,
         subjectMarks,
@@ -291,7 +289,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
     });
 
     return { subjects, rows };
-  }, [tabulationRes, filteredRows, locale]);
+  }, [tabulationRes, filteredRows, 'bn']);
 
   const bulkMarksheetItems = useMemo(() => {
     if (!showBulkMarksheets) return [];
@@ -302,9 +300,9 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
 
   const activeSectionLabel = useMemo(() => {
     return sectionFilter !== 'ALL'
-      ? `${pick('শাখা', 'Sec')}: ${sectionFilter}`
-      : pick('সকল শাখা', 'All Sections');
-  }, [sectionFilter, pick]);
+      ? `${'শাখা'}: ${sectionFilter}`
+      : 'সকল শাখা';
+  }, [sectionFilter]);
 
   const handleExportCsv = () => {
     if (!activeExam || filteredRows.length === 0) return;
@@ -328,7 +326,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
       Status: r.resultStatus,
     }));
     exportToCsv(csvRows, `merit-list-${activeExam.id}.csv`);
-    toast.success(pick('মেধাতালিকা CSV ডাউনলোড হয়েছে।', 'Merit list CSV exported.'));
+    toast.success('মেধাতালিকা CSV ডাউনলোড হয়েছে।');
   };
 
   if (loadingExams) return <LoadingSkeleton rows={8} />;
@@ -336,11 +334,8 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('মেধাতালিকা, মার্কশিট ও ট্যাবুলেশন শিট', 'Merit List, Marksheets & Tabulation Sheet')}
-        description={pick(
-          'শ্রেণি ও শাখাভিত্তিক মেধাক্রম, বাল্ক একাডেমিক ট্রান্সক্রিপ্ট এবং ল্যান্ডস্কেপ A4 ট্যাবুলেশন শিট।',
-          'Class & section merit rankings, bulk academic transcripts, and landscape A4 tabulation sheets.'
-        )}
+        title={'মেধাতালিকা, মার্কশিট ও ট্যাবুলেশন শিট'}
+        description={'শ্রেণি ও শাখাভিত্তিক মেধাক্রম, বাল্ক একাডেমিক ট্রান্সক্রিপ্ট এবং ল্যান্ডস্কেপ A4 ট্যাবুলেশন শিট।'}
         actions={
           <>
             <Button
@@ -350,7 +345,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
               onClick={handleExportCsv}
             >
               <Download className="w-4 h-4" />
-              {pick('CSV এক্সপোর্ট', 'Export CSV')}
+              {'CSV এক্সপোর্ট'}
             </Button>
             <Button
               variant="outline"
@@ -359,7 +354,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
               onClick={() => setShowTabulation(true)}
             >
               <FileSpreadsheet className="w-4 h-4" />
-              {pick('ট্যাবুলেশন শিট (A4)', 'Tabulation Sheet (A4)')}
+              {'ট্যাবুলেশন শিট (A4)'}
             </Button>
             <Button
               variant="primary"
@@ -368,10 +363,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
               onClick={() => setShowBulkMarksheets(true)}
             >
               <Layers className="w-4 h-4" />
-              {pick(
-                `বাল্ক মার্কশিট (${formatNumber(filteredRows.length, locale)})`,
-                `Bulk Marksheets (${formatNumber(filteredRows.length, locale)})`
-              )}
+              {`বাল্ক মার্কশিট (${formatNumber(filteredRows.length, 'bn')})`}
             </Button>
           </>
         }
@@ -381,7 +373,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
       <Card className="p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
           <div className="sm:col-span-2 lg:col-span-3">
-            <FormField label={pick('পরীক্ষা নির্বাচন করুন', 'Select Examination')}>
+            <FormField label={'পরীক্ষা নির্বাচন করুন'}>
               <Select
                 value={resolvedExamName}
                 onChange={(e) => {
@@ -399,7 +391,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           </div>
 
           <div className="sm:col-span-1 lg:col-span-2">
-            <FormField label={pick('শ্রেণি', 'Class')}>
+            <FormField label={'শ্রেণি'}>
               <Select
                 value={resolvedClassId}
                 onChange={(e) => {
@@ -409,7 +401,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
               >
                 {activeClasses.map((cls) => (
                   <option key={cls.id} value={cls.id}>
-                    {locale === 'bn' ? cls.nameBn || cls.name : cls.name}
+                    {cls.nameBn || cls.name}
                   </option>
                 ))}
               </Select>
@@ -417,9 +409,9 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           </div>
 
           <div className="sm:col-span-1 lg:col-span-2">
-            <FormField label={pick('শাখা', 'Section')}>
+            <FormField label={'শাখা'}>
               <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
-                <option value="ALL">{pick('সকল শাখা', 'All Sections')}</option>
+                <option value="ALL">{'সকল শাখা'}</option>
                 {sectionOptions.map((secName) => (
                   <option key={secName} value={secName}>
                     {secName}
@@ -430,28 +422,28 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           </div>
 
           <div className="sm:col-span-1 lg:col-span-2">
-            <FormField label={pick('ফলাফলের অবস্থা', 'Result Status')}>
+            <FormField label={'ফলাফলের অবস্থা'}>
               <Select
                 value={statusFilter}
                 onChange={(e) =>
                   setStatusFilter(e.target.value as 'ALL' | 'PASS' | 'FAIL' | 'INCOMPLETE')
                 }
               >
-                <option value="ALL">{pick('সকল শিক্ষার্থী', 'All Students')}</option>
-                <option value="PASS">{pick('শুধুমাত্র উত্তীর্ণ', 'Passed Only')}</option>
-                <option value="FAIL">{pick('শুধুমাত্র অনুত্তীর্ণ', 'Failed Only')}</option>
-                <option value="INCOMPLETE">{pick('অসম্পূর্ণ নম্বর', 'Incomplete')}</option>
+                <option value="ALL">{'সকল শিক্ষার্থী'}</option>
+                <option value="PASS">{'শুধুমাত্র উত্তীর্ণ'}</option>
+                <option value="FAIL">{'শুধুমাত্র অনুত্তীর্ণ'}</option>
+                <option value="INCOMPLETE">{'অসম্পূর্ণ নম্বর'}</option>
               </Select>
             </FormField>
           </div>
 
           <div className="sm:col-span-1 lg:col-span-3">
-            <FormField label={pick('খুঁজুন (নাম / রোল / আইডি)', 'Search (Name / Roll / ID)')}>
+            <FormField label={'খুঁজুন (নাম / রোল / আইডি)'}>
               <div className="relative">
                 <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <Input
                   className="pl-9"
-                  placeholder={pick('নাম বা রোল...', 'Name or roll...')}
+                  placeholder={'নাম বা রোল...'}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -465,11 +457,11 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('মোট ফলাফল (ফিল্টারকৃত)', 'Filtered Examinees')}
+            {'মোট ফলাফল (ফিল্টারকৃত)'}
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
-            {formatNumber(stats.total, locale)}{' '}
-            <span className="text-sm font-semibold text-muted-foreground">{pick('জন', '')}</span>
+            {formatNumber(stats.total, 'bn')}{' '}
+            <span className="text-sm font-semibold text-muted-foreground">{'জন'}</span>
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums truncate">
             {activeSectionLabel}
@@ -478,43 +470,37 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
 
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('উত্তীর্ণ ও পাসের হার', 'Passed & Pass Rate')}
+            {'উত্তীর্ণ ও পাসের হার'}
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-success">
-            {formatNumber(stats.passed, locale)}{' '}
+            {formatNumber(stats.passed, 'bn')}{' '}
             <span className="text-sm font-semibold text-muted-foreground">
-              ({formatNumber(stats.passRate, locale)}%)
+              ({formatNumber(stats.passRate, 'bn')}%)
             </span>
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `উত্তীর্ণ ${formatNumber(stats.passed, 'bn')} · অনুত্তীর্ণ ${formatNumber(stats.failed, 'bn')}`,
-              `Passed ${stats.passed} · Failed ${stats.failed}`
-            )}
+            {`উত্তীর্ণ ${formatNumber(stats.passed, 'bn')} · অনুত্তীর্ণ ${formatNumber(stats.failed, 'bn')}`}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('জিপিএ ৫.০০ (A+)', 'GPA 5.00 (A+)')}
+            {'জিপিএ ৫.০০ (A+)'}
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
-            {formatNumber(stats.gpa5, locale)}{' '}
-            <span className="text-sm font-semibold text-muted-foreground">{pick('জন', '')}</span>
+            {formatNumber(stats.gpa5, 'bn')}{' '}
+            <span className="text-sm font-semibold text-muted-foreground">{'জন'}</span>
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {stats.total > 0
-              ? pick(
-                  `মোট পরীক্ষার্থীর ${formatNumber(Math.round((stats.gpa5 / stats.total) * 100), locale)}%`,
-                  `${Math.round((stats.gpa5 / stats.total) * 100)}% of total`
-                )
-              : pick('কোনো ফলাফল নেই', 'No results')}
+              ? `মোট পরীক্ষার্থীর ${formatNumber(Math.round((stats.gpa5 / stats.total) * 100), 'bn')}%`
+              : 'কোনো ফলাফল নেই'}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('অনুত্তীর্ণ শিক্ষার্থী', 'Failed Examinees')}
+            {'অনুত্তীর্ণ শিক্ষার্থী'}
           </p>
           <p
             className={cn(
@@ -522,18 +508,15 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
               stats.failed > 0 ? 'text-destructive' : 'text-foreground'
             )}
           >
-            {formatNumber(stats.failed, locale)}{' '}
-            <span className="text-sm font-semibold text-muted-foreground">{pick('জন', '')}</span>
+            {formatNumber(stats.failed, 'bn')}{' '}
+            <span className="text-sm font-semibold text-muted-foreground">{'জন'}</span>
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {stats.failed > 0
-              ? pick(
-                  `ফেলের হার: ${formatNumber(stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0, locale)}%`,
-                  `Failure rate: ${stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0}%`
-                )
+              ? `ফেলের হার: ${formatNumber(stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0, 'bn')}%`
               : stats.total > 0 && stats.passed === stats.total
-                ? pick('শতভাগ পাস অর্জিত', '100% pass achieved')
-                : pick('কোনো অনুত্তীর্ণ নেই', 'No failed examinees')}
+                ? 'শতভাগ পাস অর্জিত'
+                : 'কোনো অনুত্তীর্ণ নেই'}
           </p>
         </Card>
       </div>
@@ -547,25 +530,19 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
         ) : !activeExam ? (
           <div className="p-6">
             <EmptyState
-              title={pick('এই শ্রেণির কোনো পরীক্ষা পাওয়া যায়নি', 'No Exam Found for This Class')}
-              description={pick(
-                'অনুগ্রহ করে অন্য পরীক্ষা বা শ্রেণি নির্বাচন করুন।',
-                'Please select another examination or class.'
-              )}
+              title={'এই শ্রেণির কোনো পরীক্ষা পাওয়া যায়নি'}
+              description={'অনুগ্রহ করে অন্য পরীক্ষা বা শ্রেণি নির্বাচন করুন।'}
             />
           </div>
         ) : sortedRows.length === 0 ? (
           <div className="p-6">
             <EmptyState
-              title={pick('এই পরীক্ষার ফলাফল এখনো হিসাব করা হয়নি', 'No Processed Results Yet')}
-              description={pick(
-                'মেধাতালিকা, মার্কশিট ও ট্যাবুলেশন শিট দেখতে প্রথমে ফলাফল প্রক্রিয়াকরণ পাতা থেকে জিপিএ ও মেধাক্রম গণনা করুন।',
-                'Compute GPA and merit rankings from the Result Publication pipeline before viewing merit lists and marksheets.'
-              )}
+              title={'এই পরীক্ষার ফলাফল এখনো হিসাব করা হয়নি'}
+              description={'মেধাতালিকা, মার্কশিট ও ট্যাবুলেশন শিট দেখতে প্রথমে ফলাফল প্রক্রিয়াকরণ পাতা থেকে জিপিএ ও মেধাক্রম গণনা করুন।'}
               action={
                 <Link href="/admin/results/publication">
                   <Button size="sm" variant="primary">
-                    {pick('ফলাফল প্রক্রিয়াকরণে যান', 'Go to Result Processing')}
+                    {'ফলাফল প্রক্রিয়াকরণে যান'}
                   </Button>
                 </Link>
               }
@@ -574,11 +551,8 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
         ) : filteredRows.length === 0 ? (
           <div className="p-6">
             <EmptyState
-              title={pick('ফিল্টারের সাথে কোনো ফলাফল মেলেনি', 'No Matching Results')}
-              description={pick(
-                'অনুগ্রহ করে শাখা, অবস্থা বা অনুসন্ধান শর্ত পরিবর্তন করে চেষ্টা করুন।',
-                'Try adjusting your section, status, or search filter.'
-              )}
+              title={'ফিল্টারের সাথে কোনো ফলাফল মেলেনি'}
+              description={'অনুগ্রহ করে শাখা, অবস্থা বা অনুসন্ধান শর্ত পরিবর্তন করে চেষ্টা করুন।'}
             />
           </div>
         ) : (
@@ -586,22 +560,22 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
             <table className="w-full min-w-[760px] text-base">
               <thead>
                 <tr className="border-b border-border bg-surface-muted/70 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  <th className="px-4 py-3 text-center w-20">{pick('শ্রেণি মেধা', 'Class Merit')}</th>
-                  <th className="px-3 py-3 text-center w-20">{pick('শাখা মেধা', 'Sec. Merit')}</th>
-                  <th className="px-3 py-3 text-center w-16">{pick('রোল', 'Roll')}</th>
-                  <th className="px-4 py-3 text-left">{pick('শিক্ষার্থী ও শাখা', 'Student & Section')}</th>
-                  <th className="px-3 py-3 text-right">{pick('মোট নম্বর', 'Total Marks')}</th>
-                  <th className="px-3 py-3 text-right">{pick('জিপিএ', 'GPA')}</th>
-                  <th className="px-3 py-3 text-center">{pick('গ্রেড', 'Grade')}</th>
-                  <th className="px-3 py-3 text-center">{pick('অবস্থা', 'Status')}</th>
-                  <th className="px-4 py-3 text-right">{pick('কার্যক্রম', 'Actions')}</th>
+                  <th className="px-4 py-3 text-center w-20">{'শ্রেণি মেধা'}</th>
+                  <th className="px-3 py-3 text-center w-20">{'শাখা মেধা'}</th>
+                  <th className="px-3 py-3 text-center w-16">{'রোল'}</th>
+                  <th className="px-4 py-3 text-left">{'শিক্ষার্থী ও শাখা'}</th>
+                  <th className="px-3 py-3 text-right">{'মোট নম্বর'}</th>
+                  <th className="px-3 py-3 text-right">{'জিপিএ'}</th>
+                  <th className="px-3 py-3 text-center">{'গ্রেড'}</th>
+                  <th className="px-3 py-3 text-center">{'অবস্থা'}</th>
+                  <th className="px-4 py-3 text-right">{'কার্যক্রম'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border tabular-nums">
                 {filteredRows.map((row) => {
                   const isPass = row.resultStatus === ResultStatus.PASS;
                   const isIncomplete = row.resultStatus === ResultStatus.INCOMPLETE;
-                  const studentName = locale === 'bn' ? row.nameBn || row.name : row.name;
+                  const studentName = row.nameBn || row.name;
                   const pct =
                     row.totalFullMarks > 0
                       ? ((row.totalMarks / row.totalFullMarks) * 100).toFixed(1)
@@ -617,7 +591,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                                 : 'bg-surface-muted text-foreground'
                             }`}
                           >
-                            #{formatNumber(row.meritPosition, locale)}
+                            #{formatNumber(row.meritPosition, 'bn')}
                           </span>
                         ) : (
                           <span className="text-muted-foreground">—</span>
@@ -625,11 +599,11 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                       </td>
                       <td className="px-3 py-3 text-center text-muted-foreground font-medium">
                         {row.sectionMeritPosition
-                          ? `#${formatNumber(row.sectionMeritPosition, locale)}`
+                          ? `#${formatNumber(row.sectionMeritPosition, 'bn')}`
                           : '—'}
                       </td>
                       <td className="px-3 py-3 text-center font-medium text-foreground">
-                        {formatNumber(row.roll, locale)}
+                        {formatNumber(row.roll, 'bn')}
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-semibold text-foreground">{studentName}</div>
@@ -637,33 +611,33 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                           <span className="font-mono">{row.studentId}</span>
                           <span>·</span>
                           <span>
-                            {pick('শাখা', 'Sec')}: {row.section}
+                            {'শাখা'}: {row.section}
                           </span>
                         </div>
                       </td>
                       <td className="px-3 py-3 text-right">
                         <div className="font-medium text-foreground">
-                          {formatNumber(row.totalMarks, locale)}
-                          <span className="text-xs font-normal text-muted-foreground">
-                            /{formatNumber(row.totalFullMarks, locale)}
+                          {formatNumber(row.totalMarks, 'bn')}
+                          <span className="text-sm font-normal text-muted-foreground">
+                            /{formatNumber(row.totalFullMarks, 'bn')}
                           </span>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatNumber(Number(pct), locale, 1)}%
+                        <div className="text-sm text-muted-foreground">
+                          {formatNumber(Number(pct), 'bn', 1)}%
                         </div>
                       </td>
                       <td className="px-3 py-3 text-right">
                         <div className="font-semibold text-foreground">
                           {row.gpa !== null && row.gpa !== undefined
-                            ? formatNumber(row.gpa, locale, 2)
+                            ? formatNumber(row.gpa, 'bn', 2)
                             : '—'}
                         </div>
                         {row.gpaWithoutOptional !== null &&
                           row.gpaWithoutOptional !== undefined &&
                           row.gpaWithoutOptional !== row.gpa && (
-                            <div className="text-xs text-muted-foreground">
-                              {pick('৪র্থ ছাড়া:', 'w/o 4th:')}{' '}
-                              {formatNumber(row.gpaWithoutOptional, locale, 2)}
+                            <div className="text-sm text-muted-foreground">
+                              {'৪র্থ ছাড়া:'}{' '}
+                              {formatNumber(row.gpaWithoutOptional, 'bn', 2)}
                             </div>
                           )}
                       </td>
@@ -688,13 +662,10 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                           customTone={isPass ? 'success' : isIncomplete ? 'warning' : 'destructive'}
                           customLabel={
                             isPass
-                              ? pick('উত্তীর্ণ', 'PASS')
+                              ? 'উত্তীর্ণ'
                               : isIncomplete
-                                ? pick('অসম্পূর্ণ', 'INCOMPLETE')
-                                : pick(
-                                    `অনুত্তীর্ণ (${formatNumber(row.failedSubjectCount, locale)})`,
-                                    `FAIL (${row.failedSubjectCount})`
-                                  )
+                                ? 'অসম্পূর্ণ'
+                                : `অনুত্তীর্ণ (${formatNumber(row.failedSubjectCount, 'bn')})`
                           }
                         />
                       </td>
@@ -708,7 +679,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                           }}
                         >
                           <FileText className="w-3.5 h-3.5" />
-                          {pick('মার্কশিট', 'Marksheet')}
+                          {'মার্কশিট'}
                         </Button>
                       </td>
                     </tr>
@@ -724,18 +695,18 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
       <Modal
         open={!!previewMarksheet}
         onClose={() => setPreviewMarksheet(null)}
-        title={pick('প্রাতিষ্ঠানিক একাডেমিক ট্রান্সক্রিপ্ট / মার্কশিট', 'Institutional Academic Transcript / Marksheet')}
+        title={'প্রাতিষ্ঠানিক একাডেমিক ট্রান্সক্রিপ্ট / মার্কশিট'}
         maxWidth="max-w-4xl"
       >
         {previewMarksheet && (
           <div className="space-y-4">
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setPreviewMarksheet(null)}>
-                {pick('বন্ধ করুন', 'Close')}
+                {'বন্ধ করুন'}
               </Button>
               <Button variant="primary" size="sm" onClick={() => triggerPrint()}>
                 <Printer className="w-4 h-4" />
-                {pick('প্রিন্ট / PDF সংরক্ষণ', 'Print / Save PDF')}
+                {'প্রিন্ট / PDF সংরক্ষণ'}
               </Button>
             </div>
             <div className="overflow-x-auto pb-2">
@@ -749,21 +720,18 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
       <Modal
         open={showBulkMarksheets}
         onClose={() => setShowBulkMarksheets(false)}
-        title={pick(
-          `বাল্ক মার্কশিট প্রিন্ট (${formatNumber(bulkMarksheetItems.length, locale)}টি)`,
-          `Bulk Marksheets Print (${formatNumber(bulkMarksheetItems.length, locale)} transcripts)`
-        )}
+        title={`বাল্ক মার্কশিট প্রিন্ট (${formatNumber(bulkMarksheetItems.length, 'bn')}টি)`}
         description={`${activeExam?.name ?? ''} · ${activeSectionLabel}`}
         maxWidth="max-w-5xl"
       >
         <div className="space-y-4">
           <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setShowBulkMarksheets(false)}>
-              {pick('বন্ধ করুন', 'Close')}
+              {'বন্ধ করুন'}
             </Button>
             <Button variant="primary" size="sm" onClick={() => triggerPrint()}>
               <Printer className="w-4 h-4" />
-              {pick('সব মার্কশিট একসাথে প্রিন্ট করুন', 'Print All Filtered Marksheets')}
+              {'সব মার্কশিট একসাথে প্রিন্ট করুন'}
             </Button>
           </div>
           <div className="overflow-x-auto pb-2">
@@ -776,19 +744,19 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
       <Modal
         open={showTabulation}
         onClose={() => setShowTabulation(false)}
-        title={pick('শ্রেণিভিত্তিক ট্যাবুলেশন শিট (ল্যান্ডস্কেপ A4)', 'Official Class Tabulation Sheet (Landscape A4)')}
-        description={`${activeExam?.name ?? ''} · ${locale === 'bn' ? activeClass?.nameBn : activeClass?.name} · ${activeSectionLabel}`}
+        title={'শ্রেণিভিত্তিক ট্যাবুলেশন শিট (ল্যান্ডস্কেপ A4)'}
+        description={`${activeExam?.name ?? ''} · ${activeClass?.nameBn} · ${activeSectionLabel}`}
         maxWidth="max-w-6xl"
       >
         {activeExam && tabulationRes && (
           <div className="space-y-4">
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setShowTabulation(false)}>
-                {pick('বন্ধ করুন', 'Close')}
+                {'বন্ধ করুন'}
               </Button>
               <Button variant="primary" size="sm" onClick={() => triggerPrint()}>
                 <Printer className="w-4 h-4" />
-                {pick('ল্যান্ডস্কেপ A4 প্রিন্ট করুন', 'Print Landscape A4')}
+                {'ল্যান্ডস্কেপ A4 প্রিন্ট করুন'}
               </Button>
             </div>
             <div className="overflow-x-auto pb-2">
@@ -796,9 +764,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                 school={schoolProfile}
                 examName={tabulationRes.examination.name}
                 className={
-                  locale === 'bn'
-                    ? activeClass?.nameBn || tabulationRes.examination.class
-                    : tabulationRes.examination.class
+                  activeClass?.nameBn || tabulationRes.examination.class
                 }
                 sectionLabel={activeSectionLabel}
                 academicYear={tabulationRes.examination.academicYear}

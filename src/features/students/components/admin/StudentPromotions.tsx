@@ -15,7 +15,6 @@ import {
 import { useAppDispatch } from '@/src/store/hooks';
 import { setSelectedAcademicYear } from '@/src/store/slices/uiSlice';
 import { usePromoteStudentsMutation } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { cn } from '@/src/lib/utils/cn';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
@@ -48,7 +47,6 @@ interface RowDecision {
 }
 
 export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: string }) {
-  const { locale, pick } = useI18n();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [promote, { isLoading }] = usePromoteStudentsMutation();
@@ -282,10 +280,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
 
     setChoices(nextChoices);
     toast.success(
-      pick(
-        'পরীক্ষার ফলাফল ও মেধাক্রম অনুযায়ী প্রমোশন প্রস্তাব তৈরি হয়েছে। যাচাই করে প্রয়োগ করুন।',
-        'Auto-suggested promotion decisions and merit rolls from exam results. Review before applying.'
-      )
+      'পরীক্ষার ফলাফল ও মেধাক্রম অনুযায়ী প্রমোশন প্রস্তাব তৈরি হয়েছে। যাচাই করে প্রয়োগ করুন।'
     );
   };
 
@@ -406,7 +401,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
       });
 
     if (!items.length) {
-      toast.error(pick('অন্তত একজন শিক্ষার্থীর সিদ্ধান্ত নির্বাচন করুন।', 'Select at least one student decision.'));
+      toast.error('অন্তত একজন শিক্ষার্থীর সিদ্ধান্ত নির্বাচন করুন।');
       return;
     }
 
@@ -423,13 +418,10 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
         toYearName: targetYear?.name ?? '',
       });
       toast.success(
-        pick(
-          `প্রমোশন সম্পন্ন: উত্তীর্ণ ${formatNumber(result.promoted, 'bn')}, অকৃতকার্য ${formatNumber(result.retained, 'bn')}, সমাপ্ত ${formatNumber(result.graduated, 'bn')}।`,
-          `Promotion complete: ${result.promoted} promoted, ${result.retained} retained, ${result.graduated} completed.`
-        )
+        `প্রমোশন সম্পন্ন: উত্তীর্ণ ${formatNumber(result.promoted, 'bn')}, অকৃতকার্য ${formatNumber(result.retained, 'bn')}, সমাপ্ত ${formatNumber(result.graduated, 'bn')}।`
       );
     } catch (err) {
-      toast.error(errorMessage(err, pick('প্রমোশন প্রক্রিয়া সম্পন্ন হয়নি।', 'Promotion failed.')));
+      toast.error(errorMessage(err, 'প্রমোশন প্রক্রিয়া সম্পন্ন হয়নি।'));
     }
   };
 
@@ -448,14 +440,14 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
           ...promo,
           studentName: student?.nameBn || student?.nameEn || '—',
           studentCode: student?.studentId ?? '',
-          fromLabel: `${classLabel(db, fromEnr.classId, locale)} (${fromSec?.name ?? '—'}) · #${formatNumber(fromEnr.roll, locale)}`,
+          fromLabel: `${classLabel(db, fromEnr.classId, 'bn')} (${fromSec?.name ?? '—'}) · #${formatNumber(fromEnr.roll, 'bn')}`,
           toLabel: toEnr
-            ? `${toYear?.name ?? ''} · ${classLabel(db, toEnr.classId, locale)} (${toSec?.name ?? '—'}) · #${formatNumber(toEnr.roll, locale)}`
+            ? `${toYear?.name ?? ''} · ${classLabel(db, toEnr.classId, 'bn')} (${toSec?.name ?? '—'}) · #${formatNumber(toEnr.roll, 'bn')}`
             : '—',
         };
       })
       .filter((item): item is NonNullable<typeof item> => Boolean(item));
-  }, [db, yearId, locale]);
+  }, [db, yearId, 'bn']);
 
   const openTargetYearEnrollments = (toYearId: string) => {
     dispatch(setSelectedAcademicYear(toYearId));
@@ -471,13 +463,10 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
             <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
             <div className="text-sm">
               <p className="font-semibold text-foreground">
-                {pick('শ্রেণি উত্তরণ ও নতুন এনরোলমেন্ট তৈরি হয়েছে', 'Promotion & New Session Enrollments Created')}
+                {'শ্রেণি উত্তরণ ও নতুন এনরোলমেন্ট তৈরি হয়েছে'}
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
-                {pick(
-                  `উত্তীর্ণ ${formatNumber(lastRun.promoted, locale)} জন · একই শ্রেণিতে ${formatNumber(lastRun.retained, locale)} জন · সমাপ্ত ${formatNumber(lastRun.graduated, locale)} জন। পূর্বের এনরোলমেন্ট লক করা হয়েছে।`,
-                  `${lastRun.promoted} promoted · ${lastRun.retained} retained · ${lastRun.graduated} completed. Previous enrollments are now locked.`
-                )}
+              <p className="text-sm text-muted-foreground mt-0.5 tabular-nums">
+                {`উত্তীর্ণ ${formatNumber(lastRun.promoted, 'bn')} জন · একই শ্রেণিতে ${formatNumber(lastRun.retained, 'bn')} জন · সমাপ্ত ${formatNumber(lastRun.graduated, 'bn')} জন। পূর্বের এনরোলমেন্ট লক করা হয়েছে।`}
               </p>
             </div>
           </div>
@@ -488,10 +477,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
               onClick={() => openTargetYearEnrollments(lastRun.toYearId)}
             >
               <span>
-                {pick(
-                  `${lastRun.toYearName} এনরোলমেন্ট দেখুন`,
-                  `View ${lastRun.toYearName} Enrollments`
-                )}
+                {`${lastRun.toYearName} এনরোলমেন্ট দেখুন`}
               </span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Button>
@@ -502,7 +488,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
       {/* 1. Promotion Configuration Bar */}
       <Card className="p-5 space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormField label={pick('উৎস শ্রেণি', 'Source Class')}>
+          <FormField label={'উৎস শ্রেণি'}>
             <Select
               value={classId}
               onChange={(event) => {
@@ -520,8 +506,8 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                 ).length;
                 return (
                   <option key={item.id} value={item.id}>
-                    {locale === 'bn' ? item.nameBn || item.name : item.name} (
-                    {formatNumber(cnt, locale)})
+                    {item.nameBn || item.name} (
+                    {formatNumber(cnt, 'bn')})
                   </option>
                 );
               })}
@@ -529,17 +515,11 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
           </FormField>
 
           <FormField
-            label={pick('লক্ষ্য শিক্ষাবর্ষ (পরবর্তী সেশন)', 'Target Academic Year')}
+            label={'লক্ষ্য শিক্ষাবর্ষ (পরবর্তী সেশন)'}
             hint={
               isTopClass
-                ? pick(
-                    '১০ম শ্রেণির উত্তীর্ণ শিক্ষার্থীরা এসএসসি সমাপ্ত হিসেবে চিহ্নিত হবে।',
-                    'Graduating Class 10 students are marked completed; retained students move to target year.'
-                  )
-                : pick(
-                    `নতুন এনরোলমেন্ট তৈরি হবে → ${classLabel(db, nextClass?.id ?? '', locale)}`,
-                    `New enrollments target → ${classLabel(db, nextClass?.id ?? '', locale)}`
-                  )
+                ? '১০ম শ্রেণির উত্তীর্ণ শিক্ষার্থীরা এসএসসি সমাপ্ত হিসেবে চিহ্নিত হবে।'
+                : `নতুন এনরোলমেন্ট তৈরি হবে → ${classLabel(db, nextClass?.id ?? '', 'bn')}`
             }
           >
             <Select
@@ -550,7 +530,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                 <option key={item.id} value={item.id}>
                   {item.name}
                   {Number(item.name) > Number(sourceYear?.name ?? 0)
-                    ? pick(' · পরবর্তী সেশন', ' · Next session')
+                    ? ' · পরবর্তী সেশন'
                     : ''}
                 </option>
               ))}
@@ -558,13 +538,13 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
           </FormField>
 
           <FormField
-            label={pick('রেফারেন্স পরীক্ষা (ফলাফলভিত্তিক সাজেশন)', 'Reference Exam (Result-Assisted)')}
+            label={'রেফারেন্স পরীক্ষা (ফলাফলভিত্তিক সাজেশন)'}
             hint={
               activeExam
                 ? activeExam.resultStatus === ResultPublicationStatus.PUBLISHED
-                  ? pick('প্রকাশিত ফলাফল ও মেধাক্রম যুক্ত আছে।', 'Published results & merit ranks linked.')
-                  : pick('এই পরীক্ষার ফলাফল এখনো খসড়া পর্যায়ে।', 'Selected exam results are still draft.')
-                : pick('এই শ্রেণির প্রকাশিত ফলাফল নেই — ম্যানুয়াল সিদ্ধান্ত নিন।', 'No published exam for this class — assign manually.')
+                  ? 'প্রকাশিত ফলাফল ও মেধাক্রম যুক্ত আছে।'
+                  : 'এই পরীক্ষার ফলাফল এখনো খসড়া পর্যায়ে।'
+                : 'এই শ্রেণির প্রকাশিত ফলাফল নেই — ম্যানুয়াল সিদ্ধান্ত নিন।'
             }
           >
             <Select
@@ -573,7 +553,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
             >
               {classExams.length > 0 && (
                 <option value="AUTO">
-                  {pick('সর্বশেষ প্রকাশিত পরীক্ষা (স্বয়ংক্রিয়)', 'Latest published exam (Auto)')}
+                  {'সর্বশেষ প্রকাশিত পরীক্ষা (স্বয়ংক্রিয়)'}
                 </option>
               )}
               {classExams.map((ex) => (
@@ -581,7 +561,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                   {ex.name}
                 </option>
               ))}
-              <option value="NONE">{pick('পরীক্ষা ছাড়া (ম্যানুয়াল)', 'No exam (Manual)')}</option>
+              <option value="NONE">{'পরীক্ষা ছাড়া (ম্যানুয়াল)'}</option>
             </Select>
           </FormField>
         </div>
@@ -590,34 +570,34 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
         <div className="grid grid-cols-2 lg:grid-cols-4 border border-border rounded-2xl divide-y lg:divide-y-0 divide-x divide-border bg-surface-muted/30">
           <div className="p-4">
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick('সক্রিয় প্রার্থী', 'Eligible Candidates')}
+              {'সক্রিয় প্রার্থী'}
             </span>
             <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-foreground mt-1">
-              {formatNumber(candidates.length, locale)}
+              {formatNumber(candidates.length, 'bn')}
             </p>
           </div>
           <div className="p-4">
             <span className="text-sm font-semibold text-muted-foreground">
-              {isTopClass ? pick('সমাপ্ত নির্বাচিত', 'Selected to Graduate') : pick('উত্তীর্ণ নির্বাচিত', 'Selected to Promote')}
+              {isTopClass ? 'সমাপ্ত নির্বাচিত' : 'উত্তীর্ণ নির্বাচিত'}
             </span>
             <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-primary mt-1">
-              {formatNumber(isTopClass ? summary.graduateCount : summary.promoteCount, locale)}
+              {formatNumber(isTopClass ? summary.graduateCount : summary.promoteCount, 'bn')}
             </p>
           </div>
           <div className="p-4">
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick('একই শ্রেণিতে (Retained)', 'Selected to Retain')}
+              {'একই শ্রেণিতে (Retained)'}
             </span>
             <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-secondary mt-1">
-              {formatNumber(summary.retainCount, locale)}
+              {formatNumber(summary.retainCount, 'bn')}
             </p>
           </div>
           <div className="p-4">
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick('অনির্বাচিত / স্থগিত', 'Skipped / Pending')}
+              {'অনির্বাচিত / স্থগিত'}
             </span>
             <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-muted-foreground mt-1">
-              {formatNumber(summary.skippedCount, locale)}
+              {formatNumber(summary.skippedCount, 'bn')}
             </p>
           </div>
         </div>
@@ -631,7 +611,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
             {hasResultData && (
               <Button size="sm" variant="secondary" onClick={applyResultAutoSuggest}>
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>{pick('ফলাফল অনুযায়ী অটো-সাজেশন', 'Auto-Suggest from Results')}</span>
+                <span>{'ফলাফল অনুযায়ী অটো-সাজেশন'}</span>
               </Button>
             )}
             <Button
@@ -641,24 +621,24 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
               disabled={candidates.length === 0}
             >
               {isTopClass
-                ? pick('সবাইকে সমাপ্ত নির্বাচন', 'Mark All Graduated')
-                : pick('সবাইকে উত্তীর্ণ নির্বাচন', 'Promote All Active')}
+                ? 'সবাইকে সমাপ্ত নির্বাচন'
+                : 'সবাইকে উত্তীর্ণ নির্বাচন'}
             </Button>
             {summary.selectedTotal > 0 && (
               <Button size="sm" variant="ghost" onClick={() => setChoices({})}>
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>{pick('রিসেট', 'Reset')}</span>
+                <span>{'রিসেট'}</span>
               </Button>
             )}
           </div>
 
           <div className="flex items-center gap-3">
             {summary.hasValidationErrors && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive">
+              <span className="inline-flex items-center gap-1 text-sm font-medium text-destructive">
                 <AlertTriangle className="w-3.5 h-3.5" />
                 {summary.collisionIds.size > 0
-                  ? pick('ডুপ্লিকেট বা অবৈধ রোল ঠিক করুন', 'Fix duplicate/invalid rolls')
-                  : pick('নবম-দশম শ্রেণির বিভাগ নির্বাচন করুন', 'Select stream for Class 9–10')}
+                  ? 'ডুপ্লিকেট বা অবৈধ রোল ঠিক করুন'
+                  : 'নবম-দশম শ্রেণির বিভাগ নির্বাচন করুন'}
               </span>
             )}
             <Button
@@ -670,10 +650,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
               onClick={() => setConfirmOpen(true)}
             >
               <span>
-                {pick(
-                  `সিদ্ধান্ত প্রয়োগ (${formatNumber(summary.selectedTotal, locale)})`,
-                  `Review & Apply (${summary.selectedTotal})`
-                )}
+                {`সিদ্ধান্ত প্রয়োগ (${formatNumber(summary.selectedTotal, 'bn')})`}
               </span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Button>
@@ -684,32 +661,26 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
         {candidates.length === 0 ? (
           <div className="p-10 text-center space-y-2">
             <p className="text-sm font-medium text-foreground">
-              {pick(
-                'এই শ্রেণিতে উত্তরণের জন্য কোনো সক্রিয় এনরোলমেন্ট অবশিষ্ট নেই।',
-                'No active enrollments remain for promotion in this class.'
-              )}
+              {'এই শ্রেণিতে উত্তরণের জন্য কোনো সক্রিয় এনরোলমেন্ট অবশিষ্ট নেই।'}
             </p>
-            <p className="text-xs text-muted-foreground">
-              {pick(
-                'অন্য শ্রেণি নির্বাচন করুন অথবা নিচের প্রমোশন ইতিহাস দেখুন।',
-                'Select another class above or inspect the promotion log below.'
-              )}
+            <p className="text-sm text-muted-foreground">
+              {'অন্য শ্রেণি নির্বাচন করুন অথবা নিচের প্রমোশন ইতিহাস দেখুন।'}
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead className="bg-surface-muted/70 border-b border-border text-xs font-semibold text-muted-foreground">
+            <table className="w-full text-base text-left border-collapse">
+              <thead className="bg-surface-muted/70 border-b border-border text-sm font-semibold text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-3 whitespace-nowrap">{pick('বর্তমান রোল', 'Current')}</th>
-                  <th className="px-4 py-3 whitespace-nowrap">{pick('শিক্ষার্থী', 'Student')}</th>
-                  <th className="px-4 py-3 whitespace-nowrap">{pick('পরীক্ষার অবস্থান', 'Exam Standing')}</th>
-                  <th className="px-4 py-3 whitespace-nowrap">{pick('সিদ্ধান্ত', 'Decision')}</th>
-                  <th className="px-4 py-3 whitespace-nowrap">{pick('লক্ষ্য শ্রেণি ও শাখা', 'Target Placement')}</th>
+                  <th className="px-4 py-3 whitespace-nowrap">{'বর্তমান রোল'}</th>
+                  <th className="px-4 py-3 whitespace-nowrap">{'শিক্ষার্থী'}</th>
+                  <th className="px-4 py-3 whitespace-nowrap">{'পরীক্ষার অবস্থান'}</th>
+                  <th className="px-4 py-3 whitespace-nowrap">{'সিদ্ধান্ত'}</th>
+                  <th className="px-4 py-3 whitespace-nowrap">{'লক্ষ্য শ্রেণি ও শাখা'}</th>
                   {summary.showStreamColumn && (
-                    <th className="px-4 py-3 whitespace-nowrap">{pick('পরবর্তী বিভাগ', 'Target Stream')}</th>
+                    <th className="px-4 py-3 whitespace-nowrap">{'পরবর্তী বিভাগ'}</th>
                   )}
-                  <th className="px-4 py-3 whitespace-nowrap">{pick('নতুন রোল', 'Next Roll')}</th>
+                  <th className="px-4 py-3 whitespace-nowrap">{'নতুন রোল'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -742,14 +713,14 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                         <span className="font-mono font-semibold text-foreground">
                           #{String(enrollment.roll).padStart(2, '0')}
                         </span>
-                        <span className="block text-xs text-muted-foreground">
-                          {pick('শাখা', 'Sec')} {currentSection?.name ?? '—'}
+                        <span className="block text-sm text-muted-foreground">
+                          {'শাখা'} {currentSection?.name ?? '—'}
                         </span>
                       </td>
 
                       <td className="px-4 py-3 min-w-[190px]">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-[var(--radius)] bg-surface-muted border border-border flex items-center justify-center text-xs font-semibold text-foreground shrink-0">
+                          <div className="w-8 h-8 rounded-[var(--radius)] bg-surface-muted border border-border flex items-center justify-center text-sm font-semibold text-foreground shrink-0">
                             {studentInitials(student?.nameEn)}
                           </div>
                           <div className="min-w-0">
@@ -759,7 +730,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                             >
                               {student?.nameBn || student?.nameEn || '—'}
                             </Link>
-                            <span className="block text-xs font-mono text-muted-foreground">
+                            <span className="block text-sm font-mono text-muted-foreground">
                               {student?.studentId}
                             </span>
                           </div>
@@ -771,20 +742,20 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                           <div className="space-y-0.5 tabular-nums">
                             <div className="flex items-center gap-2">
                               <StatusBadge enumName="ResultStatus" value={res.resultStatus} />
-                              <span className="font-mono text-xs font-semibold text-foreground">
+                              <span className="font-mono text-sm font-semibold text-foreground">
                                 GPA {res.gpa != null ? res.gpa.toFixed(2) : '—'}
                               </span>
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-sm text-muted-foreground">
                               {res.letterGrade || '—'}
                               {res.meritPosition
-                                ? ` · ${pick('মেধাক্রম', 'Rank')} #${formatNumber(res.meritPosition, locale)}`
+                                ? ` · ${'মেধাক্রম'} #${formatNumber(res.meritPosition, 'bn')}`
                                 : ''}
                             </p>
                           </div>
                         ) : (
-                          <span className="text-xs text-muted-foreground">
-                            {pick('প্রকাশিত ফল নেই', 'No result')}
+                          <span className="text-sm text-muted-foreground">
+                            {'প্রকাশিত ফল নেই'}
                           </span>
                         )}
                       </td>
@@ -799,18 +770,18 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                           }
                           className="h-9 min-w-[140px] text-sm"
                         >
-                          <option value="SKIP">{pick('এখন নয় (Skip)', 'Skip')}</option>
+                          <option value="SKIP">{'এখন নয় (Skip)'}</option>
                           {!isTopClass && (
                             <option value={PromotionType.PROMOTED}>
-                              {pick('উত্তীর্ণ (Promoted)', 'Promoted')}
+                              {'উত্তীর্ণ (Promoted)'}
                             </option>
                           )}
                           <option value={PromotionType.RETAINED}>
-                            {pick('একই শ্রেণিতে (Retained)', 'Retained')}
+                            {'একই শ্রেণিতে (Retained)'}
                           </option>
                           {isTopClass && (
                             <option value="GRADUATED">
-                              {pick('এসএসসি সমাপ্ত (Graduated)', 'Graduated')}
+                              {'এসএসসি সমাপ্ত (Graduated)'}
                             </option>
                           )}
                         </Select>
@@ -820,7 +791,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                         {moving ? (
                           <div className="flex items-center gap-2 whitespace-nowrap">
                             <span className="text-sm font-semibold text-muted-foreground">
-                              {classLabel(db, targetClassId, locale)}
+                              {classLabel(db, targetClassId, 'bn')}
                             </span>
                             <Select
                               value={choice.sectionId}
@@ -839,11 +810,11 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                             </Select>
                           </div>
                         ) : choice.decision === 'GRADUATED' ? (
-                          <span className="text-xs font-medium text-primary">
-                            {pick('বিদ্যালয় সমাপ্ত (Alumni)', 'Completed (Alumni)')}
+                          <span className="text-sm font-medium text-primary">
+                            {'বিদ্যালয় সমাপ্ত (Alumni)'}
                           </span>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-sm text-muted-foreground">—</span>
                         )}
                       </td>
 
@@ -860,22 +831,22 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                                 missingStream && 'border-destructive'
                               )}
                             >
-                              <option value="">{pick('বিভাগ বাছুন', 'Select stream')}</option>
+                              <option value="">{'বিভাগ বাছুন'}</option>
                               {db.academicGroups.map((g) => (
                                 <option key={g.id} value={g.id}>
-                                  {locale === 'bn' ? g.nameBn || g.name : g.name}
+                                  {g.nameBn || g.name}
                                 </option>
                               ))}
                             </Select>
                           ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
+                            <span className="text-sm text-muted-foreground">—</span>
                           )}
                         </td>
                       )}
 
                       <td className="px-4 py-3">
                         {moving ? (
-                          <Input
+                          <Input placeholder="সংখ্যা লিখুন"
                             type="number"
                             min={1}
                             value={choice.roll}
@@ -888,7 +859,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                             )}
                           />
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-sm text-muted-foreground">—</span>
                         )}
                       </td>
                     </tr>
@@ -906,29 +877,26 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
           <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-2">
             <div>
               <h3 className="text-base font-semibold text-foreground">
-                {pick('সম্পন্ন প্রমোশন ইতিহাস', 'Completed Promotion Log')}
+                {'সম্পন্ন প্রমোশন ইতিহাস'}
               </h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {pick(
-                  `${sourceYear?.name ?? ''} সেশন থেকে পরবর্তী শিক্ষাবর্ষে স্থানান্তরিত শিক্ষার্থীদের অডিট রেকর্ড।`,
-                  `Audit record of students moved from session ${sourceYear?.name ?? ''}.`
-                )}
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {`${sourceYear?.name ?? ''} সেশন থেকে পরবর্তী শিক্ষাবর্ষে স্থানান্তরিত শিক্ষার্থীদের অডিট রেকর্ড।`}
               </p>
             </div>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {formatNumber(sessionPromotionLogs.length, locale)} {pick('টি রেকর্ড', 'records')}
+            <span className="text-sm text-muted-foreground tabular-nums">
+              {formatNumber(sessionPromotionLogs.length, 'bn')} {'টি রেকর্ড'}
             </span>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border-collapse">
-              <thead className="bg-surface-muted/70 border-b border-border text-xs font-semibold text-muted-foreground">
+            <table className="w-full text-base text-left border-collapse">
+              <thead className="bg-surface-muted/70 border-b border-border text-sm font-semibold text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-3">{pick('শিক্ষার্থী', 'Student')}</th>
-                  <th className="px-5 py-3">{pick('পূর্বের এনরোলমেন্ট', 'From')}</th>
-                  <th className="px-5 py-3">{pick('নতুন এনরোলমেন্ট', 'To')}</th>
-                  <th className="px-5 py-3">{pick('ধরন', 'Type')}</th>
-                  <th className="px-5 py-3">{pick('তারিখ', 'Date')}</th>
+                  <th className="px-5 py-3">{'শিক্ষার্থী'}</th>
+                  <th className="px-5 py-3">{'পূর্বের এনরোলমেন্ট'}</th>
+                  <th className="px-5 py-3">{'নতুন এনরোলমেন্ট'}</th>
+                  <th className="px-5 py-3">{'ধরন'}</th>
+                  <th className="px-5 py-3">{'তারিখ'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -941,7 +909,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                       >
                         {log.studentName}
                       </Link>
-                      <span className="block text-xs font-mono text-muted-foreground">
+                      <span className="block text-sm font-mono text-muted-foreground">
                         {log.studentCode}
                       </span>
                     </td>
@@ -954,8 +922,8 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
                     <td className="px-5 py-3">
                       <StatusBadge enumName="PromotionType" value={log.promotionType} />
                     </td>
-                    <td className="px-5 py-3 text-xs text-muted-foreground tabular-nums whitespace-nowrap">
-                      {formatDateShort(log.promotionDate, locale)}
+                    <td className="px-5 py-3 text-sm text-muted-foreground tabular-nums whitespace-nowrap">
+                      {formatDateShort(log.promotionDate, 'bn')}
                     </td>
                   </tr>
                 ))}
@@ -969,53 +937,47 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
       <Modal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        title={pick('প্রমোশন নিশ্চিত করুন', 'Confirm Student Promotion')}
+        title={'প্রমোশন নিশ্চিত করুন'}
         maxWidth="max-w-lg"
       >
         <div className="space-y-4 text-sm">
           <p className="text-muted-foreground leading-relaxed">
-            {pick(
-              `আপনি ${sourceYear?.name ?? ''} সেশনের ${classLabel(db, classId, locale)} থেকে মোট ${formatNumber(summary.selectedTotal, locale)} জন শিক্ষার্থীর সিদ্ধান্ত প্রয়োগ করতে যাচ্ছেন:`,
-              `You are about to process ${summary.selectedTotal} student decisions from ${classLabel(db, classId, locale)} (${sourceYear?.name ?? ''}):`
-            )}
+            {`আপনি ${sourceYear?.name ?? ''} সেশনের ${classLabel(db, classId, 'bn')} থেকে মোট ${formatNumber(summary.selectedTotal, 'bn')} জন শিক্ষার্থীর সিদ্ধান্ত প্রয়োগ করতে যাচ্ছেন:`}
           </p>
 
           <div className="p-4 rounded-[var(--radius)] border border-border bg-surface-muted/40 space-y-2 text-sm tabular-nums">
             {summary.promoteCount > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">
-                  {pick('উত্তীর্ণ (Promoted)', 'Promoted')} →{' '}
-                  {classLabel(db, nextClass?.id ?? '', locale)} ({targetYear?.name})
+                  {'উত্তীর্ণ (Promoted)'} →{' '}
+                  {classLabel(db, nextClass?.id ?? '', 'bn')} ({targetYear?.name})
                 </span>
-                <strong className="text-primary">{formatNumber(summary.promoteCount, locale)}</strong>
+                <strong className="text-primary">{formatNumber(summary.promoteCount, 'bn')}</strong>
               </div>
             )}
             {summary.retainCount > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">
-                  {pick('একই শ্রেণিতে (Retained)', 'Retained')} →{' '}
-                  {classLabel(db, classId, locale)} ({targetYear?.name})
+                  {'একই শ্রেণিতে (Retained)'} →{' '}
+                  {classLabel(db, classId, 'bn')} ({targetYear?.name})
                 </span>
-                <strong className="text-secondary">{formatNumber(summary.retainCount, locale)}</strong>
+                <strong className="text-secondary">{formatNumber(summary.retainCount, 'bn')}</strong>
               </div>
             )}
             {summary.graduateCount > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">
-                  {pick('এসএসসি সমাপ্ত (Graduated)', 'Graduated')}
+                  {'এসএসসি সমাপ্ত (Graduated)'}
                 </span>
                 <strong className="text-foreground">
-                  {formatNumber(summary.graduateCount, locale)}
+                  {formatNumber(summary.graduateCount, 'bn')}
                 </strong>
               </div>
             )}
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            {pick(
-              'নিশ্চিত করলে পূর্বের সেশনের এনরোলমেন্টগুলো ইতিহাস হিসেবে লক হয়ে যাবে এবং নতুন সেশনের সক্রিয় এনরোলমেন্ট তৈরি হবে।',
-              'Once confirmed, previous session enrollments will be locked as history and active enrollments will be created in the target year.'
-            )}
+          <p className="text-sm text-muted-foreground">
+            {'নিশ্চিত করলে পূর্বের সেশনের এনরোলমেন্টগুলো ইতিহাস হিসেবে লক হয়ে যাবে এবং নতুন সেশনের সক্রিয় এনরোলমেন্ট তৈরি হবে।'}
           </p>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
@@ -1025,7 +987,7 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
               onClick={() => setConfirmOpen(false)}
               disabled={isLoading}
             >
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button
               type="button"
@@ -1034,8 +996,8 @@ export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: st
               disabled={isLoading}
             >
               {isLoading
-                ? pick('প্রক্রিয়া চলছে...', 'Processing...')
-                : pick('নিশ্চিত ও প্রয়োগ করুন', 'Confirm & Apply')}
+                ? 'প্রক্রিয়া চলছে...'
+                : 'নিশ্চিত ও প্রয়োগ করুন'}
             </Button>
           </div>
         </div>

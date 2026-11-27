@@ -3,7 +3,6 @@
 import React, { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import { setSelectedAcademicYear } from '@/src/store/slices/uiSlice';
-import { useI18n } from '@/src/lib/i18n';
 import { Card, FormField, Select } from '@/src/components/ui';
 import type { AcademicYear } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
@@ -49,12 +48,11 @@ export function AcademicYearBar({
   selected?: AcademicYear;
 }) {
   const dispatch = useAppDispatch();
-  const { pick } = useI18n();
   if (!selected) return null;
 
   return (
     <Card className="p-4 flex flex-wrap items-end justify-between gap-3">
-      <FormField label={pick('যে শিক্ষাবর্ষ নিয়ে কাজ করছেন', 'Academic year in view')}>
+      <FormField label={'যে শিক্ষাবর্ষ নিয়ে কাজ করছেন'}>
         <Select
           value={selected.id}
           onChange={(event) => dispatch(setSelectedAcademicYear(event.target.value))}
@@ -63,16 +61,13 @@ export function AcademicYearBar({
           {years.map((year) => (
             <option key={year.id} value={year.id}>
               {year.name}
-              {year.isActive ? pick(' · সক্রিয়', ' · Active') : ''}
+              {year.isActive ? ' · সক্রিয়' : ''}
             </option>
           ))}
         </Select>
       </FormField>
       <p className="text-sm text-muted-foreground pb-2">
-        {pick(
-          'রুটিন, বিষয় বণ্টন ও শিক্ষক তালিকা এই বছর অনুযায়ী দেখাবে। সক্রিয় বছর আলাদা — সেটাই চলতি সেশন।',
-          'Routines, subject maps, and teacher lists follow this year. The active year is the current session.'
-        )}
+        {'রুটিন, বিষয় বণ্টন ও শিক্ষক তালিকা এই বছর অনুযায়ী দেখাবে। সক্রিয় বছর আলাদা — সেটাই চলতি সেশন।'}
       </p>
     </Card>
   );

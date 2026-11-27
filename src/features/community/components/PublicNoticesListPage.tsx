@@ -32,7 +32,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { MasonryPhotoAlbum } from 'react-photo-album';
 
 import { useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -59,7 +58,6 @@ import { cn } from '@/src/lib/utils/cn';
 type NoticeTab = 'all' | 'urgent';
 
 export function PublicNoticesListPage() {
-  const { locale, pick } = useI18n();
   const [searchParams] = useSearchParams();
 
   const [noticeTab, setNoticeTab] = useState<NoticeTab>(
@@ -118,10 +116,7 @@ export function PublicNoticesListPage() {
     return pages;
   };
 
-  const paginationSummary = pick(
-    `মোট ${formatNumber(totalFiltered, 'bn')} টি তথ্য · পৃষ্ঠা ${formatNumber(safePageIndex + 1, 'bn')} / ${formatNumber(pageCount, 'bn')}`,
-    `Showing ${totalFiltered} records · Page ${safePageIndex + 1} of ${pageCount}`
-  );
+  const paginationSummary = `মোট ${formatNumber(totalFiltered, 'bn')} টি তথ্য · পৃষ্ঠা ${formatNumber(safePageIndex + 1, 'bn')} / ${formatNumber(pageCount, 'bn')}`;
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-8 space-y-6">
@@ -131,38 +126,35 @@ export function PublicNoticesListPage() {
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-emerald-800 dark:text-emerald-400">
               <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-              <span>{pick('অফিসিয়াল নোটিশ পোর্টাল', 'Official Circular Portal')}</span>
+              <span>{'অফিসিয়াল নোটিশ পোর্টাল'}</span>
               <span className="text-muted-foreground/40" aria-hidden="true">·</span>
-              <span>{pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}</span>
+              <span>{'ভোজেশ্বর উচ্চ বিদ্যালয়'}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
               <FileText className="w-8 h-8 text-[#0c5936] dark:text-emerald-500 shrink-0" />
-              <span>{pick('প্রাতিষ্ঠানিক নোটিশ বোর্ড', 'Institutional Notice Board')}</span>
+              <span>{'প্রাতিষ্ঠানিক নোটিশ বোর্ড'}</span>
             </h1>
             <p className="text-base text-muted-foreground max-w-3xl leading-relaxed">
-              {pick(
-                'ভোজেশ্বর উচ্চ বিদ্যালয়ের সকল প্রাতিষ্ঠানিক আদেশ, পরীক্ষা, ফলাফল, ভর্তি ও শিক্ষা বোর্ডের জরুরি বিজ্ঞপ্তি সমূহ।',
-                'Official circulars, exam schedules, results, admissions, and educational board notices for Bhojeshwar High School.'
-              )}
+              {'ভোজেশ্বর উচ্চ বিদ্যালয়ের সকল প্রাতিষ্ঠানিক আদেশ, পরীক্ষা, ফলাফল, ভর্তি ও শিক্ষা বোর্ডের জরুরি বিজ্ঞপ্তি সমূহ।'}
             </p>
           </div>
 
           {/* Valid Institutional Stats */}
           <div className="flex items-center gap-3 shrink-0">
             <div className="px-5 py-3 rounded-xl bg-surface-muted/60 border border-border text-center min-w-[110px]">
-              <span className="block text-xs text-muted-foreground font-medium">
-                {pick('মোট বিজ্ঞপ্তি', 'Total Notices')}
+              <span className="block text-sm text-muted-foreground font-medium">
+                {'মোট বিজ্ঞপ্তি'}
               </span>
               <span className="text-xl font-bold text-[#0c5936] dark:text-emerald-400 tabular-nums">
-                {totals ? formatNumber(totals.meta.total, locale) : '?'}
+                {totals ? formatNumber(totals.meta.total, 'bn') : '?'}
               </span>
             </div>
             <div className="px-5 py-3 rounded-xl bg-destructive/10 border border-destructive/20 text-center min-w-[110px]">
-              <span className="block text-xs text-destructive font-medium">
-                {pick('জরুরি বিজ্ঞপ্তি', 'Urgent Notices')}
+              <span className="block text-sm text-destructive font-medium">
+                {'জরুরি বিজ্ঞপ্তি'}
               </span>
               <span className="text-xl font-bold text-destructive tabular-nums">
-                {urgentTotals ? formatNumber(urgentTotals.meta.total, locale) : '?'}
+                {urgentTotals ? formatNumber(urgentTotals.meta.total, 'bn') : '?'}
               </span>
             </div>
           </div>
@@ -192,7 +184,7 @@ export function PublicNoticesListPage() {
                       : 'text-muted-foreground hover:text-foreground hover:bg-surface'
                   )}
                 >
-                  {locale === 'bn' ? tab.labelBn : tab.labelEn}
+                  {tab.labelBn}
                 </button>
               );
             })}
@@ -207,7 +199,7 @@ export function PublicNoticesListPage() {
                 setNoticeQuery(e.target.value);
                 setPageIndex(0);
               }}
-              placeholder={pick('স্মারক বা বিষয় খুঁজুন...', 'Search memo or title...')}
+              placeholder={'স্মারক বা বিষয় খুঁজুন...'}
               className="w-full h-9 pl-9 pr-3 text-sm bg-surface border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary shadow-2xs"
             />
           </div>
@@ -219,16 +211,16 @@ export function PublicNoticesListPage() {
             <thead>
               <tr className="border-b border-border bg-surface-muted/60 text-foreground font-bold text-base tracking-wide">
                 <th className="py-3.5 px-4 text-center border-r border-border w-16 shrink-0">
-                  {pick('নং', 'SL')}
+                  {'নং'}
                 </th>
                 <th className="py-3.5 px-6 text-left border-r border-border">
-                  {pick('বিজ্ঞপ্তির বিষয় ও স্মারক', 'Notice Title & Memo')}
+                  {'বিজ্ঞপ্তির বিষয় ও স্মারক'}
                 </th>
                 <th className="py-3.5 px-4 text-center border-r border-border w-36 sm:w-44 shrink-0">
-                  {pick('প্রকাশের তারিখ', 'Publish Date')}
+                  {'প্রকাশের তারিখ'}
                 </th>
                 <th className="py-3.5 px-5 text-center w-40 shrink-0">
-                  {pick('কার্যকলাপ', 'Action')}
+                  {'কার্যকলাপ'}
                 </th>
               </tr>
             </thead>
@@ -242,7 +234,7 @@ export function PublicNoticesListPage() {
                   const month = String(pubDate.getMonth() + 1).padStart(2, '0');
                   const year = pubDate.getFullYear();
                   const rawDate = `${day}-${month}-${year}`;
-                  const formattedDate = locale === 'bn' ? formatNumber(rawDate, 'bn') : rawDate;
+                  const formattedDate = formatNumber(rawDate, 'bn');
 
                   return (
                     <tr
@@ -252,7 +244,7 @@ export function PublicNoticesListPage() {
                       {/* নং */}
                       <td className="py-4 px-3 text-center border-r border-border tabular-nums font-semibold text-base text-foreground">
                         <span className="inline-block pl-4">
-                          {formatNumber(serial, locale)}
+                          {formatNumber(serial, 'bn')}
                         </span>
                       </td>
 
@@ -268,17 +260,17 @@ export function PublicNoticesListPage() {
                               {n.title}
                             </Link>
 
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                               {showNewBadge && (
-                                <span className="px-2 py-0.5 rounded-sm bg-[#D32F2F] text-white text-[12px] font-bold leading-none">
-                                  {pick('নতুন', 'New')}
+                                <span className="px-2 py-0.5 rounded-sm bg-[#D32F2F] text-white text-xs font-bold leading-none">
+                                  {'নতুন'}
                                 </span>
                               )}
-                              <span className="px-2 py-0.5 rounded-sm bg-surface-muted border border-border text-[12px] font-medium text-foreground">
-                                {n.isUrgent ? pick('জরুরি', 'Urgent') : pick('সাধারণ', 'General')}
+                              <span className="px-2 py-0.5 rounded-sm bg-surface-muted border border-border text-xs font-medium text-foreground">
+                                {n.isUrgent ? 'জরুরি' : 'সাধারণ'}
                               </span>
                               {n.memoNo && (
-                                <span className="text-[12px] text-muted-foreground font-mono">
+                                <span className="text-sm text-muted-foreground font-mono">
                                   {n.memoNo}
                                 </span>
                               )}
@@ -302,18 +294,18 @@ export function PublicNoticesListPage() {
                             href={`/notices/${n.id}`}
                             className="inline-flex items-center gap-1 text-base font-semibold text-primary hover:underline transition-colors"
                           >
-                            <span>{pick('বিস্তারিত', 'View')}</span>
+                            <span>{'বিস্তারিত'}</span>
                             <ArrowRight className="w-3.5 h-3.5" />
                           </Link>
                           <span className="text-muted-foreground/30">|</span>
                           <button
                             type="button"
-                            onClick={() => downloadNoticeDocument(n, undefined, locale, false)}
-                            title={pick('ডাউনলোড করুন', 'Download')}
+                            onClick={() => downloadNoticeDocument(n, undefined, 'bn', false)}
+                            title={'ডাউনলোড করুন'}
                             className="inline-flex items-center gap-1 text-base font-semibold text-primary hover:underline cursor-pointer transition-colors"
                           >
                             <Download className="w-3.5 h-3.5" />
-                            <span>{pick('ডাউনলোড', 'Download')}</span>
+                            <span>{'ডাউনলোড'}</span>
                           </button>
                         </div>
                       </td>
@@ -328,12 +320,12 @@ export function PublicNoticesListPage() {
           <div className="border-t border-border px-4 py-16 text-center text-base text-muted-foreground">
             {isFetching ? <LoadingSkeleton /> : isError ? (
               <div role="alert" className="flex flex-wrap items-center justify-center gap-3">
-                <span>{pick('বিজ্ঞপ্তি লোড করা যায়নি।', 'Could not load notices.')}</span>
+                <span>{'বিজ্ঞপ্তি লোড করা যায়নি।'}</span>
                 <Button type="button" variant="outline" size="sm" onClick={() => void refetch()}>
-                  {pick('আবার চেষ্টা', 'Retry')}
+                  {'আবার চেষ্টা'}
                 </Button>
               </div>
-            ) : pick('কোনো বিজ্ঞপ্তি পাওয়া যায়নি।', 'No notices found.')}
+            ) : 'কোনো বিজ্ঞপ্তি পাওয়া যায়নি।'}
           </div>
         )}
 
@@ -349,7 +341,7 @@ export function PublicNoticesListPage() {
               className="cursor-pointer text-sm"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>{locale === 'bn' ? 'পূর্ববর্তী' : 'Prev'}</span>
+              <span>{'পূর্ববর্তী'}</span>
             </Button>
 
             {/* Page number buttons */}
@@ -371,7 +363,7 @@ export function PublicNoticesListPage() {
                   onClick={() => setPageIndex(pageNum - 1)}
                   className="min-w-[34px] px-2 tabular-nums cursor-pointer text-sm"
                 >
-                  {formatNumber(pageNum, locale)}
+                  {formatNumber(pageNum, 'bn')}
                 </Button>
               );
             })}
@@ -383,7 +375,7 @@ export function PublicNoticesListPage() {
               disabled={safePageIndex >= pageCount - 1}
               className="cursor-pointer text-sm"
             >
-              <span>{locale === 'bn' ? 'পরবর্তী' : 'Next'}</span>
+              <span>{'পরবর্তী'}</span>
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>

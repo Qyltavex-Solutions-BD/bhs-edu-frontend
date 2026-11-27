@@ -32,7 +32,6 @@ import {
   useSaveMarksBatchMutation,
 } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -84,8 +83,6 @@ function getAssignmentSubject(db: MockDatabase, classSubjectId: string) {
 export function TeacherExaminationsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const teacher = useCurrentTeacher(db);
-  const { locale, pick } = useI18n();
-
   if (isLoading || !db || !teacher) return <LoadingSkeleton />;
   const myClassIds = Array.from(
     new Set(db.teacherAssignments.filter((a) => a.staffId === teacher.id).map((a) => a.classId))
@@ -95,13 +92,13 @@ export function TeacherExaminationsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('পরীক্ষা ও সময়সূচি', 'Examinations & Schedules')}
-        description={pick('আপনার নির্ধারিত শ্রেণিসমূহের পরীক্ষাসমূহ', 'Examinations for your assigned classes')}
+        title={'পরীক্ষা ও সময়সূচি'}
+        description={'আপনার নির্ধারিত শ্রেণিসমূহের পরীক্ষাসমূহ'}
         actions={
           <Link href="/teacher/marks-entry">
             <Button variant="primary" size="sm">
               <FileSpreadsheet className="w-4 h-4" />
-              {pick('নম্বর এন্ট্রি করুন', 'Go to Marks Entry')}
+              {'নম্বর এন্ট্রি করুন'}
             </Button>
           </Link>
         }
@@ -116,8 +113,8 @@ export function TeacherExaminationsPage() {
                 <div>
                   <h3 className="text-base font-bold">{ex.name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name} ·{' '}
-                    {formatDateShort(ex.startDate, locale)} – {formatDateShort(ex.endDate, locale)}
+                    {cls?.nameBn || cls?.name} ·{' '}
+                    {formatDateShort(ex.startDate, 'bn')} – {formatDateShort(ex.endDate, 'bn')}
                   </p>
                 </div>
                 <StatusBadge enumName="ResultPublicationStatus" value={ex.resultStatus} />
@@ -125,11 +122,11 @@ export function TeacherExaminationsPage() {
               <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t border-border">
                 <span>
                   {ex.isLocked
-                    ? pick('নম্বর লক করা আছে', 'Marks Locked')
-                    : pick('নম্বর এন্ট্রি উন্মুক্ত', 'Marks Entry Open')}
+                    ? 'নম্বর লক করা আছে'
+                    : 'নম্বর এন্ট্রি উন্মুক্ত'}
                 </span>
                 <Link href="/teacher/marks-entry" className="text-primary font-semibold hover:underline">
-                  {pick('নম্বর দেখুন / এন্ট্রি করুন', 'Open Marks Sheet')}
+                  {'নম্বর দেখুন / এন্ট্রি করুন'}
                 </Link>
               </div>
             </Card>

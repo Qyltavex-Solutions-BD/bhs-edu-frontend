@@ -27,7 +27,6 @@ import {
   useUpdateSchoolProfileMutation,
 } from '@/src/store/api';
 import { PrintableIdCardSheet } from '@/src/components/print/PrintDocuments';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import {
@@ -188,7 +187,6 @@ export function AdminAcademicPage({
   const [addSyllabusEntry, { isLoading: addingSyllabusEntry }] = useAddSyllabusEntryMutation();
   const [removeSyllabusEntry] = useRemoveSyllabusEntryMutation();
   const [removeSyllabusFile] = useRemoveSyllabusFileMutation();
-  const { locale, pick } = useI18n();
   const [tab, setTab] = useState(defaultTab);
   const [syllabusFileForm, setSyllabusFileForm] = useState<{
     classId: string;
@@ -280,11 +278,11 @@ export function AdminAcademicPage({
   const handleUploadSyllabusFile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedYear) {
-      toast.error(pick('আগে একটি শিক্ষাবর্ষ নির্বাচন করুন।', 'Select an academic year first.'));
+      toast.error('আগে একটি শিক্ষাবর্ষ নির্বাচন করুন।');
       return;
     }
     if (!syllabusFileForm.title.trim() || !syllabusFileForm.fileName) {
-      toast.error(pick('অনুগ্রহ করে শিরোনাম ও সিলেবাস ফাইল নির্বাচন করুন।', 'Please provide a title and select a file.'));
+      toast.error('অনুগ্রহ করে শিরোনাম ও সিলেবাস ফাইল নির্বাচন করুন।');
       return;
     }
     try {
@@ -301,7 +299,7 @@ export function AdminAcademicPage({
         publishedAt: new Date().toISOString().slice(0, 10),
         isPublished: true,
       }).unwrap();
-      toast.success(pick('সিলেবাস ফাইল সফলভাবে প্রকাশিত হয়েছে।', 'Syllabus file published successfully.'));
+      toast.success('সিলেবাস ফাইল সফলভাবে প্রকাশিত হয়েছে।');
       setSyllabusModal(null);
       setSyllabusFileForm((prev) => ({
         ...prev,
@@ -313,7 +311,7 @@ export function AdminAcademicPage({
     } catch (err) {
       toast.error(
         (err as { message?: string })?.message ??
-          pick('সিলেবাস ফাইল সংরক্ষণে সমস্যা হয়েছে।', 'Failed to save syllabus file.')
+          'সিলেবাস ফাইল সংরক্ষণে সমস্যা হয়েছে।'
       );
     }
   };
@@ -321,20 +319,17 @@ export function AdminAcademicPage({
   const handleAddSyllabusEntry = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedYear) {
-      toast.error(pick('আগে একটি শিক্ষাবর্ষ নির্বাচন করুন।', 'Select an academic year first.'));
+      toast.error('আগে একটি শিক্ষাবর্ষ নির্বাচন করুন।');
       return;
     }
     if (!syllabusEntryForm.chaptersBn.trim()) {
-      toast.error(pick('নির্ধারিত অধ্যায়ের বিবরণ লিখুন।', 'Please enter chapter scope details.'));
+      toast.error('নির্ধারিত অধ্যায়ের বিবরণ লিখুন।');
       return;
     }
     const allowedSubjects = curriculumSubjectsFor(syllabusEntryForm.classId, syllabusEntryForm.groupId);
     if (!allowedSubjects.some((subject) => subject.id === syllabusEntryForm.subjectId)) {
       toast.error(
-        pick(
-          'এই বিষয়টি ওই শ্রেণির এই শিক্ষাবর্ষের পাঠ্যতালিকায় নেই।',
-          'That subject is not on this class curriculum for the year.'
-        )
+        'এই বিষয়টি ওই শ্রেণির এই শিক্ষাবর্ষের পাঠ্যতালিকায় নেই।'
       );
       return;
     }
@@ -351,13 +346,13 @@ export function AdminAcademicPage({
         marksBreakdownEn: syllabusEntryForm.marksBreakdownBn.trim() || 'Total Marks: 100',
         displayOrder: db.syllabusEntries.length + 1,
       }).unwrap();
-      toast.success(pick('অধ্যায়ভিত্তিক সিলেবাস যুক্ত হয়েছে।', 'Chapter-wise syllabus entry added.'));
+      toast.success('অধ্যায়ভিত্তিক সিলেবাস যুক্ত হয়েছে।');
       setSyllabusModal(null);
       setSyllabusEntryForm((prev) => ({ ...prev, chaptersBn: '' }));
     } catch (err) {
       toast.error(
         (err as { message?: string })?.message ??
-          pick('সিলেবাস এন্ট্রি যুক্ত করতে ব্যর্থ হয়েছে।', 'Failed to add syllabus entry.')
+          'সিলেবাস এন্ট্রি যুক্ত করতে ব্যর্থ হয়েছে।'
       );
     }
   };
@@ -365,25 +360,25 @@ export function AdminAcademicPage({
   const handleRemoveSyllabusFile = async (id: string) => {
     try {
       await removeSyllabusFile({ id }).unwrap();
-      toast.success(pick('সিলেবাস ফাইল মুছে ফেলা হয়েছে।', 'Syllabus file removed.'));
+      toast.success('সিলেবাস ফাইল মুছে ফেলা হয়েছে।');
     } catch (err) {
-      toast.error((err as { message?: string })?.message ?? pick('ফাইল মোছা যায়নি।', 'Could not remove the file.'));
+      toast.error((err as { message?: string })?.message ?? 'ফাইল মোছা যায়নি।');
     }
   };
 
   const handleRemoveSyllabusEntry = async (id: string) => {
     try {
       await removeSyllabusEntry({ id }).unwrap();
-      toast.success(pick('অধ্যায়ের সারি মুছে ফেলা হয়েছে।', 'Chapter row removed.'));
+      toast.success('অধ্যায়ের সারি মুছে ফেলা হয়েছে।');
     } catch (err) {
-      toast.error((err as { message?: string })?.message ?? pick('সারি মোছা যায়নি।', 'Could not remove the row.'));
+      toast.error((err as { message?: string })?.message ?? 'সারি মোছা যায়নি।');
     }
   };
 
   return (
     <AcademicShell
-      title={pick(PAGE_COPY[tab].titleBn, PAGE_COPY[tab].titleEn)}
-      description={pick(PAGE_COPY[tab].descBn, PAGE_COPY[tab].descEn)}
+      title={PAGE_COPY[tab].titleBn}
+      description={PAGE_COPY[tab].descBn}
       years={yearList ?? db.academicYears}
       selectedYear={selectedYear}
       showYear={PAGE_COPY[tab].year}

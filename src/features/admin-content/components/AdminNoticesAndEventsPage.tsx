@@ -34,7 +34,6 @@ import {
 } from '@/src/store/api';
 import { useCreateNoticeMutation, useGetAdminNoticesQuery, useGetAdminNoticeDocumentMutation, useUpdateNoticeMutation, useDeleteNoticeMutation } from '@/src/features/notices/api/notices.api';
 import { noticeSchema } from '@/src/features/notices/schemas';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { LoadingSkeleton, PageHeader } from '@/src/components/shared/Feedback';
@@ -71,7 +70,6 @@ export function AdminNoticesAndEventsPage({
   const [toggleCms] = useToggleCmsItemMutation();
   const [upsertCms, { isLoading: savingCms }] = useUpsertCmsItemMutation();
   const [deleteCms] = useDeleteCmsItemMutation();
-  const { locale, pick } = useI18n();
   const [tab, setTab] = useState(defaultTab);
   const { data: db, isLoading } = useGetBootstrapQuery(undefined, { skip: tab === 'notices' });
   const [composerOpen, setComposerOpen] = useState(openComposer);
@@ -205,7 +203,7 @@ export function AdminNoticesAndEventsPage({
     }
 
     if (document && document.size > 25 * 1024 * 1024) {
-      toast.error(pick('সর্বোচ্চ ২৫ MB পর্যন্ত ফাইল নির্বাচন করুন।', 'Select a file up to 25 MB.'));
+      toast.error('সর্বোচ্চ ২৫ MB পর্যন্ত ফাইল নির্বাচন করুন।');
       return;
     }
     const targetAudiences = fields.data.audiences ?? [NoticeAudience.PUBLIC];
@@ -248,22 +246,19 @@ export function AdminNoticesAndEventsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('নোটিশ, সংবাদ, অনুষ্ঠান ও নিয়োগ', 'Notices, News, Events & Careers')}
-        description={pick(
-          'পাবলিক ওয়েবসাইটের নোটিশ বোর্ড, বিদ্যালয় সংবাদ, অনুষ্ঠান সূচি এবং নিয়োগ বিজ্ঞপ্তি এখান থেকে প্রকাশ ও সম্পাদনা করুন।',
-          'Publish and edit official notices, campus news, events, and career circulars for the public website.'
-        )}
+        title={'নোটিশ, সংবাদ, অনুষ্ঠান ও নিয়োগ'}
+        description={'পাবলিক ওয়েবসাইটের নোটিশ বোর্ড, বিদ্যালয় সংবাদ, অনুষ্ঠান সূচি এবং নিয়োগ বিজ্ঞপ্তি এখান থেকে প্রকাশ ও সম্পাদনা করুন।'}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Link href="/notices" target="_blank" rel="noopener noreferrer">
               <Button variant="outline" size="sm" className="whitespace-nowrap">
                 <ExternalLink className="w-4 h-4" />
-                {pick('পাবলিক নোটিশ বোর্ড', 'Public Notices')}
+                {'পাবলিক নোটিশ বোর্ড'}
               </Button>
             </Link>
             {tab === 'notices' && (
               <Button variant="primary" size="sm" onClick={() => setComposerOpen(true)} className="whitespace-nowrap">
-                <Plus className="w-4 h-4" /> {pick('নতুন নোটিশ প্রকাশ', 'Publish Notice')}
+                <Plus className="w-4 h-4" /> {'নতুন নোটিশ প্রকাশ'}
               </Button>
             )}
             {tab === 'news' && (
@@ -276,7 +271,7 @@ export function AdminNoticesAndEventsPage({
                 }}
                 className="whitespace-nowrap"
               >
-                <Plus className="w-4 h-4" /> {pick('নতুন সংবাদ যুক্ত', 'Add News')}
+                <Plus className="w-4 h-4" /> {'নতুন সংবাদ যুক্ত'}
               </Button>
             )}
             {tab === 'events' && (
@@ -296,7 +291,7 @@ export function AdminNoticesAndEventsPage({
                 }}
                 className="whitespace-nowrap"
               >
-                <Plus className="w-4 h-4" /> {pick('নতুন অনুষ্ঠান যুক্ত', 'Add Event')}
+                <Plus className="w-4 h-4" /> {'নতুন অনুষ্ঠান যুক্ত'}
               </Button>
             )}
             {tab === 'careers' && (
@@ -309,7 +304,7 @@ export function AdminNoticesAndEventsPage({
                 }}
                 className="whitespace-nowrap"
               >
-                <Plus className="w-4 h-4" /> {pick('নতুন নিয়োগ বিজ্ঞপ্তি', 'Add Career Post')}
+                <Plus className="w-4 h-4" /> {'নতুন নিয়োগ বিজ্ঞপ্তি'}
               </Button>
             )}
           </div>
@@ -320,47 +315,47 @@ export function AdminNoticesAndEventsPage({
         value={tab}
         onChange={setTab}
         items={[
-          { value: 'notices', label: pick('নোটিশ', 'Notices'), count: noticeList?.meta.total },
-          { value: 'news', label: pick('সংবাদ', 'News'), count: db?.news?.length },
-          { value: 'events', label: pick('অনুষ্ঠান', 'Events'), count: db?.events?.length },
-          { value: 'careers', label: pick('নিয়োগ', 'Careers'), count: db?.careers?.length },
+          { value: 'notices', label: 'নোটিশ', count: noticeList?.meta.total },
+          { value: 'news', label: 'সংবাদ', count: db?.news?.length },
+          { value: 'events', label: 'অনুষ্ঠান', count: db?.events?.length },
+          { value: 'careers', label: 'নিয়োগ', count: db?.careers?.length },
         ]}
       />
 
       {tab === 'notices' && (
         <Card className="divide-y divide-border">
           <div className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_12rem_13rem]">
-            <FormField label={pick('বিজ্ঞপ্তি খুঁজুন', 'Search notices')}>
+            <FormField label={'বিজ্ঞপ্তি খুঁজুন'}>
               <div className="relative">
                 <Search aria-hidden="true" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input type="search" value={noticeSearch} className="pl-9"
-                  placeholder={pick('শিরোনাম বা স্মারক নম্বর', 'Title or memo number')}
+                  placeholder={'শিরোনাম বা স্মারক নম্বর'}
                   onChange={(event) => { setNoticeSearch(event.target.value); setNoticePage(1); }} />
               </div>
             </FormField>
-            <FormField label={pick('প্রাপক / অডিয়েন্স', 'Audience')}>
+            <FormField label={'প্রাপক / অডিয়েন্স'}>
               <Select
-                aria-label={pick('প্রাপক', 'Filter by audience')}
+                aria-label={'প্রাপক'}
                 value={audienceFilter}
                 onChange={(e) => {
                   setAudienceFilter(e.target.value as NoticeAudience | '');
                   setNoticePage(1);
                 }}
               >
-                <option value="">{pick('সকল প্রাপক', 'All audiences')}</option>
+                <option value="">{'সকল প্রাপক'}</option>
                 {AUDIENCE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {pick(opt.labelBn, opt.labelEn)}
+                    {opt.labelBn}
                   </option>
                 ))}
               </Select>
             </FormField>
-            <FormField label={pick('\u0985\u09ac\u09b8\u09cd\u09a5\u09be', 'Filter by status')}>
-              <Select aria-label={pick('অবস্থা', 'Filter by status')} value={statusFilter} onChange={(e) => {
+            <FormField label={'\u0985\u09ac\u09b8\u09cd\u09a5\u09be'}>
+              <Select aria-label={'অবস্থা'} value={statusFilter} onChange={(e) => {
                 setStatusFilter(e.target.value as NoticeStatus | '');
                 setNoticePage(1);
               }}>
-                <option value="">{pick('সকল অবস্থা', 'All statuses')}</option>
+                <option value="">{'সকল অবস্থা'}</option>
                 {Object.values(NoticeStatus).map((status) => <option key={status} value={status}>{status}</option>)}
               </Select>
             </FormField>
@@ -369,11 +364,11 @@ export function AdminNoticesAndEventsPage({
             <table className="w-full text-base">
               <thead className="bg-surface-muted text-sm text-muted-foreground">
                 <tr>
-                  <th scope="col" className="p-3.5 text-left font-semibold">{pick('বিষয়', 'Notice')}</th>
-                  <th scope="col" className="p-3.5 text-left font-semibold">{pick('স্মারক নং', 'Memo No.')}</th>
-                  <th scope="col" className="p-3.5 text-left font-semibold">{pick('তারিখ', 'Date')}</th>
-                  <th scope="col" className="p-3.5 text-left font-semibold">{pick('অবস্থা', 'Status')}</th>
-                  <th scope="col" className="p-3.5 text-right font-semibold">{pick('ব্যবস্থাপনা', 'Actions')}</th>
+                  <th scope="col" className="p-3.5 text-left font-semibold">{'বিষয়'}</th>
+                  <th scope="col" className="p-3.5 text-left font-semibold">{'স্মারক নং'}</th>
+                  <th scope="col" className="p-3.5 text-left font-semibold">{'তারিখ'}</th>
+                  <th scope="col" className="p-3.5 text-left font-semibold">{'অবস্থা'}</th>
+                  <th scope="col" className="p-3.5 text-right font-semibold">{'ব্যবস্থাপনা'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -410,13 +405,10 @@ export function AdminNoticesAndEventsPage({
                     <td colSpan={5} className="py-12 px-4 text-center">
                       <div className="mx-auto max-w-sm space-y-2">
                         <p role="alert" className="text-base font-semibold text-destructive">
-                          {pick('নোটিশ লোড করা যায়নি', 'Could not load notices')}
+                          {'নোটিশ লোড করা যায়নি'}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {pick(
-                            'সার্ভারের সাথে সংযোগে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।',
-                            'There was a problem connecting to the server. Please try again.'
-                          )}
+                          {'সার্ভারের সাথে সংযোগে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।'}
                         </p>
                       </div>
                     </td>
@@ -431,18 +423,12 @@ export function AdminNoticesAndEventsPage({
                         </div>
                         <div className="space-y-1">
                           <p className="text-base font-semibold text-foreground">
-                            {pick('কোনো নোটিশ পাওয়া যায়নি', 'No matching notices found')}
+                            {'কোনো নোটিশ পাওয়া যায়নি'}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {noticeSearch || statusFilter
-                              ? pick(
-                                  'আপনার অনুসন্ধান বা নির্বাচিত ফিল্টারের সাথে কোনো নোটিশ মেলেনি।',
-                                  'No notices match your current search or status filter.'
-                                )
-                              : pick(
-                                  'এখনো কোনো নোটিশ প্রকাশ বা সংরক্ষণ করা হয়নি।',
-                                  'No notices have been published or saved yet.'
-                                )}
+                              ? 'আপনার অনুসন্ধান বা নির্বাচিত ফিল্টারের সাথে কোনো নোটিশ মেলেনি।'
+                              : 'এখনো কোনো নোটিশ প্রকাশ বা সংরক্ষণ করা হয়নি।'}
                           </p>
                         </div>
                         {(noticeSearch || statusFilter || audienceFilter) && (
@@ -459,7 +445,7 @@ export function AdminNoticesAndEventsPage({
                             }}
                           >
                             <RotateCcw className="w-3.5 h-3.5" />
-                            {pick('ফিল্টার রিসেট করুন', 'Reset Filters')}
+                            {'ফিল্টার রিসেট করুন'}
                           </Button>
                         )}
                       </div>
@@ -479,46 +465,46 @@ export function AdminNoticesAndEventsPage({
                               key={aud}
                               className="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-muted text-muted-foreground border border-border"
                             >
-                              {opt ? pick(opt.labelBn, opt.labelEn) : aud}
+                              {opt ? opt.labelBn : aud}
                             </span>
                           );
                         })}
-                        {n.isUrgent && <span className="text-xs font-semibold text-destructive">{pick('জরুরি', 'Urgent')}</span>}
+                        {n.isUrgent && <span className="text-sm font-semibold text-destructive">{'জরুরি'}</span>}
                       </div>
                     </td>
                     <td className="p-3.5 text-sm text-muted-foreground">
                       <span className="tabular-nums">{n.memoNo || '—'}</span>
                     </td>
                     <td className="whitespace-nowrap p-3.5 text-sm text-muted-foreground">
-                      <span className="tabular-nums">{formatDateShort(n.createdAt, locale)}</span>
+                      <span className="tabular-nums">{formatDateShort(n.createdAt, 'bn')}</span>
                     </td>
                     <td className="whitespace-nowrap p-3.5">
                       {n.deletionPending
-                        ? <span className="text-sm font-medium text-destructive">{pick('মুছে ফেলা হচ্ছে', 'Deletion pending')}</span>
+                        ? <span className="text-sm font-medium text-destructive">{'মুছে ফেলা হচ্ছে'}</span>
                         : <StatusBadge enumName="NoticeStatus" value={n.status} />}
                     </td>
                     <td className="p-3 text-right">
                       <div className="inline-flex items-center gap-1 whitespace-nowrap">
                         <Button type="button" variant="ghost" size="sm" disabled={n.deletionPending} onClick={() => void openPreview(n)}>
                           <Eye className="h-3.5 w-3.5" />
-                          {pick('দেখুন', 'View')}
+                          {'দেখুন'}
                         </Button>
                         <Button type="button" variant="ghost" size="sm" disabled={n.deletionPending} onClick={() => openEdit(n)}>
                           <Pencil className="h-3.5 w-3.5" />
-                          {pick('সম্পাদনা', 'Edit')}
+                          {'সম্পাদনা'}
                         </Button>
                           <Button type="button" variant="ghost" size="sm" disabled={deletingNotice}
                             onClick={async () => {
-                              if (!n.deletionPending && !window.confirm(pick('নোটিস ও সংযুক্ত ফাইল মুছে ফেলবেন?', 'Delete this notice and its document?'))) return;
+                              if (!n.deletionPending && !window.confirm('নোটিস ও সংযুক্ত ফাইল মুছে ফেলবেন?')) return;
                               try {
                                 await deleteNotice(n.id).unwrap();
-                                toast.success(pick('নোটিস মুছে ফেলা হয়েছে।', 'Notice deleted.'));
+                                toast.success('নোটিস মুছে ফেলা হয়েছে।');
                               } catch (error) {
                                 toast.error((error as { message?: string }).message ?? 'Could not delete the notice.');
                               }
                             }}>
                             <Trash2 className="h-4 w-4" />
-                            {n.deletionPending ? pick('আবার চেষ্টা করুন', 'Retry deletion') : pick('মুছুন', 'Delete')}
+                            {n.deletionPending ? 'আবার চেষ্টা করুন' : 'মুছুন'}
                           </Button>
                       </div>
                     </td>
@@ -528,10 +514,10 @@ export function AdminNoticesAndEventsPage({
             </table>
           </div>
           {noticeList && (noticePage > 1 || noticeList.meta.totalPages > 1) && (
-            <div className="flex gap-2 p-4">
-              <Button type="button" disabled={noticePage === 1} onClick={() => setNoticePage(noticePage - 1)}>Previous</Button>
-              <span>{noticePage} / {Math.max(1, noticeList.meta.totalPages)}</span>
-              <Button type="button" disabled={noticePage >= noticeList.meta.totalPages} onClick={() => setNoticePage(noticePage + 1)}>Next</Button>
+            <div className="flex gap-2 p-4 items-center">
+              <Button type="button" variant="outline" size="sm" disabled={noticePage === 1} onClick={() => setNoticePage(noticePage - 1)}>পূর্ববর্তী</Button>
+              <span className="text-sm font-medium">{noticePage} / {Math.max(1, noticeList.meta.totalPages)}</span>
+              <Button type="button" variant="outline" size="sm" disabled={noticePage >= noticeList.meta.totalPages} onClick={() => setNoticePage(noticePage + 1)}>পরবর্তী</Button>
             </div>
           )}
         </Card>
@@ -559,7 +545,7 @@ export function AdminNoticesAndEventsPage({
                 <Switch
                   checked={item.isPublished}
                   onChange={() => toggleCms({ collection: 'news', id: item.id, field: 'isPublished' })}
-                  label={item.isPublished ? pick('প্রকাশিত', 'Published') : pick('খসড়া', 'Draft')}
+                  label={item.isPublished ? 'প্রকাশিত' : 'খসড়া'}
                 />
                 <Button
                   variant="outline"
@@ -582,7 +568,7 @@ export function AdminNoticesAndEventsPage({
                   size="sm"
                   onClick={async () => {
                     await deleteCms({ collection: 'news', id: item.id }).unwrap();
-                    toast.success(pick('সংবাদ মুছে ফেলা হয়েছে।', 'News removed.'));
+                    toast.success('সংবাদ মুছে ফেলা হয়েছে।');
                   }}
                 >
                   <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -606,7 +592,7 @@ export function AdminNoticesAndEventsPage({
                 <Switch
                   checked={ev.isPublished}
                   onChange={() => toggleCms({ collection: 'events', id: ev.id, field: 'isPublished' })}
-                  label={ev.isPublished ? pick('প্রকাশিত', 'Published') : pick('খসড়া', 'Draft')}
+                  label={ev.isPublished ? 'প্রকাশিত' : 'খসড়া'}
                 />
                 <Button
                   variant="outline"
@@ -630,7 +616,7 @@ export function AdminNoticesAndEventsPage({
                   size="sm"
                   onClick={async () => {
                     await deleteCms({ collection: 'events', id: ev.id }).unwrap();
-                    toast.success(pick('অনুষ্ঠান মুছে ফেলা হয়েছে।', 'Event removed.'));
+                    toast.success('অনুষ্ঠান মুছে ফেলা হয়েছে।');
                   }}
                 >
                   <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -647,14 +633,14 @@ export function AdminNoticesAndEventsPage({
             <div key={car.id} className="p-4 flex flex-wrap items-center justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <p className="text-base font-bold text-foreground">{car.title}</p>
-                <p className="text-sm text-destructive tabular-nums">{pick('শেষ তারিখ:', 'Deadline:')} {car.deadline}</p>
+                <p className="text-sm text-destructive tabular-nums">{'শেষ তারিখ:'} {car.deadline}</p>
                 <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{car.description}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <Switch
                   checked={car.isPublished}
                   onChange={() => toggleCms({ collection: 'careers', id: car.id, field: 'isPublished' })}
-                  label={car.isPublished ? pick('প্রকাশিত', 'Published') : pick('বন্ধ', 'Closed')}
+                  label={car.isPublished ? 'প্রকাশিত' : 'বন্ধ'}
                 />
                 <Button
                   variant="outline"
@@ -677,7 +663,7 @@ export function AdminNoticesAndEventsPage({
                   size="sm"
                   onClick={async () => {
                     await deleteCms({ collection: 'careers', id: car.id }).unwrap();
-                    toast.success(pick('নিয়োগ বিজ্ঞপ্তি মুছে ফেলা হয়েছে।', 'Career post removed.'));
+                    toast.success('নিয়োগ বিজ্ঞপ্তি মুছে ফেলা হয়েছে।');
                   }}
                 >
                   <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -692,7 +678,7 @@ export function AdminNoticesAndEventsPage({
       <Modal
         open={newsModalOpen}
         onClose={() => setNewsModalOpen(false)}
-        title={newsForm.id ? pick('সংবাদ সম্পাদনা', 'Edit News') : pick('নতুন সংবাদ প্রকাশ', 'Publish News')}
+        title={newsForm.id ? 'সংবাদ সম্পাদনা' : 'নতুন সংবাদ প্রকাশ'}
         maxWidth="max-w-xl"
       >
         <form
@@ -710,18 +696,18 @@ export function AdminNoticesAndEventsPage({
                 isPublished: newsForm.isPublished,
               },
             }).unwrap();
-            toast.success(pick('সংবাদ সংরক্ষিত হয়েছে।', 'News saved.'));
+            toast.success('সংবাদ সংরক্ষিত হয়েছে।');
             setNewsModalOpen(false);
           }}
           className="space-y-4"
         >
-          <FormField label={pick('সংবাদের শিরোনাম', 'News Title')} required>
-            <Input value={newsForm.title} onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })} />
+          <FormField label={'সংবাদের শিরোনাম'} required>
+            <Input placeholder="সংবাদের শিরোনাম লিখুন" value={newsForm.title} onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })} />
           </FormField>
-          <FormField label={pick('বিস্তারিত সংবাদ', 'News Details')} required>
-            <Textarea rows={4} value={newsForm.description} onChange={(e) => setNewsForm({ ...newsForm, description: e.target.value })} />
+          <FormField label={'বিস্তারিত সংবাদ'} required>
+            <Textarea placeholder="বিস্তারিত সংবাদ লিখুন..." rows={4} value={newsForm.description} onChange={(e) => setNewsForm({ ...newsForm, description: e.target.value })} />
           </FormField>
-          <FormField label={pick('ফিচার ছবি আপলোড (ঐচ্ছিক)', 'Upload Feature Photo (Optional)')}>
+          <FormField label={'ফিচার ছবি আপলোড (ঐচ্ছিক)'}>
             <input
               type="file"
               accept="image/*"
@@ -738,9 +724,9 @@ export function AdminNoticesAndEventsPage({
             />
           </FormField>
           <div className="flex items-center justify-between pt-2">
-            <Switch checked={newsForm.isPublished} onChange={(v) => setNewsForm({ ...newsForm, isPublished: v })} label={pick('প্রকাশিত', 'Published')} />
+            <Switch checked={newsForm.isPublished} onChange={(v) => setNewsForm({ ...newsForm, isPublished: v })} label={'প্রকাশিত'} />
             <Button type="submit" variant="primary" disabled={savingCms}>
-              <Save className="w-4 h-4" /> {pick('সংরক্ষণ করুন', 'Save News')}
+              <Save className="w-4 h-4" /> {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -750,7 +736,7 @@ export function AdminNoticesAndEventsPage({
       <Modal
         open={eventModalOpen}
         onClose={() => setEventModalOpen(false)}
-        title={eventForm.id ? pick('অনুষ্ঠান সম্পাদনা', 'Edit Event') : pick('নতুন অনুষ্ঠান যুক্ত করুন', 'Add Event')}
+        title={eventForm.id ? 'অনুষ্ঠান সম্পাদনা' : 'নতুন অনুষ্ঠান যুক্ত করুন'}
       >
         <form
           onSubmit={async (e) => {
@@ -767,19 +753,19 @@ export function AdminNoticesAndEventsPage({
                 isPublished: eventForm.isPublished,
               },
             }).unwrap();
-            toast.success(pick('অনুষ্ঠান সংরক্ষিত হয়েছে।', 'Event saved.'));
+            toast.success('অনুষ্ঠান সংরক্ষিত হয়েছে।');
             setEventModalOpen(false);
           }}
           className="space-y-4"
         >
-          <FormField label={pick('অনুষ্ঠানের শিরোনাম', 'Event Title')} required>
-            <Input value={eventForm.title} onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })} />
+          <FormField label={'অনুষ্ঠানের শিরোনাম'} required>
+            <Input placeholder="অনুষ্ঠানের শিরোনাম লিখুন" value={eventForm.title} onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })} />
           </FormField>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label={pick('তারিখ', 'Date')} required>
+            <FormField label={'তারিখ'} required>
               <Input type="date" value={eventForm.startDate} onChange={(e) => setEventForm({ ...eventForm, startDate: e.target.value })} />
             </FormField>
-            <FormField label={pick('ক্যাটাগরি', 'Category')}>
+            <FormField label={'ক্যাটাগরি'}>
               <Select value={eventForm.categoryId} onChange={(e) => setEventForm({ ...eventForm, categoryId: e.target.value })}>
                 {db?.eventCategories?.map((ec) => (
                   <option key={ec.id} value={ec.id}>{ec.name}</option>
@@ -787,12 +773,12 @@ export function AdminNoticesAndEventsPage({
               </Select>
             </FormField>
           </div>
-          <FormField label={pick('বিবরণ', 'Description')}>
-            <Textarea rows={3} value={eventForm.description} onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })} />
+          <FormField label={'বিবরণ'}>
+            <Textarea placeholder="বিবরণ লিখুন..." rows={3} value={eventForm.description} onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })} />
           </FormField>
           <div className="flex justify-end">
             <Button type="submit" variant="primary" disabled={savingCms}>
-              <Save className="w-4 h-4" /> {pick('সংরক্ষণ করুন', 'Save Event')}
+              <Save className="w-4 h-4" /> {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -802,7 +788,7 @@ export function AdminNoticesAndEventsPage({
       <Modal
         open={careerModalOpen}
         onClose={() => setCareerModalOpen(false)}
-        title={careerForm.id ? pick('নিয়োগ বিজ্ঞপ্তি সম্পাদনা', 'Edit Career Post') : pick('নতুন নিয়োগ বিজ্ঞপ্তি', 'New Career Circular')}
+        title={careerForm.id ? 'নিয়োগ বিজ্ঞপ্তি সম্পাদনা' : 'নতুন নিয়োগ বিজ্ঞপ্তি'}
       >
         <form
           onSubmit={async (e) => {
@@ -818,58 +804,58 @@ export function AdminNoticesAndEventsPage({
                 isPublished: careerForm.isPublished,
               },
             }).unwrap();
-            toast.success(pick('নিয়োগ বিজ্ঞপ্তি সংরক্ষিত হয়েছে।', 'Career circular saved.'));
+            toast.success('নিয়োগ বিজ্ঞপ্তি সংরক্ষিত হয়েছে।');
             setCareerModalOpen(false);
           }}
           className="space-y-4"
         >
-          <FormField label={pick('পদের নাম / শিরোনাম', 'Position Title')} required>
-            <Input value={careerForm.title} onChange={(e) => setCareerForm({ ...careerForm, title: e.target.value })} />
+          <FormField label={'পদের নাম / শিরোনাম'} required>
+            <Input placeholder="পদের নাম / শিরোনাম লিখুন" value={careerForm.title} onChange={(e) => setCareerForm({ ...careerForm, title: e.target.value })} />
           </FormField>
-          <FormField label={pick('আবেদনের শেষ তারিখ', 'Application Deadline')} required>
+          <FormField label={'আবেদনের শেষ তারিখ'} required>
             <Input type="date" value={careerForm.deadline} onChange={(e) => setCareerForm({ ...careerForm, deadline: e.target.value })} />
           </FormField>
-          <FormField label={pick('যোগ্যতা ও বিবরণ', 'Requirements & Details')} required>
-            <Textarea rows={4} value={careerForm.description} onChange={(e) => setCareerForm({ ...careerForm, description: e.target.value })} />
+          <FormField label={'যোগ্যতা ও বিবরণ'} required>
+            <Textarea placeholder="যোগ্যতা ও বিবরণ লিখুন..." rows={4} value={careerForm.description} onChange={(e) => setCareerForm({ ...careerForm, description: e.target.value })} />
           </FormField>
           <div className="flex justify-end">
             <Button type="submit" variant="primary" disabled={savingCms}>
-              <Save className="w-4 h-4" /> {pick('সংরক্ষণ করুন', 'Save Career')}
+              <Save className="w-4 h-4" /> {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
       </Modal>
 
-      <Modal open={composerOpen} onClose={closeComposer} title={editingNoticeId ? pick('নোটিস সম্পাদনা', 'Edit Notice') : pick('নতুন নোটিশ / সার্কুলার প্রকাশ', 'Publish Notice / Circular')} maxWidth="max-w-2xl">
+      <Modal open={composerOpen} onClose={closeComposer} title={editingNoticeId ? 'নোটিস সম্পাদনা' : 'নতুন নোটিশ / সার্কুলার প্রকাশ'} maxWidth="max-w-2xl">
         <form onSubmit={handleSaveNotice} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="sm:col-span-2">
-              <FormField label={pick('বিজ্ঞপ্তির শিরোনাম', 'Notice Title')} required>
+              <FormField label={'বিজ্ঞপ্তির শিরোনাম'} required>
                 <Input
                   required
                   maxLength={200}
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder={pick('যেমন: অর্ধবার্ষিক পরীক্ষার সময়সূচি সংক্রান্ত বিজ্ঞপ্তি', 'e.g., Half-Yearly Exam Schedule Circular')}
+                  placeholder={'যেমন: অর্ধবার্ষিক পরীক্ষার সময়সূচি সংক্রান্ত বিজ্ঞপ্তি'}
                 />
               </FormField>
             </div>
-            <FormField label={pick('স্মারক নং', 'Memo No.')}>
+            <FormField label={'স্মারক নং'}>
               <Input
                 value={form.memoNo}
                 onChange={(e) => setForm({ ...form, memoNo: e.target.value })}
-                placeholder={pick('যেমন: BHS/২০২৬/০৪২', 'e.g. BHS/2026/042')}
+                placeholder={'যেমন: BHS/২০২৬/০৪২'}
                 maxLength={100}
               />
             </FormField>
           </div>
 
           <FormField
-            label={pick('মূল বিজ্ঞপ্তি ফাইল আপলোড (PDF অথবা স্ক্যান করা ছবি)', 'Upload Official Circular (PDF or Scanned Image)')}
+            label={'মূল বিজ্ঞপ্তি ফাইল আপলোড (PDF অথবা স্ক্যান করা ছবি)'}
           >
             {editingNotice?.attachment && (
               <p className="mb-2 break-all text-sm text-muted-foreground">
-                {pick('বর্তমান ফাইল', 'Current file')} {editingNotice.attachment}
+                {'বর্তমান ফাইল'} {editingNotice.attachment}
               </p>
             )}
             {document ? (
@@ -884,7 +870,7 @@ export function AdminNoticesAndEventsPage({
                   </span>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-foreground truncate">{document.name}</p>
-                    <p className="text-xs text-muted-foreground tabular-nums">
+                    <p className="text-sm text-muted-foreground tabular-nums">
                       {Math.ceil(document.size / 1024)} KB
                     </p>
                   </div>
@@ -893,7 +879,7 @@ export function AdminNoticesAndEventsPage({
                   type="button"
                   onClick={() => setDocument(null)}
                   className="h-7 w-7 rounded inline-flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-surface cursor-pointer shrink-0"
-                  aria-label={pick('ফাইল সরান', 'Remove file')}
+                  aria-label={'ফাইল সরান'}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -903,11 +889,11 @@ export function AdminNoticesAndEventsPage({
                 <Upload className="w-5 h-5 text-primary" />
                 <span className="text-sm font-semibold text-foreground">
                   {editingNoticeId
-                    ? pick('নতুন ফাইল বাছুন (ঐচ্ছিক)', 'Select a replacement file (optional)')
-                    : pick('PDF ডকুমেন্ট বা স্ক্যান করা নোটিশ ছবি নির্বাচন করুন', 'Select Official PDF or Scanned Notice Image')}
+                    ? 'নতুন ফাইল বাছুন (ঐচ্ছিক)'
+                    : 'PDF ডকুমেন্ট বা স্ক্যান করা নোটিশ ছবি নির্বাচন করুন'}
                 </span>
-                <span className="text-xs text-muted-foreground">
-                  {pick('PDF / JPG / PNG / WebP · সর্বোচ্চ ২৫ MB', 'PDF / JPG / PNG / WebP · Max 25 MB')}
+                <span className="text-sm text-muted-foreground">
+                  {'PDF / JPG / PNG / WebP · সর্বোচ্চ ২৫ MB'}
                 </span>
                 <input
                   type="file"
@@ -921,14 +907,14 @@ export function AdminNoticesAndEventsPage({
           </FormField>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label={pick('অবস্থা', 'Status')}>
+            <FormField label={'অবস্থা'}>
               <Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as NoticeStatus })}>
-                <option value={NoticeStatus.PUBLISHED}>{pick('প্রকাশিত', 'Published')}</option>
-                <option value={NoticeStatus.DRAFT}>{pick('খসড়া', 'Draft')}</option>
-                <option value={NoticeStatus.ARCHIVED}>{pick('আর্কাইভ', 'Archived')}</option>
+                <option value={NoticeStatus.PUBLISHED}>{'প্রকাশিত'}</option>
+                <option value={NoticeStatus.DRAFT}>{'খসড়া'}</option>
+                <option value={NoticeStatus.ARCHIVED}>{'আর্কাইভ'}</option>
               </Select>
             </FormField>
-            <FormField label={pick('প্রাপক / কাদের জন্য', 'Target Audience')} required>
+            <FormField label={'প্রাপক / কাদের জন্য'} required>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {AUDIENCE_OPTIONS.map((opt) => {
                   const selected = form.audiences.includes(opt.value);
@@ -943,27 +929,27 @@ export function AdminNoticesAndEventsPage({
                           : 'bg-surface text-muted-foreground border-border hover:border-primary/40'
                       }`}
                     >
-                      {pick(opt.labelBn, opt.labelEn)}
+                      {opt.labelBn}
                     </button>
                   );
                 })}
               </div>
             </FormField>
           </div>
-          <Switch checked={form.isUrgent} onChange={(v) => setForm({ ...form, isUrgent: v })} label={pick('জরুরি নোটিশ হিসেবে চিহ্নিত করুন', 'Mark as urgent notice')} />
+          <Switch checked={form.isUrgent} onChange={(v) => setForm({ ...form, isUrgent: v })} label={'জরুরি নোটিশ হিসেবে চিহ্নিত করুন'} />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" disabled={saving || updatingNotice} onClick={closeComposer}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button type="submit" variant="primary" disabled={saving || updatingNotice}>
               {(saving || updatingNotice) && <Loader2 className="w-4 h-4 animate-spin" />}
               {saving || updatingNotice
                 ? editingNoticeId
-                  ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
-                  : pick('প্রকাশ হচ্ছে...', 'Publishing...')
+                  ? 'সংরক্ষণ হচ্ছে...'
+                  : 'প্রকাশ হচ্ছে...'
                 : editingNoticeId
-                  ? pick('পরিবর্তন সংরক্ষণ', 'Save changes')
-                  : pick('প্রকাশ করুন', 'Save Notice')}
+                  ? 'পরিবর্তন সংরক্ষণ'
+                  : 'প্রকাশ করুন'}
             </Button>
           </div>
         </form>

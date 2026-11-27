@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatBdt, formatDateLong } from '@/src/lib/formatters';
 import { LoadingSkeleton, PageHeader, SchoolEmblem } from '@/src/components/shared/Feedback';
 import { Button, Card, Input } from '@/src/components/ui/primitives';
@@ -35,7 +34,6 @@ import { buildDefaultAdmissionValues } from '@/src/features/admission/mappers';
 
 export function AdmissionDownloadFormPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { pick } = useI18n();
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
 
   const adm = db.admissionContent;
@@ -43,11 +41,11 @@ export function AdmissionDownloadFormPage() {
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <div className="flex items-center justify-between no-print">
         <PageHeader
-          title={pick('মুদ্রণযোগ্য ভর্তি ফরম (১৩-দফা)', 'Printable Official Admission Form')}
-          description={pick('সরাসরি A4 কাগজে প্রিন্ট করে বিদ্যালয় অফিসে জমা দিন অথবা অনলাইনে আবেদন করুন।', 'Print on A4 paper or apply online.')}
+          title={'মুদ্রণযোগ্য ভর্তি ফরম (১৩-দফা)'}
+          description={'সরাসরি A4 কাগজে প্রিন্ট করে বিদ্যালয় অফিসে জমা দিন অথবা অনলাইনে আবেদন করুন।'}
         />
         <Button variant="primary" onClick={triggerPrint}>
-          <Printer className="w-4 h-4" /> {pick('প্রিন্ট / পিডিএফ', 'Print / Save PDF')}
+          <Printer className="w-4 h-4" /> {'প্রিন্ট / পিডিএফ'}
         </Button>
       </div>
 
@@ -56,9 +54,9 @@ export function AdmissionDownloadFormPage() {
           <SchoolEmblem size={66} />
           <div>
             <h2 className="text-xl font-bold text-[#0B7A34]">{adm.schoolNameBn}</h2>
-            <p className="text-xs font-bold text-[#124B96]">{adm.schoolNameEn}</p>
-            <p className="text-xs text-muted-foreground">{adm.schoolAddress}</p>
-            <p className="text-xs tabular-nums">
+            <p className="text-sm font-bold text-[#124B96]">{adm.schoolNameEn}</p>
+            <p className="text-sm text-muted-foreground">{adm.schoolAddress}</p>
+            <p className="text-sm tabular-nums">
               EIIN: {adm.eiin} · বিদ্যালয় কোড: {adm.schoolCode} · জেলা কোড: {adm.districtCode} · থানা কোড: {adm.thanaCode}
             </p>
           </div>

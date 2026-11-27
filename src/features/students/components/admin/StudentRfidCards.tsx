@@ -18,7 +18,6 @@ import {
   ShieldOff,
   X,
 } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { DataTable } from '@/src/components/shared/DataTable';
@@ -90,7 +89,6 @@ function formatSuggestedCardNumber(seq: number, classNumeric?: number): string {
 }
 
 export function StudentRfidCards() {
-  const { locale, pick } = useI18n();
   const [issueCard, { isLoading: issuing }] = useIssueRfidCardMutation();
   const [updateCardStatus, { isLoading: updating }] = useUpdateRfidCardStatusMutation();
   const [replaceCard, { isLoading: replacing }] = useReplaceRfidCardMutation();
@@ -185,14 +183,14 @@ export function StudentRfidCards() {
         photo: student.photo ?? null,
         classId: enr?.classId ?? '',
         classNumeric: cls?.numericValue ?? 99,
-        classLabel: cls ? (locale === 'bn' ? cls.nameBn || cls.name : cls.name) : '—',
+        classLabel: cls ? (cls.nameBn || cls.name) : '—',
         sectionLabel: sec?.name ?? '—',
         roll: enr?.roll ?? 0,
         guardianPhone: parent?.phone ?? '—',
         hasOtherActiveCard: Boolean(raw.hasOtherActiveCard),
       };
     });
-  }, [cardsRes?.items, locale]);
+  }, [cardsRes?.items, 'bn']);
 
   const unassignedStudents = useMemo<UnassignedStudentRow[]>(() => {
     return (unassignedRes?.items ?? []).map((s: any) => {
@@ -209,14 +207,14 @@ export function StudentRfidCards() {
         gender: (s.gender as Gender) ?? Gender.MALE,
         classId: enr?.classId ?? '',
         classNumeric: cls?.numericValue ?? 99,
-        classLabel: cls ? (locale === 'bn' ? cls.nameBn || cls.name : cls.name) : '—',
+        classLabel: cls ? (cls.nameBn || cls.name) : '—',
         sectionLabel: sec?.name ?? '—',
         roll: enr?.roll ?? 0,
         guardianPhone: parent?.phone ?? '—',
         lastCard,
       };
     });
-  }, [unassignedRes?.items, locale]);
+  }, [unassignedRes?.items, 'bn']);
 
   const summary = cardsRes?.summary ?? unassignedRes?.summary ?? {
     totalActiveStudents: 0,
@@ -284,11 +282,11 @@ export function StudentRfidCards() {
   const handleIssueSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!issueForm.studentId) {
-      toast.error(pick('একজন শিক্ষার্থী নির্বাচন করুন।', 'Select a student.'));
+      toast.error('একজন শিক্ষার্থী নির্বাচন করুন।');
       return;
     }
     if (!issueForm.cardNumber.trim()) {
-      toast.error(pick('কার্ড নম্বর দিন।', 'Card number is required.'));
+      toast.error('কার্ড নম্বর দিন।');
       return;
     }
     try {
@@ -298,11 +296,11 @@ export function StudentRfidCards() {
         remarks: issueForm.remarks.trim() || null,
       }).unwrap();
       toast.success(
-        `${pick('নতুন RFID কার্ড ইস্যু হয়েছে', 'RFID card issued')} (${issueForm.cardNumber.trim()})`
+        `${'নতুন RFID কার্ড ইস্যু হয়েছে'} (${issueForm.cardNumber.trim()})`
       );
       setIssueOpen(false);
     } catch (err) {
-      toast.error(errorMessage(err, pick('কার্ড ইস্যু করা যায়নি।', 'Could not issue card.')));
+      toast.error(errorMessage(err, 'কার্ড ইস্যু করা যায়নি।'));
     }
   };
 
@@ -320,10 +318,10 @@ export function StudentRfidCards() {
         status: nextStatus,
         remarks: statusRemarks.trim() || null,
       }).unwrap();
-      toast.success(pick('কার্ডের অবস্থা হালনাগাদ হয়েছে।', 'Card status updated.'));
+      toast.success('কার্ডের অবস্থা হালনাগাদ হয়েছে।');
       setStatusTarget(null);
     } catch (err) {
-      toast.error(errorMessage(err, pick('অবস্থা হালনাগাদ হয়নি।', 'Could not update card status.')));
+      toast.error(errorMessage(err, 'অবস্থা হালনাগাদ হয়নি।'));
     }
   };
 
@@ -344,7 +342,7 @@ export function StudentRfidCards() {
     event.preventDefault();
     if (!replaceTarget) return;
     if (!replaceNewNumber.trim()) {
-      toast.error(pick('নতুন কার্ড নম্বর দিন।', 'New card number is required.'));
+      toast.error('নতুন কার্ড নম্বর দিন।');
       return;
     }
     try {
@@ -355,14 +353,11 @@ export function StudentRfidCards() {
         remarks: replaceRemarks.trim() || null,
       }).unwrap();
       toast.success(
-        pick(
-          `পুরনো কার্ড বন্ধ করে নতুন কার্ড (${replaceNewNumber.trim()}) সক্রিয় করা হয়েছে।`,
-          `Old card retired and new card (${replaceNewNumber.trim()}) activated.`
-        )
+        `পুরনো কার্ড বন্ধ করে নতুন কার্ড (${replaceNewNumber.trim()}) সক্রিয় করা হয়েছে।`
       );
       setReplaceTarget(null);
     } catch (err) {
-      toast.error(errorMessage(err, pick('কার্ড রিপ্লেস করা যায়নি।', 'Could not replace card.')));
+      toast.error(errorMessage(err, 'কার্ড রিপ্লেস করা যায়নি।'));
     }
   };
 
@@ -376,9 +371,9 @@ export function StudentRfidCards() {
       .filter((c) => printCardIds.includes(c.id))
       .map((c) => ({
         code: `${c.studentCode} · ${c.cardNumber}`,
-        name: locale === 'bn' ? c.studentNameBn : c.studentNameEn,
-        subline: `${c.classLabel} (${c.sectionLabel}) · ${pick('রোল', 'Roll')}: ${formatNumber(c.roll, locale)}`,
-        secondaryLine: `${pick('অভিভাবক:', 'Guardian:')} ${c.guardianPhone}`,
+        name: c.studentNameBn,
+        subline: `${c.classLabel} (${c.sectionLabel}) · ${'রোল'}: ${formatNumber(c.roll, 'bn')}`,
+        secondaryLine: `${'অভিভাবক:'} ${c.guardianPhone}`,
         bloodGroup: c.bloodGroup,
         phone: c.guardianPhone,
         validUntil,
@@ -387,10 +382,10 @@ export function StudentRfidCards() {
         rfidNumber: c.cardNumber,
         className: c.classLabel,
         sectionName: c.sectionLabel,
-        roll: formatNumber(c.roll, locale),
+        roll: formatNumber(c.roll, 'bn'),
         guardianPhone: c.guardianPhone,
       }));
-  }, [printCardIds, allCards, activeYear, locale, pick]);
+  }, [printCardIds, allCards, activeYear]);
 
   const handleExportCsv = () => {
     if (activeTab === 'registry') {
@@ -429,23 +424,23 @@ export function StudentRfidCards() {
   const statusOptions: Array<{ value: CardStatus; label: string; desc: string }> = [
     {
       value: CardStatus.ACTIVE,
-      label: pick('সক্রিয় (Active)', 'Active'),
-      desc: pick('গেট RFID রিডারে স্ক্যান করলে হাজিরা গণনা হবে।', 'Works at school gate RFID attendance reader.'),
+      label: 'সক্রিয় (Active)',
+      desc: 'গেট RFID রিডারে স্ক্যান করলে হাজিরা গণনা হবে।',
     },
     {
       value: CardStatus.LOST,
-      label: pick('হারিয়ে গেছে (Lost)', 'Lost'),
-      desc: pick('হারানো হিসেবে চিহ্নিত — গেটে স্ক্যান গ্রহণ করা হবে না।', 'Flagged lost — rejected at gate scanner.'),
+      label: 'হারিয়ে গেছে (Lost)',
+      desc: 'হারানো হিসেবে চিহ্নিত — গেটে স্ক্যান গ্রহণ করা হবে না।',
     },
     {
       value: CardStatus.DAMAGED,
-      label: pick('ক্ষতিগ্রস্ত (Damaged)', 'Damaged'),
-      desc: pick('কার্ড ভেঙে গেছে বা চিপ রিড হচ্ছে না।', 'Card physically broken or chip unreadable.'),
+      label: 'ক্ষতিগ্রস্ত (Damaged)',
+      desc: 'কার্ড ভেঙে গেছে বা চিপ রিড হচ্ছে না।',
     },
     {
       value: CardStatus.BLOCKED,
-      label: pick('বন্ধ (Blocked)', 'Blocked'),
-      desc: pick('প্রশাসনিকভাবে নিষ্ক্রিয় — রিপ্লেসমেন্ট বা টিসি-র ক্ষেত্রে।', 'Administratively disabled — replaced or transferred.'),
+      label: 'বন্ধ (Blocked)',
+      desc: 'প্রশাসনিকভাবে নিষ্ক্রিয় — রিপ্লেসমেন্ট বা টিসি-র ক্ষেত্রে।',
     },
   ];
 
@@ -457,35 +452,32 @@ export function StudentRfidCards() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
-            {pick('সক্রিয় RFID কার্ড', 'Active RFID Cards')}
+            {'সক্রিয় RFID কার্ড'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
-              {formatNumber(summary.activeCardCount, locale)}
+              {formatNumber(summary.activeCardCount, 'bn')}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
-              / {formatNumber(summary.totalActiveStudents, locale)}{' '}
-              {pick('সক্রিয় শিক্ষার্থী', 'active students')}
+              / {formatNumber(summary.totalActiveStudents, 'bn')}{' '}
+              {'সক্রিয় শিক্ষার্থী'}
             </span>
           </div>
           <p className="text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `মোট ${formatNumber(coveragePct, locale)}% শিক্ষার্থীর হাতে সক্রিয় কার্ড`,
-              `${coveragePct}% active student gate coverage`
-            )}
+            {`মোট ${formatNumber(coveragePct, 'bn')}% শিক্ষার্থীর হাতে সক্রিয় কার্ড`}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
-            {pick('কার্ডবিহীন সক্রিয় শিক্ষার্থী', 'Unassigned Active Students')}
+            {'কার্ডবিহীন সক্রিয় শিক্ষার্থী'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(summary.unassignedCount, locale)}
+              {formatNumber(summary.unassignedCount, 'bn')}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick('জনের কার্ড বাকি', 'pending card')}
+              {'জনের কার্ড বাকি'}
             </span>
           </div>
           <button
@@ -493,13 +485,13 @@ export function StudentRfidCards() {
             onClick={() => setActiveTab('unassigned')}
             className="text-sm font-semibold text-primary hover:underline text-left w-fit cursor-pointer"
           >
-            {pick('কার্ডবিহীন তালিকা দেখুন →', 'View unassigned roster →')}
+            {'কার্ডবিহীন তালিকা দেখুন →'}
           </button>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
-            {pick('হারানো ও ক্ষতিগ্রস্ত', 'Lost & Damaged')}
+            {'হারানো ও ক্ষতিগ্রস্ত'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span
@@ -508,31 +500,31 @@ export function StudentRfidCards() {
                 summary.lostOrDamagedCount > 0 ? 'text-warning' : 'text-foreground'
               )}
             >
-              {formatNumber(summary.lostOrDamagedCount, locale)}
+              {formatNumber(summary.lostOrDamagedCount, 'bn')}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick('টি রিপ্লেসমেন্ট প্রয়োজন', 'need replacement')}
+              {'টি রিপ্লেসমেন্ট প্রয়োজন'}
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
-            {pick('১-ক্লিকে নতুন কার্ড দিয়ে রিপ্লেস করা যায়', 'Replace in 1 click from card row')}
+            {'১-ক্লিকে নতুন কার্ড দিয়ে রিপ্লেস করা যায়'}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
-            {pick('বন্ধকৃত কার্ড (Blocked)', 'Blocked Cards')}
+            {'বন্ধকৃত কার্ড (Blocked)'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(summary.blockedCount, locale)}
+              {formatNumber(summary.blockedCount, 'bn')}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick('টি নিষ্ক্রিয় রেকর্ড', 'deactivated records')}
+              {'টি নিষ্ক্রিয় রেকর্ড'}
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
-            {pick('টিসি বা রিপ্লেসমেন্টে স্বয়ংক্রিয়ভাবে বন্ধ', 'Auto-blocked on transfer or replace')}
+            {'টিসি বা রিপ্লেসমেন্টে স্বয়ংক্রিয়ভাবে বন্ধ'}
           </p>
         </Card>
       </div>
@@ -542,7 +534,7 @@ export function StudentRfidCards() {
         <div
           className="flex items-center gap-1 px-4 pt-3 border-b border-border overflow-x-auto"
           role="tablist"
-          aria-label={pick('পরিচয়পত্র বিভাগ', 'Identity card sections')}
+          aria-label={'পরিচয়পত্র বিভাগ'}
         >
           <button
             type="button"
@@ -556,8 +548,8 @@ export function StudentRfidCards() {
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            {pick('ইস্যুকৃত কার্ড রেজিস্টার', 'Issued Card Registry')}{' '}
-            <span className="text-sm opacity-75">({formatNumber(summary.totalCardsCount, locale)})</span>
+            {'ইস্যুকৃত কার্ড রেজিস্টার'}{' '}
+            <span className="text-sm opacity-75">({formatNumber(summary.totalCardsCount, 'bn')})</span>
           </button>
 
           <button
@@ -572,9 +564,9 @@ export function StudentRfidCards() {
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            {pick('কার্ডবিহীন শিক্ষার্থী', 'Unassigned Active Students')}{' '}
+            {'কার্ডবিহীন শিক্ষার্থী'}{' '}
             <span className="text-sm opacity-75">
-              ({formatNumber(summary.unassignedCount, locale)})
+              ({formatNumber(summary.unassignedCount, 'bn')})
             </span>
           </button>
         </div>
@@ -588,8 +580,8 @@ export function StudentRfidCards() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={
                   activeTab === 'registry'
-                    ? pick('কার্ড নং, নাম বা আইডি খুঁজুন...', 'Search card no, name, or ID...')
-                    : pick('নাম বা আইডি খুঁজুন...', 'Search name or ID...')
+                    ? 'কার্ড নং, নাম বা আইডি খুঁজুন...'
+                    : 'নাম বা আইডি খুঁজুন...'
                 }
                 className="pl-9 pr-9 h-10 text-base w-full"
               />
@@ -598,7 +590,7 @@ export function StudentRfidCards() {
                   type="button"
                   onClick={() => setSearchQuery('')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                  aria-label={pick('মুছুন', 'Clear')}
+                  aria-label={'মুছুন'}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -614,12 +606,12 @@ export function StudentRfidCards() {
                   setUnassignedPage(1);
                 }}
                 className="w-auto min-w-[130px] h-10 text-base"
-                aria-label={pick('শ্রেণি', 'Class')}
+                aria-label={'শ্রেণি'}
               >
-                <option value="ALL">{pick('সকল শ্রেণি', 'All classes')}</option>
+                <option value="ALL">{'সকল শ্রেণি'}</option>
                 {sortedClasses.map((cls) => (
                   <option key={cls.id} value={cls.id}>
-                    {locale === 'bn' ? cls.nameBn || cls.name : cls.name}
+                    {cls.nameBn || cls.name}
                   </option>
                 ))}
               </Select>
@@ -632,13 +624,13 @@ export function StudentRfidCards() {
                     setRegistryPage(1);
                   }}
                   className="w-auto min-w-[130px] h-10 text-base"
-                  aria-label={pick('কার্ডের অবস্থা', 'Card status')}
+                  aria-label={'কার্ডের অবস্থা'}
                 >
-                  <option value="ALL">{pick('সকল অবস্থা', 'All statuses')}</option>
-                  <option value={CardStatus.ACTIVE}>{pick('সক্রিয়', 'Active')}</option>
-                  <option value={CardStatus.LOST}>{pick('হারিয়ে গেছে', 'Lost')}</option>
-                  <option value={CardStatus.DAMAGED}>{pick('ক্ষতিগ্রস্ত', 'Damaged')}</option>
-                  <option value={CardStatus.BLOCKED}>{pick('বন্ধ', 'Blocked')}</option>
+                  <option value="ALL">{'সকল অবস্থা'}</option>
+                  <option value={CardStatus.ACTIVE}>{'সক্রিয়'}</option>
+                  <option value={CardStatus.LOST}>{'হারিয়ে গেছে'}</option>
+                  <option value={CardStatus.DAMAGED}>{'ক্ষতিগ্রস্ত'}</option>
+                  <option value={CardStatus.BLOCKED}>{'বন্ধ'}</option>
                 </Select>
               )}
 
@@ -657,11 +649,8 @@ export function StudentRfidCards() {
                   <Printer className="w-3.5 h-3.5" />
                   <span>
                     {selectedCardIds.length > 0
-                      ? pick(
-                          `নির্বাচিত প্রিন্ট (${formatNumber(selectedCardIds.length, locale)})`,
-                          `Print Selected (${selectedCardIds.length})`
-                        )
-                      : pick('সক্রিয় কার্ড প্রিন্ট', 'Print Active Cards')}
+                      ? `নির্বাচিত প্রিন্ট (${formatNumber(selectedCardIds.length, 'bn')})`
+                      : 'সক্রিয় কার্ড প্রিন্ট'}
                   </span>
                 </Button>
               )}
@@ -678,7 +667,7 @@ export function StudentRfidCards() {
                 }
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>{pick('এক্সপোর্ট CSV', 'Export CSV')}</span>
+                <span>{'এক্সপোর্ট CSV'}</span>
               </Button>
 
               <Button
@@ -689,7 +678,7 @@ export function StudentRfidCards() {
                 disabled={summary.unassignedCount === 0}
               >
                 <Plus className="w-4 h-4" />
-                <span>{pick('নতুন কার্ড ইস্যু', 'Issue Card')}</span>
+                <span>{'নতুন কার্ড ইস্যু'}</span>
               </Button>
             </div>
           </div>
@@ -697,14 +686,8 @@ export function StudentRfidCards() {
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border text-sm text-muted-foreground">
             <span className="tabular-nums">
               {activeTab === 'registry'
-                ? pick(
-                    `মোট ${formatNumber(cardsRes?.meta.total ?? 0, locale)}টি কার্ড · প্রতি শিক্ষার্থীর জন্য সর্বোচ্চ ১টি সক্রিয় কার্ড অনুমোদিত`,
-                    `${cardsRes?.meta.total ?? 0} matching cards · Strictly 1 active card allowed per student`
-                  )
-                : pick(
-                    `মোট ${formatNumber(unassignedRes?.meta.total ?? 0, locale)} জন সক্রিয় শিক্ষার্থীর এখনো কোনো সক্রিয় RFID কার্ড নেই`,
-                    `${unassignedRes?.meta.total ?? 0} active students currently have no active RFID card`
-                  )}
+                ? `মোট ${formatNumber(cardsRes?.meta.total ?? 0, 'bn')}টি কার্ড · প্রতি শিক্ষার্থীর জন্য সর্বোচ্চ ১টি সক্রিয় কার্ড অনুমোদিত`
+                : `মোট ${formatNumber(unassignedRes?.meta.total ?? 0, 'bn')} জন সক্রিয় শিক্ষার্থীর এখনো কোনো সক্রিয় RFID কার্ড নেই`}
             </span>
 
             {hasActiveFilters && (
@@ -714,7 +697,7 @@ export function StudentRfidCards() {
                 className="inline-flex items-center gap-1 text-primary hover:underline font-medium cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>{pick('ফিল্টার রিসেট করুন', 'Reset filters')}</span>
+                <span>{'ফিল্টার রিসেট করুন'}</span>
               </button>
             )}
           </div>
@@ -735,19 +718,19 @@ export function StudentRfidCards() {
           }}
           emptyTitle={
             summary.totalCardsCount === 0
-              ? pick('এখনো কোনো RFID কার্ড ইস্যু করা হয়নি', 'No RFID cards issued yet')
-              : pick('ফিল্টার অনুযায়ী কোনো কার্ড পাওয়া যায়নি', 'No matching RFID cards found')
+              ? 'এখনো কোনো RFID কার্ড ইস্যু করা হয়নি'
+              : 'ফিল্টার অনুযায়ী কোনো কার্ড পাওয়া যায়নি'
           }
           emptyAction={
             summary.totalCardsCount === 0 ? (
               <Button variant="primary" size="sm" onClick={() => openIssueModal()}>
                 <Plus className="w-4 h-4" />
-                <span>{pick('প্রথম কার্ড ইস্যু করুন', 'Issue first card')}</span>
+                <span>{'প্রথম কার্ড ইস্যু করুন'}</span>
               </Button>
             ) : hasActiveFilters ? (
               <Button variant="outline" size="sm" onClick={resetFilters}>
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>{pick('ফিল্টার রিসেট করুন', 'Reset filters')}</span>
+                <span>{'ফিল্টার রিসেট করুন'}</span>
               </Button>
             ) : undefined
           }
@@ -762,7 +745,7 @@ export function StudentRfidCards() {
                     allFilteredActiveIds.every((id) => selectedCardIds.includes(id))
                   }
                   onChange={toggleSelectAllFiltered}
-                  aria-label={pick('সকল সক্রিয় কার্ড নির্বাচন', 'Select all active cards')}
+                  aria-label={'সকল সক্রিয় কার্ড নির্বাচন'}
                 />
               ),
               enableSorting: false,
@@ -777,21 +760,21 @@ export function StudentRfidCards() {
             },
             {
               accessorKey: 'cardNumber',
-              header: pick('কার্ড নম্বর ও ইস্যু', 'Card No. & Issued'),
+              header: 'কার্ড নম্বর ও ইস্যু',
               cell: ({ row }) => (
                 <div className="whitespace-nowrap tabular-nums">
                   <span className="font-mono text-base font-semibold text-foreground block">
                     {row.original.cardNumber}
                   </span>
                   <span className="text-sm text-muted-foreground">
-                    {formatDateShort(row.original.issuedAt, locale)}
+                    {formatDateShort(row.original.issuedAt, 'bn')}
                   </span>
                 </div>
               ),
             },
             {
               accessorKey: 'studentNameBn',
-              header: pick('শিক্ষার্থী ও আইডি', 'Student & ID'),
+              header: 'শিক্ষার্থী ও আইডি',
               cell: ({ row }) => (
                 <div className="flex items-center gap-3 min-w-[200px]">
                   <div
@@ -816,7 +799,7 @@ export function StudentRfidCards() {
                       {row.original.studentStatus !== StudentStatus.ACTIVE && (
                         <span className="font-sans text-warning">
                           {' '}
-                          · {pick('অসক্রিয় শিক্ষার্থী', 'Non-active')}
+                          · {'অসক্রিয় শিক্ষার্থী'}
                         </span>
                       )}
                     </span>
@@ -826,21 +809,21 @@ export function StudentRfidCards() {
             },
             {
               accessorKey: 'classNumeric',
-              header: pick('শ্রেণি, শাখা ও রোল', 'Class, Section & Roll'),
+              header: 'শ্রেণি, শাখা ও রোল',
               cell: ({ row }) => (
                 <div className="whitespace-nowrap tabular-nums">
                   <span className="font-medium text-foreground">{row.original.classLabel}</span>
                   <span className="text-muted-foreground">
                     {' '}
-                    · {row.original.sectionLabel} · {pick('রোল', 'Roll')}{' '}
-                    {formatNumber(row.original.roll, locale)}
+                    · {row.original.sectionLabel} · {'রোল'}{' '}
+                    {formatNumber(row.original.roll, 'bn')}
                   </span>
                 </div>
               ),
             },
             {
               accessorKey: 'status',
-              header: pick('অবস্থা ও মন্তব্য', 'Status & Remarks'),
+              header: 'অবস্থা ও মন্তব্য',
               cell: ({ row }) => (
                 <div className="space-y-1 max-w-[240px]">
                   <StatusBadge enumName="CardStatus" value={row.original.status} />
@@ -869,7 +852,7 @@ export function StudentRfidCards() {
                       onClick={() => openStatusModal(row.original)}
                     >
                       <Settings2 className="w-3.5 h-3.5" />
-                      <span>{pick('অবস্থা', 'Status')}</span>
+                      <span>{'অবস্থা'}</span>
                     </Button>
 
                     {canReplace && (
@@ -885,7 +868,7 @@ export function StudentRfidCards() {
                         onClick={() => openReplaceModal(row.original)}
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
-                        <span>{pick('রিপ্লেস', 'Replace')}</span>
+                        <span>{'রিপ্লেস'}</span>
                       </Button>
                     )}
 
@@ -893,8 +876,8 @@ export function StudentRfidCards() {
                       type="button"
                       onClick={() => setPrintCardIds([row.original.id])}
                       className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors cursor-pointer"
-                      aria-label={pick('পরিচয়পত্র প্রিন্ট', 'Print ID card')}
-                      title={pick('পরিচয়পত্র প্রিন্ট', 'Print ID card')}
+                      aria-label={'পরিচয়পত্র প্রিন্ট'}
+                      title={'পরিচয়পত্র প্রিন্ট'}
                     >
                       <Printer className="w-3.5 h-3.5" />
                     </button>
@@ -902,8 +885,8 @@ export function StudentRfidCards() {
                     <Link
                       href={`/admin/students/${row.original.studentId}`}
                       className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                      aria-label={pick('শিক্ষার্থীর প্রোফাইল', 'View student profile')}
-                      title={pick('শিক্ষার্থীর প্রোফাইল', 'View student profile')}
+                      aria-label={'শিক্ষার্থীর প্রোফাইল'}
+                      title={'শিক্ষার্থীর প্রোফাইল'}
                     >
                       <Eye className="w-3.5 h-3.5" />
                     </Link>
@@ -926,24 +909,21 @@ export function StudentRfidCards() {
           }}
           emptyTitle={
             summary.unassignedCount === 0
-              ? pick(
-                  'সকল সক্রিয় শিক্ষার্থীর হাতে ইতিমধ্যে RFID কার্ড রয়েছে',
-                  'All active students already hold an active RFID card'
-                )
-              : pick('ফিল্টার অনুযায়ী কোনো শিক্ষার্থী পাওয়া যায়নি', 'No matching students found')
+              ? 'সকল সক্রিয় শিক্ষার্থীর হাতে ইতিমধ্যে RFID কার্ড রয়েছে'
+              : 'ফিল্টার অনুযায়ী কোনো শিক্ষার্থী পাওয়া যায়নি'
           }
           emptyAction={
             hasActiveFilters ? (
               <Button variant="outline" size="sm" onClick={resetFilters}>
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>{pick('ফিল্টার রিসেট করুন', 'Reset filters')}</span>
+                <span>{'ফিল্টার রিসেট করুন'}</span>
               </Button>
             ) : undefined
           }
           columns={[
             {
               accessorKey: 'roll',
-              header: pick('রোল', 'Roll'),
+              header: 'রোল',
               cell: ({ row }) => (
                 <span className="font-mono text-base font-semibold text-foreground tabular-nums">
                   {String(row.original.roll).padStart(2, '0')}
@@ -952,7 +932,7 @@ export function StudentRfidCards() {
             },
             {
               accessorKey: 'nameBn',
-              header: pick('শিক্ষার্থী ও আইডি', 'Student & ID'),
+              header: 'শিক্ষার্থী ও আইডি',
               cell: ({ row }) => (
                 <div className="flex items-center gap-3 min-w-[200px]">
                   <div
@@ -981,7 +961,7 @@ export function StudentRfidCards() {
             },
             {
               accessorKey: 'classNumeric',
-              header: pick('শ্রেণি ও শাখা', 'Class & Section'),
+              header: 'শ্রেণি ও শাখা',
               cell: ({ row }) => (
                 <div className="whitespace-nowrap">
                   <span className="font-medium text-foreground">{row.original.classLabel}</span>
@@ -991,7 +971,7 @@ export function StudentRfidCards() {
             },
             {
               id: 'history',
-              header: pick('পূর্ববর্তী কার্ড ইতিহাস', 'Previous Card History'),
+              header: 'পূর্ববর্তী কার্ড ইতিহাস',
               enableSorting: false,
               cell: ({ row }) =>
                 row.original.lastCard ? (
@@ -1003,13 +983,13 @@ export function StudentRfidCards() {
                   </div>
                 ) : (
                   <span className="text-sm text-muted-foreground">
-                    {pick('কখনো ইস্যু হয়নি', 'Never issued')}
+                    {'কখনো ইস্যু হয়নি'}
                   </span>
                 ),
             },
             {
               accessorKey: 'guardianPhone',
-              header: pick('অভিভাবক মোবাইল', 'Guardian Phone'),
+              header: 'অভিভাবক মোবাইল',
               cell: ({ row }) => (
                 <span className="font-mono text-sm text-muted-foreground tabular-nums">
                   {row.original.guardianPhone}
@@ -1029,7 +1009,7 @@ export function StudentRfidCards() {
                     onClick={() => openIssueModal(row.original.id)}
                   >
                     <CreditCard className="w-3.5 h-3.5" />
-                    <span>{pick('কার্ড ইস্যু করুন', 'Issue Card')}</span>
+                    <span>{'কার্ড ইস্যু করুন'}</span>
                   </Button>
                 </div>
               ),
@@ -1042,14 +1022,11 @@ export function StudentRfidCards() {
       <Modal
         open={issueOpen}
         onClose={() => setIssueOpen(false)}
-        title={pick('নতুন RFID পরিচয়পত্র ইস্যু করুন', 'Issue New RFID Card')}
-        description={pick(
-          'শুধুমাত্র সক্রিয় ও কার্ডবিহীন শিক্ষার্থীদের তালিকা দেখানো হচ্ছে। USB রিডার দিয়ে সরাসরি কার্ড স্ক্যান করেও নম্বর বসানো যাবে।',
-          'Only active students without an active card are listed. You can also scan a card directly using a USB RFID reader.'
-        )}
+        title={'নতুন RFID পরিচয়পত্র ইস্যু করুন'}
+        description={'শুধুমাত্র সক্রিয় ও কার্ডবিহীন শিক্ষার্থীদের তালিকা দেখানো হচ্ছে। USB রিডার দিয়ে সরাসরি কার্ড স্ক্যান করেও নম্বর বসানো যাবে।'}
       >
         <form onSubmit={handleIssueSubmit} className="space-y-4">
-          <FormField label={pick('শিক্ষার্থী নির্বাচন', 'Select Student')} required>
+          <FormField label={'শিক্ষার্থী নির্বাচন'} required>
             <Select
               value={issueForm.studentId}
               onChange={(e) => {
@@ -1063,17 +1040,17 @@ export function StudentRfidCards() {
                 }));
               }}
             >
-              <option value="">{pick('শিক্ষার্থী বেছে নিন...', 'Choose a student...')}</option>
+              <option value="">{'শিক্ষার্থী বেছে নিন...'}</option>
               {unassignedStudents.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.nameBn} · {s.classLabel} ({s.sectionLabel}, {pick('রোল', 'Roll')} {s.roll}) —{' '}
+                  {s.nameBn} · {s.classLabel} ({s.sectionLabel}, {'রোল'} {s.roll}) —{' '}
                   {s.studentCode}
                 </option>
               ))}
             </Select>
           </FormField>
 
-          <FormField label={pick('RFID কার্ড নম্বর / UID', 'RFID Card Number / UID')} required>
+          <FormField label={'RFID কার্ড নম্বর / UID'} required>
             <div className="flex items-center gap-2">
               <Input
                 value={issueForm.cardNumber}
@@ -1096,27 +1073,27 @@ export function StudentRfidCards() {
                   }));
                 }}
               >
-                {pick('অটো নম্বর', 'Suggest')}
+                {'অটো নম্বর'}
               </Button>
             </div>
           </FormField>
 
-          <FormField label={pick('প্রশাসনিক মন্তব্য', 'Remarks')}>
+          <FormField label={'প্রশাসনিক মন্তব্য'}>
             <Input
               value={issueForm.remarks}
               onChange={(e) => setIssueForm({ ...issueForm, remarks: e.target.value })}
-              placeholder={pick('যেমন: ২০২৬ শিক্ষাবর্ষের নতুন স্মার্ট কার্ড', 'e.g., 2026 session smart ID card')}
+              placeholder={'যেমন: ২০২৬ শিক্ষাবর্ষের নতুন স্মার্ট কার্ড'}
             />
           </FormField>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={() => setIssueOpen(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button type="submit" variant="primary" disabled={issuing || !issueForm.studentId}>
               <CreditCard className="w-4 h-4" />
               <span>
-                {issuing ? pick('ইস্যু হচ্ছে...', 'Issuing...') : pick('কার্ড সক্রিয় করুন', 'Activate Card')}
+                {issuing ? 'ইস্যু হচ্ছে...' : 'কার্ড সক্রিয় করুন'}
               </span>
             </Button>
           </div>
@@ -1127,7 +1104,7 @@ export function StudentRfidCards() {
       <Modal
         open={Boolean(statusTarget)}
         onClose={() => setStatusTarget(null)}
-        title={pick('কার্ডের অবস্থা পরিবর্তন করুন', 'Update RFID Card Status')}
+        title={'কার্ডের অবস্থা পরিবর্তন করুন'}
       >
         {statusTarget && (
           <div className="space-y-4">
@@ -1148,17 +1125,14 @@ export function StudentRfidCards() {
               <div className="flex items-start gap-2 p-3 rounded-[var(--radius)] border border-warning/40 bg-warning/5 text-sm text-warning">
                 <ShieldOff className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
-                  {pick(
-                    'এই শিক্ষার্থী বর্তমানে সক্রিয় নয় (স্থানান্তরিত বা প্রাক্তন)। তাই এই কার্ড পুনরায় সক্রিয় (ACTIVE) করা যাবে না।',
-                    'This student is no longer active (transferred or graduated). Reactivating this card is disabled.'
-                  )}
+                  {'এই শিক্ষার্থী বর্তমানে সক্রিয় নয় (স্থানান্তরিত বা প্রাক্তন)। তাই এই কার্ড পুনরায় সক্রিয় (ACTIVE) করা যাবে না।'}
                 </span>
               </div>
             )}
 
             <div className="space-y-2">
               <span className="text-sm font-bold text-foreground block">
-                {pick('নতুন অবস্থা নির্বাচন করুন', 'Select new status')}
+                {'নতুন অবস্থা নির্বাচন করুন'}
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {statusOptions.map((opt) => {
@@ -1192,23 +1166,20 @@ export function StudentRfidCards() {
               </div>
             </div>
 
-            <FormField label={pick('কারণ / মন্তব্য', 'Reason / Remarks')}>
+            <FormField label={'কারণ / মন্তব্য'}>
               <Textarea
                 value={statusRemarks}
                 onChange={(e) => setStatusRemarks(e.target.value)}
-                placeholder={pick(
-                  'যেমন: শিক্ষার্থী কার্ড হারিয়েছে বলে অভিভাবক জানিয়েছে...',
-                  'e.g., Guardian reported card lost on way to school...'
-                )}
+                placeholder={'যেমন: শিক্ষার্থী কার্ড হারিয়েছে বলে অভিভাবক জানিয়েছে...'}
               />
             </FormField>
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
               <Button variant="outline" onClick={() => setStatusTarget(null)}>
-                {pick('বাতিল', 'Cancel')}
+                {'বাতিল'}
               </Button>
               <Button variant="primary" disabled={updating} onClick={handleStatusSave}>
-                {updating ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save Status')}
+                {updating ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
               </Button>
             </div>
           </div>
@@ -1219,11 +1190,8 @@ export function StudentRfidCards() {
       <Modal
         open={Boolean(replaceTarget)}
         onClose={() => setReplaceTarget(null)}
-        title={pick('কার্ড রিপ্লেস করুন (পুরনো বন্ধ + নতুন ইস্যু)', 'Replace RFID Card')}
-        description={pick(
-          'এক ক্লিকে পুরনো কার্ডটি নিষ্ক্রিয় করে একই শিক্ষার্থীর নামে নতুন কার্ড চালু করুন।',
-          'Retire the previous card and activate a replacement card for the student in one step.'
-        )}
+        title={'কার্ড রিপ্লেস করুন (পুরনো বন্ধ + নতুন ইস্যু)'}
+        description={'এক ক্লিকে পুরনো কার্ডটি নিষ্ক্রিয় করে একই শিক্ষার্থীর নামে নতুন কার্ড চালু করুন।'}
       >
         {replaceTarget && (
           <form onSubmit={handleReplaceSubmit} className="space-y-4">
@@ -1231,14 +1199,14 @@ export function StudentRfidCards() {
               <div>
                 <p className="font-semibold text-foreground">{replaceTarget.studentNameBn}</p>
                 <p className="text-sm text-muted-foreground font-mono mt-0.5">
-                  {pick('পূর্বের কার্ড:', 'Previous Card:')} {replaceTarget.cardNumber} ·{' '}
+                  {'পূর্বের কার্ড:'} {replaceTarget.cardNumber} ·{' '}
                   {replaceTarget.classLabel} ({replaceTarget.sectionLabel})
                 </p>
               </div>
               <StatusBadge enumName="CardStatus" value={replaceTarget.status} />
             </div>
 
-            <FormField label={pick('পূর্বের কার্ডের চূড়ান্ত অবস্থা', 'Final Status of Old Card')} required>
+            <FormField label={'পূর্বের কার্ডের চূড়ান্ত অবস্থা'} required>
               <Select
                 value={replaceOldStatus}
                 onChange={(e) =>
@@ -1247,13 +1215,13 @@ export function StudentRfidCards() {
                   )
                 }
               >
-                <option value={CardStatus.LOST}>{pick('হারিয়ে গেছে (LOST)', 'Lost')}</option>
-                <option value={CardStatus.DAMAGED}>{pick('ক্ষতিগ্রস্ত (DAMAGED)', 'Damaged')}</option>
-                <option value={CardStatus.BLOCKED}>{pick('বন্ধ (BLOCKED)', 'Blocked')}</option>
+                <option value={CardStatus.LOST}>{'হারিয়ে গেছে (LOST)'}</option>
+                <option value={CardStatus.DAMAGED}>{'ক্ষতিগ্রস্ত (DAMAGED)'}</option>
+                <option value={CardStatus.BLOCKED}>{'বন্ধ (BLOCKED)'}</option>
               </Select>
             </FormField>
 
-            <FormField label={pick('নতুন RFID কার্ড নম্বর', 'New RFID Card Number')} required>
+            <FormField label={'নতুন RFID কার্ড নম্বর'} required>
               <Input
                 value={replaceNewNumber}
                 onChange={(e) => setReplaceNewNumber(e.target.value)}
@@ -1262,30 +1230,24 @@ export function StudentRfidCards() {
               />
             </FormField>
 
-            <FormField label={pick('রিপ্লেসমেন্ট মন্তব্য', 'Replacement Note')}>
+            <FormField label={'রিপ্লেসমেন্ট মন্তব্য'}>
               <Input
                 value={replaceRemarks}
                 onChange={(e) => setReplaceRemarks(e.target.value)}
-                placeholder={pick(
-                  'যেমন: পুরনো কার্ড হারানো যাওয়ায় নতুন কার্ড প্রদান',
-                  'e.g., Replacement issued for lost card'
-                )}
+                placeholder={'যেমন: পুরনো কার্ড হারানো যাওয়ায় নতুন কার্ড প্রদান'}
               />
             </FormField>
 
             <div className="flex items-start gap-2 p-3 rounded-[var(--radius)] border border-border bg-surface-muted/40 text-sm text-muted-foreground">
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-warning" />
               <span>
-                {pick(
-                  `পূর্বের কার্ড (${replaceTarget.cardNumber}) স্থায়ীভাবে নিষ্ক্রিয় হবে এবং নতুন কার্ড (${replaceNewNumber || '—'}) তাৎক্ষণিক গেট হাজিরায় সক্রিয় হবে।`,
-                  `Old card (${replaceTarget.cardNumber}) will be retired and the new card (${replaceNewNumber || '—'}) will be active immediately for gate attendance.`
-                )}
+                {`পূর্বের কার্ড (${replaceTarget.cardNumber}) স্থায়ীভাবে নিষ্ক্রিয় হবে এবং নতুন কার্ড (${replaceNewNumber || '—'}) তাৎক্ষণিক গেট হাজিরায় সক্রিয় হবে।`}
               </span>
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
               <Button type="button" variant="outline" onClick={() => setReplaceTarget(null)}>
-                {pick('বাতিল', 'Cancel')}
+                {'বাতিল'}
               </Button>
               <Button
                 type="submit"
@@ -1295,8 +1257,8 @@ export function StudentRfidCards() {
                 <RefreshCw className="w-4 h-4" />
                 <span>
                   {replacing
-                    ? pick('রিপ্লেস হচ্ছে...', 'Replacing...')
-                    : pick('রিপ্লেসমেন্ট নিশ্চিত করুন', 'Confirm Replacement')}
+                    ? 'রিপ্লেস হচ্ছে...'
+                    : 'রিপ্লেসমেন্ট নিশ্চিত করুন'}
                 </span>
               </Button>
             </div>
@@ -1308,28 +1270,22 @@ export function StudentRfidCards() {
       <Modal
         open={Boolean(printCardIds && printableCards.length > 0)}
         onClose={() => setPrintCardIds(null)}
-        title={pick(
-          `শিক্ষার্থী পরিচয়পত্র প্রিন্ট শিট (${formatNumber(printableCards.length, locale)}টি)`,
-          `Student Identity Card Print Sheet (${printableCards.length})`
-        )}
+        title={`শিক্ষার্থী পরিচয়পত্র প্রিন্ট শিট (${formatNumber(printableCards.length, 'bn')}টি)`}
         maxWidth="max-w-5xl"
       >
         {printableCards.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-2 pb-3 border-b border-border no-print">
               <span className="text-sm text-muted-foreground">
-                {pick(
-                  'A4 পেপারে প্রিন্ট করার উপযোগী গ্রিড লেআউট।',
-                  'A4 print-ready grid layout for laminated PVC / paper cards.'
-                )}
+                {'A4 পেপারে প্রিন্ট করার উপযোগী গ্রিড লেআউট।'}
               </span>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => setPrintCardIds(null)}>
-                  {pick('বন্ধ করুন', 'Close')}
+                  {'বন্ধ করুন'}
                 </Button>
                 <Button variant="primary" size="sm" onClick={triggerPrint}>
                   <Printer className="w-4 h-4" />
-                  <span>{pick('প্রিন্ট করুন', 'Print Sheet')}</span>
+                  <span>{'প্রিন্ট করুন'}</span>
                 </Button>
               </div>
             </div>

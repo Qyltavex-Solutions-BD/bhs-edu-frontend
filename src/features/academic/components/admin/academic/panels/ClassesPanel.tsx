@@ -19,7 +19,6 @@ import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import type { SchoolClass, Section } from '@/src/types/entities';
 import type { MockDatabase } from '@/src/mocks/seed';
 import { errorMessage } from './shared';
-import { useAcademicI18n } from '../academic.i18n';
 import { sectionSchema, type SectionFormValues } from '../academic.schema';
 
 const isUuid = (id?: string | null) =>
@@ -32,7 +31,6 @@ const defaultSectionValues: SectionFormValues = {
 };
 
 export function ClassesPanel({ db }: { db?: MockDatabase }) {
-  const { isBn, t, dict } = useAcademicI18n();
   const selectedYearId = useAppSelector((state) => state.ui.selectedAcademicYearId);
 
   const { data: realClasses, isLoading: loadingClasses } = useGetSchoolClassesQuery();
@@ -115,21 +113,21 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
           name: trimmedName,
           isActive: values.isActive,
         }).unwrap();
-        toast.success(t(dict.sections.updateSuccess));
+        toast.success('শাখা সফলভাবে আপডেট হয়েছে।');
       } else {
         await createSection({
           classId: values.classId,
           name: trimmedName,
           isActive: values.isActive,
         }).unwrap();
-        toast.success(t(dict.sections.createSuccess));
+        toast.success('নতুন শাখা সফলভাবে যুক্ত হয়েছে।');
       }
       closeSectionModal();
     } catch (err) {
       toast.error(
         errorMessage(
           err,
-          editingSection ? t(dict.sections.updateFailed) : t(dict.sections.createFailed),
+          editingSection ? 'শাখা আপডেট করা যায়নি।' : 'শাখা তৈরি করা যায়নি।',
         ),
       );
     }
@@ -140,7 +138,7 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {loadingClasses && classList.length === 0 ? (
           <div className="col-span-full text-center py-8 text-base text-muted-foreground">
-            {t(dict.classes.loadingClasses)}
+            {'শ্রেণির তালিকা লোড হচ্ছে...'}
           </div>
         ) : (
           classList.map((schoolClass) => {
@@ -151,9 +149,7 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
                   ? realSections.filter((section) => section.classId === schoolClass.id)
                   : (db?.sections?.filter((section) => section.classId === schoolClass.id) ?? []);
 
-            const displayName = isBn
-              ? schoolClass.nameBn || schoolClass.name
-              : schoolClass.name;
+            const displayName = schoolClass.nameBn || schoolClass.name;
             const secondaryName =
               schoolClass.nameBn && schoolClass.nameBn !== displayName
                 ? ` (${schoolClass.nameBn})`
@@ -179,13 +175,13 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
                       <StatusBadge
                         value={schoolClass.isActive ? 'ACTIVE' : 'INACTIVE'}
                         customLabel={
-                          schoolClass.isActive ? t(dict.common.active) : t(dict.common.inactive)
+                          schoolClass.isActive ? 'সক্রিয়' : 'বন্ধ'
                         }
                         customTone={schoolClass.isActive ? 'success' : 'neutral'}
                       />
                       {schoolClass._count?.enrollments !== undefined && (
                         <span>
-                          · {schoolClass._count.enrollments} {t(dict.classes.studentsCount)}
+                          · {schoolClass._count.enrollments} {'শিক্ষার্থী'}
                         </span>
                       )}
                     </div>
@@ -197,21 +193,21 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
                     onClick={() => openAddSection(schoolClass)}
                   >
                     <Plus className="w-4 h-4" />
-                    {isBn ? 'শাখা যোগ' : 'Add section'}
+                    {'শাখা যোগ'}
                   </Button>
                 </div>
 
                 {isSeniorClass && groupList.length > 0 && (
                   <div className="flex flex-wrap items-center gap-1.5 pt-1">
                     <span className="text-sm font-medium text-muted-foreground mr-1">
-                      {isBn ? 'বিভাগ:' : 'Streams:'}
+                      {'বিভাগ:'}
                     </span>
                     {groupList.map((group) => (
                       <span
                         key={group.id}
                         className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-primary/10 text-primary"
                       >
-                        {isBn ? group.nameBn || group.name : group.name}
+                        {group.nameBn || group.name}
                       </span>
                     ))}
                   </div>
@@ -219,10 +215,10 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
 
                 <div className="space-y-2 pt-2 border-t border-border/40">
                   <div className="text-sm font-semibold text-muted-foreground">
-                    {t(dict.classes.sectionsHeader)} ({sections.length})
+                    {'শাখা সমূহ'} ({sections.length})
                   </div>
                   {sections.length === 0 ? (
-                    <p className="text-muted-foreground text-base">{t(dict.classes.noSections)}</p>
+                    <p className="text-muted-foreground text-base">{'এখনো কোনো শাখা নেই।'}</p>
                   ) : (
                     <div className="space-y-1.5">
                       {sections.map((section) => {
@@ -246,11 +242,11 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="font-medium text-foreground">
-                                {t(dict.classes.secPrefix)} {section.name}
+                                {'শাখা'} {section.name}
                               </span>
                               {!section.isActive && (
-                                <span className="text-xs text-muted-foreground">
-                                  {t(dict.classes.offBadge)}
+                                <span className="text-sm text-muted-foreground">
+                                  {' (বন্ধ)'}
                                 </span>
                               )}
                             </div>
@@ -262,7 +258,7 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
                                 type="button"
                                 onClick={() => openEditSection(schoolClass, section)}
                                 className="p-1.5 rounded hover:bg-surface text-muted-foreground hover:text-foreground transition-colors"
-                                title={t(dict.common.edit)}
+                                title={'সম্পাদনা'}
                               >
                                 <Pencil className="w-4 h-4" />
                               </button>
@@ -284,13 +280,11 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
         onClose={closeSectionModal}
         title={
           editingSection
-            ? `${targetClass ? (isBn ? targetClass.nameBn || targetClass.name : targetClass.name) + ' · ' : ''}${t(dict.sections.editTitle)}`
-            : `${targetClass ? (isBn ? targetClass.nameBn || targetClass.name : targetClass.name) + ' · ' : ''}${t(dict.sections.newTitle)}`
+            ? `${targetClass ? (targetClass.nameBn || targetClass.name) + ' · ' : ''}${'শাখা সম্পাদনা'}`
+            : `${targetClass ? (targetClass.nameBn || targetClass.name) + ' · ' : ''}${'নতুন শাখা তৈরি'}`
         }
         description={
-          isBn
-            ? 'একই শ্রেণিতে শাখার নাম আলাদা হতে হবে (যেমন: ক, খ, গ)।'
-            : 'Section names must be unique within the same class (e.g., A, B, C).'
+          'একই শ্রেণিতে শাখার নাম আলাদা হতে হবে (যেমন: ক, খ, গ)।'
         }
         size="sm"
       >
@@ -298,13 +292,13 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
           <input type="hidden" {...register('classId')} />
 
           <FormField
-            label={isBn ? 'শাখার নাম' : 'Section Name'}
+            label={'শাখার নাম'}
             required
             error={errors.name?.message}
           >
             <Input
               {...register('name')}
-              placeholder={isBn ? 'যেমন: ক, খ, গ' : 'e.g. A, B, C'}
+              placeholder={'যেমন: ক, খ, গ'}
             />
           </FormField>
 
@@ -312,22 +306,22 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
             <Switch
               checked={isSectionActive}
               onChange={(val) => setValue('isActive', val)}
-              label={t(dict.common.active)}
+              label={'সক্রিয়'}
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={closeSectionModal}>
-              {t(dict.common.cancel)}
+              {'বাতিল'}
             </Button>
             <Button type="submit" variant="primary" disabled={savingSection}>
               {savingSection
                 ? editingSection
-                  ? t(dict.common.updating)
-                  : t(dict.common.saving)
+                  ? 'আপডেট হচ্ছে...'
+                  : 'সংরক্ষণ হচ্ছে...'
                 : editingSection
-                  ? t(dict.common.update)
-                  : t(dict.common.save)}
+                  ? 'হালনাগাদ করুন'
+                  : 'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>

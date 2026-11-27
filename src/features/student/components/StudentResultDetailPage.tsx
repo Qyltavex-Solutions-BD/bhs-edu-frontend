@@ -7,7 +7,6 @@ import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -58,13 +57,12 @@ export function StudentResultDetailPage() {
   const { id } = useParams();
   const { data: db, isLoading } = useGetBootstrapQuery();
   const me = useCurrentStudent(db);
-  const { pick } = useI18n();
   if (isLoading || !db || !me || !me.enrollment) return <LoadingSkeleton />;
 
   const summary = db.resultSummaries.find((r) => r.id === id);
   const exam = db.exams.find((e) => e.id === summary?.examId);
   if (!summary || !exam || exam.resultStatus !== ResultPublicationStatus.PUBLISHED) {
-    return <EmptyState title={pick('প্রকাশিত ফলাফল পাওয়া যায়নি', 'Published result not found')} />;
+    return <EmptyState title={'প্রকাশিত ফলাফল পাওয়া যায়নি'} />;
   }
 
   const subjects = db.studentSubjectResults
@@ -98,12 +96,12 @@ export function StudentResultDetailPage() {
       <div className="flex justify-between items-center no-print">
         <Link href="/student/results">
           <Button variant="outline" size="sm">
-            {pick('সব ফলাফল', 'Back to Results')}
+            {'সব ফলাফল'}
           </Button>
         </Link>
         <Button variant="primary" size="sm" onClick={() => triggerPrint()}>
           <Printer className="w-4 h-4" />
-          {pick('প্রিন্ট করুন', 'Print')}
+          {'প্রিন্ট করুন'}
         </Button>
       </div>
       <PrintableMarksheet

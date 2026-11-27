@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { useI18n } from '@/src/lib/i18n';
 import { Button, FormField, Modal, Select } from '@/src/components/ui/primitives';
 import { RelationshipType } from '@/src/types/enums';
 import { useUpdateParentLinkMutation, type ParentChildLink } from '../api/parents.api';
@@ -19,7 +18,6 @@ export function ParentLinkEditModal({
   link: ParentChildLink | null;
   onClose: () => void;
 }) {
-  const { pick } = useI18n();
   const [updateLink, { isLoading: saving }] = useUpdateParentLinkMutation();
   const [form, setForm] = useState({
     relationship: RelationshipType.FATHER as string,
@@ -51,25 +49,25 @@ export function ParentLinkEditModal({
         isEmergencyContact: form.isEmergencyContact,
         isSmsReceiver: form.isSmsReceiver,
       }).unwrap();
-      toast.success(pick('সংযোগ হালনাগাদ হয়েছে।', 'Link updated.'));
+      toast.success('সংযোগ হালনাগাদ হয়েছে।');
       onClose();
     } catch (err) {
-      toast.error(errorMessage(err, pick('হালনাগাদ হয়নি।', 'Could not update the link.')));
+      toast.error(errorMessage(err, 'হালনাগাদ হয়নি।'));
     }
   };
 
   return (
-    <Modal open={Boolean(link)} onClose={onClose} title={pick('সংযোগ সম্পাদনা', 'Edit link')}>
+    <Modal open={Boolean(link)} onClose={onClose} title={'সংযোগ সম্পাদনা'}>
       <form onSubmit={save} className="space-y-4">
-        <FormField label={pick('সম্পর্ক', 'Relationship')}>
+        <FormField label={'সম্পর্ক'}>
           <Select
             value={form.relationship}
             onChange={(event) => setForm({ ...form, relationship: event.target.value })}
           >
-            <option value={RelationshipType.FATHER}>{pick('পিতা', 'Father')}</option>
-            <option value={RelationshipType.MOTHER}>{pick('মাতা', 'Mother')}</option>
-            <option value={RelationshipType.GUARDIAN}>{pick('অভিভাবক', 'Guardian')}</option>
-            <option value={RelationshipType.OTHER}>{pick('অন্যান্য', 'Other')}</option>
+            <option value={RelationshipType.FATHER}>{'পিতা'}</option>
+            <option value={RelationshipType.MOTHER}>{'মাতা'}</option>
+            <option value={RelationshipType.GUARDIAN}>{'অভিভাবক'}</option>
+            <option value={RelationshipType.OTHER}>{'অন্যান্য'}</option>
           </Select>
         </FormField>
         <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -78,7 +76,7 @@ export function ParentLinkEditModal({
             checked={form.isPrimary}
             onChange={(event) => setForm({ ...form, isPrimary: event.target.checked })}
           />
-          {pick('প্রাথমিক অভিভাবক', 'Primary guardian')}
+          {'প্রাথমিক অভিভাবক'}
         </label>
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <input
@@ -88,7 +86,7 @@ export function ParentLinkEditModal({
               setForm({ ...form, isEmergencyContact: event.target.checked })
             }
           />
-          {pick('জরুরি যোগাযোগ', 'Emergency contact')}
+          {'জরুরি যোগাযোগ'}
         </label>
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <input
@@ -96,14 +94,14 @@ export function ParentLinkEditModal({
             checked={form.isSmsReceiver}
             onChange={(event) => setForm({ ...form, isSmsReceiver: event.target.checked })}
           />
-          {pick('SMS পাবেন', 'Receives SMS')}
+          {'SMS পাবেন'}
         </label>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onClose}>
-            {pick('বাতিল', 'Cancel')}
+            {'বাতিল'}
           </Button>
           <Button type="submit" variant="primary" disabled={saving}>
-            {saving ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ', 'Save')}
+            {saving ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ'}
           </Button>
         </div>
       </form>

@@ -2,8 +2,6 @@
 
 import React from 'react';
 import { GraduationCap, Loader2, ShieldCheck, Users } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
-
 export interface DemoAccount {
   key: 'TEACHER' | 'PARENT';
   labelBn: string;
@@ -52,7 +50,6 @@ export function DemoLoginCards({
   isLoading = false,
   activeRole = null,
 }: DemoLoginCardsProps) {
-  const { pick } = useI18n();
   const isDemoEnabled =
     process.env.NODE_ENV !== 'production' ||
     process.env.NEXT_PUBLIC_ENABLE_DEMO_LOGIN === 'true';
@@ -65,8 +62,8 @@ export function DemoLoginCards({
     <div className="space-y-2.5">
       <div className="flex items-center gap-2">
         <div className="h-px flex-1 bg-border" />
-        <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-          {pick('দ্রুত ডেমো লগইন (১-ক্লিক)', 'Quick Demo Login (1-Click)')}
+        <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+          {'দ্রুত ডেমো লগইন (১-ক্লিক)'}
         </span>
         <div className="h-px flex-1 bg-border" />
       </div>
@@ -95,10 +92,10 @@ export function DemoLoginCards({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors truncate">
-                  {pick(account.labelBn, account.labelEn)}
+                  {account.labelBn}
                 </p>
-                <p className="text-[11px] text-muted-foreground truncate">
-                  {pick(account.descBn, account.descEn)}
+                <p className="text-sm text-muted-foreground truncate">
+                  {account.descBn}
                 </p>
               </div>
             </button>

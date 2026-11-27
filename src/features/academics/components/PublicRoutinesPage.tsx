@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { formatYear } from '@/src/lib/formatters';
 import { useParams, useSearchParams } from '@/src/lib/navigation';
 import {
   ArrowLeft,
@@ -27,7 +28,6 @@ import {
   Users,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatNumber, formatTime12h } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -56,7 +56,7 @@ import type { SyllabusExamTerm, SyllabusFile } from '@/src/types/entities';
 function getWeekdayLabel(dateStr: string, locale: 'bn' | 'en'): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     weekday: 'long',
   }).format(d);
 }
@@ -65,7 +65,7 @@ function getMonthLabel(yearMonth: string, locale: 'bn' | 'en'): string {
   const [y, m] = yearMonth.split('-').map(Number);
   if (!y || !m) return yearMonth;
   const d = new Date(y, m - 1, 1);
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     month: 'long',
   }).format(d);
 }
@@ -211,7 +211,6 @@ const STRUCTURED_DOC_SECTIONS: Record<AcademicDocumentType, StructuredDocSection
 
 export function PublicRoutinesPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const initialClass = searchParams.get('classId') ?? 'cls-10';
@@ -259,14 +258,11 @@ export function PublicRoutinesPage() {
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <div className="no-print">
         <PageHeader
-          title={pick(`সাপ্তাহিক ক্লাস রুটিন ${activeYear?.name ?? ''}`, `Weekly Class Routine ${activeYear?.name ?? ''}`)}
-          description={pick(
-            'শ্রেণি ও শাখা নির্বাচন করে রবি থেকে বৃহস্পতিবারের পাঠদানের সময়সূচি দেখুন ও প্রিন্ট করুন।',
-            'Select class and section to view or print the Sunday–Thursday classroom timetable.'
-          )}
+          title={`সাপ্তাহিক ক্লাস রুটিন ${activeYear?.name ? formatYear(activeYear.name, 'bn') : ''}`}
+          description={'শ্রেণি ও শাখা নির্বাচন করে রবি থেকে বৃহস্পতিবারের পাঠদানের সময়সূচি দেখুন ও প্রিন্ট করুন।'}
           actions={
             <Button variant="outline" size="sm" onClick={triggerPrint} className="whitespace-nowrap">
-              <Printer className="w-4 h-4" /> {pick('রুটিন প্রিন্ট করুন', 'Print Routine')}
+              <Printer className="w-4 h-4" /> {'রুটিন প্রিন্ট করুন'}
             </Button>
           }
         />
@@ -277,13 +273,13 @@ export function PublicRoutinesPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full lg:max-w-md">
           <Select value={validClassId} onChange={(e) => handleClassChange(e.target.value)}>
             {db.classes.map((c) => (
-              <option key={c.id} value={c.id}>{locale === 'bn' ? c.nameBn : c.name}</option>
+              <option key={c.id} value={c.id}>{c.nameBn}</option>
             ))}
           </Select>
           <Select value={effectiveSecId} onChange={(e) => handleSectionChange(e.target.value)}>
             {classSections.map((s) => (
               <option key={s.id} value={s.id}>
-                {pick('শাখা:', 'Section:')} {s.name}
+                {'শাখা:'} {s.name}
               </option>
             ))}
           </Select>
@@ -292,15 +288,15 @@ export function PublicRoutinesPage() {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-primary shrink-0" />
-            <span className="text-muted-foreground">{pick('শ্রেণিশিক্ষক:', 'Class Teacher:')}</span>
+            <span className="text-muted-foreground">{'শ্রেণিশিক্ষক:'}</span>
             <span className="font-semibold text-foreground">
-              {classTeacher ? classTeacher.name : pick('নির্ধারিত হয়নি', 'Assigned by Office')}
+              {classTeacher ? classTeacher.name : 'নির্ধারিত হয়নি'}
             </span>
           </div>
           <div className="flex items-center gap-2 tabular-nums">
             <Clock className="w-4 h-4 text-primary shrink-0" />
-            <span className="text-muted-foreground">{pick('সমাবেশ:', 'Assembly:')}</span>
-            <span className="font-semibold text-foreground">{pick('সকাল ৯:৪৫', '9:45 AM')}</span>
+            <span className="text-muted-foreground">{'সমাবেশ:'}</span>
+            <span className="font-semibold text-foreground">{'সকাল ৯:৪৫'}</span>
           </div>
         </div>
       </Card>
@@ -311,19 +307,16 @@ export function PublicRoutinesPage() {
           <SchoolEmblem size={44} />
           <div>
             <h1 className="text-lg font-bold text-foreground">
-              {locale === 'bn' ? db.schoolProfile.name : db.schoolProfile.nameEn}
+              {db.schoolProfile.name}
             </h1>
-            <p className="text-xs text-muted-foreground">
-              {pick(
-                `সাপ্তাহিক ক্লাস রুটিন ${activeYear?.name ?? ''} · ${activeClass?.nameBn ?? ''} (শাখা: ${activeSection?.name ?? ''})`,
-                `Weekly Class Routine ${activeYear?.name ?? ''} · ${activeClass?.name ?? ''} (Section: ${activeSection?.name ?? ''})`
-              )}
+            <p className="text-sm text-muted-foreground">
+              {`সাপ্তাহিক ক্লাস রুটিন ${activeYear?.name ? formatYear(activeYear.name, 'bn') : ''} · ${activeClass?.nameBn ?? ''} (শাখা: ${activeSection?.name ?? ''})`}
             </p>
           </div>
         </div>
         {classTeacher && (
-          <p className="text-xs text-muted-foreground">
-            {pick('শ্রেণিশিক্ষক:', 'Class Teacher:')} {classTeacher.name}
+          <p className="text-sm text-muted-foreground">
+            {'শ্রেণিশিক্ষক:'} {classTeacher.name}
           </p>
         )}
       </div>
@@ -331,46 +324,43 @@ export function PublicRoutinesPage() {
       {/* Timetable Grid or Graceful Empty Section Guidance */}
       {routines.length === 0 ? (
         <EmptyState
-          title={pick('এই শাখার রুটিন এখনো প্রকাশিত হয়নি', 'No Routine Published for This Section Yet')}
-          description={pick(
-            'বর্তমানে এই শ্রেণির "ক" শাখার পূর্ণাঙ্গ সাপ্তাহিক রুটিন প্রকাশিত রয়েছে। অন্য শাখা নির্বাচন করে রুটিন দেখুন অথবা বিদ্যালয় অফিসে যোগাযোগ করুন।',
-            'The full timetable for Section ক of this class is published. Switch to Section ক or check with the school office.'
-          )}
+          title={'এই শাখার রুটিন এখনো প্রকাশিত হয়নি'}
+          description={'বর্তমানে এই শ্রেণির "ক" শাখার পূর্ণাঙ্গ সাপ্তাহিক রুটিন প্রকাশিত রয়েছে। অন্য শাখা নির্বাচন করে রুটিন দেখুন অথবা বিদ্যালয় অফিসে যোগাযোগ করুন।'}
           action={
             classSections[0] && classSections[0].id !== effectiveSecId ? (
               <Button variant="primary" size="sm" onClick={() => handleSectionChange(classSections[0].id)}>
-                {pick(`শাখা "${classSections[0].name}" দেখুন`, `View Section ${classSections[0].name}`)}
+                {`শাখা "${classSections[0].name}" দেখুন`}
               </Button>
             ) : undefined
           }
         />
       ) : (
         <Card className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse min-w-[980px]">
+          <table className="w-full text-base border-collapse min-w-[980px]">
             <thead className="bg-surface-muted text-muted-foreground">
               <tr>
                 <th className="p-3.5 border-b border-r border-border text-left font-semibold w-32">
-                  {pick('বার / পিরিয়ড', 'Day / Period')}
+                  {'বার / পিরিয়ড'}
                 </th>
                 {PERIOD_META.slice(0, 3).map((pm) => (
                   <th key={pm.period} className="p-3.5 border-b border-border text-left">
-                    <div className="font-semibold text-foreground">{pick(pm.labelBn, pm.labelEn)}</div>
-                    <div className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                      {pick(pm.timeBn, pm.timeEn)}
+                    <div className="font-semibold text-foreground">{pm.labelBn}</div>
+                    <div className="text-sm text-muted-foreground tabular-nums mt-0.5">
+                      {pm.timeBn}
                     </div>
                   </th>
                 ))}
                 <th className="p-3 border-b border-x border-border text-center bg-surface-muted/80 w-24">
-                  <div className="text-xs font-semibold text-primary">{pick('টিফিন বিরতি', 'Tiffin')}</div>
-                  <div className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                    {pick('১২:১৫–১২:৪৫', '12:15–12:45')}
+                  <div className="text-sm font-semibold text-primary">{'টিফিন বিরতি'}</div>
+                  <div className="text-sm text-muted-foreground tabular-nums mt-0.5">
+                    {'১২:১৫–১২:৪৫'}
                   </div>
                 </th>
                 {PERIOD_META.slice(3).map((pm) => (
                   <th key={pm.period} className="p-3.5 border-b border-border text-left">
-                    <div className="font-semibold text-foreground">{pick(pm.labelBn, pm.labelEn)}</div>
-                    <div className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                      {pick(pm.timeBn, pm.timeEn)}
+                    <div className="font-semibold text-foreground">{pm.labelBn}</div>
+                    <div className="text-sm text-muted-foreground tabular-nums mt-0.5">
+                      {pm.timeBn}
                     </div>
                   </th>
                 ))}
@@ -391,10 +381,10 @@ export function PublicRoutinesPage() {
                   return (
                     <td key={p} className="p-3.5 align-top">
                       <p className="font-semibold text-foreground text-sm">
-                        {locale === 'bn' ? sub?.nameBn ?? sub?.name : sub?.name}
+                        {sub?.nameBn ?? sub?.name}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{staff?.name}</p>
-                      <p className="text-xs text-primary font-medium tabular-nums mt-1">
+                      <p className="text-sm text-muted-foreground mt-0.5">{staff?.name}</p>
+                      <p className="text-sm text-primary font-medium tabular-nums mt-1">
                         {slot.room}
                       </p>
                     </td>
@@ -407,8 +397,8 @@ export function PublicRoutinesPage() {
                       <div className="flex flex-col gap-1">
                         <StatusBadge enumName="WeekDay" value={day} />
                         {isToday && (
-                          <span className="text-xs font-semibold text-primary">
-                            {pick('আজকের দিন', 'Today')}
+                          <span className="text-sm font-semibold text-primary">
+                            {'আজকের দিন'}
                           </span>
                         )}
                       </div>
@@ -421,10 +411,10 @@ export function PublicRoutinesPage() {
                         rowSpan={days.length}
                         className="p-3 border-x border-border bg-surface-muted/40 text-center align-middle"
                       >
-                        <div className="flex flex-col items-center justify-center gap-1 text-xs font-semibold text-muted-foreground">
+                        <div className="flex flex-col items-center justify-center gap-1 text-sm font-semibold text-muted-foreground">
                           <Clock className="w-4 h-4 text-primary" />
-                          <span>{pick('টিফিন', 'Tiffin')}</span>
-                          <span className="tabular-nums">{pick('৩০ মি.', '30m')}</span>
+                          <span>{'টিফিন'}</span>
+                          <span className="tabular-nums">{'৩০ মি.'}</span>
                         </div>
                       </td>
                     )}

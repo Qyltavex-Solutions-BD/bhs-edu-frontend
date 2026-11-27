@@ -11,7 +11,6 @@ import {
 import { setCommandPaletteOpen, toggleSidebar, toggleTheme } from '@/src/store/slices/uiSlice';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useLogoutUserMutation } from '@/src/features/auth/api/auth.api';
-import { useI18n } from '@/src/lib/i18n';
 import { Button, Modal } from '@/src/components/ui/primitives';
 import {
   type PortalKind,
@@ -26,7 +25,6 @@ import {
 export type { PortalKind };
 
 export function PortalLayout({ portal, children }: { portal: PortalKind; children: React.ReactNode }) {
-  const { locale, pick } = useI18n();
   const dispatch = useAppDispatch();
   const router = useRouter();
   const pathname = usePathname();
@@ -38,6 +36,11 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const expectedRoles: Record<PortalKind, AppRole[]> = {
     admin: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'PRINCIPAL'],
@@ -72,8 +75,8 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
   }, [pathname]);
 
   const currentNavContext = useMemo(
-    () => getCurrentNavContext(portal, pathname, locale, pick),
-    [portal, pathname, locale, pick]
+    () => getCurrentNavContext(portal, pathname, 'bn', (bn: string) => bn),
+    [portal, pathname]
   );
 
   const isAllowedRole = Boolean(auth.role && expectedRoles[portal].includes(auth.role));
@@ -95,10 +98,10 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
 
   // Student Portal Feature Flag Gate
   if (portal === 'student' && !enableStudentPortal) {
-    return <PortalStudentDisabledScreen pick={pick} />;
+    return <PortalStudentDisabledScreen />;
   }
 
-  if (!isAuthorized) {
+  if (!mounted || !isAuthorized) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-7 h-7 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
@@ -124,6 +127,7 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
     <div className="min-h-screen lg:h-screen lg:overflow-hidden flex bg-background text-foreground">
       {/* Desktop Floating Green Capsule Sidebar */}
       <PortalSidebar
+        portal={portal}
         sidebarCollapsed={sidebarCollapsed}
         onToggleSidebar={() => dispatch(toggleSidebar())}
         navGroups={navGroups}
@@ -132,8 +136,6 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
         onToggleMenu={handleToggleMenu}
         user={auth.user}
         onLogout={handleLogout}
-        locale={locale}
-        pick={pick}
       />
 
       {/* Mobile Sidebar Drawer */}
@@ -145,8 +147,6 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
         openMenus={openMenus}
         onToggleMenu={handleToggleMenu}
         onLogout={handleLogout}
-        locale={locale}
-        pick={pick}
       />
 
       {/* Main Content Area */}
@@ -167,8 +167,7 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
           onMarkNotificationRead={(args) => markRead(args)}
           theme={theme}
           onToggleTheme={() => dispatch(toggleTheme())}
-          locale={locale}
-          pick={pick}
+          onLogout={handleLogout}
         />
 
         {/* Page Viewport */}
@@ -181,21 +180,18 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
       <Modal
         open={auth.sessionExpired}
         onClose={() => dispatch(dismissSessionExpired())}
-        title={pick('সেশনের মেয়াদ শেষ হয়েছে', 'Session Expired')}
+        title={'সেশনের মেয়াদ শেষ হয়েছে'}
         maxWidth="max-w-md"
       >
         <p className="text-base text-muted-foreground">
-          {pick(
-            'নিরাপত্তার কারণে আপনার সেশনের মেয়াদ শেষ হয়েছে। পুনরায় লগইন করুন।',
-            'Your session has expired for security reasons. Please sign in again.'
-          )}
+          {'নিরাপত্তার কারণে আপনার সেশনের মেয়াদ শেষ হয়েছে। পুনরায় লগইন করুন।'}
         </p>
         <div className="flex justify-end gap-2 mt-5">
           <Button
             variant="primary"
             onClick={handleLogout}
           >
-            {pick('পুনরায় লগইন', 'Sign In Again')}
+            {'পুনরায় লগইন'}
           </Button>
         </div>
       </Modal>

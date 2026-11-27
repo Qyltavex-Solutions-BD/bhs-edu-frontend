@@ -34,7 +34,6 @@ import {
   useUpdateSchoolProfileMutation,
   useUpsertCmsItemMutation,
 } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   getCampusPhoto,
@@ -151,7 +150,6 @@ export function AdminWebsiteMediaPage({
   const [toggleCms] = useToggleCmsItemMutation();
   const [reorderCms] = useReorderCmsItemsMutation();
   const [updateAdmission, { isLoading: savingAdmission }] = useUpdateAdmissionContentMutation();
-  const { locale, pick } = useI18n();
   const [tab, setTab] = useState(defaultTab);
 
   // Admin Search & Filter States (aligned with public website filters)
@@ -317,10 +315,10 @@ export function AdminWebsiteMediaPage({
   if (isLoading || !db) return <LoadingSkeleton />;
 
   const livePreviewMap = {
-    gallery: { href: '/gallery', label: pick('পাবলিক গ্যালারি দেখুন', 'View Public Gallery') },
-    admission: { href: '/admission', label: pick('পাবলিক ভর্তি পেজ দেখুন', 'View Admission Page') },
-    publications: { href: '/publications', label: pick('পাবলিক প্রকাশনা দেখুন', 'View Publications') },
-    achievements: { href: '/achievements', label: pick('পাবলিক অর্জন পেজ দেখুন', 'View Achievements') },
+    gallery: { href: '/gallery', label: 'পাবলিক গ্যালারি দেখুন' },
+    admission: { href: '/admission', label: 'পাবলিক ভর্তি পেজ দেখুন' },
+    publications: { href: '/publications', label: 'পাবলিক প্রকাশনা দেখুন' },
+    achievements: { href: '/achievements', label: 'পাবলিক অর্জন পেজ দেখুন' },
   } as const;
 
   const sortedGalleryCategories: GalleryCategory[] = [...(db.galleryCategories ?? [])].sort(
@@ -421,10 +419,7 @@ export function AdminWebsiteMediaPage({
       requiredDocuments: admForm.requiredDocuments.map((d) => d.trim()).filter(Boolean),
     }).unwrap();
     toast.success(
-      pick(
-        'ভর্তি ক্যাম্পেইন, ১৩-দফা ফরম ও নির্দেশিকা সংরক্ষিত হয়েছে।',
-        'Admission campaign, form & guidelines saved.'
-      )
+      'ভর্তি ক্যাম্পেইন, ১৩-দফা ফরম ও নির্দেশিকা সংরক্ষিত হয়েছে।'
     );
   };
 
@@ -440,7 +435,7 @@ export function AdminWebsiteMediaPage({
     const [moved] = next.splice(fromIdx, 1);
     next.splice(toIdx, 0, moved);
     await reorderCms({ collection: 'galleryCategories', orderedIds: next.map((x) => x.id) }).unwrap();
-    toast.success(pick('ক্যাটাগরির ক্রম হালনাগাদ হয়েছে।', 'Category order updated.'));
+    toast.success('ক্যাটাগরির ক্রম হালনাগাদ হয়েছে।');
   };
 
   const openGalleryEditor = (g?: Gallery) => {
@@ -484,8 +479,8 @@ export function AdminWebsiteMediaPage({
     setMediaFileName(
       isUploaded
         ? m.mediaType === MediaType.VIDEO
-          ? pick('বিদ্যমান আপলোডকৃত ভিডিও', 'Existing uploaded video')
-          : pick('বিদ্যমান আপলোডকৃত ছবি', 'Existing uploaded image')
+          ? 'বিদ্যমান আপলোডকৃত ভিডিও'
+          : 'বিদ্যমান আপলোডকৃত ছবি'
         : ''
     );
     setMediaError('');
@@ -503,7 +498,7 @@ export function AdminWebsiteMediaPage({
     const [moved] = next.splice(fromIdx, 1);
     next.splice(toIdx, 0, moved);
     await reorderCms({ collection: 'galleryMedia', orderedIds: next.map((x) => x.id) }).unwrap();
-    toast.success(pick('মিডিয়ার ক্রম হালনাগাদ হয়েছে।', 'Media order updated.'));
+    toast.success('মিডিয়ার ক্রম হালনাগাদ হয়েছে।');
   };
 
   const openPubEditor = (p?: Publication) => {
@@ -538,11 +533,8 @@ export function AdminWebsiteMediaPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('মিডিয়া, ভর্তি ও প্রকাশনা CMS', 'Media, Admission & Publications CMS')}
-        description={pick(
-          'ফটো ও ভিডিও গ্যালারি অ্যালবাম, অনলাইন ভর্তি ক্যাম্পেইন ও ১৩-দফা ফরম, প্রকাশনা এবং অর্জনের তালিকা পাবলিক ওয়েবসাইটের সাথে সামঞ্জস্য রেখে পরিচালনা করুন।',
-          'Manage photo/video gallery albums, admission campaign & 13-point form, publications, and achievements aligned with the public website.'
-        )}
+        title={'মিডিয়া, ভর্তি ও প্রকাশনা CMS'}
+        description={'ফটো ও ভিডিও গ্যালারি অ্যালবাম, অনলাইন ভর্তি ক্যাম্পেইন ও ১৩-দফা ফরম, প্রকাশনা এবং অর্জনের তালিকা পাবলিক ওয়েবসাইটের সাথে সামঞ্জস্য রেখে পরিচালনা করুন।'}
         actions={
           <Link href={livePreviewMap[tab].href} target="_blank" rel="noopener noreferrer">
             <Button variant="outline" size="sm" className="whitespace-nowrap">
@@ -557,10 +549,10 @@ export function AdminWebsiteMediaPage({
         value={tab}
         onChange={setTab}
         items={[
-          { value: 'gallery', label: pick('ছবি ও ভিডিও গ্যালারি', 'Photo & Video Gallery'), count: db.galleries.length },
-          { value: 'admission', label: pick('ভর্তি ক্যাম্পেইন ও ফরম', 'Admission & Form') },
-          { value: 'publications', label: pick('প্রকাশনা ও ম্যাগাজিন', 'Publications'), count: db.publications.length },
-          { value: 'achievements', label: pick('অর্জন ও কৃতি শিক্ষার্থী', 'Achievements'), count: db.achievements.length },
+          { value: 'gallery', label: 'ছবি ও ভিডিও গ্যালারি', count: db.galleries.length },
+          { value: 'admission', label: 'ভর্তি ক্যাম্পেইন ও ফরম' },
+          { value: 'publications', label: 'প্রকাশনা ও ম্যাগাজিন', count: db.publications.length },
+          { value: 'achievements', label: 'অর্জন ও কৃতি শিক্ষার্থী', count: db.achievements.length },
         ]}
       />
 
@@ -574,7 +566,7 @@ export function AdminWebsiteMediaPage({
                 <Input
                   value={galleryQuery}
                   onChange={(e) => setGalleryQuery(e.target.value)}
-                  placeholder={pick('অ্যালবাম, ক্যাটাগরি বা ক্যাপশন খুঁজুন...', 'Search albums, category, or caption...')}
+                  placeholder={'অ্যালবাম, ক্যাটাগরি বা ক্যাপশন খুঁজুন...'}
                   className="pl-9"
                 />
               </div>
@@ -583,7 +575,7 @@ export function AdminWebsiteMediaPage({
                 onChange={(e) => setGalleryCategoryFilter(e.target.value)}
                 className="w-full sm:w-48"
               >
-                <option value="ALL">{pick('সব ক্যাটাগরি', 'All Categories')}</option>
+                <option value="ALL">{'সব ক্যাটাগরি'}</option>
                 {galleryCategories.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
@@ -594,14 +586,11 @@ export function AdminWebsiteMediaPage({
             <div className="flex flex-wrap items-center gap-2 shrink-0">
               <Button variant="outline" size="sm" onClick={openCategoryManager} className="whitespace-nowrap">
                 <FolderCog className="w-4 h-4" />
-                {pick(
-                  `ক্যাটাগরি পরিচালনা (${formatNumber(sortedGalleryCategories.length, locale)})`,
-                  `Manage Categories (${sortedGalleryCategories.length})`
-                )}
+                {`ক্যাটাগরি পরিচালনা (${formatNumber(sortedGalleryCategories.length, 'bn')})`}
               </Button>
               <Button variant="primary" size="sm" onClick={() => openGalleryEditor()} className="whitespace-nowrap">
                 <Plus className="w-4 h-4" />
-                {pick('নতুন অ্যালবাম যুক্ত করুন', 'Add Album')}
+                {'নতুন অ্যালবাম যুক্ত করুন'}
               </Button>
             </div>
           </div>
@@ -632,27 +621,27 @@ export function AdminWebsiteMediaPage({
                       {videoCount > 0 && (
                         <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-black/70 text-white text-xs font-medium">
                           <Film className="w-3 h-3" />
-                          {formatNumber(videoCount, locale)}
+                          {formatNumber(videoCount, 'bn')}
                         </span>
                       )}
                     </div>
                   ) : (
                     <div className="w-full h-40 bg-surface-muted/60 border-b border-border flex flex-col items-center justify-center gap-1.5 text-muted-foreground">
                       {videoCount > 0 ? <Film className="w-8 h-8" /> : <ImageIcon className="w-8 h-8" />}
-                      <span className="text-xs">
+                      <span className="text-sm">
                         {videoCount > 0
-                          ? pick('ভিডিও অ্যালবাম', 'Video Album')
-                          : pick('কোনো ছবি যুক্ত হয়নি', 'No media uploaded yet')}
+                          ? 'ভিডিও অ্যালবাম'
+                          : 'কোনো ছবি যুক্ত হয়নি'}
                       </span>
                     </div>
                   )}
                   <div className="p-4 flex-1 flex flex-col justify-between gap-3">
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground tabular-nums">
-                        {g.category ?? pick('সাধারণ', 'General')} · {formatNumber(imageCount, locale)}{' '}
-                        {pick('টি ছবি', 'photos')}
+                      <p className="text-sm text-muted-foreground tabular-nums">
+                        {g.category ?? 'সাধারণ'} · {formatNumber(imageCount, 'bn')}{' '}
+                        {'টি ছবি'}
                         {videoCount > 0
-                          ? ` · ${formatNumber(videoCount, locale)} ${pick('টি ভিডিও', 'videos')}`
+                          ? ` · ${formatNumber(videoCount, 'bn')} ${'টি ভিডিও'}`
                           : ''}
                       </p>
                       <h3 className="text-base font-bold text-foreground">{g.title}</h3>
@@ -667,13 +656,13 @@ export function AdminWebsiteMediaPage({
                           className="flex-1 justify-center"
                         >
                           <Images className="w-3.5 h-3.5" />
-                          {pick(`মিডিয়া পরিচালনা (${formatNumber(items.length, locale)})`, `Manage Media (${items.length})`)}
+                          {`মিডিয়া পরিচালনা (${formatNumber(items.length, 'bn')})`}
                         </Button>
                         <Link
                           href={`/gallery/${g.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          title={pick('পাবলিক অ্যালবাম দেখুন', 'View Live Album')}
+                          title={'পাবলিক অ্যালবাম দেখুন'}
                         >
                           <Button variant="ghost" size="sm">
                             <ExternalLink className="w-3.5 h-3.5" />
@@ -684,7 +673,7 @@ export function AdminWebsiteMediaPage({
                         <Switch
                           checked={g.isPublished}
                           onChange={() => toggleCms({ collection: 'galleries', id: g.id, field: 'isPublished' })}
-                          label={g.isPublished ? pick('প্রকাশিত', 'Published') : pick('খসড়া', 'Draft')}
+                          label={g.isPublished ? 'প্রকাশিত' : 'খসড়া'}
                         />
                         <div className="flex items-center gap-1">
                           <Button variant="outline" size="sm" onClick={() => openGalleryEditor(g)}>
@@ -695,7 +684,7 @@ export function AdminWebsiteMediaPage({
                             size="sm"
                             onClick={async () => {
                               await deleteCms({ collection: 'galleries', id: g.id }).unwrap();
-                              toast.success(pick('অ্যালবাম ও এর মিডিয়া মুছে ফেলা হয়েছে।', 'Album and its media deleted.'));
+                              toast.success('অ্যালবাম ও এর মিডিয়া মুছে ফেলা হয়েছে।');
                             }}
                           >
                             <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -718,83 +707,80 @@ export function AdminWebsiteMediaPage({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border">
               <div>
                 <h3 className="text-base font-bold text-foreground">
-                  {pick('ভর্তি ক্যাম্পেইন ও হোমপেজ ব্যানার নিয়ন্ত্রণ', 'Admission Campaign & Homepage Banner Control')}
+                  {'ভর্তি ক্যাম্পেইন ও হোমপেজ ব্যানার নিয়ন্ত্রণ'}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {pick(
-                    'ভর্তি কার্যক্রম চালু/বন্ধ করুন, যোগ্য শ্রেণি, তারিখ ও ফি হালনাগাদ করুন — হোমপেজ ও সকল ভর্তি পেজে সাথে সাথে প্রতিফলিত হবে।',
-                    'Control admission cycle status, eligible classes, schedule & fee across homepage and all public admission routes.'
-                  )}
+                  {'ভর্তি কার্যক্রম চালু/বন্ধ করুন, যোগ্য শ্রেণি, তারিখ ও ফি হালনাগাদ করুন — হোমপেজ ও সকল ভর্তি পেজে সাথে সাথে প্রতিফলিত হবে।'}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-4">
                 <Switch
                   checked={admForm.isPublished}
                   onChange={(v) => setAdmForm({ ...admForm, isPublished: v })}
-                  label={pick('ভর্তি পাতা সক্রিয়', 'Published')}
+                  label={'ভর্তি পাতা সক্রিয়'}
                 />
                 <Switch
                   checked={admForm.showOnHomepage}
                   onChange={(v) => setAdmForm({ ...admForm, showOnHomepage: v })}
-                  label={pick('হোমপেজে ব্যানার দেখান', 'Show on Homepage')}
+                  label={'হোমপেজে ব্যানার দেখান'}
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField label={pick('ভর্তি কার্যক্রম অবস্থা', 'Admission Cycle Status')}>
+              <FormField label={'ভর্তি কার্যক্রম অবস্থা'}>
                 <Select
                   value={admForm.admissionStatus}
                   onChange={(e) =>
                     setAdmForm({ ...admForm, admissionStatus: e.target.value as 'OPEN' | 'UPCOMING' | 'CLOSED' })
                   }
                 >
-                  <option value="OPEN">{pick('ভর্তি চলছে (Open)', 'Admissions Open')}</option>
-                  <option value="UPCOMING">{pick('শীঘ্রই শুরু (Upcoming)', 'Opening Soon')}</option>
-                  <option value="CLOSED">{pick('ভর্তি বন্ধ (Closed)', 'Admissions Closed')}</option>
+                  <option value="OPEN">{'ভর্তি চলছে (Open)'}</option>
+                  <option value="UPCOMING">{'শীঘ্রই শুরু (Upcoming)'}</option>
+                  <option value="CLOSED">{'ভর্তি বন্ধ (Closed)'}</option>
                 </Select>
               </FormField>
-              <FormField label={pick('শিক্ষাবর্ষ', 'Academic Session')}>
-                <Input value={admForm.academicSession} onChange={(e) => setAdmForm({ ...admForm, academicSession: e.target.value })} />
+              <FormField label={'শিক্ষাবর্ষ'}>
+                <Input placeholder="শিক্ষাবর্ষ লিখুন" value={admForm.academicSession} onChange={(e) => setAdmForm({ ...admForm, academicSession: e.target.value })} />
               </FormField>
-              <FormField label={pick('আবেদন ফি (টাকা)', 'Application Fee (BDT)')}>
-                <Input type="number" value={admForm.applicationFee} onChange={(e) => setAdmForm({ ...admForm, applicationFee: Number(e.target.value) })} />
+              <FormField label={'আবেদন ফি (টাকা)'}>
+                <Input placeholder="আবেদন ফি (টাকা) লিখুন" type="number" value={admForm.applicationFee} onChange={(e) => setAdmForm({ ...admForm, applicationFee: Number(e.target.value) })} />
               </FormField>
-              <FormField label={pick('আবেদন শুরু', 'Start Date')}>
+              <FormField label={'আবেদন শুরু'}>
                 <Input type="date" value={admForm.startDate} onChange={(e) => setAdmForm({ ...admForm, startDate: e.target.value })} />
               </FormField>
-              <FormField label={pick('আবেদনের শেষ তারিখ', 'Deadline')}>
+              <FormField label={'আবেদনের শেষ তারিখ'}>
                 <Input type="date" value={admForm.endDate} onChange={(e) => setAdmForm({ ...admForm, endDate: e.target.value })} />
               </FormField>
-              <FormField label={pick('ভর্তি পরীক্ষার তারিখ', 'Admission Test Date')}>
+              <FormField label={'ভর্তি পরীক্ষার তারিখ'}>
                 <Input type="date" value={admForm.admissionTestDate} onChange={(e) => setAdmForm({ ...admForm, admissionTestDate: e.target.value })} />
               </FormField>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField label={pick('হোমপেজ ও ভর্তি ব্যানার শিরোনাম', 'Homepage & Banner Title')}>
-                <Input value={admForm.bannerTitle} onChange={(e) => setAdmForm({ ...admForm, bannerTitle: e.target.value })} />
+              <FormField label={'হোমপেজ ও ভর্তি ব্যানার শিরোনাম'}>
+                <Input placeholder="হোমপেজ ও ভর্তি ব্যানার শিরোনাম লিখুন" value={admForm.bannerTitle} onChange={(e) => setAdmForm({ ...admForm, bannerTitle: e.target.value })} />
               </FormField>
-              <FormField label={pick('ভর্তিযোগ্য শ্রেণি (Eligible Classes)', 'Eligible Classes')}>
+              <FormField label={'ভর্তিযোগ্য শ্রেণি (Eligible Classes)'}>
                 <Input
                   value={admForm.eligibleClasses}
                   onChange={(e) => setAdmForm({ ...admForm, eligibleClasses: e.target.value })}
-                  placeholder={pick('যেমন: ৬ষ্ঠ–৯ম শ্রেণি (বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা)', 'e.g. Class 6–9 (Science, Humanities, Business)')}
+                  placeholder={'যেমন: ৬ষ্ঠ–৯ম শ্রেণি (বিজ্ঞান, মানবিক ও ব্যবসায় শিক্ষা)'}
                 />
               </FormField>
-              <FormField label={pick('মুদ্রণযোগ্য ফরমের শিরোনাম (/admission/download-form)', 'Printable Form Title')}>
-                <Input value={admForm.title} onChange={(e) => setAdmForm({ ...admForm, title: e.target.value })} />
+              <FormField label={'মুদ্রণযোগ্য ফরমের শিরোনাম (/admission/download-form)'}>
+                <Input placeholder="তথ্য লিখুন" value={admForm.title} onChange={(e) => setAdmForm({ ...admForm, title: e.target.value })} />
               </FormField>
-              <FormField label={pick('ভর্তি হেল্পলাইন নম্বর', 'Admission Helpline')}>
-                <Input value={admForm.helplinePhone} onChange={(e) => setAdmForm({ ...admForm, helplinePhone: e.target.value })} />
+              <FormField label={'ভর্তি হেল্পলাইন নম্বর'}>
+                <Input placeholder="মোবাইল নম্বর লিখুন (যেমন: 017XXXXXXXX)" value={admForm.helplinePhone} onChange={(e) => setAdmForm({ ...admForm, helplinePhone: e.target.value })} />
               </FormField>
               <div className="md:col-span-2">
-                <FormField label={pick('ব্যানার উপ-শিরোনাম / বিবরণ', 'Banner Subtitle')}>
-                  <Textarea rows={2} value={admForm.bannerSubtitle} onChange={(e) => setAdmForm({ ...admForm, bannerSubtitle: e.target.value })} />
+                <FormField label={'ব্যানার উপ-শিরোনাম / বিবরণ'}>
+                  <Textarea placeholder="ব্যানার উপ-শিরোনাম / বিবরণ লিখুন..." rows={2} value={admForm.bannerSubtitle} onChange={(e) => setAdmForm({ ...admForm, bannerSubtitle: e.target.value })} />
                 </FormField>
               </div>
               <div className="md:col-span-2">
-                <FormField label={pick('অফিসিয়াল ফরম পিডিএফ URL (ঐচ্ছিক)', 'Official Form PDF URL (Optional)')}>
+                <FormField label={'অফিসিয়াল ফরম পিডিএফ URL (ঐচ্ছিক)'}>
                   <Input
                     value={admForm.formPdfUrl}
                     onChange={(e) => setAdmForm({ ...admForm, formPdfUrl: e.target.value })}
@@ -810,24 +796,21 @@ export function AdminWebsiteMediaPage({
             <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-border">
               <div>
                 <h3 className="text-base font-bold text-foreground">
-                  {pick('প্রয়োজনীয় কাগজপত্র, নির্দেশিকা ও ১৩-দফা ভর্তি ফরম', 'Required Documents, Guidelines & 13-Point Form')}
+                  {'প্রয়োজনীয় কাগজপত্র, নির্দেশিকা ও ১৩-দফা ভর্তি ফরম'}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {pick(
-                    'পাবলিক /admission, /admission/requirements, /admission/guidelines এবং /admission/download-form পেজের সব তথ্য এখান থেকে নিয়ন্ত্রণ করুন।',
-                    'Configure content displayed across /admission, /admission/requirements, /admission/guidelines, and /admission/download-form.'
-                  )}
+                  {'পাবলিক /admission, /admission/requirements, /admission/guidelines এবং /admission/download-form পেজের সব তথ্য এখান থেকে নিয়ন্ত্রণ করুন।'}
                 </p>
               </div>
-              <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
+              <div className="flex flex-wrap items-center gap-3 text-sm font-semibold">
                 <Link href="/admission/requirements" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                  {pick('কাগজপত্র পেজ ↗', 'Requirements ↗')}
+                  {'কাগজপত্র পেজ ↗'}
                 </Link>
                 <Link href="/admission/guidelines" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                  {pick('নির্দেশিকা ↗', 'Guidelines ↗')}
+                  {'নির্দেশিকা ↗'}
                 </Link>
                 <Link href="/admission/download-form" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                  {pick('মুদ্রণযোগ্য ফরম ↗', 'Printable Form ↗')}
+                  {'মুদ্রণযোগ্য ফরম ↗'}
                 </Link>
               </div>
             </div>
@@ -835,12 +818,12 @@ export function AdminWebsiteMediaPage({
             {/* Required Documents List */}
             <div className="space-y-3">
               <p className="text-sm font-semibold text-foreground">
-                {pick('ভর্তির প্রয়োজনীয় কাগজপত্রের তালিকা (/admission/requirements)', 'Required Documents List (/admission/requirements)')}
+                {'ভর্তির প্রয়োজনীয় কাগজপত্রের তালিকা (/admission/requirements)'}
               </p>
               <div className="space-y-2">
                 {admForm.requiredDocuments.map((doc, idx) => (
                   <div key={idx} className="flex items-center gap-2">
-                    <Input
+                    <Input placeholder="তথ্য লিখুন"
                       value={doc}
                       onChange={(e) => {
                         const next = [...admForm.requiredDocuments];
@@ -868,7 +851,7 @@ export function AdminWebsiteMediaPage({
                 <Input
                   value={newDocItem}
                   onChange={(e) => setNewDocItem(e.target.value)}
-                  placeholder={pick('নতুন প্রয়োজনীয় কাগজপত্র যুক্ত করুন...', 'Add another required document...')}
+                  placeholder={'নতুন প্রয়োজনীয় কাগজপত্র যুক্ত করুন...'}
                 />
                 <Button
                   variant="outline"
@@ -884,21 +867,21 @@ export function AdminWebsiteMediaPage({
                   className="whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4" />
-                  {pick('যুক্ত করুন', 'Add')}
+                  {'যুক্ত করুন'}
                 </Button>
               </div>
             </div>
 
             {/* Guidelines & Declaration */}
             <div className="grid grid-cols-1 gap-4 pt-3 border-t border-border">
-              <FormField label={pick('প্রবেশপত্র নির্দেশনা (/admission/guidelines)', 'Admit Card Notice')}>
-                <Input
+              <FormField label={'প্রবেশপত্র নির্দেশনা (/admission/guidelines)'}>
+                <Input placeholder="প্রবেশপত্র নির্দেশনা (/admission/guidelines) লিখুন"
                   value={admForm.admitCardNotice}
                   onChange={(e) => setAdmForm({ ...admForm, admitCardNotice: e.target.value })}
                 />
               </FormField>
-              <FormField label={pick('অভিভাবকের অঙ্গীকারনামা (/admission/guidelines, /admission/apply ও প্রিন্ট ফরম)', 'Guardian Declaration Text')}>
-                <Textarea
+              <FormField label={'অভিভাবকের অঙ্গীকারনামা (/admission/guidelines, /admission/apply ও প্রিন্ট ফরম)'}>
+                <Textarea placeholder="অভিভাবকের অঙ্গীকারনামা (/admission/guidelines, /admission/apply ও প্রিন্ট ফরম) লিখুন..."
                   rows={3}
                   value={admForm.declarationText}
                   onChange={(e) => setAdmForm({ ...admForm, declarationText: e.target.value })}
@@ -909,34 +892,31 @@ export function AdminWebsiteMediaPage({
             {/* Collapsible 13-Point Form & Institutional Codes */}
             <details className="rounded-[var(--radius)] border border-border bg-surface-muted/30 p-4">
               <summary className="cursor-pointer text-sm font-bold text-foreground select-none">
-                {pick(
-                  '১৩-দফা ভর্তি ফরমের দফাসমূহ ও প্রাতিষ্ঠানিক কোড সম্পাদনা করুন (ঐচ্ছিক)',
-                  'Edit 13-Point Admission Checklist & Institutional Form Header (Optional)'
-                )}
+                {'১৩-দফা ভর্তি ফরমের দফাসমূহ ও প্রাতিষ্ঠানিক কোড সম্পাদনা করুন (ঐচ্ছিক)'}
               </summary>
               <div className="mt-4 space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  <FormField label={pick('বিদ্যালয়ের নাম (বাংলা)', 'School Name (BN)')}>
-                    <Input value={admForm.schoolNameBn} onChange={(e) => setAdmForm({ ...admForm, schoolNameBn: e.target.value })} />
+                  <FormField label={'বিদ্যালয়ের নাম (বাংলা)'}>
+                    <Input placeholder="বিদ্যালয়ের নাম (বাংলা) লিখুন" value={admForm.schoolNameBn} onChange={(e) => setAdmForm({ ...admForm, schoolNameBn: e.target.value })} />
                   </FormField>
-                  <FormField label={pick('বিদ্যালয়ের নাম (ইংরেজি)', 'School Name (EN)')}>
-                    <Input value={admForm.schoolNameEn} onChange={(e) => setAdmForm({ ...admForm, schoolNameEn: e.target.value })} />
+                  <FormField label={'বিদ্যালয়ের নাম (ইংরেজি)'}>
+                    <Input placeholder="বিদ্যালয়ের নাম (ইংরেজি) লিখুন" value={admForm.schoolNameEn} onChange={(e) => setAdmForm({ ...admForm, schoolNameEn: e.target.value })} />
                   </FormField>
                   <FormField label="EIIN">
-                    <Input value={admForm.eiin} onChange={(e) => setAdmForm({ ...admForm, eiin: e.target.value })} />
+                    <Input placeholder="EIIN লিখুন" value={admForm.eiin} onChange={(e) => setAdmForm({ ...admForm, eiin: e.target.value })} />
                   </FormField>
-                  <FormField label={pick('বিদ্যালয় কোড', 'School Code')}>
-                    <Input value={admForm.schoolCode} onChange={(e) => setAdmForm({ ...admForm, schoolCode: e.target.value })} />
+                  <FormField label={'বিদ্যালয় কোড'}>
+                    <Input placeholder="বিদ্যালয় কোড লিখুন" value={admForm.schoolCode} onChange={(e) => setAdmForm({ ...admForm, schoolCode: e.target.value })} />
                   </FormField>
-                  <FormField label={pick('জেলা কোড', 'District Code')}>
-                    <Input value={admForm.districtCode} onChange={(e) => setAdmForm({ ...admForm, districtCode: e.target.value })} />
+                  <FormField label={'জেলা কোড'}>
+                    <Input placeholder="জেলা কোড লিখুন" value={admForm.districtCode} onChange={(e) => setAdmForm({ ...admForm, districtCode: e.target.value })} />
                   </FormField>
-                  <FormField label={pick('থানা কোড', 'Thana Code')}>
-                    <Input value={admForm.thanaCode} onChange={(e) => setAdmForm({ ...admForm, thanaCode: e.target.value })} />
+                  <FormField label={'থানা কোড'}>
+                    <Input placeholder="থানা কোড লিখুন" value={admForm.thanaCode} onChange={(e) => setAdmForm({ ...admForm, thanaCode: e.target.value })} />
                   </FormField>
                   <div className="sm:col-span-2 lg:col-span-3">
-                    <FormField label={pick('ফরমের ঠিকানা লাইন', 'Form Header Address')}>
-                      <Input value={admForm.schoolAddress} onChange={(e) => setAdmForm({ ...admForm, schoolAddress: e.target.value })} />
+                    <FormField label={'ফরমের ঠিকানা লাইন'}>
+                      <Input placeholder="ফরমের ঠিকানা লাইন লিখুন" value={admForm.schoolAddress} onChange={(e) => setAdmForm({ ...admForm, schoolAddress: e.target.value })} />
                     </FormField>
                   </div>
                 </div>
@@ -960,7 +940,7 @@ export function AdminWebsiteMediaPage({
                     ] as const
                   ).map(([fieldKey, label]) => (
                     <FormField key={fieldKey} label={label}>
-                      <Input
+                      <Input placeholder="{label} লিখুন"
                         value={admForm[fieldKey]}
                         onChange={(e) => setAdmForm({ ...admForm, [fieldKey]: e.target.value })}
                       />
@@ -974,8 +954,8 @@ export function AdminWebsiteMediaPage({
               <Button type="submit" variant="primary" disabled={savingAdmission}>
                 <Save className="w-4 h-4" />
                 {savingAdmission
-                  ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
-                  : pick('ভর্তি ক্যাম্পেইন ও কনটেন্ট সংরক্ষণ করুন', 'Save Admission Settings & Content')}
+                  ? 'সংরক্ষণ হচ্ছে...'
+                  : 'ভর্তি ক্যাম্পেইন ও কনটেন্ট সংরক্ষণ করুন'}
               </Button>
             </div>
           </Card>
@@ -992,7 +972,7 @@ export function AdminWebsiteMediaPage({
                 <Input
                   value={pubQuery}
                   onChange={(e) => setPubQuery(e.target.value)}
-                  placeholder={pick('প্রকাশনার শিরোনাম বা বছর খুঁজুন...', 'Search publication title or year...')}
+                  placeholder={'প্রকাশনার শিরোনাম বা বছর খুঁজুন...'}
                   className="pl-9"
                 />
               </div>
@@ -1001,16 +981,16 @@ export function AdminWebsiteMediaPage({
                 onChange={(e) => setPubTypeFilter(e.target.value)}
                 className="w-full sm:w-48"
               >
-                <option value="ALL">{pick('সব ধরন', 'All Types')}</option>
-                <option value={PublicationType.SCHOOL_MAGAZINE}>{pick('বিদ্যালয় ম্যাগাজিন', 'School Magazine')}</option>
-                <option value={PublicationType.WALL_MAGAZINE}>{pick('দেয়াল পত্রিকা', 'Wall Magazine')}</option>
-                <option value={PublicationType.JOURNAL}>{pick('বার্ষিকী / জার্নাল', 'Journal')}</option>
-                <option value={PublicationType.OTHER}>{pick('অন্যান্য', 'Other')}</option>
+                <option value="ALL">{'সব ধরন'}</option>
+                <option value={PublicationType.SCHOOL_MAGAZINE}>{'বিদ্যালয় ম্যাগাজিন'}</option>
+                <option value={PublicationType.WALL_MAGAZINE}>{'দেয়াল পত্রিকা'}</option>
+                <option value={PublicationType.JOURNAL}>{'বার্ষিকী / জার্নাল'}</option>
+                <option value={PublicationType.OTHER}>{'অন্যান্য'}</option>
               </Select>
             </div>
             <Button variant="primary" size="sm" onClick={() => openPubEditor()} className="whitespace-nowrap shrink-0">
               <Plus className="w-4 h-4" />
-              {pick('নতুন প্রকাশনা যুক্ত করুন', 'Add Publication')}
+              {'নতুন প্রকাশনা যুক্ত করুন'}
             </Button>
           </div>
           <Card className="divide-y divide-border">
@@ -1032,11 +1012,11 @@ export function AdminWebsiteMediaPage({
                   <div className="space-y-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge enumName="PublicationType" value={p.type} />
-                      {p.publishYear && <span className="text-xs text-muted-foreground tabular-nums">{p.publishYear}</span>}
+                      {p.publishYear && <span className="text-sm text-muted-foreground tabular-nums">{p.publishYear}</span>}
                       {p.fileUrl && (
-                        <span className="text-xs text-primary font-medium inline-flex items-center gap-1">
+                        <span className="text-sm text-primary font-medium inline-flex items-center gap-1">
                           <FileText className="w-3 h-3" />
-                          {pick('ফাইল সংযুক্ত', 'File attached')}
+                          {'ফাইল সংযুক্ত'}
                         </span>
                       )}
                     </div>
@@ -1048,7 +1028,7 @@ export function AdminWebsiteMediaPage({
                   <Switch
                     checked={p.isPublished}
                     onChange={() => toggleCms({ collection: 'publications', id: p.id, field: 'isPublished' })}
-                    label={p.isPublished ? pick('প্রকাশিত', 'Published') : pick('খসড়া', 'Draft')}
+                    label={p.isPublished ? 'প্রকাশিত' : 'খসড়া'}
                   />
                   <Button variant="outline" size="sm" onClick={() => openPubEditor(p)}>
                     <Pencil className="w-3.5 h-3.5" />
@@ -1058,7 +1038,7 @@ export function AdminWebsiteMediaPage({
                     size="sm"
                     onClick={async () => {
                       await deleteCms({ collection: 'publications', id: p.id }).unwrap();
-                      toast.success(pick('প্রকাশনা মুছে ফেলা হয়েছে।', 'Publication removed.'));
+                      toast.success('প্রকাশনা মুছে ফেলা হয়েছে।');
                     }}
                   >
                     <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -1080,7 +1060,7 @@ export function AdminWebsiteMediaPage({
                 <Input
                   value={achQuery}
                   onChange={(e) => setAchQuery(e.target.value)}
-                  placeholder={pick('অর্জন, শিক্ষার্থী বা ব্যাচ খুঁজুন...', 'Search title, person, or batch...')}
+                  placeholder={'অর্জন, শিক্ষার্থী বা ব্যাচ খুঁজুন...'}
                   className="pl-9"
                 />
               </div>
@@ -1089,15 +1069,15 @@ export function AdminWebsiteMediaPage({
                 onChange={(e) => setAchTypeFilter(e.target.value)}
                 className="w-full sm:w-52"
               >
-                <option value="ALL">{pick('সব ক্যাটাগরি', 'All Categories')}</option>
-                <option value={AchievementType.INSTITUTION_ACHIEVEMENT}>{pick('প্রাতিষ্ঠানিক অর্জন', 'Institution Award')}</option>
-                <option value={AchievementType.STUDENT_STAR}>{pick('কৃতি শিক্ষার্থী', 'Student Star')}</option>
-                <option value={AchievementType.NOTABLE_ALUMNI}>{pick('কৃতি প্রাক্তন শিক্ষার্থী', 'Notable Alumni')}</option>
+                <option value="ALL">{'সব ক্যাটাগরি'}</option>
+                <option value={AchievementType.INSTITUTION_ACHIEVEMENT}>{'প্রাতিষ্ঠানিক অর্জন'}</option>
+                <option value={AchievementType.STUDENT_STAR}>{'কৃতি শিক্ষার্থী'}</option>
+                <option value={AchievementType.NOTABLE_ALUMNI}>{'কৃতি প্রাক্তন শিক্ষার্থী'}</option>
               </Select>
             </div>
             <Button variant="primary" size="sm" onClick={() => openAchEditor()} className="whitespace-nowrap shrink-0">
               <Plus className="w-4 h-4" />
-              {pick('নতুন অর্জন যুক্ত করুন', 'Add Achievement')}
+              {'নতুন অর্জন যুক্ত করুন'}
             </Button>
           </div>
           <Card className="divide-y divide-border">
@@ -1116,13 +1096,13 @@ export function AdminWebsiteMediaPage({
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge enumName="AchievementType" value={a.type} />
                       {a.batch && (
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          {pick('ব্যাচ:', 'Batch:')} {a.batch}
+                        <span className="text-sm text-muted-foreground tabular-nums">
+                          {'ব্যাচ:'} {a.batch}
                         </span>
                       )}
                       {a.achievedAt && (
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          · {formatDateShort(a.achievedAt, locale)}
+                        <span className="text-sm text-muted-foreground tabular-nums">
+                          · {formatDateShort(a.achievedAt, 'bn')}
                         </span>
                       )}
                     </div>
@@ -1135,7 +1115,7 @@ export function AdminWebsiteMediaPage({
                   <Switch
                     checked={a.isPublished}
                     onChange={() => toggleCms({ collection: 'achievements', id: a.id, field: 'isPublished' })}
-                    label={a.isPublished ? pick('প্রকাশিত', 'Published') : pick('খসড়া', 'Draft')}
+                    label={a.isPublished ? 'প্রকাশিত' : 'খসড়া'}
                   />
                   <Button variant="outline" size="sm" onClick={() => openAchEditor(a)}>
                     <Pencil className="w-3.5 h-3.5" />
@@ -1145,7 +1125,7 @@ export function AdminWebsiteMediaPage({
                     size="sm"
                     onClick={async () => {
                       await deleteCms({ collection: 'achievements', id: a.id }).unwrap();
-                      toast.success(pick('অর্জন মুছে ফেলা হয়েছে।', 'Achievement removed.'));
+                      toast.success('অর্জন মুছে ফেলা হয়েছে।');
                     }}
                   >
                     <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -1161,26 +1141,23 @@ export function AdminWebsiteMediaPage({
       <Modal
         open={catModalOpen}
         onClose={() => setCatModalOpen(false)}
-        title={pick('গ্যালারি ক্যাটাগরি পরিচালনা', 'Manage Gallery Categories')}
+        title={'গ্যালারি ক্যাটাগরি পরিচালনা'}
         maxWidth="max-w-2xl"
       >
         <div className="space-y-5">
           <p className="text-sm text-muted-foreground">
-            {pick(
-              'এখানে তৈরি ও সক্রিয় করা ক্যাটাগরিগুলো নতুন অ্যালবাম তৈরির ড্রপডাউনে এবং পাবলিক গ্যালারির ফিল্টারে প্রদর্শিত হবে। কোনো ক্যাটাগরির নাম পরিবর্তন করলে সংশ্লিষ্ট সব অ্যালবামেও তা স্বয়ংক্রিয়ভাবে হালনাগাদ হবে।',
-              'Categories managed here populate both the Album Category selector and the public /gallery filter. Renaming a category automatically updates all albums using it.'
-            )}
+            {'এখানে তৈরি ও সক্রিয় করা ক্যাটাগরিগুলো নতুন অ্যালবাম তৈরির ড্রপডাউনে এবং পাবলিক গ্যালারির ফিল্টারে প্রদর্শিত হবে। কোনো ক্যাটাগরির নাম পরিবর্তন করলে সংশ্লিষ্ট সব অ্যালবামেও তা স্বয়ংক্রিয়ভাবে হালনাগাদ হবে।'}
           </p>
 
           {/* Existing Categories List */}
           <div className="space-y-2">
             <p className="text-sm font-semibold text-foreground">
-              {pick('বিদ্যমান ক্যাটাগরিসমূহ', 'Existing Categories')} (
-              {formatNumber(sortedGalleryCategories.length, locale)})
+              {'বিদ্যমান ক্যাটাগরিসমূহ'} (
+              {formatNumber(sortedGalleryCategories.length, 'bn')})
             </p>
             {sortedGalleryCategories.length === 0 ? (
               <div className="p-5 text-center text-sm text-muted-foreground border border-dashed border-border rounded-[var(--radius)]">
-                {pick('এখনো কোনো ক্যাটাগরি তৈরি করা হয়নি। নিচ থেকে নতুন ক্যাটাগরি যুক্ত করুন।', 'No categories yet. Create one below.')}
+                {'এখনো কোনো ক্যাটাগরি তৈরি করা হয়নি। নিচ থেকে নতুন ক্যাটাগরি যুক্ত করুন।'}
               </div>
             ) : (
               <div className="divide-y divide-border border border-border rounded-[var(--radius)] max-h-64 overflow-y-auto">
@@ -1192,12 +1169,12 @@ export function AdminWebsiteMediaPage({
                         <div className="flex flex-wrap items-center gap-2">
                           <Tag className="w-3.5 h-3.5 text-primary shrink-0" />
                           <span className="text-sm font-semibold text-foreground">{cat.name}</span>
-                          <span className="text-xs text-muted-foreground tabular-nums">
-                            ({formatNumber(albumCount, locale)} {pick('টি অ্যালবাম', 'albums')})
+                          <span className="text-sm text-muted-foreground tabular-nums">
+                            ({formatNumber(albumCount, 'bn')} {'টি অ্যালবাম'})
                           </span>
                         </div>
                         {cat.description && (
-                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{cat.description}</p>
+                          <p className="text-sm text-muted-foreground mt-0.5 truncate">{cat.description}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -1206,7 +1183,7 @@ export function AdminWebsiteMediaPage({
                           onChange={() =>
                             toggleCms({ collection: 'galleryCategories', id: cat.id, field: 'isActive' })
                           }
-                          label={cat.isActive ? pick('সক্রিয়', 'Active') : pick('নিষ্ক্রিয়', 'Inactive')}
+                          label={cat.isActive ? 'সক্রিয়' : 'নিষ্ক্রিয়'}
                         />
                         <button
                           type="button"
@@ -1247,10 +1224,7 @@ export function AdminWebsiteMediaPage({
                           onClick={async () => {
                             if (albumCount > 0) {
                               toast.error(
-                                pick(
-                                  `এই ক্যাটাগরিতে ${formatNumber(albumCount, locale)} টি অ্যালবাম রয়েছে। মুছতে চাইলে আগে অ্যালবামগুলোর ক্যাটাগরি পরিবর্তন করুন অথবা ক্যাটাগরিটি নিষ্ক্রিয় রাখুন।`,
-                                  `This category is used by ${albumCount} album(s). Reassign those albums first or deactivate it.`
-                                )
+                                `এই ক্যাটাগরিতে ${formatNumber(albumCount, 'bn')} টি অ্যালবাম রয়েছে। মুছতে চাইলে আগে অ্যালবামগুলোর ক্যাটাগরি পরিবর্তন করুন অথবা ক্যাটাগরিটি নিষ্ক্রিয় রাখুন।`
                               );
                               return;
                             }
@@ -1258,7 +1232,7 @@ export function AdminWebsiteMediaPage({
                             if (catForm.id === cat.id) {
                               setCatForm({ id: '', name: '', description: '', isActive: true });
                             }
-                            toast.success(pick('ক্যাটাগরি মুছে ফেলা হয়েছে।', 'Category deleted.'));
+                            toast.success('ক্যাটাগরি মুছে ফেলা হয়েছে।');
                           }}
                         >
                           <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -1278,14 +1252,14 @@ export function AdminWebsiteMediaPage({
               setCatError('');
               const cleanName = catForm.name.trim();
               if (!cleanName) {
-                setCatError(pick('ক্যাটাগরির নাম লিখুন।', 'Category name is required.'));
+                setCatError('ক্যাটাগরির নাম লিখুন।');
                 return;
               }
               const duplicate = sortedGalleryCategories.some(
                 (c) => c.id !== catForm.id && c.name.trim().toLowerCase() === cleanName.toLowerCase()
               );
               if (duplicate) {
-                setCatError(pick('এই নামে একটি ক্যাটাগরি ইতিমধ্যেই রয়েছে।', 'A category with this name already exists.'));
+                setCatError('এই নামে একটি ক্যাটাগরি ইতিমধ্যেই রয়েছে।');
                 return;
               }
               await upsertCms({
@@ -1299,8 +1273,8 @@ export function AdminWebsiteMediaPage({
               }).unwrap();
               toast.success(
                 catForm.id
-                  ? pick('ক্যাটাগরি হালনাগাদ হয়েছে।', 'Category updated.')
-                  : pick('নতুন ক্যাটাগরি যুক্ত হয়েছে।', 'Category created.')
+                  ? 'ক্যাটাগরি হালনাগাদ হয়েছে।'
+                  : 'নতুন ক্যাটাগরি যুক্ত হয়েছে।'
               );
               setCatForm({ id: '', name: '', description: '', isActive: true });
             }}
@@ -1308,7 +1282,7 @@ export function AdminWebsiteMediaPage({
           >
             <div className="flex items-center justify-between">
               <p className="text-sm font-bold text-foreground">
-                {catForm.id ? pick('ক্যাটাগরি সম্পাদনা করুন', 'Edit Category') : pick('নতুন ক্যাটাগরি যুক্ত করুন', 'Add New Category')}
+                {catForm.id ? 'ক্যাটাগরি সম্পাদনা করুন' : 'নতুন ক্যাটাগরি যুক্ত করুন'}
               </p>
               {catForm.id && (
                 <button
@@ -1317,31 +1291,31 @@ export function AdminWebsiteMediaPage({
                     setCatForm({ id: '', name: '', description: '', isActive: true });
                     setCatError('');
                   }}
-                  className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+                  className="text-sm font-semibold text-primary hover:underline cursor-pointer"
                 >
-                  {pick('বাতিল', 'Cancel Edit')}
+                  {'বাতিল'}
                 </button>
               )}
             </div>
-            <FormField label={pick('ক্যাটাগরির নাম', 'Category Name')} required>
+            <FormField label={'ক্যাটাগরির নাম'} required>
               <Input
                 value={catForm.name}
                 onChange={(e) => {
                   setCatForm({ ...catForm, name: e.target.value });
                   if (catError) setCatError('');
                 }}
-                placeholder={pick('যেমন: বার্ষিক ক্রীড়া, পুরস্কার বিতরণী, শিক্ষা সফর', 'e.g. Annual Sports, Study Tour')}
+                placeholder={'যেমন: বার্ষিক ক্রীড়া, পুরস্কার বিতরণী, শিক্ষা সফর'}
               />
             </FormField>
-            <FormField label={pick('সংক্ষিপ্ত বিবরণ (ঐচ্ছিক)', 'Short Description (Optional)')}>
+            <FormField label={'সংক্ষিপ্ত বিবরণ (ঐচ্ছিক)'}>
               <Input
                 value={catForm.description}
                 onChange={(e) => setCatForm({ ...catForm, description: e.target.value })}
-                placeholder={pick('এই ক্যাটাগরিতে কোন ধরনের ছবি/ভিডিও থাকবে', 'What albums belong in this category')}
+                placeholder={'এই ক্যাটাগরিতে কোন ধরনের ছবি/ভিডিও থাকবে'}
               />
             </FormField>
             {catError && (
-              <p className="text-xs font-medium text-destructive inline-flex items-center gap-1.5">
+              <p className="text-sm font-medium text-destructive inline-flex items-center gap-1.5">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 {catError}
               </p>
@@ -1350,11 +1324,11 @@ export function AdminWebsiteMediaPage({
               <Switch
                 checked={catForm.isActive}
                 onChange={(v) => setCatForm({ ...catForm, isActive: v })}
-                label={pick('সক্রিয় রাখুন', 'Active')}
+                label={'সক্রিয় রাখুন'}
               />
               <Button type="submit" variant="primary" size="sm" disabled={saving}>
                 <Save className="w-4 h-4" />
-                {catForm.id ? pick('ক্যাটাগরি হালনাগাদ করুন', 'Update Category') : pick('ক্যাটাগরি যুক্ত করুন', 'Add Category')}
+                {catForm.id ? 'ক্যাটাগরি হালনাগাদ করুন' : 'ক্যাটাগরি যুক্ত করুন'}
               </Button>
             </div>
           </form>
@@ -1365,17 +1339,17 @@ export function AdminWebsiteMediaPage({
       <Modal
         open={galleryModalOpen}
         onClose={() => setGalleryModalOpen(false)}
-        title={galleryForm.id ? pick('অ্যালবাম সম্পাদনা', 'Edit Album') : pick('নতুন ফটো অ্যালবাম', 'New Photo Album')}
+        title={galleryForm.id ? 'অ্যালবাম সম্পাদনা' : 'নতুন ফটো অ্যালবাম'}
       >
         <form
           onSubmit={async (e) => {
             e.preventDefault();
             if (!galleryForm.title.trim()) {
-              toast.error(pick('অ্যালবামের শিরোনাম লিখুন।', 'Album title is required.'));
+              toast.error('অ্যালবামের শিরোনাম লিখুন।');
               return;
             }
             if (!galleryForm.category.trim()) {
-              toast.error(pick('অনুগ্রহ করে একটি ক্যাটাগরি নির্বাচন করুন।', 'Please select a category.'));
+              toast.error('অনুগ্রহ করে একটি ক্যাটাগরি নির্বাচন করুন।');
               return;
             }
             const coverUrl = galleryForm.photoUrl.trim();
@@ -1386,10 +1360,7 @@ export function AdminWebsiteMediaPage({
               !isValidMediaUrl(coverUrl, true)
             ) {
               toast.error(
-                pick(
-                  'কভার ছবির লিংকটি সঠিক নয় (https://... বা /images/... দিন অথবা ছবি আপলোড করুন)।',
-                  'Cover photo URL is invalid (enter https://... or /... or upload an image).'
-                )
+                'কভার ছবির লিংকটি সঠিক নয় (https://... বা /images/... দিন অথবা ছবি আপলোড করুন)।'
               );
               return;
             }
@@ -1414,23 +1385,23 @@ export function AdminWebsiteMediaPage({
                 },
               }).unwrap();
             }
-            toast.success(pick('গ্যালারি অ্যালবাম সংরক্ষিত হয়েছে।', 'Gallery album saved.'));
+            toast.success('গ্যালারি অ্যালবাম সংরক্ষিত হয়েছে।');
             setGalleryModalOpen(false);
           }}
           className="space-y-4"
         >
-          <FormField label={pick('অ্যালবামের শিরোনাম', 'Album Title')} required>
+          <FormField label={'অ্যালবামের শিরোনাম'} required>
             <Input
               value={galleryForm.title}
               onChange={(e) => setGalleryForm({ ...galleryForm, title: e.target.value })}
-              placeholder={pick('যেমন: বার্ষিক বিজ্ঞান মেলা ও প্রদর্শনী ২০২৬', 'e.g. Annual Science Fair 2026')}
+              placeholder={'যেমন: বার্ষিক বিজ্ঞান মেলা ও প্রদর্শনী ২০২৬'}
             />
           </FormField>
 
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <label className="text-sm font-semibold text-foreground">
-                {pick('ক্যাটাগরি (পাবলিক ফিল্টারের জন্য)', 'Category (Used in Public Filters)')}{' '}
+                {'ক্যাটাগরি (পাবলিক ফিল্টারের জন্য)'}{' '}
                 <span className="text-destructive">*</span>
               </label>
               <div className="flex items-center gap-3">
@@ -1440,9 +1411,9 @@ export function AdminWebsiteMediaPage({
                     setInlineCatOpen((prev) => !prev);
                     setInlineCatName('');
                   }}
-                  className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+                  className="text-sm font-semibold text-primary hover:underline cursor-pointer"
                 >
-                  {inlineCatOpen ? pick('বাতিল', 'Cancel') : pick('+ নতুন ক্যাটাগরি', '+ New Category')}
+                  {inlineCatOpen ? 'বাতিল' : '+ নতুন ক্যাটাগরি'}
                 </button>
                 <button
                   type="button"
@@ -1452,7 +1423,7 @@ export function AdminWebsiteMediaPage({
                   }}
                   className="text-sm font-semibold text-muted-foreground hover:text-foreground hover:underline cursor-pointer"
                 >
-                  {pick('সব পরিচালনা', 'Manage All')}
+                  {'সব পরিচালনা'}
                 </button>
               </div>
             </div>
@@ -1462,7 +1433,7 @@ export function AdminWebsiteMediaPage({
               onChange={(e) => setGalleryForm({ ...galleryForm, category: e.target.value })}
             >
               {albumCategoryOptions.length === 0 ? (
-                <option value="">{pick('— আগে একটি ক্যাটাগরি তৈরি করুন —', '— Create a category first —')}</option>
+                <option value="">{'— আগে একটি ক্যাটাগরি তৈরি করুন —'}</option>
               ) : (
                 albumCategoryOptions.map((catName) => (
                   <option key={catName} value={catName}>
@@ -1477,7 +1448,7 @@ export function AdminWebsiteMediaPage({
                 <Input
                   value={inlineCatName}
                   onChange={(e) => setInlineCatName(e.target.value)}
-                  placeholder={pick('নতুন ক্যাটাগরির নাম লিখুন...', 'Enter new category name...')}
+                  placeholder={'নতুন ক্যাটাগরির নাম লিখুন...'}
                 />
                 <Button
                   type="button"
@@ -1488,7 +1459,7 @@ export function AdminWebsiteMediaPage({
                   onClick={async () => {
                     const clean = inlineCatName.trim();
                     if (!clean) {
-                      toast.error(pick('ক্যাটাগরির নাম লিখুন।', 'Category name is required.'));
+                      toast.error('ক্যাটাগরির নাম লিখুন।');
                       return;
                     }
                     const existing = sortedGalleryCategories.find(
@@ -1498,7 +1469,7 @@ export function AdminWebsiteMediaPage({
                       setGalleryForm((prev) => ({ ...prev, category: existing.name }));
                       setInlineCatOpen(false);
                       setInlineCatName('');
-                      toast.info(pick('বিদ্যমান ক্যাটাগরি নির্বাচন করা হয়েছে।', 'Selected existing category.'));
+                      toast.info('বিদ্যমান ক্যাটাগরি নির্বাচন করা হয়েছে।');
                       return;
                     }
                     await upsertCms({
@@ -1508,25 +1479,25 @@ export function AdminWebsiteMediaPage({
                     setGalleryForm((prev) => ({ ...prev, category: clean }));
                     setInlineCatOpen(false);
                     setInlineCatName('');
-                    toast.success(pick('নতুন ক্যাটাগরি তৈরি ও নির্বাচিত হয়েছে।', 'Category created and selected.'));
+                    toast.success('নতুন ক্যাটাগরি তৈরি ও নির্বাচিত হয়েছে।');
                   }}
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  {pick('যুক্ত করুন', 'Add')}
+                  {'যুক্ত করুন'}
                 </Button>
               </div>
             )}
           </div>
 
-          <FormField label={pick('বিবরণ', 'Description')}>
-            <Textarea
+          <FormField label={'বিবরণ'}>
+            <Textarea placeholder="বিবরণ লিখুন..."
               rows={2}
               value={galleryForm.description}
               onChange={(e) => setGalleryForm({ ...galleryForm, description: e.target.value })}
             />
           </FormField>
 
-          <FormField label={pick('কভার ছবি আপলোড বা লিংক (ঐচ্ছিক)', 'Cover Photo Upload or Link (Optional)')}>
+          <FormField label={'কভার ছবি আপলোড বা লিংক (ঐচ্ছিক)'}>
             <div className="space-y-2">
               <input
                 type="file"
@@ -1540,7 +1511,7 @@ export function AdminWebsiteMediaPage({
               <Input
                 value={galleryForm.photoUrl.startsWith('data:') ? '' : galleryForm.photoUrl}
                 onChange={(e) => setGalleryForm({ ...galleryForm, photoUrl: e.target.value })}
-                placeholder={pick('অথবা ছবির লিংক দিন (https://... বা /images/...)', 'Or paste image URL (https://... or /images/...)')}
+                placeholder={'অথবা ছবির লিংক দিন (https://... বা /images/...)'}
               />
               {galleryForm.photoUrl && (
                 <div className="flex items-center gap-3 p-2 rounded-[var(--radius)] border border-border bg-surface-muted/30">
@@ -1550,9 +1521,9 @@ export function AdminWebsiteMediaPage({
                     referrerPolicy="no-referrer"
                     className="w-16 h-12 rounded object-cover border border-border shrink-0"
                   />
-                  <span className="text-xs text-muted-foreground truncate flex-1">
+                  <span className="text-sm text-muted-foreground truncate flex-1">
                     {galleryForm.photoUrl.startsWith('data:')
-                      ? pick('আপলোডকৃত ছবি প্রস্তুত', 'Uploaded image ready')
+                      ? 'আপলোডকৃত ছবি প্রস্তুত'
                       : galleryForm.photoUrl}
                   </span>
                   <Button
@@ -1570,11 +1541,11 @@ export function AdminWebsiteMediaPage({
           </FormField>
 
           {galleryForm.photoUrl && (
-            <FormField label={pick('ছবির ক্যাপশন', 'Photo Caption')}>
+            <FormField label={'ছবির ক্যাপশন'}>
               <Input
                 value={galleryForm.photoCaption}
                 onChange={(e) => setGalleryForm({ ...galleryForm, photoCaption: e.target.value })}
-                placeholder={pick('ছবিটির সংক্ষিপ্ত বিবরণ লিখুন', 'Short photo caption')}
+                placeholder={'ছবিটির সংক্ষিপ্ত বিবরণ লিখুন'}
               />
             </FormField>
           )}
@@ -1582,10 +1553,10 @@ export function AdminWebsiteMediaPage({
             <Switch
               checked={galleryForm.isPublished}
               onChange={(v) => setGalleryForm({ ...galleryForm, isPublished: v })}
-              label={pick('পাবলিক গ্যালারিতে প্রকাশ করুন', 'Publish on Website')}
+              label={'পাবলিক গ্যালারিতে প্রকাশ করুন'}
             />
             <Button type="submit" variant="primary" disabled={saving}>
-              <Upload className="w-4 h-4" /> {pick('সংরক্ষণ করুন', 'Save Album')}
+              <Upload className="w-4 h-4" /> {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -1597,7 +1568,7 @@ export function AdminWebsiteMediaPage({
         onClose={() => setMediaGalleryId(null)}
         title={
           activeMediaGallery
-            ? `${pick('মিডিয়া পরিচালনা:', 'Manage Media:')} ${activeMediaGallery.title}`
+            ? `${'মিডিয়া পরিচালনা:'} ${activeMediaGallery.title}`
             : ''
         }
         maxWidth="max-w-3xl"
@@ -1607,12 +1578,12 @@ export function AdminWebsiteMediaPage({
             {/* Existing Media List */}
             <div className="space-y-2.5">
               <p className="text-sm font-semibold text-foreground">
-                {pick('অ্যালবামের বর্তমান ছবি ও ভিডিওসমূহ', 'Current Photos & Videos in Album')} (
-                {formatNumber(activeGalleryMediaItems.length, locale)})
+                {'অ্যালবামের বর্তমান ছবি ও ভিডিওসমূহ'} (
+                {formatNumber(activeGalleryMediaItems.length, 'bn')})
               </p>
               {activeGalleryMediaItems.length === 0 ? (
                 <div className="p-6 text-center text-sm text-muted-foreground border border-dashed border-border rounded-[var(--radius)]">
-                  {pick('এই অ্যালবামে এখনো কোনো ছবি বা ভিডিও নেই। নিচ থেকে যুক্ত করুন।', 'No media items yet. Add one below.')}
+                  {'এই অ্যালবামে এখনো কোনো ছবি বা ভিডিও নেই। নিচ থেকে যুক্ত করুন।'}
                 </div>
               ) : (
                 <div className="divide-y divide-border border border-border rounded-[var(--radius)] max-h-72 overflow-y-auto">
@@ -1635,14 +1606,14 @@ export function AdminWebsiteMediaPage({
                           )}
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-foreground truncate">
-                              {m.caption || pick('(ক্যাপশন নেই)', '(No caption)')}
+                              {m.caption || '(ক্যাপশন নেই)'}
                             </p>
-                            <p className="text-xs text-muted-foreground truncate">
+                            <p className="text-sm text-muted-foreground truncate">
                               {m.mediaType === MediaType.VIDEO ? 'VIDEO' : 'IMAGE'} ·{' '}
                               {isUploaded
                                 ? m.mediaType === MediaType.VIDEO
-                                  ? pick('আপলোডকৃত ভিডিও', 'Uploaded video')
-                                  : pick('আপলোডকৃত ছবি', 'Uploaded image')
+                                  ? 'আপলোডকৃত ভিডিও'
+                                  : 'আপলোডকৃত ছবি'
                                 : m.mediaUrl}
                             </p>
                           </div>
@@ -1675,7 +1646,7 @@ export function AdminWebsiteMediaPage({
                             onClick={async () => {
                               await deleteCms({ collection: 'galleryMedia', id: m.id }).unwrap();
                               if (mediaForm.id === m.id) resetMediaForm(MediaType.IMAGE);
-                              toast.success(pick('মিডিয়া মুছে ফেলা হয়েছে।', 'Media item removed.'));
+                              toast.success('মিডিয়া মুছে ফেলা হয়েছে।');
                             }}
                           >
                             <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -1698,30 +1669,21 @@ export function AdminWebsiteMediaPage({
                 if (mediaForm.mediaType === MediaType.IMAGE) {
                   if (mediaSourceMode === 'upload') {
                     if (!url || (!url.startsWith('data:image/') && !url.startsWith('blob:'))) {
-                      const msg = pick(
-                        'ছবি যুক্ত করা বাধ্যতামূলক — ডিভাইস থেকে একটি ছবি আপলোড করুন অথবা ছবির লিংক/প্রিসেট নির্বাচন করুন।',
-                        'Image is required — upload an image file or switch to Link / Preset.'
-                      );
+                      const msg = 'ছবি যুক্ত করা বাধ্যতামূলক — ডিভাইস থেকে একটি ছবি আপলোড করুন অথবা ছবির লিংক/প্রিসেট নির্বাচন করুন।';
                       setMediaError(msg);
                       toast.error(msg);
                       return;
                     }
                   } else if (mediaSourceMode === 'link') {
                     if (!isValidMediaUrl(url, true)) {
-                      const msg = pick(
-                        'সঠিক ছবির লিংক (https://... বা /images/...) দিন অথবা ছবি আপলোড করুন।',
-                        'Provide a valid image URL (https://... or /...) or upload an image.'
-                      );
+                      const msg = 'সঠিক ছবির লিংক (https://... বা /images/...) দিন অথবা ছবি আপলোড করুন।';
                       setMediaError(msg);
                       toast.error(msg);
                       return;
                     }
                   } else if (mediaSourceMode === 'preset') {
                     if (!GALLERY_PRESET_IMAGES.some((p) => p.value === url)) {
-                      const msg = pick(
-                        'একটি ক্যাম্পাস প্রিসেট ছবি নির্বাচন করুন অথবা ছবি আপলোড/লিংক দিন।',
-                        'Select a campus preset photo or switch to Upload / Link.'
-                      );
+                      const msg = 'একটি ক্যাম্পাস প্রিসেট ছবি নির্বাচন করুন অথবা ছবি আপলোড/লিংক দিন।';
                       setMediaError(msg);
                       toast.error(msg);
                       return;
@@ -1730,20 +1692,14 @@ export function AdminWebsiteMediaPage({
                 } else {
                   if (mediaSourceMode === 'upload') {
                     if (!url || (!url.startsWith('data:video/') && !url.startsWith('blob:'))) {
-                      const msg = pick(
-                        'ভিডিও যুক্ত করা বাধ্যতামূলক — ডিভাইস থেকে একটি ভিডিও ফাইল আপলোড করুন অথবা ভিডিও লিংক দিন।',
-                        'Video is required — upload a video file or provide a video link.'
-                      );
+                      const msg = 'ভিডিও যুক্ত করা বাধ্যতামূলক — ডিভাইস থেকে একটি ভিডিও ফাইল আপলোড করুন অথবা ভিডিও লিংক দিন।';
                       setMediaError(msg);
                       toast.error(msg);
                       return;
                     }
                   } else {
                     if (!isValidMediaUrl(url, false)) {
-                      const msg = pick(
-                        'সঠিক ভিডিও লিংক (https://...) দিন অথবা ভিডিও ফাইল আপলোড করুন।',
-                        'Provide a valid video URL (https://...) or upload a video file.'
-                      );
+                      const msg = 'সঠিক ভিডিও লিংক (https://...) দিন অথবা ভিডিও ফাইল আপলোড করুন।';
                       setMediaError(msg);
                       toast.error(msg);
                       return;
@@ -1763,8 +1719,8 @@ export function AdminWebsiteMediaPage({
                 }).unwrap();
                 toast.success(
                   mediaForm.id
-                    ? pick('মিডিয়া হালনাগাদ হয়েছে।', 'Media updated.')
-                    : pick('অ্যালবামে নতুন মিডিয়া যুক্ত হয়েছে।', 'Media added to album.')
+                    ? 'মিডিয়া হালনাগাদ হয়েছে।'
+                    : 'অ্যালবামে নতুন মিডিয়া যুক্ত হয়েছে।'
                 );
                 resetMediaForm(mediaForm.mediaType);
               }}
@@ -1773,22 +1729,22 @@ export function AdminWebsiteMediaPage({
               <div className="flex items-center justify-between">
                 <p className="text-sm font-bold text-foreground">
                   {mediaForm.id
-                    ? pick('মিডিয়া সম্পাদনা করুন', 'Edit Media Item')
-                    : pick('নতুন ছবি / ভিডিও যুক্ত করুন', 'Add Photo or Video')}
+                    ? 'মিডিয়া সম্পাদনা করুন'
+                    : 'নতুন ছবি / ভিডিও যুক্ত করুন'}
                 </p>
                 {mediaForm.id && (
                   <button
                     type="button"
                     onClick={() => resetMediaForm(MediaType.IMAGE)}
-                    className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+                    className="text-sm font-semibold text-primary hover:underline cursor-pointer"
                   >
-                    {pick('বাতিল', 'Cancel Edit')}
+                    {'বাতিল'}
                   </button>
                 )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-                <FormField label={pick('মিডিয়ার ধরন', 'Media Type')} required>
+                <FormField label={'মিডিয়ার ধরন'} required>
                   <Select
                     value={mediaForm.mediaType}
                     onChange={(e) => {
@@ -1803,13 +1759,13 @@ export function AdminWebsiteMediaPage({
                       setMediaError('');
                     }}
                   >
-                    <option value={MediaType.IMAGE}>{pick('ছবি (Image)', 'Photo (Image)')}</option>
-                    <option value={MediaType.VIDEO}>{pick('ভিডিও (Video)', 'Video')}</option>
+                    <option value={MediaType.IMAGE}>{'ছবি (Image)'}</option>
+                    <option value={MediaType.VIDEO}>{'ভিডিও (Video)'}</option>
                   </Select>
                 </FormField>
 
                 {/* Source Mode Switcher (Upload OR Link, plus Preset for Image) */}
-                <FormField label={pick('মিডিয়ার উৎস নির্বাচন করুন (যেকোনো একটি বাধ্যতামূলক)', 'Choose Source (Required)')} required>
+                <FormField label={'মিডিয়ার উৎস নির্বাচন করুন (যেকোনো একটি বাধ্যতামূলক)'} required>
                   <div className="inline-flex w-full rounded-[var(--radius)] border border-border bg-surface p-0.5 gap-1">
                     <button
                       type="button"
@@ -1828,7 +1784,7 @@ export function AdminWebsiteMediaPage({
                       }`}
                     >
                       <Upload className="w-3.5 h-3.5" />
-                      {pick('আপলোড', 'Upload')}
+                      {'আপলোড'}
                     </button>
                     <button
                       type="button"
@@ -1847,7 +1803,7 @@ export function AdminWebsiteMediaPage({
                       }`}
                     >
                       <Link2 className="w-3.5 h-3.5" />
-                      {pick('লিংক শেয়ার', 'Share Link')}
+                      {'লিংক শেয়ার'}
                     </button>
                     {mediaForm.mediaType === MediaType.IMAGE && (
                       <button
@@ -1867,7 +1823,7 @@ export function AdminWebsiteMediaPage({
                         }`}
                       >
                         <ImageIcon className="w-3.5 h-3.5" />
-                        {pick('প্রিসেট', 'Preset')}
+                        {'প্রিসেট'}
                       </button>
                     )}
                   </div>
@@ -1876,7 +1832,7 @@ export function AdminWebsiteMediaPage({
 
               {/* Dynamic Source Input based on MediaType & SourceMode */}
               {mediaForm.mediaType === MediaType.IMAGE && mediaSourceMode === 'upload' && (
-                <FormField label={pick('ডিভাইস থেকে ছবি আপলোড করুন', 'Upload Image File')} required>
+                <FormField label={'ডিভাইস থেকে ছবি আপলোড করুন'} required>
                   <input
                     key={`img-upload-${mediaForm.id}-${mediaFileName ? 'filled' : 'empty'}`}
                     type="file"
@@ -1885,7 +1841,7 @@ export function AdminWebsiteMediaPage({
                       const file = e.target.files?.[0];
                       if (!file) return;
                       if (!file.type.startsWith('image/')) {
-                        setMediaError(pick('শুধুমাত্র ছবির ফাইল (JPG, PNG, WebP) নির্বাচন করুন।', 'Please select a valid image file.'));
+                        setMediaError('শুধুমাত্র ছবির ফাইল (JPG, PNG, WebP) নির্বাচন করুন।');
                         return;
                       }
                       setMediaFileName(file.name);
@@ -1902,8 +1858,8 @@ export function AdminWebsiteMediaPage({
                         referrerPolicy="no-referrer"
                         className="w-16 h-12 rounded object-cover border border-border shrink-0"
                       />
-                      <span className="text-xs text-foreground truncate flex-1">
-                        {mediaFileName || pick('ছবি নির্বাচিত হয়েছে', 'Image selected')}
+                      <span className="text-sm text-foreground truncate flex-1">
+                        {mediaFileName || 'ছবি নির্বাচিত হয়েছে'}
                       </span>
                       <Button
                         type="button"
@@ -1922,7 +1878,7 @@ export function AdminWebsiteMediaPage({
               )}
 
               {mediaForm.mediaType === MediaType.IMAGE && mediaSourceMode === 'link' && (
-                <FormField label={pick('ছবির সরাসরি লিংক (URL)', 'Direct Image Link (URL)')} required>
+                <FormField label={'ছবির সরাসরি লিংক (URL)'} required>
                   <Input
                     value={mediaForm.mediaUrl}
                     onChange={(e) => {
@@ -1939,14 +1895,14 @@ export function AdminWebsiteMediaPage({
                         referrerPolicy="no-referrer"
                         className="w-16 h-12 rounded object-cover border border-border shrink-0"
                       />
-                      <span className="text-xs text-muted-foreground truncate flex-1">{mediaForm.mediaUrl.trim()}</span>
+                      <span className="text-sm text-muted-foreground truncate flex-1">{mediaForm.mediaUrl.trim()}</span>
                     </div>
                   )}
                 </FormField>
               )}
 
               {mediaForm.mediaType === MediaType.IMAGE && mediaSourceMode === 'preset' && (
-                <FormField label={pick('ক্যাম্পাস প্রিসেট ছবি নির্বাচন করুন', 'Select Campus Preset Photo')} required>
+                <FormField label={'ক্যাম্পাস প্রিসেট ছবি নির্বাচন করুন'} required>
                   <Select
                     value={mediaForm.mediaUrl}
                     onChange={(e) => {
@@ -1954,10 +1910,10 @@ export function AdminWebsiteMediaPage({
                       if (mediaError) setMediaError('');
                     }}
                   >
-                    <option value="">{pick('— একটি প্রিসেট ছবি নির্বাচন করুন —', '— Select a preset photo —')}</option>
+                    <option value="">{'— একটি প্রিসেট ছবি নির্বাচন করুন —'}</option>
                     {GALLERY_PRESET_IMAGES.map((p) => (
                       <option key={p.value} value={p.value}>
-                        {locale === 'bn' ? p.labelBn : p.labelEn}
+                        {p.labelBn}
                       </option>
                     ))}
                   </Select>
@@ -1969,8 +1925,8 @@ export function AdminWebsiteMediaPage({
                         referrerPolicy="no-referrer"
                         className="w-16 h-12 rounded object-cover border border-border shrink-0"
                       />
-                      <span className="text-xs text-muted-foreground">
-                        {pick('প্রিসেট ছবি প্রিভিউ', 'Preset photo preview')}
+                      <span className="text-sm text-muted-foreground">
+                        {'প্রিসেট ছবি প্রিভিউ'}
                       </span>
                     </div>
                   )}
@@ -1979,7 +1935,7 @@ export function AdminWebsiteMediaPage({
 
               {mediaForm.mediaType === MediaType.VIDEO && mediaSourceMode === 'upload' && (
                 <FormField
-                  label={pick('ডিভাইস থেকে ভিডিও আপলোড করুন (MP4 / WebM / MOV)', 'Upload Video File (MP4 / WebM / MOV)')}
+                  label={'ডিভাইস থেকে ভিডিও আপলোড করুন (MP4 / WebM / MOV)'}
                   required
                 >
                   <input
@@ -1990,7 +1946,7 @@ export function AdminWebsiteMediaPage({
                       const file = e.target.files?.[0];
                       if (!file) return;
                       if (!file.type.startsWith('video/')) {
-                        setMediaError(pick('শুধুমাত্র ভিডিও ফাইল (MP4, WebM, MOV) নির্বাচন করুন।', 'Please select a valid video file.'));
+                        setMediaError('শুধুমাত্র ভিডিও ফাইল (MP4, WebM, MOV) নির্বাচন করুন।');
                         return;
                       }
                       setMediaFileName(file.name);
@@ -1999,10 +1955,7 @@ export function AdminWebsiteMediaPage({
                         setMediaForm((prev) => ({ ...prev, mediaUrl: url }));
                         if (isBlob) {
                           toast.info(
-                            pick(
-                              'বড় ভিডিও ফাইল বর্তমান সেশনের জন্য সংযুক্ত হয়েছে। ব্যাকএন্ড যুক্ত হলে এটি ক্লাউডে আপলোড হবে।',
-                              'Large video attached for this session. Will upload to storage once backend is connected.'
-                            )
+                            'বড় ভিডিও ফাইল বর্তমান সেশনের জন্য সংযুক্ত হয়েছে। ব্যাকএন্ড যুক্ত হলে এটি ক্লাউডে আপলোড হবে।'
                           );
                         }
                       });
@@ -2018,8 +1971,8 @@ export function AdminWebsiteMediaPage({
                         className="w-full max-h-44 rounded bg-black object-contain"
                       />
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs text-foreground truncate">
-                          {mediaFileName || pick('ভিডিও নির্বাচিত হয়েছে', 'Video selected')}
+                        <span className="text-sm text-foreground truncate">
+                          {mediaFileName || 'ভিডিও নির্বাচিত হয়েছে'}
                         </span>
                         <Button
                           type="button"
@@ -2039,7 +1992,7 @@ export function AdminWebsiteMediaPage({
               )}
 
               {mediaForm.mediaType === MediaType.VIDEO && mediaSourceMode === 'link' && (
-                <FormField label={pick('ভিডিও লিংক শেয়ার করুন (YouTube / Shorts / Vimeo / MP4 URL)', 'Share Video Link (YouTube / Vimeo / MP4 URL)')} required>
+                <FormField label={'ভিডিও লিংক শেয়ার করুন (YouTube / Shorts / Vimeo / MP4 URL)'} required>
                   <Input
                     value={mediaForm.mediaUrl}
                     onChange={(e) => {
@@ -2052,24 +2005,24 @@ export function AdminWebsiteMediaPage({
               )}
 
               {mediaError && (
-                <div className="flex items-start gap-2 p-2.5 rounded-[var(--radius)] bg-destructive/10 border border-destructive/25 text-xs font-medium text-destructive">
+                <div className="flex items-start gap-2 p-2.5 rounded-[var(--radius)] bg-destructive/10 border border-destructive/25 text-sm font-medium text-destructive">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{mediaError}</span>
                 </div>
               )}
 
-              <FormField label={pick('ক্যাপশন (সার্চ ও প্রদর্শনের জন্য)', 'Caption (Searchable on Public Site)')}>
+              <FormField label={'ক্যাপশন (সার্চ ও প্রদর্শনের জন্য)'}>
                 <Input
                   value={mediaForm.caption}
                   onChange={(e) => setMediaForm({ ...mediaForm, caption: e.target.value })}
-                  placeholder={pick('যেমন: বার্ষিক বিজ্ঞান মেলায় শিক্ষার্থীদের প্রজেক্ট প্রদর্শনী', 'e.g. Science fair student project exhibition')}
+                  placeholder={'যেমন: বার্ষিক বিজ্ঞান মেলায় শিক্ষার্থীদের প্রজেক্ট প্রদর্শনী'}
                 />
               </FormField>
 
               <div className="flex justify-end">
                 <Button type="submit" variant="primary" size="sm" disabled={saving}>
                   <Save className="w-4 h-4" />
-                  {mediaForm.id ? pick('হালনাগাদ করুন', 'Update Media') : pick('অ্যালবামে যুক্ত করুন', 'Add to Album')}
+                  {mediaForm.id ? 'হালনাগাদ করুন' : 'অ্যালবামে যুক্ত করুন'}
                 </Button>
               </div>
             </form>
@@ -2081,7 +2034,7 @@ export function AdminWebsiteMediaPage({
       <Modal
         open={pubModalOpen}
         onClose={() => setPubModalOpen(false)}
-        title={pubForm.id ? pick('প্রকাশনা সম্পাদনা', 'Edit Publication') : pick('নতুন প্রকাশনা', 'New Publication')}
+        title={pubForm.id ? 'প্রকাশনা সম্পাদনা' : 'নতুন প্রকাশনা'}
       >
         <form
           onSubmit={async (e) => {
@@ -2100,31 +2053,31 @@ export function AdminWebsiteMediaPage({
                 isPublished: pubForm.isPublished,
               },
             }).unwrap();
-            toast.success(pick('প্রকাশনা সংরক্ষিত হয়েছে।', 'Publication saved.'));
+            toast.success('প্রকাশনা সংরক্ষিত হয়েছে।');
             setPubModalOpen(false);
           }}
           className="space-y-4"
         >
-          <FormField label={pick('শিরোনাম', 'Title')} required>
-            <Input value={pubForm.title} onChange={(e) => setPubForm({ ...pubForm, title: e.target.value })} />
+          <FormField label={'শিরোনাম'} required>
+            <Input placeholder="শিরোনাম লিখুন" value={pubForm.title} onChange={(e) => setPubForm({ ...pubForm, title: e.target.value })} />
           </FormField>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label={pick('ধরন', 'Type')}>
+            <FormField label={'ধরন'}>
               <Select value={pubForm.type} onChange={(e) => setPubForm({ ...pubForm, type: e.target.value as PublicationType })}>
-                <option value={PublicationType.SCHOOL_MAGAZINE}>{pick('বিদ্যালয় ম্যাগাজিন', 'School Magazine')}</option>
-                <option value={PublicationType.WALL_MAGAZINE}>{pick('দেয়াল পত্রিকা', 'Wall Magazine')}</option>
-                <option value={PublicationType.JOURNAL}>{pick('বার্ষিকী / জার্নাল', 'Journal')}</option>
-                <option value={PublicationType.OTHER}>{pick('অন্যান্য', 'Other')}</option>
+                <option value={PublicationType.SCHOOL_MAGAZINE}>{'বিদ্যালয় ম্যাগাজিন'}</option>
+                <option value={PublicationType.WALL_MAGAZINE}>{'দেয়াল পত্রিকা'}</option>
+                <option value={PublicationType.JOURNAL}>{'বার্ষিকী / জার্নাল'}</option>
+                <option value={PublicationType.OTHER}>{'অন্যান্য'}</option>
               </Select>
             </FormField>
-            <FormField label={pick('প্রকাশের বছর', 'Year')}>
-              <Input type="number" value={pubForm.publishYear} onChange={(e) => setPubForm({ ...pubForm, publishYear: e.target.value })} />
+            <FormField label={'প্রকাশের বছর'}>
+              <Input placeholder="প্রকাশের বছর লিখুন" type="number" value={pubForm.publishYear} onChange={(e) => setPubForm({ ...pubForm, publishYear: e.target.value })} />
             </FormField>
           </div>
-          <FormField label={pick('সংক্ষিপ্ত বিবরণ', 'Description')}>
-            <Textarea rows={3} value={pubForm.description} onChange={(e) => setPubForm({ ...pubForm, description: e.target.value })} />
+          <FormField label={'সংক্ষিপ্ত বিবরণ'}>
+            <Textarea placeholder="সংক্ষিপ্ত বিবরণ লিখুন..." rows={3} value={pubForm.description} onChange={(e) => setPubForm({ ...pubForm, description: e.target.value })} />
           </FormField>
-          <FormField label={pick('পিডিএফ / ডকুমেন্ট লিংক বা ফাইল আপলোড (ঐচ্ছিক)', 'PDF / Document URL or File Upload (Optional)')}>
+          <FormField label={'পিডিএফ / ডকুমেন্ট লিংক বা ফাইল আপলোড (ঐচ্ছিক)'}>
             <div className="space-y-2">
               <input
                 type="file"
@@ -2141,9 +2094,9 @@ export function AdminWebsiteMediaPage({
                 placeholder="https://... বা পিডিএফ ফাইল লিংক"
               />
               {pubForm.fileUrl && (
-                <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-[var(--radius)] border border-border bg-surface-muted/30 text-xs">
+                <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-[var(--radius)] border border-border bg-surface-muted/30 text-sm">
                   <span className="truncate text-foreground">
-                    {pubForm.fileUrl.startsWith('data:') ? pick('পিডিএফ ফাইল সংযুক্ত হয়েছে', 'PDF file attached') : pubForm.fileUrl}
+                    {pubForm.fileUrl.startsWith('data:') ? 'পিডিএফ ফাইল সংযুক্ত হয়েছে' : pubForm.fileUrl}
                   </span>
                   <Button
                     type="button"
@@ -2157,7 +2110,7 @@ export function AdminWebsiteMediaPage({
               )}
             </div>
           </FormField>
-          <FormField label={pick('কভার ছবি আপলোড বা লিংক (ঐচ্ছিক)', 'Cover Image Upload or URL (Optional)')}>
+          <FormField label={'কভার ছবি আপলোড বা লিংক (ঐচ্ছিক)'}>
             <div className="space-y-2">
               <input
                 type="file"
@@ -2181,8 +2134,8 @@ export function AdminWebsiteMediaPage({
                     referrerPolicy="no-referrer"
                     className="w-12 h-14 rounded object-cover border border-border shrink-0"
                   />
-                  <span className="text-xs text-muted-foreground truncate flex-1">
-                    {pubForm.coverImage.startsWith('data:') ? pick('কভার ছবি সংযুক্ত', 'Cover image attached') : pubForm.coverImage}
+                  <span className="text-sm text-muted-foreground truncate flex-1">
+                    {pubForm.coverImage.startsWith('data:') ? 'কভার ছবি সংযুক্ত' : pubForm.coverImage}
                   </span>
                   <Button
                     type="button"
@@ -2200,10 +2153,10 @@ export function AdminWebsiteMediaPage({
             <Switch
               checked={pubForm.isPublished}
               onChange={(v) => setPubForm({ ...pubForm, isPublished: v })}
-              label={pick('ওয়েবসাইটে প্রকাশ করুন', 'Publish on Website')}
+              label={'ওয়েবসাইটে প্রকাশ করুন'}
             />
             <Button type="submit" variant="primary" disabled={saving}>
-              <Save className="w-4 h-4" /> {pick('সংরক্ষণ করুন', 'Save')}
+              <Save className="w-4 h-4" /> {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -2213,7 +2166,7 @@ export function AdminWebsiteMediaPage({
       <Modal
         open={achModalOpen}
         onClose={() => setAchModalOpen(false)}
-        title={achForm.id ? pick('অর্জন সম্পাদনা', 'Edit Achievement') : pick('নতুন অর্জন যুক্ত করুন', 'New Achievement')}
+        title={achForm.id ? 'অর্জন সম্পাদনা' : 'নতুন অর্জন যুক্ত করুন'}
       >
         <form
           onSubmit={async (e) => {
@@ -2233,36 +2186,36 @@ export function AdminWebsiteMediaPage({
                 isPublished: achForm.isPublished,
               },
             }).unwrap();
-            toast.success(pick('অর্জন সংরক্ষিত হয়েছে।', 'Achievement saved.'));
+            toast.success('অর্জন সংরক্ষিত হয়েছে।');
             setAchModalOpen(false);
           }}
           className="space-y-4"
         >
-          <FormField label={pick('অর্জনের শিরোনাম', 'Achievement Title')} required>
-            <Input value={achForm.title} onChange={(e) => setAchForm({ ...achForm, title: e.target.value })} />
+          <FormField label={'অর্জনের শিরোনাম'} required>
+            <Input placeholder="অর্জনের শিরোনাম লিখুন" value={achForm.title} onChange={(e) => setAchForm({ ...achForm, title: e.target.value })} />
           </FormField>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label={pick('ধরন', 'Category')}>
+            <FormField label={'ধরন'}>
               <Select value={achForm.type} onChange={(e) => setAchForm({ ...achForm, type: e.target.value as AchievementType })}>
-                <option value={AchievementType.INSTITUTION_ACHIEVEMENT}>{pick('প্রাতিষ্ঠানিক অর্জন', 'Institution Award')}</option>
-                <option value={AchievementType.STUDENT_STAR}>{pick('কৃতি শিক্ষার্থী', 'Student Star')}</option>
-                <option value={AchievementType.NOTABLE_ALUMNI}>{pick('কৃতি প্রাক্তন শিক্ষার্থী', 'Notable Alumni')}</option>
+                <option value={AchievementType.INSTITUTION_ACHIEVEMENT}>{'প্রাতিষ্ঠানিক অর্জন'}</option>
+                <option value={AchievementType.STUDENT_STAR}>{'কৃতি শিক্ষার্থী'}</option>
+                <option value={AchievementType.NOTABLE_ALUMNI}>{'কৃতি প্রাক্তন শিক্ষার্থী'}</option>
               </Select>
             </FormField>
-            <FormField label={pick('অর্জনের তারিখ (ঐচ্ছিক)', 'Achieved Date (Optional)')}>
+            <FormField label={'অর্জনের তারিখ (ঐচ্ছিক)'}>
               <Input type="date" value={achForm.achievedAt} onChange={(e) => setAchForm({ ...achForm, achievedAt: e.target.value })} />
             </FormField>
-            <FormField label={pick('ব্যক্তি / শিক্ষার্থীর নাম (ঐচ্ছিক)', 'Person / Student Name (Optional)')}>
-              <Input value={achForm.personName} onChange={(e) => setAchForm({ ...achForm, personName: e.target.value })} />
+            <FormField label={'ব্যক্তি / শিক্ষার্থীর নাম (ঐচ্ছিক)'}>
+              <Input placeholder="ব্যক্তি / শিক্ষার্থীর নাম (ঐচ্ছিক) লিখুন" value={achForm.personName} onChange={(e) => setAchForm({ ...achForm, personName: e.target.value })} />
             </FormField>
-            <FormField label={pick('ব্যাচ / সন (ঐচ্ছিক)', 'Batch / Year (Optional)')}>
+            <FormField label={'ব্যাচ / সন (ঐচ্ছিক)'}>
               <Input value={achForm.batch} onChange={(e) => setAchForm({ ...achForm, batch: e.target.value })} placeholder="যেমন: ব্যাচ ২০২৬" />
             </FormField>
           </div>
-          <FormField label={pick('বিস্তারিত', 'Description')}>
-            <Textarea rows={3} value={achForm.description} onChange={(e) => setAchForm({ ...achForm, description: e.target.value })} />
+          <FormField label={'বিস্তারিত'}>
+            <Textarea placeholder="বিস্তারিত লিখুন..." rows={3} value={achForm.description} onChange={(e) => setAchForm({ ...achForm, description: e.target.value })} />
           </FormField>
-          <FormField label={pick('ছবি আপলোড বা লিংক (ঐচ্ছিক)', 'Upload Photo or URL (Optional)')}>
+          <FormField label={'ছবি আপলোড বা লিংক (ঐচ্ছিক)'}>
             <div className="space-y-2">
               <input
                 type="file"
@@ -2286,8 +2239,8 @@ export function AdminWebsiteMediaPage({
                     referrerPolicy="no-referrer"
                     className="w-12 h-12 rounded object-cover border border-border shrink-0"
                   />
-                  <span className="text-xs text-muted-foreground truncate flex-1">
-                    {achForm.image.startsWith('data:') ? pick('ছবি সংযুক্ত', 'Image attached') : achForm.image}
+                  <span className="text-sm text-muted-foreground truncate flex-1">
+                    {achForm.image.startsWith('data:') ? 'ছবি সংযুক্ত' : achForm.image}
                   </span>
                   <Button
                     type="button"
@@ -2305,10 +2258,10 @@ export function AdminWebsiteMediaPage({
             <Switch
               checked={achForm.isPublished}
               onChange={(v) => setAchForm({ ...achForm, isPublished: v })}
-              label={pick('ওয়েবসাইটে প্রকাশ করুন', 'Publish on Website')}
+              label={'ওয়েবসাইটে প্রকাশ করুন'}
             />
             <Button type="submit" variant="primary" disabled={saving}>
-              <Save className="w-4 h-4" /> {pick('সংরক্ষণ করুন', 'Save')}
+              <Save className="w-4 h-4" /> {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>

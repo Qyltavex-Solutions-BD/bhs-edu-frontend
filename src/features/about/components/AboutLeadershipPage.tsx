@@ -20,7 +20,6 @@ import {
   X,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   getCampusPhoto,
@@ -40,7 +39,6 @@ import { triggerPrint } from '@/src/lib/utils/cn';
 
 export function AboutLeadershipPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { pick } = useI18n();
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
 
   const published = db.leadershipMessages.filter((m) => m.isPublished);
@@ -48,19 +46,16 @@ export function AboutLeadershipPage() {
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-8">
       <PageHeader
-        title={pick('প্রধান শিক্ষক ও সভাপতির বাণী', 'Leadership Messages')}
-        description={pick(
-          'ভোজেশ্বর উচ্চ বিদ্যালয়ের প্রাতিষ্ঠানিক নেতৃত্ব, শিক্ষা দর্শন ও দিকনির্দেশনা।',
-          'Institutional leadership, educational philosophy, and messages from Bhojeshwar High School.'
-        )}
+        title={'প্রধান শিক্ষক ও সভাপতির বাণী'}
+        description={'ভোজেশ্বর উচ্চ বিদ্যালয়ের প্রাতিষ্ঠানিক নেতৃত্ব, শিক্ষা দর্শন ও দিকনির্দেশনা।'}
       />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {published.map((msg) => {
           const portrait = getLeadershipPortrait(msg.photo, msg.type);
           const roleKicker =
             msg.type === 'PRINCIPAL'
-              ? pick('প্রধান শিক্ষকের বাণী', "Headteacher's Message")
-              : pick('সভাপতির বাণী', "Chairman's Message");
+              ? 'প্রধান শিক্ষকের বাণী'
+              : 'সভাপতির বাণী';
           return (
             <Card key={msg.id} className="overflow-hidden flex flex-col justify-between">
               <div>
@@ -98,10 +93,10 @@ export function AboutLeadershipPage() {
                   href={`/about/leadership/${msg.id}`}
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
                 >
-                  <span>{pick('সম্পূর্ণ বাণী পড়ুন', 'Read Full Message')}</span>
+                  <span>{'সম্পূর্ণ বাণী পড়ুন'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-                <span className="text-xs text-muted-foreground">{db.schoolProfile.schoolCode ?? 'BHS'}</span>
+                <span className="text-sm text-muted-foreground">{db.schoolProfile.schoolCode ?? 'BHS'}</span>
               </div>
             </Card>
           );

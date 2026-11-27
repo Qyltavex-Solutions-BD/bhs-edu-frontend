@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { CheckCircle2, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { Button } from '@/src/components/ui/primitives';
-import { useI18n } from '@/src/lib/i18n';
 import { useGetNextSuggestedRollQuery } from '@/src/features/students/api/students.api';
 import {
   type AdmissionCatalogData,
@@ -28,7 +27,6 @@ interface StepFinalAdminProps {
 }
 
 export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) {
-  const { locale, pick } = useI18n();
   const [showFullPreview, setShowFullPreview] = useState(false);
 
   const {
@@ -105,7 +103,7 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
       {/* 1. Office Placement (Academic Year, Section, Roll, Form Serial, Fee Receipt) */}
       <div className="space-y-4">
         <AdmissionSectionHeader
-          title={pick('১. অফিসিয়াল ভর্তি প্লেসমেন্ট ও রসিদ তথ্য', '1. Official Placement & Receipt Details')}
+          title={'১. অফিসিয়াল ভর্তি প্লেসমেন্ট ও রসিদ তথ্য'}
           rightSlot={
             <button
               type="button"
@@ -113,8 +111,8 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline cursor-pointer"
             >
               {showFullPreview
-                ? pick('পূর্ণাঙ্গ ফর্ম প্রিভিউ লুকান', 'Hide Full Form Preview')
-                : pick('পূর্ণাঙ্গ ফর্ম প্রিভিউ দেখুন', 'Review Full Application Form')}
+                ? 'পূর্ণাঙ্গ ফর্ম প্রিভিউ লুকান'
+                : 'পূর্ণাঙ্গ ফর্ম প্রিভিউ দেখুন'}
               {showFullPreview ? (
                 <ChevronUp className="w-4 h-4" />
               ) : (
@@ -137,7 +135,7 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <AdmissionField
-            label={pick('শিক্ষাবর্ষ', 'Academic Year')}
+            label={'শিক্ষাবর্ষ'}
             required
             error={errors.academicYearId?.message}
           >
@@ -147,14 +145,14 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
             >
               {db.academicYears.map((y) => (
                 <option key={y.id} value={y.id}>
-                  {y.name} {y.isActive ? pick('(চলমান)', '(Active)') : ''}
+                  {y.name} {y.isActive ? '(চলমান)' : ''}
                 </option>
               ))}
             </AdmissionSelect>
           </AdmissionField>
 
           <AdmissionField
-            label={pick('শাখা (Section)', 'Section')}
+            label={'শাখা (Section)'}
             required
             error={errors.sectionId?.message}
           >
@@ -162,25 +160,22 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
               value={sectionId}
               onChange={(e) => handleYearOrSectionChange(academicYearId, e.target.value)}
             >
-              <option value="">{pick('নির্বাচন করুন', 'Select Section')}</option>
+              <option value="">{'নির্বাচন করুন'}</option>
               {classSections.map((sec) => (
                 <option key={sec.id} value={sec.id}>
-                  {pick(`শাখা ${sec.name}`, `Section ${sec.name}`)}
+                  {`শাখা ${sec.name}`}
                 </option>
               ))}
             </AdmissionSelect>
           </AdmissionField>
 
           <AdmissionField
-            label={pick('শ্রেণি রোল নম্বর', 'Class Roll Number')}
+            label={'শ্রেণি রোল নম্বর'}
             required
             error={
               errors.roll?.message ||
               (rollConflict
-                ? pick(
-                    `এই শাখায় রোল ${roll} ইতোমধ্যে ব্যবহৃত হয়েছে।`,
-                    `Roll ${roll} is already assigned in this section.`
-                  )
+                ? `এই শাখায় রোল ${roll} ইতোমধ্যে ব্যবহৃত হয়েছে।`
                 : undefined)
             }
           >
@@ -205,19 +200,19 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
                   setValue('roll', String(suggestedRoll), { shouldValidate: true })
                 }
               >
-                {pick(`পরবর্তী (${suggestedRoll})`, `Next (${suggestedRoll})`)}
+                {`পরবর্তী (${suggestedRoll})`}
               </Button>
             </div>
             {!rollConflict && rollNumber > 0 && (
               <p className="text-sm text-success flex items-center gap-1.5 mt-1 font-medium">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
-                {pick('রোল নম্বরটি খালি রয়েছে', 'Roll number available')}
+                {'রোল নম্বরটি খালি রয়েছে'}
               </p>
             )}
           </AdmissionField>
 
           <AdmissionField
-            label={pick('ভর্তি ফরম সিরিয়াল নং (ঐচ্ছিক)', 'Admission Form Serial No (Optional)')}
+            label={'ভর্তি ফরম সিরিয়াল নং (ঐচ্ছিক)'}
           >
             <AdmissionInput
               {...register('formSerialNo')}
@@ -227,7 +222,7 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
           </AdmissionField>
 
           <AdmissionField
-            label={pick('জমাকৃত ভর্তি ফি (টাকা — ঐচ্ছিক)', 'Admission Fee Deposited (BDT — Optional)')}
+            label={'জমাকৃত ভর্তি ফি (টাকা — ঐচ্ছিক)'}
           >
             <AdmissionInput
               value={watch('admissionFeePaid')}
@@ -241,7 +236,7 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
           </AdmissionField>
 
           <AdmissionField
-            label={pick('ফি রসিদ নম্বর (ঐচ্ছিক)', 'Fee Receipt No (Optional)')}
+            label={'ফি রসিদ নম্বর (ঐচ্ছিক)'}
           >
             <AdmissionInput
               {...register('receiptNo')}
@@ -251,13 +246,10 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
           </AdmissionField>
         </div>
 
-        <AdmissionField label={pick('অফিস মন্তব্য (ঐচ্ছিক)', 'Office Remarks (Optional)')}>
+        <AdmissionField label={'অফিস মন্তব্য (ঐচ্ছিক)'}>
           <AdmissionInput
             {...register('remarks')}
-            placeholder={pick(
-              'যেমন: মূল জন্ম নিবন্ধন ও ছাড়পত্র যাচাই সম্পন্ন',
-              'e.g. Original birth certificate and TC verified'
-            )}
+            placeholder={'যেমন: মূল জন্ম নিবন্ধন ও ছাড়পত্র যাচাই সম্পন্ন'}
           />
         </AdmissionField>
       </div>
@@ -265,13 +257,10 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
       {/* 2. Physical Document Verification Checklist */}
       <div className="space-y-3.5">
         <AdmissionSectionHeader
-          title={pick('২. মূল কাগজপত্র যাচাই তালিকা', '2. Physical Document Verification Checklist')}
+          title={'২. মূল কাগজপত্র যাচাই তালিকা'}
           rightSlot={
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {pick(
-                `যাচাইকৃত: ${checkedCount} / ${checklist.length}`,
-                `Verified: ${checkedCount} / ${checklist.length}`
-              )}
+            <span className="text-sm text-muted-foreground tabular-nums">
+              {`যাচাইকৃত: ${checkedCount} / ${checklist.length}`}
             </span>
           }
         />
@@ -295,7 +284,7 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
                   className="w-5 h-5 mt-0.5 rounded-md accent-primary shrink-0 cursor-pointer"
                 />
                 <span className="text-sm sm:text-base leading-snug">
-                  {locale === 'bn' ? item.labelBn : item.labelEn}
+                  {item.labelBn}
                 </span>
               </label>
             );
@@ -303,13 +292,10 @@ export function StepFinalAdmin({ form, db, onJumpToStep }: StepFinalAdminProps) 
         </div>
 
         {checkedCount < checklist.length && (
-          <div className="flex items-start gap-2 text-xs text-muted-foreground">
+          <div className="flex items-start gap-2 text-sm text-muted-foreground">
             <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             <span>
-              {pick(
-                'কোনো কাগজ বাকি থাকলেও ভর্তি সম্পন্ন করা যাবে—বাকি কাগজপত্র শিক্ষার্থীর রেকর্ডে সংরক্ষিত থাকবে।',
-                'Admission can proceed with pending documents; missing items remain tracked on the student record.'
-              )}
+              {'কোনো কাগজ বাকি থাকলেও ভর্তি সম্পন্ন করা যাবে—বাকি কাগজপত্র শিক্ষার্থীর রেকর্ডে সংরক্ষিত থাকবে।'}
             </span>
           </div>
         )}

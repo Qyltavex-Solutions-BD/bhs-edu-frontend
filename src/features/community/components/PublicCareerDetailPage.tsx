@@ -32,7 +32,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { MasonryPhotoAlbum } from 'react-photo-album';
 
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -61,18 +60,17 @@ type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
 export function PublicCareerDetailPage() {
   const { id } = useParams();
   const { data: db } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const car = db?.careers.find((c) => c.id === id);
   if (!car) return <div className="max-w-[1440px] mx-auto p-6"><EmptyState /></div>;
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <Link href="/careers" className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
-        <ArrowLeft className="w-4 h-4" /> {pick('সকল বিজ্ঞপ্তি', 'All Careers')}
+        <ArrowLeft className="w-4 h-4" /> {'সকল বিজ্ঞপ্তি'}
       </Link>
       <Card className="p-8 space-y-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{car.title}</h1>
         <p className="text-sm text-destructive font-semibold tabular-nums">
-          {pick('আবেদনের শেষ তারিখ:', 'Application Deadline:')} {formatDateLong(car.deadline, locale)}
+          {'আবেদনের শেষ তারিখ:'} {formatDateLong(car.deadline, 'bn')}
         </p>
         <p className="text-base leading-relaxed text-foreground/90 whitespace-pre-line">{car.description}</p>
       </Card>

@@ -7,7 +7,6 @@ import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -57,7 +56,6 @@ function useCurrentStudent(db: MockDatabase | undefined) {
 export function StudentAcademicInfoPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const me = useCurrentStudent(db);
-  const { locale, pick } = useI18n();
   if (isLoading || !db || !me || !me.enrollment) return <LoadingSkeleton />;
 
   const subjects = db.classSubjects
@@ -67,34 +65,34 @@ export function StudentAcademicInfoPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={pick('একাডেমিক তথ্য', 'Academic Information')} />
+      <PageHeader title={'একাডেমিক তথ্য'} />
       <Card className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-base tabular-nums">
         <div>
-          <p className="text-sm text-muted-foreground">{pick('শ্রেণি', 'Class')}</p>
-          <p className="font-bold mt-0.5">{locale === 'bn' ? me.cls?.nameBn || me.cls?.name : me.cls?.name}</p>
+          <p className="text-sm text-muted-foreground">{'শ্রেণি'}</p>
+          <p className="font-bold mt-0.5">{me.cls?.nameBn || me.cls?.name}</p>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground">{pick('শাখা', 'Section')}</p>
+          <p className="text-sm text-muted-foreground">{'শাখা'}</p>
           <p className="font-bold mt-0.5">{me.sec?.name}</p>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground">{pick('রোল নম্বর', 'Roll')}</p>
-          <p className="font-bold mt-0.5">{formatNumber(me.enrollment.roll, locale)}</p>
+          <p className="text-sm text-muted-foreground">{'রোল নম্বর'}</p>
+          <p className="font-bold mt-0.5">{formatNumber(me.enrollment.roll, 'bn')}</p>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground">{pick('বিভাগ', 'Group')}</p>
+          <p className="text-sm text-muted-foreground">{'বিভাগ'}</p>
           <p className="font-bold mt-0.5">
-            {me.grp ? (locale === 'bn' ? me.grp.nameBn || me.grp.name : me.grp.name) : pick('সাধারণ', 'General')}
+            {me.grp ? (me.grp.nameBn || me.grp.name) : 'সাধারণ'}
           </p>
         </div>
       </Card>
       <Card className="p-5">
-        <h2 className="text-base font-semibold mb-3">{pick('পাঠ্য বিষয়সমূহ', 'Enrolled Subjects')}</h2>
+        <h2 className="text-base font-semibold mb-3">{'পাঠ্য বিষয়সমূহ'}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {subjects.map((sub) => (
             <div key={sub!.id} className="p-3 rounded-[var(--radius)] border border-border text-sm">
-              <p className="text-base font-semibold">{locale === 'bn' ? sub!.nameBn || sub!.name : sub!.name}</p>
-              <p className="text-xs text-muted-foreground font-mono mt-0.5">{sub!.officialCode ?? '—'}</p>
+              <p className="text-base font-semibold">{sub!.nameBn || sub!.name}</p>
+              <p className="text-sm text-muted-foreground font-mono mt-0.5">{sub!.officialCode ?? '—'}</p>
             </div>
           ))}
         </div>

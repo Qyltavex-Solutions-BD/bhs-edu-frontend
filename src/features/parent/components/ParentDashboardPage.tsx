@@ -16,7 +16,6 @@ import {
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -81,13 +80,12 @@ function ChildSwitcherBar({
   selectedStudentId: string;
   onChange: (id: string) => void;
 }) {
-  const { locale, pick } = useI18n();
   if (childrenList.length <= 1) return null;
   return (
     <Card className="p-3.5 flex flex-wrap items-center justify-between gap-3 bg-surface-muted/40">
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
         <Users className="w-4 h-4 text-primary" />
-        <span>{pick('সন্তান নির্বাচন করুন:', 'Select Child:')}</span>
+        <span>{'সন্তান নির্বাচন করুন:'}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {childrenList.map((c) => {
@@ -103,8 +101,8 @@ function ChildSwitcherBar({
                   : 'bg-surface text-foreground border-border hover:bg-surface-muted'
               }`}
             >
-              {locale === 'bn' ? c.student.nameBn || c.student.nameEn : c.student.nameEn} ·{' '}
-              {locale === 'bn' ? c.cls?.nameBn || c.cls?.name : c.cls?.name} ({c.sec?.name})
+              {c.student.nameBn || c.student.nameEn} ·{' '}
+              {c.cls?.nameBn || c.cls?.name} ({c.sec?.name})
             </button>
           );
         })}
@@ -116,14 +114,13 @@ function ChildSwitcherBar({
 export function ParentDashboardPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const { parent, children } = useParentChildren(db);
-  const { locale, pick } = useI18n();
   const [selectedId, setSelectedId] = useState<string>('stu-10-1');
 
   if (isLoading || !db || !parent) return <LoadingSkeleton rows={6} />;
 
   const active = children.find((c) => c.student.id === selectedId) ?? children[0];
   if (!active) {
-    return <EmptyState title={pick('কোনো সন্তান সংযুক্ত নেই', 'No linked children found')} />;
+    return <EmptyState title={'কোনো সন্তান সংযুক্ত নেই'} />;
   }
 
   const att = db.attendances.filter((a) => a.studentEnrollmentId === active.enrollment.id);
@@ -149,11 +146,8 @@ export function ParentDashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick(`অভিভাবক ড্যাশবোর্ড — ${parent.name}`, `Parent Dashboard — ${parent.name}`)}
-        description={pick(
-          'আপনার সন্তানের হাজিরা, প্রকাশিত ফলাফল, ক্লাস রুটিন ও SMS নোটিফিকেশন এক নজরে দেখুন',
-          'Track attendance, published exam results, class routines, and guardian SMS alerts'
-        )}
+        title={`অভিভাবক ড্যাশবোর্ড — ${parent.name}`}
+        description={'আপনার সন্তানের হাজিরা, প্রকাশিত ফলাফল, ক্লাস রুটিন ও SMS নোটিফিকেশন এক নজরে দেখুন'}
       />
 
       <ChildSwitcherBar
@@ -164,39 +158,33 @@ export function ParentDashboardPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label={pick('নির্বাচিত শিক্ষার্থী', 'Selected Student')}
-          value={locale === 'bn' ? active.student.nameBn || active.student.nameEn : active.student.nameEn}
-          meta={`${locale === 'bn' ? active.cls?.nameBn || active.cls?.name : active.cls?.name} (${active.sec?.name}) · ${pick('রোল', 'Roll')} ${formatNumber(active.enrollment.roll, locale)}`}
+          label={'নির্বাচিত শিক্ষার্থী'}
+          value={active.student.nameBn || active.student.nameEn}
+          meta={`${active.cls?.nameBn || active.cls?.name} (${active.sec?.name}) · ${'রোল'} ${formatNumber(active.enrollment.roll, 'bn')}`}
           accent="primary"
         />
         <StatCard
-          label={pick('উপস্থিতির হার', 'Attendance Rate')}
-          value={`${formatNumber(attPct, locale)}%`}
-          meta={pick(
-            `${formatNumber(presentCount, locale)}/${formatNumber(att.length, locale)} কার্যদিবস`,
-            `${presentCount}/${att.length} school days`
-          )}
+          label={'উপস্থিতির হার'}
+          value={`${formatNumber(attPct, 'bn')}%`}
+          meta={`${formatNumber(presentCount, 'bn')}/${formatNumber(att.length, 'bn')} কার্যদিবস`}
           accent="success"
         />
         <StatCard
-          label={pick('সর্বশেষ প্রকাশিত জিপিএ', 'Latest Published GPA')}
+          label={'সর্বশেষ প্রকাশিত জিপিএ'}
           value={
             latestResult?.gpa !== null && latestResult?.gpa !== undefined
-              ? formatNumber(latestResult.gpa, locale, 2)
+              ? formatNumber(latestResult.gpa, 'bn', 2)
               : '—'
           }
           meta={
             latestResult?.meritPosition
-              ? pick(
-                  `মেধা স্থান: #${formatNumber(latestResult.meritPosition, locale)}`,
-                  `Merit Position: #${latestResult.meritPosition}`
-                )
-              : pick('ফলাফল অপেক্ষমাণ', 'Pending publication')
+              ? `মেধা স্থান: #${formatNumber(latestResult.meritPosition, 'bn')}`
+              : 'ফলাফল অপেক্ষমাণ'
           }
         />
         <StatCard
-          label={pick('প্রাপ্ত হাজিরা SMS', 'Attendance SMS Alerts')}
-          value={formatNumber(mySms.length, locale)}
+          label={'প্রাপ্ত হাজিরা SMS'}
+          value={formatNumber(mySms.length, 'bn')}
           meta={parent.phone}
         />
       </div>
@@ -205,21 +193,21 @@ export function ParentDashboardPage() {
         <Card className="p-5">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold">
-              {pick('সাম্প্রতিক হাজিরা ও SMS বার্তা', 'Recent Attendance & SMS History')}
+              {'সাম্প্রতিক হাজিরা ও SMS বার্তা'}
             </h2>
             <Link href="/parent/sms-history" className="text-sm font-medium text-primary hover:underline">
-              {pick('সব SMS দেখুন', 'View All SMS')}
+              {'সব SMS দেখুন'}
             </Link>
           </div>
           {mySms.length === 0 ? (
-            <EmptyState title={pick('কোনো SMS লগ নেই', 'No SMS alerts yet')} />
+            <EmptyState title={'কোনো SMS লগ নেই'} />
           ) : (
             <div className="divide-y divide-border">
               {mySms.slice(0, 4).map((sms) => (
                 <div key={sms.id} className="py-3 space-y-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-muted-foreground tabular-nums">
-                      {formatDateLong(sms.sentAt ?? sms.createdAt, locale)}
+                    <span className="text-sm text-muted-foreground tabular-nums">
+                      {formatDateLong(sms.sentAt ?? sms.createdAt, 'bn')}
                     </span>
                     <StatusBadge enumName="SmsStatus" value={sms.status} />
                   </div>
@@ -233,10 +221,10 @@ export function ParentDashboardPage() {
         <Card className="p-5">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold">
-              {pick('পরীক্ষার সূচি ও ফলাফল', 'Examinations & Results')}
+              {'পরীক্ষার সূচি ও ফলাফল'}
             </h2>
             <Link href="/parent/results" className="text-sm font-medium text-primary hover:underline">
-              {pick('মার্কশিট দেখুন', 'Open Marksheets')}
+              {'মার্কশিট দেখুন'}
             </Link>
           </div>
           <div className="divide-y divide-border">
@@ -245,7 +233,7 @@ export function ParentDashboardPage() {
                 <div>
                   <p className="text-base font-semibold">{ex.name}</p>
                   <p className="text-sm text-muted-foreground tabular-nums">
-                    {formatDateShort(ex.startDate, locale)} – {formatDateShort(ex.endDate, locale)}
+                    {formatDateShort(ex.startDate, 'bn')} – {formatDateShort(ex.endDate, 'bn')}
                   </p>
                 </div>
                 <StatusBadge enumName="ResultPublicationStatus" value={ex.resultStatus} />

@@ -18,7 +18,6 @@ import {
   useGetBootstrapQuery,
   useUpsertExamHallRoomMutation,
 } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import {
   ConfirmDialog,
   EmptyState,
@@ -38,7 +37,6 @@ import { buildSeatPlanRooms, getExamEnrolledStudents } from './ExamShared';
 
 export function ExamSeatPlanView() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [upsertRoom, { isLoading: saving }] = useUpsertExamHallRoomMutation();
   const [deleteRoom] = useDeleteExamHallRoomMutation();
 
@@ -108,8 +106,8 @@ export function ExamSeatPlanView() {
     if (!db || !activeExam) {
       return { rooms: [], seatLookup: new Map(), unallocatedCount: 0, totalCapacity: 0 };
     }
-    return buildSeatPlanRooms(db, activeExam, locale);
-  }, [db, activeExam, locale]);
+    return buildSeatPlanRooms(db, activeExam, 'bn');
+  }, [db, activeExam, 'bn']);
 
   const assignedInvigilatorsCount = useMemo(
     () => configuredRooms.filter((r) => Boolean(r.invigilatorStaffId)).length,
@@ -150,7 +148,7 @@ export function ExamSeatPlanView() {
     e.preventDefault();
     if (!activeExam) return;
     if (!form.roomNo.trim() || form.capacity <= 0) {
-      toast.error(pick('কক্ষ নম্বর ও সঠিক আসন সংখ্যা দিন।', 'Enter a room name and valid capacity.'));
+      toast.error('কক্ষ নম্বর ও সঠিক আসন সংখ্যা দিন।');
       return;
     }
     const res = await upsertRoom({
@@ -164,17 +162,17 @@ export function ExamSeatPlanView() {
       notes: form.notes.trim() || null,
     });
     if ('error' in res) {
-      toast.error(pick('কক্ষ সংরক্ষণ ব্যর্থ হয়েছে।', 'Failed to save hall room.'));
+      toast.error('কক্ষ সংরক্ষণ ব্যর্থ হয়েছে।');
       return;
     }
-    toast.success(pick('পরীক্ষার কক্ষ ও পরিদর্শক সংরক্ষিত হয়েছে।', 'Hall room and invigilator saved.'));
+    toast.success('পরীক্ষার কক্ষ ও পরিদর্শক সংরক্ষিত হয়েছে।');
     setRoomModalOpen(false);
   };
 
   const handleDeleteRoom = async () => {
     if (!deleteTarget) return;
     await deleteRoom({ id: deleteTarget.id });
-    toast.success(pick('কক্ষটি অপসারণ করা হয়েছে।', 'Hall room removed.'));
+    toast.success('কক্ষটি অপসারণ করা হয়েছে।');
     setDeleteTarget(null);
   };
 
@@ -215,7 +213,7 @@ export function ExamSeatPlanView() {
               className="whitespace-nowrap shrink-0"
             >
               <ClipboardCheck className="w-4 h-4" />
-              {pick('হল হাজিরা শিট প্রিন্ট', 'Hall Attendance Sheet')}
+              {'হল হাজিরা শিট প্রিন্ট'}
             </Button>
             <Button
               variant="outline"
@@ -227,11 +225,11 @@ export function ExamSeatPlanView() {
               className="whitespace-nowrap shrink-0"
             >
               <Printer className="w-4 h-4" />
-              {pick('আসন বিন্যাস প্রিন্ট', 'Print Seat Plan')}
+              {'আসন বিন্যাস প্রিন্ট'}
             </Button>
             <Button onClick={openAddRoom} disabled={!activeExam} className="whitespace-nowrap shrink-0">
               <Plus className="w-4 h-4" />
-              {pick('নতুন কক্ষ যুক্ত করুন', 'Add Hall Room')}
+              {'নতুন কক্ষ যুক্ত করুন'}
             </Button>
           </div>
         }
@@ -240,8 +238,8 @@ export function ExamSeatPlanView() {
       {/* Exam Picker */}
       <Card className="p-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex-1 min-w-[260px] max-w-md">
-          <label className="block text-xs text-muted-foreground mb-1">
-            {pick('পরীক্ষা নির্বাচন করুন', 'Select Examination')}
+          <label className="block text-sm text-muted-foreground mb-1">
+            {'পরীক্ষা নির্বাচন করুন'}
           </label>
           <Select value={resolvedExamId} onChange={(e) => setSelectedExamId(e.target.value)}>
             {activeExams.map((ex) => (
@@ -251,13 +249,13 @@ export function ExamSeatPlanView() {
             ))}
           </Select>
         </div>
-        <div className="flex items-center gap-3 text-xs tabular-nums text-muted-foreground">
+        <div className="flex items-center gap-3 text-sm tabular-nums text-muted-foreground">
           <span>
-            {pick('শ্রেণি:', 'Class:')} <strong className="text-foreground font-semibold">{locale === 'bn' ? activeExamClass?.nameBn || activeExamClass?.name || '—' : activeExamClass?.name || '—'}</strong>
+            {'শ্রেণি:'} <strong className="text-foreground font-semibold">{activeExamClass?.nameBn || activeExamClass?.name || '—'}</strong>
           </span>
           <span>·</span>
           <span>
-            {pick('শিক্ষাবর্ষ:', 'Year:')} <strong className="text-foreground font-semibold">{formatNumber('2026', locale)}</strong>
+            {'শিক্ষাবর্ষ:'} <strong className="text-foreground font-semibold">{formatNumber('2026', 'bn')}</strong>
           </span>
         </div>
       </Card>
@@ -266,62 +264,53 @@ export function ExamSeatPlanView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('মোট আসন ধারণক্ষমতা', 'Total Seating Capacity')}
+            {'মোট আসন ধারণক্ষমতা'}
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
-            {formatNumber(allocation.totalCapacity, locale)}
+            {formatNumber(allocation.totalCapacity, 'bn')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `মোট পরীক্ষার্থী ${formatNumber(enrolledCount, 'bn')} জন`,
-              `Total examinees: ${enrolledCount}`
-            )}
+            {`মোট পরীক্ষার্থী ${formatNumber(enrolledCount, 'bn')} জন`}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('কনফিগারকৃত হল ও কক্ষ', 'Configured Hall Rooms')}
+            {'কনফিগারকৃত হল ও কক্ষ'}
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
-            {formatNumber(configuredRooms.length, locale)}
+            {formatNumber(configuredRooms.length, 'bn')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `সক্রিয় পরীক্ষা কক্ষ · ভবনভিত্তিক বিন্যাস`,
-              `Active examination rooms`
-            )}
+            {`সক্রিয় পরীক্ষা কক্ষ · ভবনভিত্তিক বিন্যাস`}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('হল পরিদর্শক শিক্ষক', 'Assigned Invigilators')}
+            {'হল পরিদর্শক শিক্ষক'}
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
-            {formatNumber(assignedInvigilatorsCount, locale)} / {formatNumber(configuredRooms.length, locale)}
+            {formatNumber(assignedInvigilatorsCount, 'bn')} / {formatNumber(configuredRooms.length, 'bn')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `নিযুক্ত শিক্ষক · কক্ষের অনুপাত ${formatNumber(configuredRooms.length > 0 ? Math.round((assignedInvigilatorsCount / configuredRooms.length) * 100) : 0, 'bn')}%`,
-              `Invigilation coverage ${configuredRooms.length > 0 ? Math.round((assignedInvigilatorsCount / configuredRooms.length) * 100) : 0}%`
-            )}
+            {`নিযুক্ত শিক্ষক · কক্ষের অনুপাত ${formatNumber(configuredRooms.length > 0 ? Math.round((assignedInvigilatorsCount / configuredRooms.length) * 100) : 0, 'bn')}%`}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('আসন বরাদ্দের স্থিতি', 'Seat Allocation Status')}
+            {'আসন বরাদ্দের স্থিতি'}
           </p>
           <p className={cn('mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums', allocation.unallocatedCount > 0 ? 'text-destructive' : 'text-success')}>
             {allocation.unallocatedCount > 0
-              ? pick(`ঘাটতি ${formatNumber(allocation.unallocatedCount, locale)}`, `Deficit ${allocation.unallocatedCount}`)
-              : pick('১০০% সম্পন্ন', '100% Allocated')}
+              ? `ঘাটতি ${formatNumber(allocation.unallocatedCount, 'bn')}`
+              : '১০০% সম্পন্ন'}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {allocation.unallocatedCount > 0
-              ? pick('অতিরিক্ত আসন প্রয়োজন', 'More seats required')
-              : pick(`উদ্বৃত্ত আসন ${formatNumber(Math.max(0, allocation.totalCapacity - enrolledCount), 'bn')}টি`, `Surplus ${Math.max(0, allocation.totalCapacity - enrolledCount)} seats`)}
+              ? 'অতিরিক্ত আসন প্রয়োজন'
+              : `উদ্বৃত্ত আসন ${formatNumber(Math.max(0, allocation.totalCapacity - enrolledCount), 'bn')}টি`}
           </p>
         </Card>
       </div>
@@ -332,16 +321,10 @@ export function ExamSeatPlanView() {
           <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold text-foreground">
-              {pick(
-                `${formatNumber(allocation.unallocatedCount, locale)} জন শিক্ষার্থীর জন্য আসন কম রয়েছে!`,
-                `${allocation.unallocatedCount} student(s) exceed configured room capacity!`
-              )}
+              {`${formatNumber(allocation.unallocatedCount, 'bn')} জন শিক্ষার্থীর জন্য আসন কম রয়েছে!`}
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {pick(
-                'নতুন কক্ষ যুক্ত করুন অথবা বিদ্যমান কক্ষের আসন সংখ্যা বাড়ান যাতে সকল পরীক্ষার্থীর আসন নিশ্চিত হয়।',
-                'Add another hall room or increase existing room capacities to seat all examinees.'
-              )}
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {'নতুন কক্ষ যুক্ত করুন অথবা বিদ্যমান কক্ষের আসন সংখ্যা বাড়ান যাতে সকল পরীক্ষার্থীর আসন নিশ্চিত হয়।'}
             </p>
           </div>
         </div>
@@ -350,15 +333,12 @@ export function ExamSeatPlanView() {
       {/* Room Cards & Live Allocation Breakdown */}
       {configuredRooms.length === 0 ? (
         <EmptyState
-          title={pick('কোনো পরীক্ষা কক্ষ নির্ধারণ করা হয়নি', 'No exam hall rooms configured')}
-          description={pick(
-            'পরীক্ষা কেন্দ্রের কক্ষ, আসন সংখ্যা এবং কক্ষ পরিদর্শক যুক্ত করুন।',
-            'Add rooms with seat capacity and invigilator assignments to build the official seat plan.'
-          )}
+          title={'কোনো পরীক্ষা কক্ষ নির্ধারণ করা হয়নি'}
+          description={'পরীক্ষা কেন্দ্রের কক্ষ, আসন সংখ্যা এবং কক্ষ পরিদর্শক যুক্ত করুন।'}
           action={
             <Button onClick={openAddRoom}>
               <Plus className="w-4 h-4" />
-              {pick('প্রথম কক্ষ যুক্ত করুন', 'Add First Room')}
+              {'প্রথম কক্ষ যুক্ত করুন'}
             </Button>
           }
         />
@@ -379,8 +359,8 @@ export function ExamSeatPlanView() {
                       <Building2 className="w-4 h-4 text-primary shrink-0" />
                       <span>{room.roomNo}</span>
                     </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {room.buildingName || pick('একাডেমিক ভবন', 'Academic Building')}
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {room.buildingName || 'একাডেমিক ভবন'}
                       {room.notes ? ` · ${room.notes}` : ''}
                     </p>
                   </div>
@@ -394,7 +374,7 @@ export function ExamSeatPlanView() {
                       }}
                     >
                       <Printer className="w-3.5 h-3.5" />
-                      {pick('প্রিন্ট', 'Print')}
+                      {'প্রিন্ট'}
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => openEditRoom(room)}>
                       <Edit3 className="w-3.5 h-3.5" />
@@ -405,37 +385,37 @@ export function ExamSeatPlanView() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs border-y border-border py-2.5 tabular-nums">
+                <div className="grid grid-cols-2 gap-3 text-sm border-y border-border py-2.5 tabular-nums">
                   <div>
-                    <span className="text-muted-foreground block">{pick('আসন বরাদ্দ', 'Allocated Seats')}</span>
+                    <span className="text-muted-foreground block">{'আসন বরাদ্দ'}</span>
                     <strong className="text-foreground text-sm">
-                      {formatNumber(seated.length, locale)} / {formatNumber(room.capacity, locale)}
+                      {formatNumber(seated.length, 'bn')} / {formatNumber(room.capacity, 'bn')}
                     </strong>
                     {rolls.length > 0 && (
                       <span className="block text-muted-foreground">
-                        {pick('রোল:', 'Roll:')} {formatNumber(Math.min(...rolls), locale)} –{' '}
-                        {formatNumber(Math.max(...rolls), locale)}
+                        {'রোল:'} {formatNumber(Math.min(...rolls), 'bn')} –{' '}
+                        {formatNumber(Math.max(...rolls), 'bn')}
                       </span>
                     )}
                   </div>
                   <div>
-                    <span className="text-muted-foreground block">{pick('কক্ষ পরিদর্শক (Invigilator)', 'Invigilators')}</span>
+                    <span className="text-muted-foreground block">{'কক্ষ পরিদর্শক (Invigilator)'}</span>
                     <strong className="text-foreground">
-                      {inv ? (locale === 'bn' ? inv.nameBn || inv.name : inv.name) : pick('নির্ধারিত নয়', 'Unassigned')}
+                      {inv ? (inv.nameBn || inv.name) : 'নির্ধারিত নয়'}
                     </strong>
                     {asst && (
                       <span className="block text-muted-foreground">
-                        {pick('সহকারী:', 'Asst:')} {locale === 'bn' ? asst.nameBn || asst.name : asst.name}
+                        {'সহকারী:'} {asst.nameBn || asst.name}
                       </span>
                     )}
                   </div>
                 </div>
 
                 {/* Seated Students Compact List */}
-                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 text-xs tabular-nums">
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 text-sm tabular-nums">
                   {seated.length === 0 ? (
                     <p className="text-muted-foreground italic">
-                      {pick('এই কক্ষে কোনো পরীক্ষার্থী অবশিষ্ট নেই।', 'No examinees assigned to this room.')}
+                      {'এই কক্ষে কোনো পরীক্ষার্থী অবশিষ্ট নেই।'}
                     </p>
                   ) : (
                     seated.map((seat) => (
@@ -444,10 +424,10 @@ export function ExamSeatPlanView() {
                         className="flex items-center justify-between py-1 px-2 rounded bg-surface-muted/50"
                       >
                         <span className="font-medium text-foreground truncate">
-                          #{formatNumber(seat.seatNo, locale)} · {seat.studentName}
+                          #{formatNumber(seat.seatNo, 'bn')} · {seat.studentName}
                         </span>
                         <span className="text-muted-foreground shrink-0 ml-2">
-                          {pick('রোল', 'Roll')} {formatNumber(seat.roll, locale)} ({seat.sectionName})
+                          {'রোল'} {formatNumber(seat.roll, 'bn')} ({seat.sectionName})
                         </span>
                       </div>
                     ))
@@ -465,25 +445,25 @@ export function ExamSeatPlanView() {
         onClose={() => setRoomModalOpen(false)}
         title={
           editingRoom
-            ? pick('কক্ষ ও পরিদর্শক সম্পাদনা', 'Edit Hall Room & Invigilators')
-            : pick('নতুন পরীক্ষা কক্ষ যুক্ত করুন', 'Add Exam Hall Room')
+            ? 'কক্ষ ও পরিদর্শক সম্পাদনা'
+            : 'নতুন পরীক্ষা কক্ষ যুক্ত করুন'
         }
         size="md"
       >
         <form onSubmit={handleSaveRoom} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">{pick('কক্ষ নম্বর / নাম *', 'Room No. / Name *')}</label>
+              <label className="block text-sm font-medium mb-1">{'কক্ষ নম্বর / নাম *'}</label>
               <Input
                 required
                 value={form.roomNo}
                 onChange={(e) => setForm({ ...form, roomNo: e.target.value })}
-                placeholder={pick('যেমন: হল রুম ১০১', 'e.g. Hall Room 101')}
+                placeholder={'যেমন: হল রুম ১০১'}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{pick('আসন ধারণক্ষমতা *', 'Seat Capacity *')}</label>
-              <Input
+              <label className="block text-sm font-medium mb-1">{'আসন ধারণক্ষমতা *'}</label>
+              <Input placeholder="আসন ধারণক্ষমতা লিখুন"
                 type="number"
                 min={1}
                 max={200}
@@ -493,57 +473,57 @@ export function ExamSeatPlanView() {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium mb-1">{pick('ভবন ও তলা', 'Building & Floor')}</label>
+              <label className="block text-sm font-medium mb-1">{'ভবন ও তলা'}</label>
               <Input
                 value={form.buildingName}
                 onChange={(e) => setForm({ ...form, buildingName: e.target.value })}
-                placeholder={pick('যেমন: মূল একাডেমিক ভবন (২য় তলা)', 'e.g. Main Academic Building (2nd Floor)')}
+                placeholder={'যেমন: মূল একাডেমিক ভবন (২য় তলা)'}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{pick('প্রধান পরিদর্শক', 'Chief Invigilator')}</label>
+              <label className="block text-sm font-medium mb-1">{'প্রধান পরিদর্শক'}</label>
               <Select
                 value={form.invigilatorStaffId}
                 onChange={(e) => setForm({ ...form, invigilatorStaffId: e.target.value })}
               >
-                <option value="">{pick('নির্বাচন করুন', 'Select teacher')}</option>
+                <option value="">{'নির্বাচন করুন'}</option>
                 {teachers.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {locale === 'bn' ? t.nameBn || t.name : t.name}
+                    {t.nameBn || t.name}
                   </option>
                 ))}
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{pick('সহকারী পরিদর্শক', 'Asst. Invigilator')}</label>
+              <label className="block text-sm font-medium mb-1">{'সহকারী পরিদর্শক'}</label>
               <Select
                 value={form.assistantInvigilatorStaffId}
                 onChange={(e) => setForm({ ...form, assistantInvigilatorStaffId: e.target.value })}
               >
-                <option value="">{pick('কোনোটি নয়', 'None')}</option>
+                <option value="">{'কোনোটি নয়'}</option>
                 {teachers.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {locale === 'bn' ? t.nameBn || t.name : t.name}
+                    {t.nameBn || t.name}
                   </option>
                 ))}
               </Select>
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium mb-1">{pick('নোট / মন্তব্য', 'Room Note')}</label>
+              <label className="block text-sm font-medium mb-1">{'নোট / মন্তব্য'}</label>
               <Input
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder={pick('যেমন: বিজ্ঞান ও মানবিক বিভাগ', 'e.g. Science & Humanities examinees')}
+                placeholder={'যেমন: বিজ্ঞান ও মানবিক বিভাগ'}
               />
             </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={() => setRoomModalOpen(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button type="submit" disabled={saving}>
-              {pick('সংরক্ষণ করুন', 'Save Room')}
+              {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -553,7 +533,7 @@ export function ExamSeatPlanView() {
       <Modal
         open={seatPlanPrintOpen}
         onClose={() => setSeatPlanPrintOpen(false)}
-        title={pick('প্রাতিষ্ঠানিক আসন বিন্যাস প্রিভিউ', 'Official Multi-Room Seat Plan Preview')}
+        title={'প্রাতিষ্ঠানিক আসন বিন্যাস প্রিভিউ'}
         size="xl"
       >
         <div className="space-y-4">
@@ -566,18 +546,18 @@ export function ExamSeatPlanView() {
                 className="w-56"
               >
                 <option value="ALL">
-                  {pick(`সকল কক্ষ (${formatNumber(allocation.rooms.length, locale)}টি)`, `All Rooms (${allocation.rooms.length})`)}
+                  {`সকল কক্ষ (${formatNumber(allocation.rooms.length, 'bn')}টি)`}
                 </option>
                 {allocation.rooms.map((r) => (
                   <option key={r.roomNo} value={r.roomNo}>
-                    {r.roomNo} ({formatNumber(r.seats.length, locale)})
+                    {r.roomNo} ({formatNumber(r.seats.length, 'bn')})
                   </option>
                 ))}
               </Select>
             </div>
             <Button onClick={() => triggerPrint()}>
               <Printer className="w-4 h-4" />
-              {pick('আসন বিন্যাস প্রিন্ট করুন', 'Print Seat Plan')}
+              {'আসন বিন্যাস প্রিন্ট করুন'}
             </Button>
           </div>
 
@@ -596,14 +576,14 @@ export function ExamSeatPlanView() {
       <Modal
         open={attendanceModalOpen}
         onClose={() => setAttendanceModalOpen(false)}
-        title={pick('হল হাজিরা ও উত্তরপত্র স্বাক্ষর শিট', 'Exam Hall Attendance & Answer Script Register')}
+        title={'হল হাজিরা ও উত্তরপত্র স্বাক্ষর শিট'}
         size="xl"
       >
         <div className="space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3 no-print border-b border-border pb-3">
             <div className="flex flex-wrap items-end gap-3">
               <div className="w-56">
-                <label className="block text-xs text-muted-foreground mb-1">{pick('বিষয় নির্বাচন করুন', 'Subject')}</label>
+                <label className="block text-sm text-muted-foreground mb-1">{'বিষয় নির্বাচন করুন'}</label>
                 <Select
                   value={attendanceSubjectId}
                   onChange={(e) => {
@@ -619,14 +599,14 @@ export function ExamSeatPlanView() {
                     const sub = db.subjects.find((s) => s.id === es.subjectId);
                     return (
                       <option key={es.id} value={es.id}>
-                        {locale === 'bn' ? sub?.nameBn || sub?.name : sub?.name} ({sub?.officialCode})
+                        {sub?.nameBn || sub?.name} ({sub?.officialCode})
                       </option>
                     );
                   })}
                 </Select>
               </div>
               <div className="w-44">
-                <label className="block text-xs text-muted-foreground mb-1">{pick('পরীক্ষার তারিখ', 'Exam Date')}</label>
+                <label className="block text-sm text-muted-foreground mb-1">{'পরীক্ষার তারিখ'}</label>
                 <Input
                   type="date"
                   value={attendanceDate}
@@ -636,7 +616,7 @@ export function ExamSeatPlanView() {
             </div>
             <Button onClick={() => triggerPrint()}>
               <Printer className="w-4 h-4" />
-              {pick('হাজিরা শিট প্রিন্ট করুন', 'Print Attendance Register')}
+              {'হাজিরা শিট প্রিন্ট করুন'}
             </Button>
           </div>
 
@@ -647,13 +627,13 @@ export function ExamSeatPlanView() {
               academicYear={activeYear?.name ?? '2026'}
               subjectLabel={
                 selectedSub
-                  ? `${locale === 'bn' ? selectedSub.nameBn : selectedSub.name} (${selectedSub.officialCode ?? ''})`
-                  : pick('সাধারণ পরীক্ষা', 'General Examination')
+                  ? `${selectedSub.nameBn} (${selectedSub.officialCode ?? ''})`
+                  : 'সাধারণ পরীক্ষা'
               }
               examDate={attendanceDate}
               examTime={
                 matchingRoutine
-                  ? `${formatTime(matchingRoutine.startTime, locale)} – ${formatTime(matchingRoutine.endTime, locale)}`
+                  ? `${formatTime(matchingRoutine.startTime, 'bn')} – ${formatTime(matchingRoutine.endTime, 'bn')}`
                   : null
               }
               rooms={allocation.rooms}
@@ -666,12 +646,9 @@ export function ExamSeatPlanView() {
         open={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteRoom}
-        title={pick('পরীক্ষা কক্ষ অপসারণ', 'Remove Hall Room')}
-        description={pick(
-          'এই কক্ষটি মুছে ফেললে পরীক্ষার্থীরা অবশিষ্ট কক্ষগুলোতে পুনর্বণ্টিত হবে।',
-          'Deleting this room will re-distribute examinees across the remaining rooms.'
-        )}
-        confirmLabel={pick('মুছে ফেলুন', 'Remove')}
+        title={'পরীক্ষা কক্ষ অপসারণ'}
+        description={'এই কক্ষটি মুছে ফেললে পরীক্ষার্থীরা অবশিষ্ট কক্ষগুলোতে পুনর্বণ্টিত হবে।'}
+        confirmLabel={'মুছে ফেলুন'}
         destructive
       />
     </div>

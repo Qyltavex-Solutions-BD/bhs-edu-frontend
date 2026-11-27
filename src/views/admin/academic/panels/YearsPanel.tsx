@@ -15,7 +15,6 @@ import { Button, Card, FormField, Input, Modal, Switch } from '@/src/components/
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import type { AcademicYear } from '@/src/types/entities';
 import { errorMessage } from './shared';
-import { useAcademicI18n } from '../academic.i18n';
 import { yearSchema, type YearFormValues } from '../academic.schema';
 
 const defaultValues: YearFormValues = {
@@ -31,7 +30,6 @@ const formatDisplayDate = (d?: string) => {
 };
 
 export function YearsPanel({ years }: { years?: AcademicYear[] }) {
-  const { t, dict } = useAcademicI18n();
 
   const { data: realYears } = useGetAcademicYearsQuery();
   const yearList = realYears && realYears.length > 0 ? realYears : (years ?? []);
@@ -91,7 +89,7 @@ export function YearsPanel({ years }: { years?: AcademicYear[] }) {
           endDate: values.endDate,
           isActive: values.isActive,
         }).unwrap();
-        toast.success(t(dict.years.updateSuccess));
+        toast.success('শিক্ষাবর্ষ হালনাগাদ হয়েছে।');
       } else {
         await createYear({
           name: values.name.trim(),
@@ -99,20 +97,20 @@ export function YearsPanel({ years }: { years?: AcademicYear[] }) {
           endDate: values.endDate,
           isActive: values.isActive,
         }).unwrap();
-        toast.success(t(dict.years.createSuccess));
+        toast.success('নতুন শিক্ষাবর্ষ যুক্ত হয়েছে।');
       }
       close();
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.years.saveFailed)));
+      toast.error(errorMessage(err, 'শিক্ষাবর্ষ সংরক্ষণ হয়নি।'));
     }
   };
 
   const handleActivate = async (id: string) => {
     try {
       await setActive({ id }).unwrap();
-      toast.success(t(dict.years.activeSuccess));
+      toast.success('এই বছরটি এখন সক্রিয় শিক্ষাবর্ষ।');
     } catch (err) {
-      toast.error(errorMessage(err, t(dict.years.activeFailed)));
+      toast.error(errorMessage(err, 'সক্রিয় করা যায়নি।'));
     }
   };
 
@@ -120,18 +118,18 @@ export function YearsPanel({ years }: { years?: AcademicYear[] }) {
     <div className="space-y-4">
       <div className="flex justify-end">
         <Button type="button" variant="primary" onClick={startCreate}>
-          <Plus className="w-4 h-4" /> {t(dict.years.newYearButton)}
+          <Plus className="w-4 h-4" /> {'নতুন শিক্ষাবর্ষ'}
         </Button>
       </div>
 
       <Card className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-base">
           <thead className="bg-surface-muted text-muted-foreground">
             <tr>
-              <th className="p-3 text-left">{t(dict.years.yearColumn)}</th>
-              <th className="p-3 text-left">{t(dict.years.datesColumn)}</th>
-              <th className="p-3 text-left">{t(dict.common.status)}</th>
-              <th className="p-3 text-right">{t(dict.common.actions)}</th>
+              <th className="p-3 text-left">{'শিক্ষাবর্ষ'}</th>
+              <th className="p-3 text-left">{'সময়কাল'}</th>
+              <th className="p-3 text-left">{'অবস্থা'}</th>
+              <th className="p-3 text-right">{'কাজ'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -144,7 +142,7 @@ export function YearsPanel({ years }: { years?: AcademicYear[] }) {
                 <td className="p-3">
                   <StatusBadge
                     value={year.isActive ? 'ACTIVE' : 'INACTIVE'}
-                    customLabel={year.isActive ? t(dict.years.currentBadge) : t(dict.common.inactive)}
+                    customLabel={year.isActive ? 'চলতি' : 'বন্ধ'}
                     customTone={year.isActive ? 'success' : 'neutral'}
                   />
                 </td>
@@ -157,12 +155,12 @@ export function YearsPanel({ years }: { years?: AcademicYear[] }) {
                       disabled={activating}
                       onClick={() => handleActivate(year.id)}
                     >
-                      {t(dict.years.makeCurrent)}
+                      {'চলতি করুন'}
                     </Button>
                   )}
                   <Button type="button" variant="ghost" size="sm" onClick={() => startEdit(year)}>
                     <Pencil className="w-4 h-4" />
-                    {t(dict.common.edit)}
+                    {'সম্পাদনা'}
                   </Button>
                 </td>
               </tr>
@@ -174,25 +172,25 @@ export function YearsPanel({ years }: { years?: AcademicYear[] }) {
       <Modal
         open={open}
         onClose={close}
-        title={editingId ? t(dict.years.editTitle) : t(dict.years.createTitle)}
-        description={t(dict.years.modalDescription)}
+        title={editingId ? 'শিক্ষাবর্ষ সম্পাদনা' : 'নতুন শিক্ষাবর্ষ'}
+        description={'শুরুর তারিখ শেষ তারিখের আগে হতে হবে। একটি বছর চলতি থাকবে।'}
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-          <FormField label={t(dict.years.nameLabel)} required error={errors.name?.message}>
+          <FormField label={'নাম'} required error={errors.name?.message}>
             <Input
               {...register('name')}
-              placeholder={t(dict.years.namePlaceholder)}
+              placeholder={'যেমন: 2026 বা 2026-2027'}
             />
           </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <FormField label={t(dict.years.startsLabel)} required error={errors.startDate?.message}>
+            <FormField label={'শুরু'} required error={errors.startDate?.message}>
               <Input
                 type="date"
                 {...register('startDate')}
               />
             </FormField>
-            <FormField label={t(dict.years.endsLabel)} required error={errors.endDate?.message}>
+            <FormField label={'শেষ'} required error={errors.endDate?.message}>
               <Input
                 type="date"
                 {...register('endDate')}
@@ -203,19 +201,19 @@ export function YearsPanel({ years }: { years?: AcademicYear[] }) {
           <Switch
             checked={isActive}
             onChange={(val) => setValue('isActive', val)}
-            label={t(dict.years.makeCurrentSwitch)}
+            label={'এটিকে চলতি শিক্ষাবর্ষ করুন'}
           />
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={close}>
-              {t(dict.common.cancel)}
+              {'বাতিল'}
             </Button>
             <Button type="submit" variant="primary" disabled={saving}>
               {saving
-                ? t(dict.common.saving)
+                ? 'সংরক্ষণ হচ্ছে...'
                 : editingId
-                  ? t(dict.common.update)
-                  : t(dict.common.save)}
+                  ? 'হালনাগাদ করুন'
+                  : 'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>

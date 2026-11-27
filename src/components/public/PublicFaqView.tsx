@@ -21,7 +21,6 @@ import {
   X,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { Button, Card } from '@/src/components/ui/primitives';
 import { cn } from '@/src/lib/utils/cn';
@@ -294,8 +293,6 @@ const QUICK_HELP_LINKS = [
 
 export function PublicFaqView() {
   const { data: db } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
-
   const [activeCategory, setActiveCategory] = useState<FaqCategoryId>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [openIds, setOpenIds] = useState<Record<string, boolean>>({
@@ -355,7 +352,7 @@ export function PublicFaqView() {
   const getCategoryLabel = (catId: Exclude<FaqCategoryId, 'all'>) => {
     const found = FAQ_CATEGORIES.find((c) => c.id === catId);
     if (!found) return '';
-    return locale === 'bn' ? found.labelBn : found.labelEn;
+    return found.labelBn;
   };
 
   return (
@@ -365,26 +362,20 @@ export function PublicFaqView() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
           <div className="lg:col-span-7 space-y-2.5">
             <p className="text-sm font-semibold text-primary">
-              {pick(
-                'ভোজেশ্বর উচ্চ বিদ্যালয় · সহায়তা ও তথ্য কেন্দ্র',
-                'Bhojeshwar High School · Help & Information Center'
-              )}
+              {'ভোজেশ্বর উচ্চ বিদ্যালয় · সহায়তা ও তথ্য কেন্দ্র'}
             </p>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-              {pick('সাধারণ জিজ্ঞাসা (FAQ)', 'Frequently Asked Questions')}
+              {'সাধারণ জিজ্ঞাসা (FAQ)'}
             </h1>
             <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-              {pick(
-                'ভর্তি প্রক্রিয়া, পরীক্ষার ফলাফল, RFID হাজিরা, অভিভাবক পোর্টাল এবং সনদপত্র সংক্রান্ত শিক্ষার্থী ও অভিভাবকদের সর্বাধিক জিজ্ঞাসিত প্রশ্নোত্তর এখানে সাজানো হয়েছে।',
-                'Clear answers to the most common questions from parents and students regarding admissions, exam results, attendance, parent portal, and school certificates.'
-              )}
+              {'ভর্তি প্রক্রিয়া, পরীক্ষার ফলাফল, RFID হাজিরা, অভিভাবক পোর্টাল এবং সনদপত্র সংক্রান্ত শিক্ষার্থী ও অভিভাবকদের সর্বাধিক জিজ্ঞাসিত প্রশ্নোত্তর এখানে সাজানো হয়েছে।'}
             </p>
           </div>
 
           {/* Live Search Input */}
           <div className="lg:col-span-5">
             <label htmlFor="faq-search" className="sr-only">
-              {pick('প্রশ্ন অনুসন্ধান করুন', 'Search questions')}
+              {'প্রশ্ন অনুসন্ধান করুন'}
             </label>
             <div className="relative">
               <Search className="w-4 h-4 text-muted-foreground absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -393,17 +384,14 @@ export function PublicFaqView() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={pick(
-                  'প্রশ্ন খুঁজুন... (যেমন: ভর্তি, ফলাফল, হাজিরা, ছাড়পত্র)',
-                  'Search topics... (e.g. admission, result, RFID, TC)'
-                )}
+                placeholder={'প্রশ্ন খুঁজুন... (যেমন: ভর্তি, ফলাফল, হাজিরা, ছাড়পত্র)'}
                 className="w-full h-11 pl-10 pr-10 text-base bg-background border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  aria-label={pick('অনুসন্ধান মুছুন', 'Clear search')}
+                  aria-label={'অনুসন্ধান মুছুন'}
                   className="h-7 w-7 rounded-md absolute right-2 top-1/2 -translate-y-1/2 inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-muted cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -432,14 +420,14 @@ export function PublicFaqView() {
                       : 'bg-surface-muted/60 text-muted-foreground hover:text-foreground hover:bg-surface-muted'
                   )}
                 >
-                  <span>{locale === 'bn' ? cat.labelBn : cat.labelEn}</span>
+                  <span>{cat.labelBn}</span>
                   <span
                     className={cn(
-                      'text-xs tabular-nums',
+                      'text-sm tabular-nums',
                       active ? 'text-primary-foreground/80' : 'text-muted-foreground/80'
                     )}
                   >
-                    ({formatNumber(categoryCounts[cat.id], locale)})
+                    ({formatNumber(categoryCounts[cat.id], 'bn')})
                   </span>
                 </button>
               );
@@ -453,8 +441,8 @@ export function PublicFaqView() {
               className="text-sm font-semibold text-primary hover:underline cursor-pointer whitespace-nowrap"
             >
               {allVisibleOpen
-                ? pick('সব উত্তর বন্ধ করুন', 'Collapse All')
-                : pick('সব উত্তর খুলুন', 'Expand All')}
+                ? 'সব উত্তর বন্ধ করুন'
+                : 'সব উত্তর খুলুন'}
             </button>
           )}
         </div>
@@ -471,13 +459,10 @@ export function PublicFaqView() {
               </div>
               <div className="space-y-1">
                 <h2 className="text-lg font-bold text-foreground">
-                  {pick('কোনো মিল পাওয়া যায়নি', 'No matching questions found')}
+                  {'কোনো মিল পাওয়া যায়নি'}
                 </h2>
                 <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                  {pick(
-                    'আপনার অনুসন্ধানকৃত শব্দের সাথে কোনো প্রশ্ন মেলেনি। অন্য শব্দ দিয়ে খুঁজুন অথবা সরাসরি বিদ্যালয় অফিসে যোগাযোগ করুন।',
-                    'Try searching with a different keyword or reach out directly to the school office.'
-                  )}
+                  {'আপনার অনুসন্ধানকৃত শব্দের সাথে কোনো প্রশ্ন মেলেনি। অন্য শব্দ দিয়ে খুঁজুন অথবা সরাসরি বিদ্যালয় অফিসে যোগাযোগ করুন।'}
                 </p>
               </div>
               <div className="pt-2 flex flex-wrap items-center justify-center gap-2.5">
@@ -490,11 +475,11 @@ export function PublicFaqView() {
                     setActiveCategory('all');
                   }}
                 >
-                  {pick('ফিল্টার রিসেট করুন', 'Reset Filters')}
+                  {'ফিল্টার রিসেট করুন'}
                 </Button>
                 <Link href="/contact">
                   <Button variant="primary" size="sm">
-                    <span>{pick('সরাসরি প্রশ্ন পাঠান', 'Ask the Office')}</span>
+                    <span>{'সরাসরি প্রশ্ন পাঠান'}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Button>
                 </Link>
@@ -504,9 +489,9 @@ export function PublicFaqView() {
             <div className="bg-surface border border-border rounded-2xl overflow-hidden divide-y divide-border">
               {filteredItems.map((item, idx) => {
                 const isOpen = Boolean(openIds[item.id]);
-                const numLabel = formatNumber(idx + 1, locale).padStart(
+                const numLabel = formatNumber(idx + 1, 'bn').padStart(
                   2,
-                  locale === 'bn' ? '০' : '0'
+                  '০'
                 );
 
                 return (
@@ -531,11 +516,11 @@ export function PublicFaqView() {
                           {numLabel}
                         </span>
                         <div className="min-w-0 space-y-1">
-                          <p className="text-xs font-semibold text-primary/90">
+                          <p className="text-sm font-semibold text-primary/90">
                             {getCategoryLabel(item.category)}
                           </p>
                           <h2 className="text-base font-bold text-foreground leading-snug">
-                            {locale === 'bn' ? item.questionBn : item.questionEn}
+                            {item.questionBn}
                           </h2>
                         </div>
                       </div>
@@ -568,7 +553,7 @@ export function PublicFaqView() {
                         >
                           <div className="px-5 sm:px-6 pb-5 pt-1 pl-12 sm:pl-[3.35rem] space-y-3 bg-surface-muted/20">
                             <p className="text-base text-foreground/85 leading-relaxed">
-                              {locale === 'bn' ? item.answerBn : item.answerEn}
+                              {item.answerBn}
                             </p>
                             {item.action && (
                               <div>
@@ -577,7 +562,7 @@ export function PublicFaqView() {
                                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
                                 >
                                   <span>
-                                    {locale === 'bn' ? item.action.labelBn : item.action.labelEn}
+                                    {item.action.labelBn}
                                   </span>
                                   <ArrowRight className="w-3.5 h-3.5" />
                                 </Link>
@@ -600,13 +585,10 @@ export function PublicFaqView() {
           <Card className="p-5 sm:p-6 space-y-4 border-t-2 border-t-primary">
             <div className="space-y-1">
               <h2 className="text-lg font-bold text-foreground">
-                {pick('আপনার প্রশ্নটি এখানে নেই?', 'Still Have a Question?')}
+                {'আপনার প্রশ্নটি এখানে নেই?'}
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {pick(
-                  'অফিস চলাকালীন সময়ে সরাসরি কল করুন অথবা অনলাইনে বার্তা পাঠান — আমাদের অফিস সহায়ক দ্রুত উত্তর দেবেন।',
-                  'Call us during school office hours or send an online inquiry for personalized assistance.'
-                )}
+                {'অফিস চলাকালীন সময়ে সরাসরি কল করুন অথবা অনলাইনে বার্তা পাঠান — আমাদের অফিস সহায়ক দ্রুত উত্তর দেবেন।'}
               </p>
             </div>
 
@@ -614,10 +596,7 @@ export function PublicFaqView() {
               <p className="flex items-start gap-2.5 text-muted-foreground">
                 <Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <span>
-                  {pick(
-                    'রবিবার – বৃহস্পতিবার, সকাল ১০:০০ – বিকাল ৪:০০',
-                    'Sunday – Thursday, 10:00 AM – 4:00 PM'
-                  )}
+                  {'রবিবার – বৃহস্পতিবার, সকাল ১০:০০ – বিকাল ৪:০০'}
                 </span>
               </p>
               {db?.contactInfo.phone && (
@@ -649,7 +628,7 @@ export function PublicFaqView() {
             <div className="pt-2 flex flex-col gap-2">
               <Link href="/contact" className="block">
                 <Button variant="primary" className="w-full">
-                  <span>{pick('যোগাযোগ ও বার্তা পাঠান', 'Contact School Office')}</span>
+                  <span>{'যোগাযোগ ও বার্তা পাঠান'}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>
@@ -659,7 +638,7 @@ export function PublicFaqView() {
           {/* Popular Digital Services Card */}
           <Card className="p-5 space-y-3.5">
             <h2 className="text-base font-bold text-foreground">
-              {pick('প্রয়োজনীয় ডিজিটাল সেবা', 'Quick Academic Services')}
+              {'প্রয়োজনীয় ডিজিটাল সেবা'}
             </h2>
             <div className="divide-y divide-border/70">
               {QUICK_HELP_LINKS.map((link) => {
@@ -673,7 +652,7 @@ export function PublicFaqView() {
                     <span className="inline-flex items-center gap-2.5 min-w-0">
                       <Icon className="w-4 h-4 text-primary shrink-0" />
                       <span className="truncate">
-                        {locale === 'bn' ? link.labelBn : link.labelEn}
+                        {link.labelBn}
                       </span>
                     </span>
                     <ArrowRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
@@ -688,13 +667,10 @@ export function PublicFaqView() {
             <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
             <div className="text-sm text-muted-foreground leading-relaxed">
               <p className="font-semibold text-foreground">
-                {db?.schoolProfile.name ?? pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}
+                {db?.schoolProfile.name ?? 'ভোজেশ্বর উচ্চ বিদ্যালয়'}
               </p>
-              <p className="mt-0.5 tabular-nums text-xs">
-                {pick(
-                  `EIIN: ${db?.schoolProfile.eiin ?? '113587'} · স্থাপিত: ১৯৭৮ খ্রি. · ৬ষ্ঠ–১০ম শ্রেণি`,
-                  `EIIN: ${db?.schoolProfile.eiin ?? '113587'} · Est. 1978 · Classes 6–10`
-                )}
+              <p className="mt-0.5 tabular-nums text-sm">
+                {`EIIN: ${db?.schoolProfile.eiin ?? '113587'} · স্থাপিত: ১৯৭৮ খ্রি. · ৬ষ্ঠ–১০ম শ্রেণি`}
               </p>
             </div>
           </div>

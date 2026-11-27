@@ -16,7 +16,6 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { SchoolProfile } from '@/src/types/entities';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber, formatYear } from '@/src/lib/formatters';
 import { getCampusPhoto } from '@/src/components/shared/Feedback';
 import { cn } from '@/src/lib/utils/cn';
@@ -28,7 +27,6 @@ interface HomeWhyStudySectionProps {
 }
 
 export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps) {
-  const { locale, pick } = useI18n();
   const [activeReasonIdx, setActiveReasonIdx] = useState(0);
   const [activeRfidStep, setActiveRfidStep] = useState(0);
   const [isRfidPaused, setIsRfidPaused] = useState(false);
@@ -52,15 +50,15 @@ export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps)
         numEn: '01',
         tagBn: 'ঐতিহ্য ও ভিত্তি',
         tagEn: 'Heritage & Trust',
-        shortBn: `ঐতিহ্য ও ভিত্তি • ${formatYear(estYear, locale)} সাল থেকে`,
+        shortBn: `ঐতিহ্য ও ভিত্তি • ${formatYear(estYear, 'bn')} সাল থেকে`,
         shortEn: `Heritage & Trust • Since ${estYear}`,
-        titleBn: `${formatNumber(yearsSinceEst, locale)}+ বছরের গৌরবময় ঐতিহ্য ও নির্ভরযোগ্যতা`,
+        titleBn: `${formatNumber(yearsSinceEst, 'bn')}+ বছরের গৌরবময় ঐতিহ্য ও নির্ভরযোগ্যতা`,
         titleEn: `${yearsSinceEst}+ Years of Heritage & Trust`,
-        descBn: `${formatYear(estYear, locale)} সাল থেকে নড়িয়া ও শরীয়তপুর অঞ্চলে মানসম্মত, সুশৃঙ্খল ও নৈতিক মাধ্যমিক শিক্ষার বিশ্বস্ত কেন্দ্র হিসেবে শিক্ষার্থীদের সার্বিক বিকাশ নিশ্চিত করছে।`,
+        descBn: `${formatYear(estYear, 'bn')} সাল থেকে নড়িয়া ও শরীয়তপুর অঞ্চলে মানসম্মত, সুশৃঙ্খল ও নৈতিক মাধ্যমিক শিক্ষার বিশ্বস্ত কেন্দ্র হিসেবে শিক্ষার্থীদের সার্বিক বিকাশ নিশ্চিত করছে।`,
         descEn: 'A trusted center for quality, disciplined, and value-based secondary education in Naria and Shariatpur since 1978.',
         metrics: [
-          { valBn: `${formatYear(estYear, locale)}`, valEn: String(estYear), labelBn: 'প্রতিষ্ঠা সন', labelEn: 'Established' },
-          { valBn: `${formatNumber(yearsSinceEst, locale)}+ বছর`, valEn: `${yearsSinceEst}+ Yrs`, labelBn: 'শিক্ষা ঐতিহ্য', labelEn: 'Academic Legacy' },
+          { valBn: `${formatYear(estYear, 'bn')}`, valEn: String(estYear), labelBn: 'প্রতিষ্ঠা সন', labelEn: 'Established' },
+          { valBn: `${formatNumber(yearsSinceEst, 'bn')}+ বছর`, valEn: `${yearsSinceEst}+ Yrs`, labelBn: 'শিক্ষা ঐতিহ্য', labelEn: 'Academic Legacy' },
           { valBn: eiin, valEn: eiin, labelBn: 'EIIN নম্বর', labelEn: 'EIIN Code' },
         ],
         icon: Landmark,
@@ -132,7 +130,7 @@ export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps)
         ctaEn: 'Security System',
       },
     ];
-  }, [estYear, yearsSinceEst, eiin, locale]);
+  }, [estYear, yearsSinceEst, eiin, 'bn']);
 
   const whyStudyRfidSteps = useMemo(() => {
     return [
@@ -203,18 +201,15 @@ export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps)
         <div className="space-y-2">
           <span className="inline-flex items-center gap-2 text-primary font-bold text-sm sm:text-base tracking-wide">
             <span className="w-6 h-0.5 rounded-full bg-accent" />
-            {pick('কেন এই বিদ্যালয়', 'Why Choose BHS')}
+            {'কেন এই বিদ্যালয়'}
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground tracking-tight text-balance">
-            {pick('কেন ', 'Why Study at ')}
-            <span className="text-primary">{pick('ভোজেশ্বর উচ্চ বিদ্যালয়ে', 'Bhojeshwar High School')}</span>
-            {pick(' পড়বেন?', '?')}
+            {'কেন '}
+            <span className="text-primary">{'ভোজেশ্বর উচ্চ বিদ্যালয়ে'}</span>
+            {' পড়বেন?'}
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-3xl leading-relaxed">
-            {pick(
-              'ঐতিহ্যবাহী বিদ্যাপীঠ হিসেবে ভোজেশ্বর উচ্চ বিদ্যালয় আধুনিক প্রযুক্তি, মানসম্মত সাধারণ শিক্ষা, সমৃদ্ধ বিজ্ঞানাগার এবং সুশৃঙ্খল নৈতিকতার এক অনন্য কেন্দ্র।',
-              'Since 1978, Bhojeshwar High School has stood as a trusted center for rigorous secondary education, modern technology, science exploration, and disciplined character building.'
-            )}
+            {'ঐতিহ্যবাহী বিদ্যাপীঠ হিসেবে ভোজেশ্বর উচ্চ বিদ্যালয় আধুনিক প্রযুক্তি, মানসম্মত সাধারণ শিক্ষা, সমৃদ্ধ বিজ্ঞানাগার এবং সুশৃঙ্খল নৈতিকতার এক অনন্য কেন্দ্র।'}
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -222,14 +217,14 @@ export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps)
             href="/about"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-surface border border-border/80 text-foreground hover:border-primary/50 hover:text-primary transition-all text-sm sm:text-base font-semibold shadow-2xs"
           >
-            <span>{pick('ইতিহাস ও ঐতিহ্য', 'History & Heritage')}</span>
+            <span>{'ইতিহাস ও ঐতিহ্য'}</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
             href="/about#mission"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-all text-sm sm:text-base font-bold shadow-2xs"
           >
-            <span>{pick('লক্ষ্য ও উদ্দেশ্য', 'Mission & Vision')}</span>
+            <span>{'লক্ষ্য ও উদ্দেশ্য'}</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -242,7 +237,7 @@ export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps)
           <div className="relative rounded-2xl overflow-hidden border border-border/80 bg-surface shadow-xs group flex-1 min-h-[360px] sm:min-h-[420px] flex flex-col justify-between p-6 sm:p-7">
             <img
               src={getCampusPhoto('digital-classroom').src}
-              alt={pick('ভোজেশ্বর উচ্চ বিদ্যালয় ক্যাম্পাস ও স্মার্ট শ্রেণিকক্ষ', 'BHS Campus & Smart Classroom')}
+              alt={'ভোজেশ্বর উচ্চ বিদ্যালয় ক্যাম্পাস ও স্মার্ট শ্রেণিকক্ষ'}
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/20" />
@@ -250,11 +245,11 @@ export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps)
             <div className="relative z-10 flex flex-wrap items-center gap-2.5">
               <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface/95 dark:bg-surface-muted/95 backdrop-blur-md text-foreground text-sm font-bold border border-border/80 shadow-xs">
                 <Sparkles className="w-4 h-4 text-accent" />
-                <span>{pick('মূল ক্যাম্পাস · স্মার্ট শ্রেণিকক্ষ', 'Main Campus · Smart Classroom')}</span>
+                <span>{'মূল ক্যাম্পাস · স্মার্ট শ্রেণিকক্ষ'}</span>
               </span>
               <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface/95 dark:bg-surface-muted/95 backdrop-blur-md text-foreground text-sm font-bold border border-border/80 shadow-xs">
                 <ShieldCheck className="w-4 h-4 text-primary" />
-                <span>{pick('নিরাপদ ক্যাম্পাস · RFID হাজিরা', 'Safe Campus · RFID Gate')}</span>
+                <span>{'নিরাপদ ক্যাম্পাস · RFID হাজিরা'}</span>
               </span>
             </div>
 
@@ -263,10 +258,7 @@ export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps)
                 {schoolProfile.name}
               </h3>
               <p className="text-sm sm:text-base text-white/95 line-clamp-2 leading-relaxed font-medium">
-                {pick(
-                  'ভোজেশ্বর, নড়িয়া, শরীয়তপুরের সুপরিসর ক্যাম্পাস, সবুজ খেলার মাঠ ও আধুনিক শিক্ষার অনন্য সমন্বয়।',
-                  'Spacious campus, lush green playground, dedicated faculty, and modern ICT learning in Naria, Shariatpur.'
-                )}
+                {'ভোজেশ্বর, নড়িয়া, শরীয়তপুরের সুপরিসর ক্যাম্পাস, সবুজ খেলার মাঠ ও আধুনিক শিক্ষার অনন্য সমন্বয়।'}
               </p>
             </div>
           </div>
@@ -297,14 +289,14 @@ export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps)
                         : 'bg-primary/10 text-primary group-hover:bg-primary/20'
                     )}
                   >
-                    <span className="tabular-nums">{locale === 'bn' ? reason.num : reason.numEn}</span>
+                    <span className="tabular-nums">{reason.num}</span>
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className={cn('text-base font-bold truncate leading-snug', isActive ? 'text-primary' : 'text-foreground')}>
-                      {locale === 'bn' ? reason.titleBn : reason.titleEn}
+                      {reason.titleBn}
                     </p>
                     <p className="text-sm text-foreground/75 truncate mt-1 font-medium">
-                      {locale === 'bn' ? reason.shortBn : reason.shortEn}
+                      {reason.shortBn}
                     </p>
                   </div>
                 </button>
@@ -314,29 +306,29 @@ export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps)
 
           <div className="relative overflow-hidden rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/8 via-surface to-surface dark:from-primary/15 dark:via-surface dark:to-surface p-6 sm:p-7 flex flex-col justify-between gap-5 shadow-xs flex-1 min-h-[300px]">
             <span className="text-8xl sm:text-9xl font-black text-primary/8 select-none pointer-events-none absolute right-2 -top-4 tabular-nums">
-              {locale === 'bn' ? activeReason.num : activeReason.numEn}
+              {activeReason.num}
             </span>
 
             <div className="relative z-10 space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent/20 border border-accent/40 text-amber-900 dark:text-amber-200 text-sm font-bold">
                   <ActiveIcon className="w-4 h-4 text-accent" />
-                  <span>{locale === 'bn' ? activeReason.tagBn : activeReason.tagEn}</span>
+                  <span>{activeReason.tagBn}</span>
                 </span>
                 <Link
                   href={activeReason.link}
                   className="inline-flex items-center gap-1.5 text-sm sm:text-base font-bold text-primary hover:underline"
                 >
-                  <span>{locale === 'bn' ? activeReason.ctaBn : activeReason.ctaEn}</span>
+                  <span>{activeReason.ctaBn}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
 
               <h3 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-foreground tracking-tight">
-                {locale === 'bn' ? activeReason.titleBn : activeReason.titleEn}
+                {activeReason.titleBn}
               </h3>
               <p className="text-base sm:text-lg text-foreground/85 leading-relaxed max-w-2xl font-normal">
-                {locale === 'bn' ? activeReason.descBn : activeReason.descEn}
+                {activeReason.descBn}
               </p>
             </div>
 
@@ -347,10 +339,10 @@ export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps)
                   className="bg-surface/95 dark:bg-surface-muted/95 backdrop-blur-xs border border-border/80 rounded-xl p-3 sm:p-3.5 text-center shadow-2xs"
                 >
                   <p className="text-base sm:text-lg lg:text-xl font-black text-primary tabular-nums">
-                    {locale === 'bn' ? m.valBn : m.valEn}
+                    {m.valBn}
                   </p>
                   <p className="text-sm text-foreground/75 font-semibold mt-1 truncate">
-                    {locale === 'bn' ? m.labelBn : m.labelEn}
+                    {m.labelBn}
                   </p>
                 </div>
               ))}
@@ -369,20 +361,17 @@ export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps)
           <div>
             <span className="inline-flex items-center gap-2 text-primary font-bold text-sm sm:text-base tracking-wide">
               <span className="w-6 h-0.5 rounded-full bg-accent" />
-              {pick('ডিজিটাল নিরাপত্তা ও উপস্থিতি ট্র্যাকিং', 'Digital Security & Attendance')}
+              {'ডিজিটাল নিরাপত্তা ও উপস্থিতি ট্র্যাকিং'}
             </span>
             <h3 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-foreground tracking-tight mt-1.5">
-              {pick('স্কুলে ঢোকা থেকে ফলাফল — প্রতিটি ধাপে স্বয়ংক্রিয় খবর', 'From Gate Entry to Results — Automated At Every Step')}
+              {'স্কুলে ঢোকা থেকে ফলাফল — প্রতিটি ধাপে স্বয়ংক্রিয় খবর'}
             </h3>
             <p className="text-sm sm:text-base text-foreground/80 mt-1 max-w-2xl leading-relaxed">
-              {pick(
-                'RFID গেট হাজিরা কীভাবে কাজ করে দেখুন। স্বয়ংক্রিয়ভাবে একটির পর একটি ধাপ প্রদর্শিত হচ্ছে, যেকোনো ধাপে ক্লিকও করতে পারেন।',
-                'Explore how our RFID smart gate attendance works. Steps auto-advance in sequence, or click any step to view details.'
-              )}
+              {'RFID গেট হাজিরা কীভাবে কাজ করে দেখুন। স্বয়ংক্রিয়ভাবে একটির পর একটি ধাপ প্রদর্শিত হচ্ছে, যেকোনো ধাপে ক্লিকও করতে পারেন।'}
             </p>
           </div>
           <div className="shrink-0 text-sm font-semibold text-foreground/80">
-            {pick('সার্বক্ষণিক সিসিটিভি নিয়ন্ত্রিত ক্যাম্পাস', '24/7 CCTV Monitored Campus')}
+            {'সার্বক্ষণিক সিসিটিভি নিয়ন্ত্রিত ক্যাম্পাস'}
           </div>
         </div>
 
@@ -424,15 +413,15 @@ export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps)
                         : 'bg-surface text-foreground/80 border-border'
                     )}
                   >
-                    {pick(`ধাপ ${step.stepBn}`, `Step ${step.stepEn}`)}
+                    {`ধাপ ${step.stepBn}`}
                   </span>
                 </div>
                 <div>
                   <p className={cn('text-base font-bold leading-tight', isActive ? 'text-primary' : 'text-foreground')}>
-                    {locale === 'bn' ? step.titleBn : step.titleEn}
+                    {step.titleBn}
                   </p>
                   <p className="text-sm text-foreground/75 mt-1 font-medium">
-                    {locale === 'bn' ? step.subtitleBn : step.subtitleEn}
+                    {step.subtitleBn}
                   </p>
                 </div>
               </button>
@@ -442,10 +431,10 @@ export function HomeWhyStudySection({ schoolProfile }: HomeWhyStudySectionProps)
 
         <div className="bg-surface-muted/90 border border-border/80 rounded-xl p-4 text-center text-sm sm:text-base text-foreground flex flex-col sm:flex-row items-center justify-center gap-2 shadow-2xs">
           <span className="font-black text-primary text-base whitespace-nowrap">
-            {pick(`ধাপ ${whyStudyRfidSteps[activeRfidStep].stepBn} —`, `Step ${whyStudyRfidSteps[activeRfidStep].stepEn} —`)}
+            {`ধাপ ${whyStudyRfidSteps[activeRfidStep].stepBn} —`}
           </span>
           <span className="text-foreground text-base leading-relaxed">
-            {locale === 'bn' ? whyStudyRfidSteps[activeRfidStep].noteBn : whyStudyRfidSteps[activeRfidStep].noteEn}
+            {whyStudyRfidSteps[activeRfidStep].noteBn}
           </span>
         </div>
       </div>

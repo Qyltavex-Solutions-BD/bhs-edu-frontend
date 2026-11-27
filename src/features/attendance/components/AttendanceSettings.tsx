@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import {
@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AttendanceMethod } from '@/src/types/enums';
-import { useI18n } from '@/src/lib/i18n';
 import { Button, Card, Input, Modal, Select } from '@/src/components/ui/primitives';
 import {
   useGetAttendanceConfigsQuery,
@@ -22,7 +21,6 @@ import {
 import { errorMessage, ToneBadge } from './attendanceShared';
 
 export function AttendanceSettings({ yearId }: { yearId: string }) {
-  const { pick } = useI18n();
   const { data, isFetching } = useGetAttendanceConfigsQuery({ academicYearId: yearId });
   const [updateConfig, { isLoading: saving }] = useUpdateAttendanceConfigMutation();
   const [editing, setEditing] = useState<AttendanceConfigItem | null>(null);
@@ -47,10 +45,10 @@ export function AttendanceSettings({ yearId }: { yearId: string }) {
         autoSmsOnEntry: editing.autoSmsOnEntry,
         autoSmsOnExit: editing.autoSmsOnExit,
       }).unwrap();
-      toast.success(pick('হাজিরা নিয়ম সংরক্ষিত হয়েছে', 'Attendance rules saved'));
+      toast.success('হাজিরা নিয়ম সংরক্ষিত হয়েছে');
       setEditing(null);
     } catch (err) {
-      toast.error(errorMessage(err, pick('সংরক্ষণ ব্যর্থ হয়েছে', 'Save failed')));
+      toast.error(errorMessage(err, 'সংরক্ষণ ব্যর্থ হয়েছে'));
     }
   }
 
@@ -59,20 +57,20 @@ export function AttendanceSettings({ yearId }: { yearId: string }) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{pick('RFID শ্রেণি', 'RFID Classes')}</span>
+            <span>{'RFID শ্রেণি'}</span>
             <ShieldCheck className="h-4 w-4 text-primary" />
           </div>
           <div className="mt-1 text-2xl font-bold text-foreground">
             {kpis.rfidClasses} / {kpis.totalClasses}
           </div>
           <div className="mt-0.5 text-sm text-muted-foreground">
-            {pick('অটোমেটেড গেট রিডার সক্রিয়', 'Automated gate reader active')}
+            {'অটোমেটেড গেট রিডার সক্রিয়'}
           </div>
         </Card>
 
         <Card className="p-4">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{pick('সক্রিয় RFID কার্ড', 'Active RFID Cards')}</span>
+            <span>{'সক্রিয় RFID কার্ড'}</span>
             <CreditCard className="h-4 w-4 text-success" />
           </div>
           <div className="mt-1 text-2xl font-bold text-foreground">
@@ -82,33 +80,33 @@ export function AttendanceSettings({ yearId }: { yearId: string }) {
             {kpis.totalActiveStudents > 0
               ? `${Math.round((kpis.studentsWithCard / kpis.totalActiveStudents) * 100)}%`
               : '0%'}{' '}
-            {pick('শিক্ষার্থী কভার্ড', 'students covered')}
+            {'শিক্ষার্থী কভার্ড'}
           </div>
         </Card>
 
         <Card className="p-4">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{pick('কার্ডবিহীন শিক্ষার্থী', 'Missing RFID Cards')}</span>
+            <span>{'কার্ডবিহীন শিক্ষার্থী'}</span>
             <AlertTriangle className="h-4 w-4 text-warning" />
           </div>
           <div className="mt-1 text-2xl font-bold text-foreground">
             {kpis.studentsWithoutCard}
           </div>
           <div className="mt-0.5 text-sm text-muted-foreground">
-            {pick('ম্যানুয়াল হাজিরা প্রয়োজন হতে পারে', 'May require manual marking')}
+            {'ম্যানুয়াল হাজিরা প্রয়োজন হতে পারে'}
           </div>
         </Card>
 
         <Card className="p-4">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{pick('SMS নীতি (খরচ সাশ্রয়)', 'SMS Policy')}</span>
+            <span>{'SMS নীতি (খরচ সাশ্রয়)'}</span>
             <MessageSquare className="h-4 w-4 text-info" />
           </div>
           <div className="mt-1 text-lg font-bold text-foreground">
-            {pick('অনুপস্থিতি ডিফল্ট', 'Absent-Only Default')}
+            {'অনুপস্থিতি ডিফল্ট'}
           </div>
           <div className="mt-0.5 text-sm text-muted-foreground">
-            {pick('প্রবেশ/প্রস্থান ঐচ্ছিক', 'Entry/Exit optional per class')}
+            {'প্রবেশ/প্রস্থান ঐচ্ছিক'}
           </div>
         </Card>
       </div>
@@ -116,15 +114,12 @@ export function AttendanceSettings({ yearId }: { yearId: string }) {
       <Card className="overflow-hidden p-0">
         <div className="border-b border-border/70 px-5 py-4">
           <h3 className="text-lg font-semibold text-foreground">
-            {pick('শ্রেণিভিত্তিক হাজিরা ও SMS নিয়ম', 'Class Attendance & SMS Rules')}
+            {'শ্রেণিভিত্তিক হাজিরা ও SMS নিয়ম'}
           </h3>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {isFetching
-              ? pick('লোড হচ্ছে...', 'Loading...')
-              : pick(
-                  'প্রতিটি শ্রেণির দেরির সময়সীমা (Cutoff) ও অভিভাবক SMS টগল কনফিগার করুন',
-                  'Configure late arrival cutoff and guardian SMS triggers per class'
-                )}
+              ? 'লোড হচ্ছে...'
+              : 'প্রতিটি শ্রেণির দেরির সময়সীমা (Cutoff) ও অভিভাবক SMS টগল কনফিগার করুন'}
           </p>
         </div>
 
@@ -132,12 +127,12 @@ export function AttendanceSettings({ yearId }: { yearId: string }) {
           <table className="w-full text-left text-base">
             <thead className="border-b border-border/70 bg-muted/40 text-sm font-semibold text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">{pick('শ্রেণি', 'Class')}</th>
-                <th className="px-4 py-3">{pick('মোড', 'Mode')}</th>
-                <th className="px-4 py-3">{pick('দেরির সময়সীমা', 'Late Cutoff')}</th>
-                <th className="px-4 py-3">{pick('RFID কার্ড প্রস্তুতি', 'RFID Readiness')}</th>
-                <th className="px-4 py-3">{pick('SMS ট্রিগার', 'SMS Triggers')}</th>
-                <th className="px-4 py-3 text-right">{pick('অ্যাকশন', 'Action')}</th>
+                <th className="px-4 py-3">{'শ্রেণি'}</th>
+                <th className="px-4 py-3">{'মোড'}</th>
+                <th className="px-4 py-3">{'দেরির সময়সীমা'}</th>
+                <th className="px-4 py-3">{'RFID কার্ড প্রস্তুতি'}</th>
+                <th className="px-4 py-3">{'SMS ট্রিগার'}</th>
+                <th className="px-4 py-3 text-right">{'অ্যাকশন'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -161,27 +156,27 @@ export function AttendanceSettings({ yearId }: { yearId: string }) {
                     </span>
                     {row.totalStudents > row.studentsWithCard && (
                       <span className="ml-2 text-sm text-warning">
-                        ({row.totalStudents - row.studentsWithCard} {pick('বাকি', 'missing')})
+                        ({row.totalStudents - row.studentsWithCard} {'বাকি'})
                       </span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1.5">
                       <ToneBadge tone={row.autoSmsOnAbsent ? 'danger' : 'neutral'}>
-                        {pick('অনুপস্থিত', 'Absent')}: {row.autoSmsOnAbsent ? 'ON' : 'OFF'}
+                        {'অনুপস্থিত'}: {row.autoSmsOnAbsent ? 'ON' : 'OFF'}
                       </ToneBadge>
                       {row.autoSmsOnEntry && (
-                        <ToneBadge tone="success">{pick('প্রবেশ', 'Entry')}</ToneBadge>
+                        <ToneBadge tone="success">{'প্রবেশ'}</ToneBadge>
                       )}
                       {row.autoSmsOnExit && (
-                        <ToneBadge tone="info">{pick('প্রস্থান', 'Exit')}</ToneBadge>
+                        <ToneBadge tone="info">{'প্রস্থান'}</ToneBadge>
                       )}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Button size="sm" variant="outline" onClick={() => setEditing(row)}>
                       <Edit3 className="h-3.5 w-3.5" />
-                      {pick('সম্পাদনা', 'Edit')}
+                      {'সম্পাদনা'}
                     </Button>
                   </td>
                 </tr>
@@ -196,7 +191,7 @@ export function AttendanceSettings({ yearId }: { yearId: string }) {
         onClose={() => setEditing(null)}
         title={
           editing
-            ? `${editing.className} — ${pick('হাজিরা নিয়ম সম্পাদনা', 'Edit Attendance Rules')}`
+            ? `${editing.className} — ${'হাজিরা নিয়ম সম্পাদনা'}`
             : ''
         }
         size="md"
@@ -206,7 +201,7 @@ export function AttendanceSettings({ yearId }: { yearId: string }) {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  {pick('ডিফল্ট হাজিরা পদ্ধতি', 'Default Method')}
+                  {'ডিফল্ট হাজিরা পদ্ধতি'}
                 </label>
                 <Select
                   value={editing.method}
@@ -214,14 +209,14 @@ export function AttendanceSettings({ yearId }: { yearId: string }) {
                     setEditing({ ...editing, method: e.target.value as AttendanceMethod })
                   }
                 >
-                  <option value={AttendanceMethod.RFID}>RFID (Gate Automated)</option>
-                  <option value={AttendanceMethod.MANUAL}>MANUAL (Roll Call)</option>
-                  <option value={AttendanceMethod.BIOMETRIC}>BIOMETRIC (Future)</option>
+                  <option value={AttendanceMethod.RFID}>RFID (স্বয়ংক্রিয় গেট)</option>
+                  <option value={AttendanceMethod.MANUAL}>ম্যানুয়াল (রোল কল)</option>
+                  <option value={AttendanceMethod.BIOMETRIC}>বায়োমেট্রিক (ভবিষ্যৎ)</option>
                 </Select>
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  {pick('দেরির সময়সীমা (HH:mm)', 'Late Cutoff Time (HH:mm)')}
+                  {'দেরির সময়সীমা (HH:mm)'}
                 </label>
                 <Input
                   type="time"
@@ -235,22 +230,16 @@ export function AttendanceSettings({ yearId }: { yearId: string }) {
 
             {editing.totalStudents > editing.studentsWithCard && (
               <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
-                {pick(
-                  `সতর্কতা: এই শ্রেণির ${editing.totalStudents - editing.studentsWithCard} জন শিক্ষার্থীর সক্রিয় RFID কার্ড নেই।`,
-                  `Warning: ${editing.totalStudents - editing.studentsWithCard} students in this class have no active RFID card.`
-                )}
+                {`সতর্কতা: এই শ্রেণির ${editing.totalStudents - editing.studentsWithCard} জন শিক্ষার্থীর সক্রিয় RFID কার্ড নেই।`}
               </div>
             )}
 
             <div className="space-y-2 rounded-lg border border-border p-3">
               <label className="flex items-center justify-between gap-3 text-base">
                 <span>
-                  <strong className="block">{pick('অনুপস্থিতিতে অটো SMS', 'Auto SMS on Absent')}</strong>
+                  <strong className="block">{'অনুপস্থিতিতে অটো SMS'}</strong>
                   <span className="text-sm text-muted-foreground">
-                    {pick(
-                      'প্রস্তাবিত: অনুপস্থিত চিহ্নিত হলে অভিভাবককে SMS পাঠাবে',
-                      'Recommended: Alert guardians when marked absent'
-                    )}
+                    {'প্রস্তাবিত: অনুপস্থিত চিহ্নিত হলে অভিভাবককে SMS পাঠাবে'}
                   </span>
                 </span>
                 <input
@@ -265,12 +254,9 @@ export function AttendanceSettings({ yearId }: { yearId: string }) {
 
               <label className="flex items-center justify-between gap-3 border-t border-border/60 pt-2 text-base">
                 <span>
-                  <strong className="block">{pick('প্রবেশে অটো SMS', 'Auto SMS on Gate Entry')}</strong>
+                  <strong className="block">{'প্রবেশে অটো SMS'}</strong>
                   <span className="text-sm text-muted-foreground">
-                    {pick(
-                      'প্রতিদিন প্রতি শিক্ষার্থীর জন্য অতিরিক্ত SMS খরচ হবে',
-                      'Incurs daily SMS cost per student'
-                    )}
+                    {'প্রতিদিন প্রতি শিক্ষার্থীর জন্য অতিরিক্ত SMS খরচ হবে'}
                   </span>
                 </span>
                 <input
@@ -285,9 +271,9 @@ export function AttendanceSettings({ yearId }: { yearId: string }) {
 
               <label className="flex items-center justify-between gap-3 border-t border-border/60 pt-2 text-base">
                 <span>
-                  <strong className="block">{pick('প্রস্থানে অটো SMS', 'Auto SMS on Gate Exit')}</strong>
+                  <strong className="block">{'প্রস্থানে অটো SMS'}</strong>
                   <span className="text-sm text-muted-foreground">
-                    {pick('গেট দিয়ে বের হওয়ার সময় SMS পাঠাবে', 'Send SMS when student scans out')}
+                    {'গেট দিয়ে বের হওয়ার সময় SMS পাঠাবে'}
                   </span>
                 </span>
                 <input
@@ -303,11 +289,11 @@ export function AttendanceSettings({ yearId }: { yearId: string }) {
 
             <div className="flex justify-end gap-2 border-t border-border/70 pt-3">
               <Button variant="outline" onClick={() => setEditing(null)}>
-                {pick('বাতিল', 'Cancel')}
+                {'বাতিল'}
               </Button>
               <Button onClick={saveEdit} disabled={saving}>
                 <Save className="h-4 w-4" />
-                {saving ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save Rules')}
+                {saving ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
               </Button>
             </div>
           </div>

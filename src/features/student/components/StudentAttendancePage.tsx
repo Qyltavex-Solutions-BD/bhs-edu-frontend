@@ -7,7 +7,6 @@ import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -57,7 +56,6 @@ function useCurrentStudent(db: MockDatabase | undefined) {
 export function StudentAttendancePage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const me = useCurrentStudent(db);
-  const { locale, pick } = useI18n();
   if (isLoading || !db || !me || !me.enrollment) return <LoadingSkeleton />;
 
   const records = db.attendances
@@ -66,20 +64,20 @@ export function StudentAttendancePage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={pick('আমার হাজিরা', 'My Attendance')} />
+      <PageHeader title={'আমার হাজিরা'} />
       <Card className="overflow-hidden">
-        <table className="w-full text-sm">
+        <table className="w-full text-base">
           <thead className="bg-surface-muted/70 text-sm text-muted-foreground border-b border-border">
             <tr>
-              <th className="px-4 py-3 text-left">{pick('তারিখ', 'Date')}</th>
-              <th className="px-4 py-3 text-left">{pick('অবস্থা', 'Status')}</th>
-              <th className="px-4 py-3 text-left">{pick('পদ্ধতি', 'Method')}</th>
+              <th className="px-4 py-3 text-left">{'তারিখ'}</th>
+              <th className="px-4 py-3 text-left">{'অবস্থা'}</th>
+              <th className="px-4 py-3 text-left">{'পদ্ধতি'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border tabular-nums">
             {records.map((r) => (
               <tr key={r.id}>
-                <td className="px-4 py-2.5">{formatDateLong(r.date, locale)}</td>
+                <td className="px-4 py-2.5">{formatDateLong(r.date, 'bn')}</td>
                 <td className="px-4 py-2.5">
                   <StatusBadge enumName="AttendanceStatus" value={r.status} />
                 </td>

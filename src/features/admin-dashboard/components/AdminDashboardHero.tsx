@@ -15,8 +15,6 @@ interface AdminDashboardHeroProps {
   teachersCount: number;
   otherStaffCount: number;
   classesCount: number;
-  locale: 'bn' | 'en';
-  pick: (bn: string, en: string) => string;
 }
 
 export function AdminDashboardHero({
@@ -29,8 +27,8 @@ export function AdminDashboardHero({
   teachersCount,
   otherStaffCount,
   classesCount,
-  locale,
-  pick,
+  
+  
 }: AdminDashboardHeroProps) {
   return (
     <div className="relative rounded-3xl p-6 lg:p-8 bg-gradient-to-r from-[#175234] via-[#1C6440] to-[#123E27] text-white overflow-hidden shadow-lg border border-[#236b47]/40">
@@ -59,25 +57,16 @@ export function AdminDashboardHero({
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-sm font-medium text-white/95">
             <span className="w-2 h-2 rounded-full bg-[#96D0AB]" />
             <span>
-              {pick(
-                `সক্রিয় শিক্ষাবর্ষ: ${activeYearName ?? '2026'} · ভোজেশ্বর উচ্চ বিদ্যালয় (EIIN: ${eiin ?? '113587'})`,
-                `Active Session: ${activeYearName ?? '2026'} · Bhojeshwar High School (EIIN: ${eiin ?? '113587'})`
-              )}
+              {`সক্রিয় শিক্ষাবর্ষ: ${activeYearName ?? formatNumber(2026, 'bn')} · ভোজেশ্বর উচ্চ বিদ্যালয় (EIIN: ${eiin ?? '১১৩৫৮৭'})`}
             </span>
           </div>
 
           <div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white leading-tight">
-              {pick(
-                'উপস্থিতি ও একাডেমিক অগ্রগতি ১২% বৃদ্ধি পেয়েছে',
-                'Attendance & Academic Performance is up 12% this session'
-              )}
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white leading-tight">
+              {'উপস্থিতি ও একাডেমিক অগ্রগতি ১২% বৃদ্ধি পেয়েছে'}
             </h2>
-            <p className="mt-2.5 text-base sm:text-lg text-white/90 font-normal leading-relaxed">
-              {pick(
-                `${formatNumber(activeStudentsCount, locale)} শিক্ষার্থী সক্রিয় · আজকের উপস্থিতি ${presentRate}% (${formatNumber(presentToday, locale)} জন) · ${pendingActionsCount}টি প্রশাসনিক কাজ অপেক্ষমাণ`,
-                `${formatNumber(activeStudentsCount, locale)} active students · ${presentRate}% attendance today · ${pendingActionsCount} items waiting for your approval`
-              )}
+            <p className="mt-2 text-base text-white/90 font-normal leading-relaxed">
+              {`${formatNumber(activeStudentsCount, 'bn')} শিক্ষার্থী সক্রিয় · আজকের উপস্থিতি ${formatNumber(presentRate, 'bn')}% (${formatNumber(presentToday, 'bn')} জন) · ${formatNumber(pendingActionsCount, 'bn')}টি প্রশাসনিক কাজ অপেক্ষমাণ`}
             </p>
           </div>
 
@@ -88,7 +77,7 @@ export function AdminDashboardHero({
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-[#1C6440] hover:bg-white/90 text-base font-semibold shadow-xs transition cursor-pointer"
               >
                 <Plus className="w-4.5 h-4.5" />
-                <span>{pick('নতুন শিক্ষার্থী ভর্তি →', 'Add Student →')}</span>
+                <span>{'নতুন শিক্ষার্থী ভর্তি →'}</span>
               </button>
             </Link>
             <Link href="/admin/attendance/daily">
@@ -97,7 +86,7 @@ export function AdminDashboardHero({
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-base font-medium backdrop-blur-xs transition cursor-pointer"
               >
                 <ClipboardCheck className="w-4.5 h-4.5" />
-                <span>{pick('দৈনিক হাজিরা', 'Daily Attendance')}</span>
+                <span>{'দৈনিক হাজিরা'}</span>
               </button>
             </Link>
             <Link href="/admin/results/publication">
@@ -106,7 +95,7 @@ export function AdminDashboardHero({
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-base font-medium backdrop-blur-xs transition cursor-pointer"
               >
                 <FileSpreadsheet className="w-4.5 h-4.5" />
-                <span>{pick('ফলাফল প্রকাশনা', 'Publish Results')}</span>
+                <span>{'ফলাফল প্রকাশনা'}</span>
               </button>
             </Link>
           </div>
@@ -115,42 +104,42 @@ export function AdminDashboardHero({
         {/* Right 3 Frosted Stat Cards */}
         <div className="grid grid-cols-3 gap-3 sm:gap-4 shrink-0">
           <div className="p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md min-w-[105px] sm:min-w-[130px] flex flex-col justify-between">
-            <p className="text-sm font-semibold text-white/90 truncate">
-              {pick('সক্রিয় শিক্ষার্থী', 'Active Students')}
+            <p className="text-sm sm:text-base font-medium text-white/90 truncate">
+              {'সক্রিয় শিক্ষার্থী'}
             </p>
             <div className="my-1.5">
               <p className="text-2xl sm:text-3xl font-bold text-white tracking-tight tabular-nums">
-                {formatNumber(activeStudentsCount, locale)}
+                {formatNumber(activeStudentsCount, 'bn')}
               </p>
             </div>
-            <p className="text-sm font-bold text-[#96D0AB]">+4.2%</p>
+            <p className="text-sm font-medium text-[#96D0AB]">+৪.২%</p>
           </div>
 
           <div className="p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md min-w-[105px] sm:min-w-[130px] flex flex-col justify-between">
-            <p className="text-sm font-semibold text-white/90 truncate">
-              {pick('শিক্ষক ও কর্মকর্তা', 'Teachers & Staff')}
+            <p className="text-sm sm:text-base font-medium text-white/90 truncate">
+              {'শিক্ষক ও কর্মকর্তা'}
             </p>
             <div className="my-1.5">
               <p className="text-2xl sm:text-3xl font-bold text-white tracking-tight tabular-nums">
-                {formatNumber(teachersCount, locale)} / {formatNumber(otherStaffCount, locale)}
+                {formatNumber(teachersCount, 'bn')} / {formatNumber(otherStaffCount, 'bn')}
               </p>
             </div>
-            <p className="text-sm font-semibold text-white/95">
-              {pick('সবাই সক্রিয়', 'All active')}
+            <p className="text-sm font-medium text-white/90">
+              {'সবাই সক্রিয়'}
             </p>
           </div>
 
           <div className="p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md min-w-[105px] sm:min-w-[130px] flex flex-col justify-between">
-            <p className="text-sm font-semibold text-white/90 truncate">
-              {pick('অনুমোদিত শ্রেণি', 'Classes & Batches')}
+            <p className="text-sm sm:text-base font-medium text-white/90 truncate">
+              {'অনুমোদিত শ্রেণি'}
             </p>
             <div className="my-1.5">
               <p className="text-2xl sm:text-3xl font-bold text-white tracking-tight tabular-nums">
-                {formatNumber(classesCount, locale)}
+                {formatNumber(classesCount, 'bn')}
               </p>
             </div>
-            <p className="text-sm font-bold text-[#96D0AB]">
-              {pick('৬ষ্ঠ–১০ম শ্রেণি', 'Classes 6–10')}
+            <p className="text-sm font-medium text-[#96D0AB]">
+              {'৬ষ্ঠ–১০ম শ্রেণি'}
             </p>
           </div>
         </div>

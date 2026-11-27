@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { ArrowRight, Clock, Mail, MapPin, Phone } from 'lucide-react';
 import type { ContactInformation } from '@/src/types/entities';
-import { useI18n } from '@/src/lib/i18n';
 import { SchoolCampusMap } from '@/src/components/shared/SchoolCampusMap';
 import { Button } from '@/src/components/ui/primitives';
 
@@ -20,8 +19,6 @@ export function HomeContactMapSection({
   schoolName,
   contactInfo,
 }: HomeContactMapSectionProps) {
-  const { pick } = useI18n();
-
   return (
     <motion.section
       initial={{ opacity: 0, y: 18 }}
@@ -35,16 +32,13 @@ export function HomeContactMapSection({
           <div className="space-y-4">
             <div>
               <p className="text-sm font-semibold text-primary">
-                {pick('ক্যাম্পাস পরিদর্শন ও অফিস সহায়তা', 'Campus Visit & Office Support')}
+                {'ক্যাম্পাস পরিদর্শন ও অফিস সহায়তা'}
               </p>
               <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-1">
-                {pick('যোগাযোগ ও বিদ্যালয় অবস্থান', 'Location & School Office')}
+                {'যোগাযোগ ও বিদ্যালয় অবস্থান'}
               </h2>
               <p className="text-base text-muted-foreground mt-1.5 leading-relaxed">
-                {pick(
-                  'ভর্তি, পরীক্ষার ফলাফল, সনদপত্র বা যেকোনো একাডেমিক প্রয়োজনে অফিস চলাকালীন সময়ে সরাসরি বিদ্যালয় অফিসে যোগাযোগ করুন।',
-                  'Visit our campus office during working hours for admission, exam records, certificates, or academic assistance.'
-                )}
+                {'ভর্তি, পরীক্ষার ফলাফল, সনদপত্র বা যেকোনো একাডেমিক প্রয়োজনে অফিস চলাকালীন সময়ে সরাসরি বিদ্যালয় অফিসে যোগাযোগ করুন।'}
               </p>
             </div>
 
@@ -53,13 +47,10 @@ export function HomeContactMapSection({
                 <Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <div>
                   <dt className="font-semibold text-foreground">
-                    {pick('অফিস সময়', 'Office Hours')}
+                    {'অফিস সময়'}
                   </dt>
                   <dd className="text-muted-foreground mt-0.5">
-                    {pick(
-                      'রবিবার – বৃহস্পতিবার, সকাল ১০:০০ – বিকাল ৪:০০ (শুক্র ও শনিবার ছুটি)',
-                      'Sunday – Thursday, 10:00 AM – 4:00 PM (Closed Fri & Sat)'
-                    )}
+                    {'রবিবার – বৃহস্পতিবার, সকাল ১০:০০ – বিকাল ৪:০০ (শুক্র ও শনিবার ছুটি)'}
                   </dd>
                 </div>
               </div>
@@ -68,7 +59,7 @@ export function HomeContactMapSection({
                 <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <div>
                   <dt className="font-semibold text-foreground">
-                    {pick('বিদ্যালয়ের ঠিকানা', 'Campus Address')}
+                    {'বিদ্যালয়ের ঠিকানা'}
                   </dt>
                   <dd className="text-muted-foreground mt-0.5 leading-relaxed">
                     {contactInfo.address}
@@ -102,12 +93,12 @@ export function HomeContactMapSection({
           <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-border">
             <Link href="/contact">
               <Button variant="primary">
-                <span>{pick('যোগাযোগ ও বার্তা পাঠান', 'Contact & Inquiry')}</span>
+                <span>{'যোগাযোগ ও বার্তা পাঠান'}</span>
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
             <Link href="/faq">
-              <Button variant="outline">{pick('সাধারণ জিজ্ঞাসা (FAQ)', 'FAQ')}</Button>
+              <Button variant="outline">{'সাধারণ জিজ্ঞাসা (FAQ)'}</Button>
             </Link>
           </div>
         </div>

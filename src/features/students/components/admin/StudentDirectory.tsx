@@ -14,7 +14,6 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { cn } from '@/src/lib/utils/cn';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
@@ -37,7 +36,6 @@ export function StudentDirectory({
   db?: MockDatabase;
   yearId: string;
 }) {
-  const { locale, pick } = useI18n();
   const [classId, setClassId] = useState('ALL');
   const [sectionId, setSectionId] = useState('ALL');
   const [groupId, setGroupId] = useState('ALL');
@@ -71,7 +69,7 @@ export function StudentDirectory({
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(text);
       setCopiedId(text);
-      toast.success(`${label} ${pick('কপি করা হয়েছে।', 'copied.')}`);
+      toast.success(`${label} ${'কপি করা হয়েছে।'}`);
       setTimeout(() => setCopiedId((prev) => (prev === text ? null : prev)), 1800);
     }
   };
@@ -155,15 +153,11 @@ export function StudentDirectory({
             sectionId: enrollment.sectionId,
             groupId: enrollment.groupId ?? '',
             classLabel: cls
-              ? locale === 'bn'
-                ? cls.nameBn || cls.name
-                : cls.name
+              ? cls.nameBn || cls.name
               : '—',
             sectionLabel: sec?.name ?? '—',
             groupLabel: grp
-              ? locale === 'bn'
-                ? grp.nameBn || grp.name
-                : grp.name
+              ? grp.nameBn || grp.name
               : '',
             roll: enrollment.roll,
             guardianName: guardian ? guardian.nameBn || guardian.name : '—',
@@ -213,12 +207,10 @@ export function StudentDirectory({
           sectionId: enrollment.sectionId,
           groupId: enrollment.groupId ?? '',
           classLabel: cls
-            ? locale === 'bn'
-              ? cls.nameBn || cls.name
-              : cls.name
+            ? cls.nameBn || cls.name
             : '—',
           sectionLabel: section?.name ?? '—',
-          groupLabel: group ? (locale === 'bn' ? group.nameBn || group.name : group.name) : '',
+          groupLabel: group ? (group.nameBn || group.name) : '',
           roll: enrollment.roll,
           guardianName: guardian ? guardian.nameBn || guardian.name : '—',
           guardianPhone,
@@ -232,7 +224,7 @@ export function StudentDirectory({
     studentsRes?.items,
     db,
     yearId,
-    locale,
+    'bn',
     classes,
     sections,
     academicGroups,
@@ -271,10 +263,10 @@ export function StudentDirectory({
     return sortedClasses.map((cls) => ({
       id: cls.id,
       numericValue: cls.numericValue,
-      label: locale === 'bn' ? cls.nameBn || cls.name : cls.name,
+      label: cls.nameBn || cls.name,
       count: counts.get(cls.id) ?? 0,
     }));
-  }, [enrolled, sortedClasses, locale]);
+  }, [enrolled, sortedClasses, 'bn']);
 
   const selectedClassObj = sortedClasses.find((c) => c.id === classId);
   const showStreamFilter = (selectedClassObj?.numericValue ?? 0) >= 9;
@@ -343,43 +335,40 @@ export function StudentDirectory({
       <Card className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-border overflow-hidden">
         <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
           <span className="text-base font-bold text-foreground">
-            {pick('মোট ভর্তি শিক্ষার্থী', 'Total Enrolled')}
+            {'মোট ভর্তি শিক্ষার্থী'}
           </span>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-extrabold tabular-nums text-foreground tracking-tight">
-              {formatNumber(totalEnrolled, locale)}
+              {formatNumber(totalEnrolled, 'bn')}
             </span>
             <span className="text-sm text-muted-foreground">
-              {pick(`সেশন ${yearObj?.name ?? ''}`, `Session ${yearObj?.name ?? ''}`)}
+              {`সেশন ${yearObj?.name ?? ''}`}
             </span>
           </div>
           <p className="text-sm text-muted-foreground tabular-nums">
-            {pick(
-              `সক্রিয় ${formatNumber(activeCount, locale)} · অন্যান্য ${formatNumber(inactiveOrOtherCount, locale)}`,
-              `${activeCount} active · ${inactiveOrOtherCount} other`
-            )}
+            {`সক্রিয় ${formatNumber(activeCount, 'bn')} · অন্যান্য ${formatNumber(inactiveOrOtherCount, 'bn')}`}
           </p>
         </div>
 
         <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
           <span className="text-base font-bold text-foreground">
-            {pick('ছাত্র ও ছাত্রী অনুপাত', 'Gender Ratio')}
+            {'ছাত্র ও ছাত্রী অনুপাত'}
           </span>
           <div className="flex items-baseline justify-between gap-3 tabular-nums">
             <div>
               <span className="text-2xl font-extrabold text-foreground tracking-tight">
-                {formatNumber(boysCount, locale)}
+                {formatNumber(boysCount, 'bn')}
               </span>
               <span className="ml-1.5 text-sm text-muted-foreground font-medium">
-                {pick('ছাত্র', 'Boys')} ({formatNumber(boysPercent, locale)}%)
+                {'ছাত্র'} ({formatNumber(boysPercent, 'bn')}%)
               </span>
             </div>
             <div className="text-right">
               <span className="text-2xl font-extrabold text-foreground tracking-tight">
-                {formatNumber(girlsCount, locale)}
+                {formatNumber(girlsCount, 'bn')}
               </span>
               <span className="ml-1.5 text-sm text-muted-foreground font-medium">
-                {pick('ছাত্রী', 'Girls')} ({formatNumber(girlsPercent, locale)}%)
+                {'ছাত্রী'} ({formatNumber(girlsPercent, 'bn')}%)
               </span>
             </div>
           </div>
@@ -391,33 +380,30 @@ export function StudentDirectory({
 
         <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
           <span className="text-base font-bold text-foreground">
-            {pick('গড় বার্ষিক উপস্থিতি', 'Average Attendance')}
+            {'গড় বার্ষিক উপস্থিতি'}
           </span>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl sm:text-3xl font-extrabold tabular-nums text-primary tracking-tight">
-              {avgAttendance !== null ? `${formatNumber(avgAttendance, locale)}%` : '—'}
+              {avgAttendance !== null ? `${formatNumber(avgAttendance, 'bn')}%` : '—'}
             </span>
             <span className="text-sm text-muted-foreground tabular-nums">
               {lowAttendanceCount > 0
-                ? pick(
-                    `· ${formatNumber(lowAttendanceCount, locale)} জন ৭৫%-এর নিচে`,
-                    `· ${lowAttendanceCount} below 75%`
-                  )
-                : pick('· নিয়মিত উপস্থিতি', '· Healthy standing')}
+                ? `· ${formatNumber(lowAttendanceCount, 'bn')} জন ৭৫%-এর নিচে`
+                : '· নিয়মিত উপস্থিতি'}
             </span>
           </div>
           <Link
             href="/admin/attendance/daily"
             className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline w-fit"
           >
-            <span>{pick('দৈনিক হাজিরা রেজিস্টার', 'Daily attendance register')}</span>
+            <span>{'দৈনিক হাজিরা রেজিস্টার'}</span>
             <ArrowUpRight className="w-4 h-4" />
           </Link>
         </div>
 
         <div className="p-4 sm:p-5 flex flex-col justify-between gap-2">
           <span className="text-base font-bold text-foreground">
-            {pick('অনলাইন ভর্তি আবেদন', 'Admission Queue')}
+            {'অনলাইন ভর্তি আবেদন'}
           </span>
           <div className="flex items-baseline gap-2">
             <span
@@ -426,10 +412,10 @@ export function StudentDirectory({
                 pendingAdmissions > 0 ? 'text-[#124B96]' : 'text-foreground'
               )}
             >
-              {formatNumber(pendingAdmissions, locale)}
+              {formatNumber(pendingAdmissions, 'bn')}
             </span>
             <span className="text-sm text-muted-foreground">
-              {pick('টি পর্যালোচনার অপেক্ষায়', 'pending review')}
+              {'টি পর্যালোচনার অপেক্ষায়'}
             </span>
           </div>
           <Link
@@ -437,10 +423,7 @@ export function StudentDirectory({
             className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline w-fit"
           >
             <span>
-              {pick(
-                `আবেদন তালিকা (${formatNumber((db?.onlineAdmissions ?? []).length, locale)})`,
-                `Review applications (${(db?.onlineAdmissions ?? []).length})`
-              )}
+              {`আবেদন তালিকা (${formatNumber((db?.onlineAdmissions ?? []).length, 'bn')})`}
             </span>
             <ArrowUpRight className="w-4 h-4" />
           </Link>
@@ -453,7 +436,7 @@ export function StudentDirectory({
         <div
           className="flex items-center gap-1 px-4 pt-3 border-b border-border overflow-x-auto"
           role="tablist"
-          aria-label={pick('শ্রেণি অনুযায়ী ফিল্টার', 'Filter by class')}
+          aria-label={'শ্রেণি অনুযায়ী ফিল্টার'}
         >
           <button
             type="button"
@@ -471,8 +454,8 @@ export function StudentDirectory({
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            {pick('সকল শ্রেণি', 'All Classes')}{' '}
-            <span className="text-sm font-medium opacity-80">({formatNumber(totalEnrolled, locale)})</span>
+            {'সকল শ্রেণি'}{' '}
+            <span className="text-sm font-medium opacity-80">({formatNumber(totalEnrolled, 'bn')})</span>
           </button>
 
           {classCounts.map((cls) => {
@@ -498,7 +481,7 @@ export function StudentDirectory({
                 )}
               >
                 {cls.label}{' '}
-                <span className="text-sm font-medium opacity-80">({formatNumber(cls.count, locale)})</span>
+                <span className="text-sm font-medium opacity-80">({formatNumber(cls.count, 'bn')})</span>
               </button>
             );
           })}
@@ -512,10 +495,7 @@ export function StudentDirectory({
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={pick(
-                  'নাম, আইডি বা ফোন খুঁজুন...',
-                  'Search name, ID or phone...'
-                )}
+                placeholder={'নাম, আইডি বা ফোন খুঁজুন...'}
                 className="pl-9 pr-9 h-10 text-sm"
               />
               {searchQuery && (
@@ -523,7 +503,7 @@ export function StudentDirectory({
                   type="button"
                   onClick={() => setSearchQuery('')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                  aria-label={pick('অনুসন্ধান মুছুন', 'Clear search')}
+                  aria-label={'অনুসন্ধান মুছুন'}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -535,9 +515,9 @@ export function StudentDirectory({
                 value={sectionId}
                 onChange={(event) => setSectionId(event.target.value)}
                 className="w-auto min-w-[128px] h-10 text-sm font-medium"
-                aria-label={pick('শাখা', 'Section')}
+                aria-label={'শাখা'}
               >
-                <option value="ALL">{pick('সকল শাখা', 'All sections')}</option>
+                <option value="ALL">{'সকল শাখা'}</option>
                 {availableSections.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
@@ -550,12 +530,12 @@ export function StudentDirectory({
                   value={groupId}
                   onChange={(event) => setGroupId(event.target.value)}
                   className="w-auto min-w-[144px] h-10 text-sm font-medium"
-                  aria-label={pick('বিভাগ', 'Stream')}
+                  aria-label={'বিভাগ'}
                 >
-                  <option value="ALL">{pick('সকল বিভাগ', 'All streams')}</option>
+                  <option value="ALL">{'সকল বিভাগ'}</option>
                   {academicGroups.map((grp) => (
                     <option key={grp.id} value={grp.id}>
-                      {locale === 'bn' ? grp.nameBn || grp.name : grp.name}
+                      {grp.nameBn || grp.name}
                     </option>
                   ))}
                 </Select>
@@ -565,24 +545,24 @@ export function StudentDirectory({
                 value={genderFilter}
                 onChange={(event) => setGenderFilter(event.target.value)}
                 className="w-auto min-w-[124px] h-10 text-sm font-medium"
-                aria-label={pick('লিঙ্গ', 'Gender')}
+                aria-label={'লিঙ্গ'}
               >
-                <option value="ALL">{pick('সকল লিঙ্গ', 'All')}</option>
-                <option value={Gender.MALE}>{pick('ছাত্র', 'Boys')}</option>
-                <option value={Gender.FEMALE}>{pick('ছাত্রী', 'Girls')}</option>
+                <option value="ALL">{'সকল লিঙ্গ'}</option>
+                <option value={Gender.MALE}>{'ছাত্র'}</option>
+                <option value={Gender.FEMALE}>{'ছাত্রী'}</option>
               </Select>
 
               <Select
                 value={status}
                 onChange={(event) => setStatus(event.target.value)}
                 className="w-auto min-w-[136px] h-10 text-sm font-medium"
-                aria-label={pick('অবস্থা', 'Status')}
+                aria-label={'অবস্থা'}
               >
-                <option value="ALL">{pick('সকল অবস্থা', 'All statuses')}</option>
-                <option value={StudentStatus.ACTIVE}>{pick('সক্রিয়', 'Active')}</option>
-                <option value={StudentStatus.INACTIVE}>{pick('নিষ্ক্রিয়', 'Inactive')}</option>
-                <option value={StudentStatus.TRANSFERRED}>{pick('স্থানান্তরিত', 'Transferred')}</option>
-                <option value={StudentStatus.GRADUATED}>{pick('উত্তীর্ণ', 'Graduated')}</option>
+                <option value="ALL">{'সকল অবস্থা'}</option>
+                <option value={StudentStatus.ACTIVE}>{'সক্রিয়'}</option>
+                <option value={StudentStatus.INACTIVE}>{'নিষ্ক্রিয়'}</option>
+                <option value={StudentStatus.TRANSFERRED}>{'স্থানান্তরিত'}</option>
+                <option value={StudentStatus.GRADUATED}>{'উত্তীর্ণ'}</option>
               </Select>
             </div>
           </div>
@@ -591,14 +571,8 @@ export function StudentDirectory({
           <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-border text-sm text-muted-foreground">
             <span className="tabular-nums">
               {hasActiveFilters
-                ? pick(
-                    `মোট ${formatNumber(totalEnrolled, locale)} জনের মধ্যে ${formatNumber(rows.length, locale)} জন শিক্ষার্থী দেখানো হচ্ছে`,
-                    `Showing ${rows.length} of ${totalEnrolled} students`
-                  )
-                : pick(
-                    `মোট ${formatNumber(rows.length, locale)} জন ভর্তি শিক্ষার্থী · শ্রেণি ও রোল অনুসারে সাজানো`,
-                    `${rows.length} enrolled students · Sorted by class and roll`
-                  )}
+                ? `মোট ${formatNumber(totalEnrolled, 'bn')} জনের মধ্যে ${formatNumber(rows.length, 'bn')} জন শিক্ষার্থী দেখানো হচ্ছে`
+                : `মোট ${formatNumber(rows.length, 'bn')} জন ভর্তি শিক্ষার্থী · শ্রেণি ও রোল অনুসারে সাজানো`}
             </span>
 
             {hasActiveFilters && (
@@ -608,7 +582,7 @@ export function StudentDirectory({
                 className="inline-flex items-center gap-1 text-primary hover:underline font-semibold cursor-pointer text-sm"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>{pick('ফিল্টার রিসেট করুন', 'Reset filters')}</span>
+                <span>{'ফিল্টার রিসেট করুন'}</span>
               </button>
             )}
           </div>
@@ -620,17 +594,17 @@ export function StudentDirectory({
         data={rows}
         hideToolbar
         pageSize={15}
-        emptyTitle={pick('কোনো শিক্ষার্থী পাওয়া যায়নি', 'No matching students found')}
+        emptyTitle={'কোনো শিক্ষার্থী পাওয়া যায়নি'}
         emptyAction={
           hasActiveFilters ? (
             <Button variant="outline" size="sm" onClick={resetFilters}>
               <RotateCcw className="w-3.5 h-3.5" />
-              {pick('ফিল্টার রিসেট করুন', 'Reset filters')}
+              {'ফিল্টার রিসেট করুন'}
             </Button>
           ) : (
             <Link href="/admin/students/create">
               <Button variant="primary" size="sm">
-                {pick('নতুন ভর্তি', 'New admission')}
+                {'নতুন ভর্তি'}
               </Button>
             </Link>
           )
@@ -638,15 +612,15 @@ export function StudentDirectory({
         columns={[
           {
             accessorKey: 'studentId',
-            header: pick('শিক্ষার্থী আইডি', 'Student ID'),
+            header: 'শিক্ষার্থী আইডি',
             cell: ({ row }) => (
               <button
                 type="button"
                 onClick={() =>
-                  copyText(row.original.studentId, pick('শিক্ষার্থী আইডি', 'Student ID'))
+                  copyText(row.original.studentId, 'শিক্ষার্থী আইডি')
                 }
                 className="inline-flex items-center gap-1.5 font-mono text-sm font-semibold text-foreground hover:text-primary transition-colors cursor-pointer tabular-nums"
-                title={pick('আইডি কপি করুন', 'Copy student ID')}
+                title={'আইডি কপি করুন'}
               >
                 <span>{row.original.studentId}</span>
                 {copiedId === row.original.studentId ? (
@@ -659,7 +633,7 @@ export function StudentDirectory({
           },
           {
             accessorKey: 'nameBn',
-            header: pick('শিক্ষার্থী', 'Student'),
+            header: 'শিক্ষার্থী',
             cell: ({ row }) => (
               <div className="flex items-center gap-3 min-w-[200px]">
                 <div
@@ -688,7 +662,7 @@ export function StudentDirectory({
           },
           {
             accessorKey: 'classNumeric',
-            header: pick('শ্রেণি ও শাখা', 'Class & Section'),
+            header: 'শ্রেণি ও শাখা',
             cell: ({ row }) => (
               <div className="whitespace-nowrap">
                 <span className="font-medium text-base text-foreground">{row.original.classLabel}</span>
@@ -703,7 +677,7 @@ export function StudentDirectory({
           },
           {
             accessorKey: 'attendanceRate',
-            header: pick('উপস্থিতি', 'Attendance'),
+            header: 'উপস্থিতি',
             cell: ({ row }) => {
               const rate = row.original.attendanceRate;
               if (rate === null) {
@@ -729,10 +703,10 @@ export function StudentDirectory({
                 <div className="min-w-[84px] space-y-1">
                   <div className="flex items-baseline justify-between gap-2 tabular-nums">
                     <span className={cn('text-base font-semibold', tone)}>
-                      {formatNumber(rate, locale)}%
+                      {formatNumber(rate, 'bn')}%
                     </span>
                     <span className="text-sm font-medium text-muted-foreground tabular-nums">
-                      {formatNumber(row.original.attendanceDays, locale)}d
+                      {formatNumber(row.original.attendanceDays, 'bn')}d
                     </span>
                   </div>
                   <div className="h-1.5 w-full rounded-full bg-surface-muted overflow-hidden">
@@ -747,7 +721,7 @@ export function StudentDirectory({
           },
           {
             accessorKey: 'guardianName',
-            header: pick('অভিভাবক ও যোগাযোগ', 'Guardian & Phone'),
+            header: 'অভিভাবক ও যোগাযোগ',
             cell: ({ row }) => (
               <div className="whitespace-nowrap">
                 <p className="text-base font-medium text-foreground leading-snug">{row.original.guardianName}</p>
@@ -767,7 +741,7 @@ export function StudentDirectory({
           },
           {
             accessorKey: 'status',
-            header: pick('অবস্থা', 'Status'),
+            header: 'অবস্থা',
             cell: ({ row }) => (
               <StatusBadge enumName="StudentStatus" value={row.original.status} />
             ),
@@ -783,13 +757,13 @@ export function StudentDirectory({
                   className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm font-semibold text-primary hover:bg-primary/10 transition-colors whitespace-nowrap"
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  <span>{pick('প্রোফাইল', 'Profile')}</span>
+                  <span>{'প্রোফাইল'}</span>
                 </Link>
                 <Link
                   href={`/admin/students/${row.original.id}/edit`}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-surface-muted transition-colors"
-                  aria-label={pick('সম্পাদনা', 'Edit student')}
-                  title={pick('সম্পাদনা', 'Edit student')}
+                  aria-label={'সম্পাদনা'}
+                  title={'সম্পাদনা'}
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </Link>
@@ -807,14 +781,14 @@ export function StudentDirectory({
                 >
                   {row.nameBn}
                 </Link>
-                <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
-                  {row.studentId} · {row.classLabel} ({row.sectionLabel}) · {pick('রোল', 'Roll')}{' '}
-                  {formatNumber(row.roll, locale)}
+                <p className="text-sm text-muted-foreground tabular-nums mt-0.5">
+                  {row.studentId} · {row.classLabel} ({row.sectionLabel}) · {'রোল'}{' '}
+                  {formatNumber(row.roll, 'bn')}
                 </p>
               </div>
               <StatusBadge enumName="StudentStatus" value={row.status} />
             </div>
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-border text-xs">
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-border text-sm">
               <div className="min-w-0">
                 <span className="text-muted-foreground">{row.guardianName}</span>
                 {row.guardianPhone !== '—' && (
@@ -832,12 +806,12 @@ export function StudentDirectory({
                   className="inline-flex h-9 px-2.5 items-center gap-1 rounded-md text-primary hover:bg-primary/10 font-medium"
                 >
                   <Eye className="w-3.5 h-3.5" />
-                  <span>{pick('প্রোফাইল', 'Profile')}</span>
+                  <span>{'প্রোফাইল'}</span>
                 </Link>
                 <Link
                   href={`/admin/students/${row.id}/edit`}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-surface-muted"
-                  aria-label={pick('সম্পাদনা', 'Edit')}
+                  aria-label={'সম্পাদনা'}
                 >
                   <Pencil className="w-3.5 h-3.5" />
                 </Link>

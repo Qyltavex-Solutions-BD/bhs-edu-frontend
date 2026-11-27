@@ -16,7 +16,6 @@ import {
   Phone,
   User,
 } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { cn } from '@/src/lib/utils/cn';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
@@ -100,7 +99,7 @@ function computeAgeLabel(dob: string | null | undefined, refDate: string, locale
     months += 12;
   }
   if (years < 0) return '';
-  if (locale === 'bn') {
+  if (true) {
     return `${formatNumber(years, 'bn')} বছর ${formatNumber(months, 'bn')} মাস`;
   }
   return `${years} yrs ${months} mos`;
@@ -121,7 +120,6 @@ function AttendanceMonth({
   picked: string | null;
   onPick: (date: string) => void;
 }) {
-  const { locale, pick } = useI18n();
   const byDate = useMemo(() => new Map(marks.map((item) => [item.date, item])), [marks]);
   const chosen = picked ? byDate.get(picked) : undefined;
 
@@ -130,7 +128,7 @@ function AttendanceMonth({
       <div className="grid grid-cols-7 gap-1.5 text-center text-sm font-bold text-muted-foreground">
         {WEEKDAYS.map((day) => (
           <div key={day.en} className="py-1">
-            {locale === 'bn' ? day.bn : day.en}
+            {day.bn}
           </div>
         ))}
       </div>
@@ -157,33 +155,33 @@ function AttendanceMonth({
                 cell.date === today && 'font-bold'
               )}
             >
-              {formatNumber(cell.day, locale)}
+              {formatNumber(cell.day, 'bn')}
             </button>
           );
         })}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border text-sm">
         <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-sm bg-primary/40" />
-            {pick('উপস্থিত', 'Present')}
+            {'উপস্থিত'}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-sm bg-secondary/45" />
-            {pick('বিলম্ব', 'Late')}
+            {'বিলম্ব'}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-sm bg-destructive/50" />
-            {pick('অনুপস্থিত', 'Absent')}
+            {'অনুপস্থিত'}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-sm bg-info/50" />
-            {pick('ছুটি', 'Leave')}
+            {'ছুটি'}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-sm bg-surface-muted border border-border" />
-            {pick('বন্ধ', 'Closed')}
+            {'বন্ধ'}
           </span>
         </div>
 
@@ -191,14 +189,14 @@ function AttendanceMonth({
           {picked ? (
             <span className="inline-flex items-center gap-2">
               <span className="font-medium tabular-nums">
-                {formatDateShort(`${picked}T12:00:00`, locale)}
+                {formatDateShort(`${picked}T12:00:00`, 'bn')}
               </span>
               <span aria-hidden="true">·</span>
               {chosen ? (
                 <StatusBadge enumName="AttendanceStatus" value={chosen.status} />
               ) : (
                 <span className="text-muted-foreground">
-                  {closedOn(picked) || pick('হাজিরা নথিভুক্ত নেই', 'No record')}
+                  {closedOn(picked) || 'হাজিরা নথিভুক্ত নেই'}
                 </span>
               )}
               {chosen?.inTime && (
@@ -209,7 +207,7 @@ function AttendanceMonth({
             </span>
           ) : (
             <span className="text-muted-foreground">
-              {pick('যেকোনো তারিখে ক্লিক করে বিস্তারিত দেখুন।', 'Select any date to inspect punch details.')}
+              {'যেকোনো তারিখে ক্লিক করে বিস্তারিত দেখুন।'}
             </span>
           )}
         </div>
@@ -229,7 +227,6 @@ export function StudentProfile({
   yearId: string;
   startEditing: boolean;
 }) {
-  const { locale, pick } = useI18n();
   const [updateStudent, { isLoading }] = useUpdateStudentMutation();
   const { data: liveStudent, isLoading: loadingStudent } = useGetStudentByIdQuery(
     studentId,
@@ -305,7 +302,7 @@ export function StudentProfile({
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(text);
       setCopiedText(text);
-      toast.success(`${label} ${pick('কপি করা হয়েছে।', 'copied.')}`);
+      toast.success(`${label} ${'কপি করা হয়েছে।'}`);
       setTimeout(() => setCopiedText((prev) => (prev === text ? null : prev)), 1800);
     }
   };
@@ -319,19 +316,16 @@ export function StudentProfile({
       <Card className="p-10 text-center space-y-3">
         <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto" />
         <p className="text-base font-semibold text-foreground">
-          {pick('শিক্ষার্থী পাওয়া যায়নি।', 'Student record not found.')}
+          {'শিক্ষার্থী পাওয়া যায়নি।'}
         </p>
         <p className="text-sm text-muted-foreground">
-          {pick(
-            'অনুরোধকৃত শিক্ষার্থীর তথ্য ডিরেক্টরিতে নেই অথবা সরানো হয়েছে।',
-            'The requested student record does not exist in this directory.'
-          )}
+          {'অনুরোধকৃত শিক্ষার্থীর তথ্য ডিরেক্টরিতে নেই অথবা সরানো হয়েছে।'}
         </p>
         <div className="pt-2">
           <Link href="/admin/students">
             <Button variant="outline" size="sm">
               <ArrowLeft className="w-4 h-4" />
-              {pick('ডিরেক্টরিতে ফিরুন', 'Back to directory')}
+              {'ডিরেক্টরিতে ফিরুন'}
             </Button>
           </Link>
         </div>
@@ -431,7 +425,7 @@ export function StudentProfile({
   const resolveClassText = (cId: string) => {
     const c = classes.find((item) => item.id === cId);
     if (!c) return '—';
-    return locale === 'bn' ? c.nameBn || c.name : c.name;
+    return c.nameBn || c.name;
   };
 
   // Academic exam results across enrollments
@@ -455,12 +449,10 @@ export function StudentProfile({
   const latestResult = examResults[0];
 
   const religionLabel = student.religion
-    ? locale === 'bn'
-      ? getEnumMeta('Religion', student.religion).bn
-      : getEnumMeta('Religion', student.religion).en
+    ? getEnumMeta('Religion', student.religion).bn
     : '—';
 
-  const ageText = computeAgeLabel(student.dateOfBirth, today, locale);
+  const ageText = computeAgeLabel(student.dateOfBirth, today, 'bn');
 
   const beginEdit = () => {
     setForm({
@@ -499,10 +491,10 @@ export function StudentProfile({
         status:
           form.status === StudentStatus.INACTIVE ? StudentStatus.INACTIVE : StudentStatus.ACTIVE,
       }).unwrap();
-      toast.success(pick('শিক্ষার্থীর তথ্য হালনাগাদ হয়েছে।', 'Student profile updated.'));
+      toast.success('শিক্ষার্থীর তথ্য হালনাগাদ হয়েছে।');
       setOpen(false);
     } catch (err) {
-      toast.error(errorMessage(err, pick('হালনাগাদ করা যায়নি।', 'Could not update the profile.')));
+      toast.error(errorMessage(err, 'হালনাগাদ করা যায়নি।'));
     }
   };
 
@@ -515,9 +507,9 @@ export function StudentProfile({
           className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>{pick('শিক্ষার্থী ডিরেক্টরিতে ফিরুন', 'Back to Student Directory')}</span>
+          <span>{'শিক্ষার্থী ডিরেক্টরিতে ফিরুন'}</span>
         </Link>
-        <span className="text-xs text-muted-foreground font-mono">
+        <span className="text-sm text-muted-foreground font-mono">
           {student.studentId}
         </span>
       </div>
@@ -549,12 +541,12 @@ export function StudentProfile({
               <p className="text-sm text-muted-foreground">{student.nameEn}</p>
 
               {/* Clean unboxed metadata row */}
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted-foreground pt-0.5 tabular-nums">
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-muted-foreground pt-0.5 tabular-nums">
                 <button
                   type="button"
-                  onClick={() => copyText(student.studentId, pick('শিক্ষার্থী আইডি', 'Student ID'))}
+                  onClick={() => copyText(student.studentId, 'শিক্ষার্থী আইডি')}
                   className="inline-flex items-center gap-1 font-mono text-foreground hover:text-primary transition-colors cursor-pointer"
-                  title={pick('আইডি কপি করুন', 'Copy student ID')}
+                  title={'আইডি কপি করুন'}
                 >
                   <span>{student.studentId}</span>
                   {copiedText === student.studentId ? (
@@ -571,28 +563,28 @@ export function StudentProfile({
                     </span>
                     <span aria-hidden="true">·</span>
                     <span>
-                      {pick('রোল', 'Roll')}{' '}
+                      {'রোল'}{' '}
                       <strong className="text-foreground">
-                        {formatNumber(enrollment.roll, locale)}
+                        {formatNumber(enrollment.roll, 'bn')}
                       </strong>
                     </span>
                     {group && (
                       <>
                         <span aria-hidden="true">·</span>
-                        <span>{locale === 'bn' ? group.nameBn || group.name : group.name}</span>
+                        <span>{group.nameBn || group.name}</span>
                       </>
                     )}
                   </>
                 ) : (
                   <span>
-                    {pick('চলতি শিক্ষাবর্ষে এনরোলমেন্ট নেই', 'Not enrolled in selected session')}
+                    {'চলতি শিক্ষাবর্ষে এনরোলমেন্ট নেই'}
                   </span>
                 )}
                 {student.bloodGroup && (
                   <>
                     <span aria-hidden="true">·</span>
                     <span>
-                      {pick('রক্তের গ্রুপ:', 'Blood:')}{' '}
+                      {'রক্তের গ্রুপ:'}{' '}
                       <strong className="text-foreground">
                         {BLOOD_LABEL[student.bloodGroup] || student.bloodGroup}
                       </strong>
@@ -607,7 +599,7 @@ export function StudentProfile({
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <Button size="sm" variant="primary" onClick={beginEdit}>
               <Pencil className="w-3.5 h-3.5" />
-              <span>{pick('তথ্য সম্পাদনা', 'Edit Profile')}</span>
+              <span>{'তথ্য সম্পাদনা'}</span>
             </Button>
           </div>
         </div>
@@ -616,7 +608,7 @@ export function StudentProfile({
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 border-t border-border divide-y sm:divide-y-0 sm:divide-x divide-border bg-surface-muted/30">
           <div className="p-5 space-y-1.5">
             <span className="text-sm font-bold text-foreground">
-              {pick('বার্ষিক উপস্থিতি', 'Annual Attendance')}
+              {'বার্ষিক উপস্থিতি'}
             </span>
             <div className="flex items-baseline gap-2 tabular-nums">
               <span
@@ -632,23 +624,20 @@ export function StudentProfile({
                 )}
               >
                 {annualAttendanceRate !== null
-                  ? `${formatNumber(annualAttendanceRate, locale)}%`
+                  ? `${formatNumber(annualAttendanceRate, 'bn')}%`
                   : '—'}
               </span>
               <span className="text-sm font-semibold text-muted-foreground">
                 {totalWorkingDays > 0
-                  ? pick(
-                      `(${formatNumber(totalPresent + totalLate, locale)}/${formatNumber(totalWorkingDays, locale)} দিন)`,
-                      `(${totalPresent + totalLate}/${totalWorkingDays} days)`
-                    )
-                  : pick('তথ্য নেই', 'No records')}
+                  ? `(${formatNumber(totalPresent + totalLate, 'bn')}/${formatNumber(totalWorkingDays, 'bn')} দিন)`
+                  : 'তথ্য নেই'}
               </span>
             </div>
           </div>
 
           <div className="p-5 space-y-1.5">
             <span className="text-sm font-bold text-foreground">
-              {pick('সর্বশেষ পরীক্ষার ফলাফল', 'Latest Exam Standing')}
+              {'সর্বশেষ পরীক্ষার ফলাফল'}
             </span>
             {latestResult ? (
               <div className="flex items-baseline gap-2 tabular-nums">
@@ -658,23 +647,20 @@ export function StudentProfile({
                 <span className="text-sm font-semibold text-muted-foreground truncate">
                   {latestResult.letterGrade ? `${latestResult.letterGrade} · ` : ''}
                   {latestResult.meritPosition
-                    ? pick(
-                        `মেধাক্রম #${formatNumber(latestResult.meritPosition, locale)}`,
-                        `Rank #${latestResult.meritPosition}`
-                      )
+                    ? `মেধাক্রম #${formatNumber(latestResult.meritPosition, 'bn')}`
                     : latestResult.examName}
                 </span>
               </div>
             ) : (
               <p className="text-base font-semibold text-muted-foreground">
-                {pick('কোনো প্রকাশিত ফল নেই', 'No published result')}
+                {'কোনো প্রকাশিত ফল নেই'}
               </p>
             )}
           </div>
 
           <div className="p-5 space-y-1.5">
             <span className="text-sm font-bold text-foreground">
-              {pick('আজকের উপস্থিতি', "Today's Status")}
+              {'আজকের উপস্থিতি'}
             </span>
             <div className="flex items-center gap-2 text-base">
               {todayClosed ? (
@@ -690,11 +676,11 @@ export function StudentProfile({
                 </>
               ) : method === AttendanceMethod.RFID ? (
                 <span className="text-sm font-semibold text-secondary">
-                  {pick('এখনো স্ক্যান হয়নি', 'Not scanned yet')}
+                  {'এখনো স্ক্যান হয়নি'}
                 </span>
               ) : (
                 <span className="text-sm font-medium text-muted-foreground">
-                  {pick('এখনো নথিভুক্ত হয়নি', 'Not marked yet')}
+                  {'এখনো নথিভুক্ত হয়নি'}
                 </span>
               )}
             </div>
@@ -702,7 +688,7 @@ export function StudentProfile({
 
           <div className="p-5 space-y-1.5">
             <span className="text-sm font-bold text-foreground">
-              {pick('প্রধান অভিভাবক', 'Primary Guardian')}
+              {'প্রধান অভিভাবক'}
             </span>
             {primaryGuardian?.parent ? (
               <div className="flex items-center justify-between gap-2">
@@ -722,7 +708,7 @@ export function StudentProfile({
               </div>
             ) : (
               <p className="text-base font-medium text-muted-foreground">
-                {pick('সংযুক্ত নেই', 'Not linked')}
+                {'সংযুক্ত নেই'}
               </p>
             )}
           </div>
@@ -735,15 +721,15 @@ export function StudentProfile({
         role="tablist"
       >
         {[
-          { id: 'overview' as const, label: pick('সার্বিক পরিচিতি', 'Overview'), icon: User },
+          { id: 'overview' as const, label: 'সার্বিক পরিচিতি', icon: User },
           {
             id: 'attendance' as const,
-            label: pick('হাজিরা ও ক্যালেন্ডার', 'Attendance'),
+            label: 'হাজিরা ও ক্যালেন্ডার',
             icon: Calendar,
           },
           {
             id: 'academic' as const,
-            label: pick('একাডেমিক ও ফলাফল', 'Academic & Results'),
+            label: 'একাডেমিক ও ফলাফল',
             icon: GraduationCap,
           },
         ].map((tab) => {
@@ -778,39 +764,39 @@ export function StudentProfile({
             <div className="p-5 sm:p-6 space-y-5">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-base font-semibold text-foreground">
-                  {pick('ব্যক্তিগত ও নিবন্ধন তথ্য', 'Personal & Registration Information')}
+                  {'ব্যক্তিগত ও নিবন্ধন তথ্য'}
                 </h3>
                 <Button size="sm" variant="ghost" onClick={beginEdit} className="text-primary">
                   <Pencil className="w-3.5 h-3.5" />
-                  <span>{pick('সম্পাদনা', 'Edit')}</span>
+                  <span>{'সম্পাদনা'}</span>
                 </Button>
               </div>
 
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-base">
                 <div>
-                  <dt className="text-xs text-muted-foreground">
-                    {pick('জন্ম তারিখ ও বয়স', 'Date of Birth & Age')}
+                  <dt className="text-sm text-muted-foreground">
+                    {'জন্ম তারিখ ও বয়স'}
                   </dt>
                   <dd className="mt-1 font-medium text-foreground tabular-nums">
                     {student.dateOfBirth
-                      ? `${formatDateShort(student.dateOfBirth, locale)}${ageText ? ` (${ageText})` : ''}`
+                      ? `${formatDateShort(student.dateOfBirth, 'bn')}${ageText ? ` (${ageText})` : ''}`
                       : '—'}
                   </dd>
                 </div>
 
                 <div>
-                  <dt className="text-xs text-muted-foreground">
-                    {pick('লিঙ্গ ও ধর্ম', 'Gender & Religion')}
+                  <dt className="text-sm text-muted-foreground">
+                    {'লিঙ্গ ও ধর্ম'}
                   </dt>
                   <dd className="mt-1 font-medium text-foreground">
-                    {student.gender === Gender.MALE ? pick('ছাত্র', 'Male') : pick('ছাত্রী', 'Female')}{' '}
+                    {student.gender === Gender.MALE ? 'ছাত্র' : 'ছাত্রী'}{' '}
                     · {religionLabel}
                   </dd>
                 </div>
 
                 <div>
-                  <dt className="text-xs text-muted-foreground">
-                    {pick('জন্ম নিবন্ধন নম্বর (BRN)', 'Birth Certificate Number')}
+                  <dt className="text-sm text-muted-foreground">
+                    {'জন্ম নিবন্ধন নম্বর (BRN)'}
                   </dt>
                   <dd className="mt-1 flex items-center gap-1.5 font-mono text-foreground">
                     <span>{student.birthCertificateNo || '—'}</span>
@@ -820,11 +806,11 @@ export function StudentProfile({
                         onClick={() =>
                           copyText(
                             student.birthCertificateNo!,
-                            pick('জন্ম নিবন্ধন নম্বর', 'Birth Certificate No.')
+                            'জন্ম নিবন্ধন নম্বর'
                           )
                         }
                         className="text-muted-foreground hover:text-foreground cursor-pointer"
-                        aria-label={pick('কপি করুন', 'Copy')}
+                        aria-label={'কপি করুন'}
                       >
                         {copiedText === student.birthCertificateNo ? (
                           <Check className="w-3.5 h-3.5 text-success" />
@@ -837,8 +823,8 @@ export function StudentProfile({
                 </div>
 
                 <div>
-                  <dt className="text-xs text-muted-foreground">
-                    {pick('বোর্ড রেজিস্ট্রেশন নম্বর', 'Board Registration Number')}
+                  <dt className="text-sm text-muted-foreground">
+                    {'বোর্ড রেজিস্ট্রেশন নম্বর'}
                   </dt>
                   <dd className="mt-1 flex items-center gap-1.5 font-mono text-foreground">
                     <span>{student.boardRegistrationNo || '—'}</span>
@@ -848,11 +834,11 @@ export function StudentProfile({
                         onClick={() =>
                           copyText(
                             student.boardRegistrationNo!,
-                            pick('বোর্ড রেজিস্ট্রেশন', 'Board Registration')
+                            'বোর্ড রেজিস্ট্রেশন'
                           )
                         }
                         className="text-muted-foreground hover:text-foreground cursor-pointer"
-                        aria-label={pick('কপি করুন', 'Copy')}
+                        aria-label={'কপি করুন'}
                       >
                         {copiedText === student.boardRegistrationNo ? (
                           <Check className="w-3.5 h-3.5 text-success" />
@@ -865,29 +851,29 @@ export function StudentProfile({
                 </div>
 
                 <div>
-                  <dt className="text-xs text-muted-foreground">
-                    {pick('ভর্তির তারিখ', 'Admission Date')}
+                  <dt className="text-sm text-muted-foreground">
+                    {'ভর্তির তারিখ'}
                   </dt>
                   <dd className="mt-1 font-medium text-foreground tabular-nums">
-                    {student.admissionDate ? formatDateShort(student.admissionDate, locale) : '—'}
+                    {student.admissionDate ? formatDateShort(student.admissionDate, 'bn') : '—'}
                   </dd>
                 </div>
 
                 <div>
-                  <dt className="text-xs text-muted-foreground">
-                    {pick('পূর্বের শিক্ষাপ্রতিষ্ঠান ও জিপিএ', 'Previous Institution & GPA')}
+                  <dt className="text-sm text-muted-foreground">
+                    {'পূর্বের শিক্ষাপ্রতিষ্ঠান ও জিপিএ'}
                   </dt>
                   <dd className="mt-1 font-medium text-foreground">
                     {student.previousSchoolName || '—'}
                     {student.previousGpa
-                      ? ` · GPA ${formatNumber(student.previousGpa, locale)}`
+                      ? ` · GPA ${formatNumber(student.previousGpa, 'bn')}`
                       : ''}
                   </dd>
                 </div>
 
                 <div className="sm:col-span-2">
-                  <dt className="text-xs text-muted-foreground">
-                    {pick('বর্তমান ঠিকানা', 'Present Address')}
+                  <dt className="text-sm text-muted-foreground">
+                    {'বর্তমান ঠিকানা'}
                   </dt>
                   <dd className="mt-1 font-medium text-foreground">
                     {student.presentAddress || '—'}
@@ -895,8 +881,8 @@ export function StudentProfile({
                 </div>
 
                 <div className="sm:col-span-2">
-                  <dt className="text-xs text-muted-foreground">
-                    {pick('স্থায়ী ঠিকানা', 'Permanent Address')}
+                  <dt className="text-sm text-muted-foreground">
+                    {'স্থায়ী ঠিকানা'}
                   </dt>
                   <dd className="mt-1 font-medium text-foreground">
                     {student.permanentAddress || student.presentAddress || '—'}
@@ -909,27 +895,27 @@ export function StudentProfile({
             <div className="p-5 sm:p-6 space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-base font-semibold text-foreground">
-                  {pick('চলতি সেশনের একাডেমিক অবস্থান', 'Current Session Placement')}
+                  {'চলতি সেশনের একাডেমিক অবস্থান'}
                 </h3>
                 <Link
                   href="/admin/students/enrollments"
-                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
                 >
-                  <span>{pick('এনরোলমেন্ট ব্যবস্থাপনা', 'Manage enrollments')}</span>
+                  <span>{'এনরোলমেন্ট ব্যবস্থাপনা'}</span>
                   <ArrowUpRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
 
-              <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 text-sm">
+              <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4 text-base">
                 <div>
-                  <dt className="text-xs text-muted-foreground">{pick('শিক্ষাবর্ষ', 'Session')}</dt>
+                  <dt className="text-sm text-muted-foreground">{'শিক্ষাবর্ষ'}</dt>
                   <dd className="mt-1 font-medium text-foreground tabular-nums">
                     {currentYearObj?.name ?? '—'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-muted-foreground">
-                    {pick('শ্রেণি ও শাখা', 'Class & Section')}
+                  <dt className="text-sm text-muted-foreground">
+                    {'শ্রেণি ও শাখা'}
                   </dt>
                   <dd className="mt-1 font-medium text-foreground">
                     {enrollment
@@ -938,38 +924,34 @@ export function StudentProfile({
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-muted-foreground">{pick('শ্রেণি রোল', 'Class Roll')}</dt>
+                  <dt className="text-sm text-muted-foreground">{'শ্রেণি রোল'}</dt>
                   <dd className="mt-1 font-semibold text-foreground tabular-nums">
-                    {enrollment ? `#${formatNumber(enrollment.roll, locale)}` : '—'}
+                    {enrollment ? `#${formatNumber(enrollment.roll, 'bn')}` : '—'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-muted-foreground">{pick('বিভাগ', 'Stream')}</dt>
+                  <dt className="text-sm text-muted-foreground">{'বিভাগ'}</dt>
                   <dd className="mt-1 font-medium text-foreground">
                     {group
-                      ? locale === 'bn'
-                        ? group.nameBn || group.name
-                        : group.name
-                      : pick('সাধারণ', 'General')}
+                      ? group.nameBn || group.name
+                      : 'সাধারণ'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-muted-foreground">
-                    {pick('শ্রেণি শিক্ষক', 'Class Teacher')}
+                  <dt className="text-sm text-muted-foreground">
+                    {'শ্রেণি শিক্ষক'}
                   </dt>
                   <dd className="mt-1 font-medium text-foreground">
-                    {classTeacher?.nameBn || classTeacher?.name || pick('নির্ধারিত হয়নি', 'Not assigned')}
+                    {classTeacher?.nameBn || classTeacher?.name || 'নির্ধারিত হয়নি'}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-muted-foreground">
-                    {pick('৪র্থ / ঐচ্ছিক বিষয়', 'Optional Subject')}
+                  <dt className="text-sm text-muted-foreground">
+                    {'৪র্থ / ঐচ্ছিক বিষয়'}
                   </dt>
                   <dd className="mt-1 font-medium text-foreground">
                     {optSubjectMaster
-                      ? locale === 'bn'
-                        ? optSubjectMaster.nameBn || optSubjectMaster.name
-                        : optSubjectMaster.name
+                      ? optSubjectMaster.nameBn || optSubjectMaster.name
                       : '—'}
                   </dd>
                 </div>
@@ -982,16 +964,16 @@ export function StudentProfile({
             <Card className="p-5 sm:p-6 space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="text-base font-semibold text-foreground">
-                  {pick('অভিভাবক ও যোগাযোগ', 'Guardians & Contacts')}
+                  {'অভিভাবক ও যোগাযোগ'}
                 </h3>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {formatNumber(guardians.length, locale)} {pick('জন', 'linked')}
+                <span className="text-sm text-muted-foreground tabular-nums">
+                  {formatNumber(guardians.length, 'bn')} {'জন'}
                 </span>
               </div>
 
               {guardians.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  {pick('কোনো অভিভাবক সংযুক্ত করা হয়নি।', 'No guardians linked yet.')}
+                  {'কোনো অভিভাবক সংযুক্ত করা হয়নি।'}
                 </p>
               ) : (
                 <div className="divide-y divide-border">
@@ -1008,16 +990,16 @@ export function StudentProfile({
                               {parent.nameBn || parent.name}
                             </p>
                             {parent.nameBn && parent.name !== parent.nameBn && (
-                              <p className="text-xs text-muted-foreground truncate">{parent.name}</p>
+                              <p className="text-sm text-muted-foreground truncate">{parent.name}</p>
                             )}
                           </div>
-                          <span className="text-xs text-muted-foreground shrink-0">
-                            {locale === 'bn' ? relMeta.bn : relMeta.en}
+                          <span className="text-sm text-muted-foreground shrink-0">
+                            {relMeta.bn}
                           </span>
                         </div>
 
                         {cleanPhone && (
-                          <div className="flex items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center justify-between gap-2 text-sm">
                             <a
                               href={`tel:${cleanPhone}`}
                               className="inline-flex items-center gap-1.5 font-mono font-medium text-primary hover:underline"
@@ -1027,9 +1009,9 @@ export function StudentProfile({
                             </a>
                             <button
                               type="button"
-                              onClick={() => copyText(cleanPhone, pick('মোবাইল নম্বর', 'Phone'))}
+                              onClick={() => copyText(cleanPhone, 'মোবাইল নম্বর')}
                               className="text-muted-foreground hover:text-foreground cursor-pointer"
-                              aria-label={pick('নম্বর কপি করুন', 'Copy phone')}
+                              aria-label={'নম্বর কপি করুন'}
                             >
                               {copiedText === cleanPhone ? (
                                 <Check className="w-3.5 h-3.5 text-success" />
@@ -1040,10 +1022,10 @@ export function StudentProfile({
                           </div>
                         )}
 
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-sm text-muted-foreground">
                           {[
-                            link.isPrimary ? pick('প্রধান অভিভাবক', 'Primary guardian') : null,
-                            link.isSmsReceiver ? pick('SMS প্রাপক', 'SMS recipient') : null,
+                            link.isPrimary ? 'প্রধান অভিভাবক' : null,
+                            link.isSmsReceiver ? 'SMS প্রাপক' : null,
                             parent.occupation || null,
                           ]
                             .filter(Boolean)
@@ -1059,24 +1041,24 @@ export function StudentProfile({
             {/* Administrative Records (RFID Tag) */}
             <Card className="p-5 sm:p-6 space-y-4">
               <h3 className="text-base font-semibold text-foreground">
-                {pick('প্রশাসনিক নথি', 'Administrative Records')}
+                {'প্রশাসনিক নথি'}
               </h3>
 
-              <dl className="text-sm">
+              <dl className="text-base">
                 <div className="flex items-center justify-between gap-2">
                   <div>
-                    <dt className="text-xs text-muted-foreground">
-                      {pick('হাজিরা RFID ট্যাগ', 'Attendance RFID Tag')}
+                    <dt className="text-sm text-muted-foreground">
+                      {'হাজিরা RFID ট্যাগ'}
                     </dt>
-                    <dd className="mt-0.5 font-mono text-sm text-foreground">
-                      {activeCard ? activeCard.cardNumber : pick('ইস্যু হয়নি', 'Not assigned')}
+                    <dd className="mt-0.5 font-mono text-base text-foreground">
+                      {activeCard ? activeCard.cardNumber : 'ইস্যু হয়নি'}
                     </dd>
                   </div>
                   <Link
                     href="/admin/students/rfid-cards"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline shrink-0"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline shrink-0"
                   >
-                    <span>{pick('ব্যবস্থাপনা', 'Manage')}</span>
+                    <span>{'ব্যবস্থাপনা'}</span>
                     <ArrowUpRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -1093,49 +1075,46 @@ export function StudentProfile({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-5 flex flex-col justify-between gap-2">
               <span className="text-base font-bold text-foreground">
-                {pick('মোট উপস্থিত', 'Days Present')}
+                {'মোট উপস্থিত'}
               </span>
               <p className="text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary mt-1">
-                {formatNumber(totalPresent, locale)}
+                {formatNumber(totalPresent, 'bn')}
               </p>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {pick('সময়মতো উপস্থিতি', 'On-time records')}
+                {'সময়মতো উপস্থিতি'}
               </p>
             </Card>
             <Card className="p-5 flex flex-col justify-between gap-2">
               <span className="text-base font-bold text-foreground">
-                {pick('বিলম্বে উপস্থিত', 'Days Late')}
+                {'বিলম্বে উপস্থিত'}
               </span>
               <p className="text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-secondary mt-1">
-                {formatNumber(totalLate, locale)}
+                {formatNumber(totalLate, 'bn')}
               </p>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {pick('নির্ধারিত সময়ের পরে', 'Arrived after bell')}
+                {'নির্ধারিত সময়ের পরে'}
               </p>
             </Card>
             <Card className="p-5 flex flex-col justify-between gap-2">
               <span className="text-base font-bold text-foreground">
-                {pick('অনুপস্থিত', 'Days Absent')}
+                {'অনুপস্থিত'}
               </span>
               <p className="text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-destructive mt-1">
-                {formatNumber(totalAbsent, locale)}
+                {formatNumber(totalAbsent, 'bn')}
               </p>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {pick('অননুমোদিত অনুপস্থিতি', 'Unexcused absences')}
+                {'অননুমোদিত অনুপস্থিতি'}
               </p>
             </Card>
             <Card className="p-5 flex flex-col justify-between gap-2">
               <span className="text-base font-bold text-foreground">
-                {pick('অনুমোদিত ছুটি', 'Approved Leave')}
+                {'অনুমোদিত ছুটি'}
               </span>
               <p className="text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground mt-1">
-                {formatNumber(totalLeave, locale)}
+                {formatNumber(totalLeave, 'bn')}
               </p>
               <p className="text-sm text-muted-foreground mt-0.5 tabular-nums">
-                {pick(
-                  `মোট কার্যদিবস ${formatNumber(totalWorkingDays, locale)} দিন`,
-                  `${totalWorkingDays} total recorded days`
-                )}
+                {`মোট কার্যদিবস ${formatNumber(totalWorkingDays, 'bn')} দিন`}
               </p>
             </Card>
           </div>
@@ -1146,18 +1125,15 @@ export function StudentProfile({
               <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-border">
                 <div>
                   <h3 className="text-base font-semibold text-foreground">
-                    {pick('মাসিক হাজিরা ক্যালেন্ডার', 'Monthly Attendance Calendar')}
+                    {'মাসিক হাজিরা ক্যালেন্ডার'}
                   </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5 tabular-nums">
-                    {pick(
-                      `এই মাসে: উপস্থিত ${formatNumber(monthCount(AttendanceStatus.PRESENT), locale)} · বিলম্ব ${formatNumber(monthCount(AttendanceStatus.LATE), locale)} · অনুপস্থিত ${formatNumber(monthCount(AttendanceStatus.ABSENT), locale)} · ছুটি ${formatNumber(monthCount(AttendanceStatus.LEAVE), locale)}`,
-                      `This month: ${monthCount(AttendanceStatus.PRESENT)} present · ${monthCount(AttendanceStatus.LATE)} late · ${monthCount(AttendanceStatus.ABSENT)} absent · ${monthCount(AttendanceStatus.LEAVE)} leave`
-                    )}
+                  <p className="text-sm text-muted-foreground mt-0.5 tabular-nums">
+                    {`এই মাসে: উপস্থিত ${formatNumber(monthCount(AttendanceStatus.PRESENT), 'bn')} · বিলম্ব ${formatNumber(monthCount(AttendanceStatus.LATE), 'bn')} · অনুপস্থিত ${formatNumber(monthCount(AttendanceStatus.ABSENT), 'bn')} · ছুটি ${formatNumber(monthCount(AttendanceStatus.LEAVE), 'bn')}`}
                   </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <Input
+                  <Input placeholder="মাস নির্বাচন লিখুন"
                     type="month"
                     value={month}
                     onChange={(event) => {
@@ -1165,14 +1141,14 @@ export function StudentProfile({
                       setPickedDay(null);
                     }}
                     className="w-40 h-9 text-sm"
-                    aria-label={pick('মাস নির্বাচন', 'Select month')}
+                    aria-label={'মাস নির্বাচন'}
                   />
                   {enrollment && (
                     <Link
                       href={`/admin/attendance/daily?date=${registerDate}&classId=${enrollment.classId}&sectionId=${enrollment.sectionId}`}
                     >
                       <Button size="sm" variant="outline">
-                        <span>{pick('শাখার রেজিস্টার', 'Section Register')}</span>
+                        <span>{'শাখার রেজিস্টার'}</span>
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </Button>
                     </Link>
@@ -1194,16 +1170,16 @@ export function StudentProfile({
             <Card className="p-5 sm:p-6 space-y-4">
               <div className="flex items-center justify-between gap-2 pb-3 border-b border-border">
                 <h3 className="text-base font-semibold text-foreground">
-                  {pick('সাম্প্রতিক হাজিরা লগ', 'Monthly Attendance Log')}
+                  {'সাম্প্রতিক হাজিরা লগ'}
                 </h3>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {formatNumber(monthMarks.length, locale)} {pick('দিন', 'days')}
+                <span className="text-sm text-muted-foreground tabular-nums">
+                  {formatNumber(monthMarks.length, 'bn')} {'দিন'}
                 </span>
               </div>
 
               {monthMarks.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">
-                  {pick('নির্বাচিত মাসে কোনো হাজিরা রেকর্ড নেই।', 'No attendance records in this month.')}
+                  {'নির্বাচিত মাসে কোনো হাজিরা রেকর্ড নেই।'}
                 </p>
               ) : (
                 <div className="divide-y divide-border max-h-[360px] overflow-y-auto">
@@ -1213,17 +1189,17 @@ export function StudentProfile({
                       type="button"
                       onClick={() => setPickedDay(mark.date)}
                       className={cn(
-                        'w-full py-2.5 px-2 -mx-2 rounded-md flex items-center justify-between gap-2 text-left text-xs hover:bg-surface-muted/60 transition-colors cursor-pointer',
+                        'w-full py-2.5 px-2 -mx-2 rounded-md flex items-center justify-between gap-2 text-left text-sm hover:bg-surface-muted/60 transition-colors cursor-pointer',
                         pickedDay === mark.date && 'bg-surface-muted/80'
                       )}
                     >
                       <div>
                         <p className="font-medium text-foreground tabular-nums">
-                          {formatDateShort(`${mark.date}T12:00:00`, locale)}
+                          {formatDateShort(`${mark.date}T12:00:00`, 'bn')}
                         </p>
                         {mark.inTime && (
-                          <p className="text-xs font-mono text-muted-foreground tabular-nums">
-                            {pick('প্রবেশ:', 'In:')} {mark.inTime.slice(11, 16)}
+                          <p className="text-sm font-mono text-muted-foreground tabular-nums">
+                            {'প্রবেশ:'} {mark.inTime.slice(11, 16)}
                           </p>
                         )}
                       </div>
@@ -1246,43 +1222,37 @@ export function StudentProfile({
               <div>
                 <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-primary" />
-                  <span>{pick('পরীক্ষার ফলাফল ও মেধাক্রম', 'Examination Results & Standing')}</span>
+                  <span>{'পরীক্ষার ফলাফল ও মেধাক্রম'}</span>
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {pick(
-                    'প্রকাশিত ও সংরক্ষিত সকল পরীক্ষার নম্বর, জিপিএ ও মেধাক্রমের তালিকা।',
-                    'Published examination marks, GPA, letter grades, and merit standings.'
-                  )}
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {'প্রকাশিত ও সংরক্ষিত সকল পরীক্ষার নম্বর, জিপিএ ও মেধাক্রমের তালিকা।'}
                 </p>
               </div>
               <Link
                 href="/admin/results/mark-sheets"
-                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
               >
-                <span>{pick('নম্বরপত্র ডেস্ক', 'Mark Sheets')}</span>
+                <span>{'নম্বরপত্র ডেস্ক'}</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
             {examResults.length === 0 ? (
               <div className="p-8 text-center text-sm text-muted-foreground">
-                {pick(
-                  'এই শিক্ষার্থীর কোনো পরীক্ষার ফলাফল এখনো প্রকাশিত হয়নি।',
-                  'No examination results have been recorded for this student yet.'
-                )}
+                {'এই শিক্ষার্থীর কোনো পরীক্ষার ফলাফল এখনো প্রকাশিত হয়নি।'}
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-sm text-left border-collapse">
-                  <thead className="bg-surface-muted/70 border-b border-border text-xs font-semibold text-muted-foreground">
+                <table className="w-full text-base text-left border-collapse">
+                  <thead className="bg-surface-muted/70 border-b border-border text-sm font-semibold text-muted-foreground">
                     <tr>
-                      <th className="px-5 py-3">{pick('পরীক্ষা', 'Examination')}</th>
-                      <th className="px-5 py-3">{pick('শিক্ষাবর্ষ ও শ্রেণি', 'Session & Class')}</th>
-                      <th className="px-5 py-3 text-right">{pick('প্রাপ্ত নম্বর', 'Marks')}</th>
-                      <th className="px-5 py-3 text-right">{pick('জিপিএ', 'GPA')}</th>
-                      <th className="px-5 py-3">{pick('গ্রেড', 'Grade')}</th>
-                      <th className="px-5 py-3 text-right">{pick('মেধাক্রম', 'Merit')}</th>
-                      <th className="px-5 py-3">{pick('অবস্থা', 'Status')}</th>
+                      <th className="px-5 py-3">{'পরীক্ষা'}</th>
+                      <th className="px-5 py-3">{'শিক্ষাবর্ষ ও শ্রেণি'}</th>
+                      <th className="px-5 py-3 text-right">{'প্রাপ্ত নম্বর'}</th>
+                      <th className="px-5 py-3 text-right">{'জিপিএ'}</th>
+                      <th className="px-5 py-3">{'গ্রেড'}</th>
+                      <th className="px-5 py-3 text-right">{'মেধাক্রম'}</th>
+                      <th className="px-5 py-3">{'অবস্থা'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -1293,8 +1263,8 @@ export function StudentProfile({
                           {res.yearName} · {res.classText}
                         </td>
                         <td className="px-5 py-3 text-right font-mono tabular-nums text-foreground">
-                          {formatNumber(res.totalMarks, locale)} /{' '}
-                          {formatNumber(res.totalFullMarks, locale)}
+                          {formatNumber(res.totalMarks, 'bn')} /{' '}
+                          {formatNumber(res.totalFullMarks, 'bn')}
                         </td>
                         <td className="px-5 py-3 text-right font-mono font-semibold tabular-nums text-primary">
                           {res.gpa != null ? res.gpa.toFixed(2) : '—'}
@@ -1304,7 +1274,7 @@ export function StudentProfile({
                         </td>
                         <td className="px-5 py-3 text-right font-mono tabular-nums text-foreground">
                           {res.meritPosition
-                            ? `#${formatNumber(res.meritPosition, locale)}`
+                            ? `#${formatNumber(res.meritPosition, 'bn')}`
                             : '—'}
                         </td>
                         <td className="px-5 py-3">
@@ -1323,30 +1293,27 @@ export function StudentProfile({
             <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-2">
               <div>
                 <h3 className="text-base font-semibold text-foreground">
-                  {pick('শিক্ষাবর্ষভিত্তিক এনরোলমেন্ট ইতিহাস', 'Session Enrollment History')}
+                  {'শিক্ষাবর্ষভিত্তিক এনরোলমেন্ট ইতিহাস'}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {pick(
-                    'ভর্তি থেকে বর্তমান পর্যন্ত শ্রেণি, শাখা, রোল এবং উত্তীর্ণ হওয়ার ধারাবাহিক রেকর্ড।',
-                    'Chronological class, section, roll, and promotion records across sessions.'
-                  )}
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {'ভর্তি থেকে বর্তমান পর্যন্ত শ্রেণি, শাখা, রোল এবং উত্তীর্ণ হওয়ার ধারাবাহিক রেকর্ড।'}
                 </p>
               </div>
-              <span className="text-xs text-muted-foreground tabular-nums">
-                {formatNumber(enrollments.length, locale)} {pick('টি সেশন', 'sessions')}
+              <span className="text-sm text-muted-foreground tabular-nums">
+                {formatNumber(enrollments.length, 'bn')} {'টি সেশন'}
               </span>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left border-collapse">
-                <thead className="bg-surface-muted/70 border-b border-border text-xs font-semibold text-muted-foreground">
+              <table className="w-full text-base text-left border-collapse">
+                <thead className="bg-surface-muted/70 border-b border-border text-sm font-semibold text-muted-foreground">
                   <tr>
-                    <th className="px-5 py-3">{pick('শিক্ষাবর্ষ', 'Session')}</th>
-                    <th className="px-5 py-3">{pick('শ্রেণি', 'Class')}</th>
-                    <th className="px-5 py-3">{pick('শাখা', 'Section')}</th>
-                    <th className="px-5 py-3">{pick('বিভাগ', 'Stream')}</th>
-                    <th className="px-5 py-3 text-right">{pick('রোল', 'Roll')}</th>
-                    <th className="px-5 py-3">{pick('অবস্থা', 'Status')}</th>
+                    <th className="px-5 py-3">{'শিক্ষাবর্ষ'}</th>
+                    <th className="px-5 py-3">{'শ্রেণি'}</th>
+                    <th className="px-5 py-3">{'শাখা'}</th>
+                    <th className="px-5 py-3">{'বিভাগ'}</th>
+                    <th className="px-5 py-3 text-right">{'রোল'}</th>
+                    <th className="px-5 py-3">{'অবস্থা'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -1368,8 +1335,8 @@ export function StudentProfile({
                         <td className="px-5 py-3 font-medium text-foreground tabular-nums whitespace-nowrap">
                           {y?.name ?? '—'}
                           {isCurrent && (
-                            <span className="ml-2 text-xs font-medium text-primary">
-                              · {pick('চলতি', 'Current')}
+                            <span className="ml-2 text-sm font-medium text-primary">
+                              · {'চলতি'}
                             </span>
                           )}
                         </td>
@@ -1379,13 +1346,11 @@ export function StudentProfile({
                         <td className="px-5 py-3 text-foreground">{s?.name ?? '—'}</td>
                         <td className="px-5 py-3 text-muted-foreground">
                           {g
-                            ? locale === 'bn'
-                              ? g.nameBn || g.name
-                              : g.name
-                            : pick('সাধারণ', 'General')}
+                            ? g.nameBn || g.name
+                            : 'সাধারণ'}
                         </td>
                         <td className="px-5 py-3 text-right font-mono font-semibold tabular-nums text-foreground">
-                          {formatNumber(enr.roll, locale)}
+                          {formatNumber(enr.roll, 'bn')}
                         </td>
                         <td className="px-5 py-3">
                           <StatusBadge enumName="EnrollmentStatus" value={enr.status} />
@@ -1404,57 +1369,57 @@ export function StudentProfile({
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={pick('শিক্ষার্থীর প্রোফাইল সম্পাদনা', 'Edit Student Profile')}
+        title={'শিক্ষার্থীর প্রোফাইল সম্পাদনা'}
       >
         <form onSubmit={saveEdit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField label={pick('ইংরেজি নাম', 'Name in English')} required>
-            <Input
+          <FormField label={'ইংরেজি নাম'} required>
+            <Input placeholder="ইংরেজি নাম লিখুন"
               value={form.nameEn ?? ''}
               onChange={(event) => setForm({ ...form, nameEn: event.target.value })}
             />
           </FormField>
-          <FormField label={pick('বাংলা নাম', 'Name in Bangla')}>
-            <Input
+          <FormField label={'বাংলা নাম'}>
+            <Input placeholder="বাংলা নাম লিখুন"
               value={form.nameBn ?? ''}
               onChange={(event) => setForm({ ...form, nameBn: event.target.value })}
             />
           </FormField>
-          <FormField label={pick('জন্ম তারিখ', 'Date of birth')}>
+          <FormField label={'জন্ম তারিখ'}>
             <Input
               type="date"
               value={form.dateOfBirth ?? ''}
               onChange={(event) => setForm({ ...form, dateOfBirth: event.target.value })}
             />
           </FormField>
-          <FormField label={pick('লিঙ্গ', 'Gender')}>
+          <FormField label={'লিঙ্গ'}>
             <Select
               value={form.gender}
               onChange={(event) => setForm({ ...form, gender: event.target.value as Gender })}
             >
-              <option value={Gender.MALE}>{pick('ছাত্র', 'Male')}</option>
-              <option value={Gender.FEMALE}>{pick('ছাত্রী', 'Female')}</option>
+              <option value={Gender.MALE}>{'ছাত্র'}</option>
+              <option value={Gender.FEMALE}>{'ছাত্রী'}</option>
             </Select>
           </FormField>
-          <FormField label={pick('জন্ম নিবন্ধন নম্বর', 'Birth certificate')}>
-            <Input
+          <FormField label={'জন্ম নিবন্ধন নম্বর'}>
+            <Input placeholder="জন্ম নিবন্ধন নম্বর লিখুন"
               value={form.birthCertificateNo ?? ''}
               onChange={(event) => setForm({ ...form, birthCertificateNo: event.target.value })}
             />
           </FormField>
-          <FormField label={pick('বোর্ড রেজিস্ট্রেশন নম্বর', 'Board registration')}>
-            <Input
+          <FormField label={'বোর্ড রেজিস্ট্রেশন নম্বর'}>
+            <Input placeholder="বোর্ড রেজিস্ট্রেশন নম্বর লিখুন"
               value={form.boardRegistrationNo ?? ''}
               onChange={(event) => setForm({ ...form, boardRegistrationNo: event.target.value })}
             />
           </FormField>
-          <FormField label={pick('রক্তের গ্রুপ', 'Blood group')}>
+          <FormField label={'রক্তের গ্রুপ'}>
             <Select
               value={form.bloodGroup ?? ''}
               onChange={(event) =>
                 setForm({ ...form, bloodGroup: (event.target.value || null) as BloodGroup | null })
               }
             >
-              <option value="">{pick('নির্বাচন করুন', 'Select')}</option>
+              <option value="">{'নির্বাচন করুন'}</option>
               {Object.keys(BLOOD_LABEL).map((bg) => (
                 <option key={bg} value={bg}>
                   {BLOOD_LABEL[bg]}
@@ -1462,39 +1427,39 @@ export function StudentProfile({
               ))}
             </Select>
           </FormField>
-          <FormField label={pick('ধর্ম', 'Religion')}>
+          <FormField label={'ধর্ম'}>
             <Select
               value={form.religion ?? ''}
               onChange={(event) =>
                 setForm({ ...form, religion: (event.target.value || null) as Religion | null })
               }
             >
-              <option value="">{pick('নির্বাচন করুন', 'Select')}</option>
-              <option value={Religion.ISLAM}>{pick('ইসলাম', 'Islam')}</option>
-              <option value={Religion.HINDUISM}>{pick('হিন্দু', 'Hinduism')}</option>
-              <option value={Religion.BUDDHISM}>{pick('বৌদ্ধ', 'Buddhism')}</option>
-              <option value={Religion.CHRISTIANITY}>{pick('খ্রিষ্টান', 'Christianity')}</option>
+              <option value="">{'নির্বাচন করুন'}</option>
+              <option value={Religion.ISLAM}>{'ইসলাম'}</option>
+              <option value={Religion.HINDUISM}>{'হিন্দু'}</option>
+              <option value={Religion.BUDDHISM}>{'বৌদ্ধ'}</option>
+              <option value={Religion.CHRISTIANITY}>{'খ্রিষ্টান'}</option>
             </Select>
           </FormField>
           <div className="sm:col-span-2">
-            <FormField label={pick('বর্তমান ঠিকানা', 'Present address')}>
-              <Textarea
+            <FormField label={'বর্তমান ঠিকানা'}>
+              <Textarea placeholder="বর্তমান ঠিকানা লিখুন..."
                 value={form.presentAddress ?? ''}
                 onChange={(event) => setForm({ ...form, presentAddress: event.target.value })}
               />
             </FormField>
           </div>
           <div className="sm:col-span-2">
-            <FormField label={pick('স্থায়ী ঠিকানা', 'Permanent address')}>
-              <Textarea
+            <FormField label={'স্থায়ী ঠিকানা'}>
+              <Textarea placeholder="স্থায়ী ঠিকানা লিখুন..."
                 value={form.permanentAddress ?? ''}
                 onChange={(event) => setForm({ ...form, permanentAddress: event.target.value })}
               />
             </FormField>
           </div>
           <div className="sm:col-span-2">
-            <FormField label={pick('পূর্বের শিক্ষাপ্রতিষ্ঠান', 'Previous school')}>
-              <Input
+            <FormField label={'পূর্বের শিক্ষাপ্রতিষ্ঠান'}>
+              <Input placeholder="পূর্বের শিক্ষাপ্রতিষ্ঠান লিখুন"
                 value={form.previousSchoolName ?? ''}
                 onChange={(event) => setForm({ ...form, previousSchoolName: event.target.value })}
               />
@@ -1502,24 +1467,24 @@ export function StudentProfile({
           </div>
           {student.status !== StudentStatus.TRANSFERRED &&
             student.status !== StudentStatus.GRADUATED && (
-              <FormField label={pick('অবস্থা', 'Status')}>
+              <FormField label={'অবস্থা'}>
                 <Select
                   value={form.status}
                   onChange={(event) =>
                     setForm({ ...form, status: event.target.value as StudentStatus })
                   }
                 >
-                  <option value={StudentStatus.ACTIVE}>{pick('সক্রিয়', 'Active')}</option>
-                  <option value={StudentStatus.INACTIVE}>{pick('নিষ্ক্রিয়', 'Inactive')}</option>
+                  <option value={StudentStatus.ACTIVE}>{'সক্রিয়'}</option>
+                  <option value={StudentStatus.INACTIVE}>{'নিষ্ক্রিয়'}</option>
                 </Select>
               </FormField>
             )}
           <div className="sm:col-span-2 flex justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button type="submit" variant="primary" disabled={isLoading}>
-              {isLoading ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('সংরক্ষণ করুন', 'Save')}
+              {isLoading ? 'সংরক্ষণ হচ্ছে...' : 'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>

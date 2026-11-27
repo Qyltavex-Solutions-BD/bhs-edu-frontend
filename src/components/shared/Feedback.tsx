@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { AlertCircle, Inbox, RefreshCw, Info } from 'lucide-react';
 import { Button, Card, Modal, Skeleton } from '@/src/components/ui/primitives';
-import { useI18n } from '@/src/lib/i18n';
 import { cn } from '@/src/lib/utils/cn';
 
 /**
@@ -242,7 +241,6 @@ export function InstitutionalArtwork({
   className?: string;
   interactive?: boolean;
 }) {
-  const { locale } = useI18n();
   const [imgFailed, setImgFailed] = useState(false);
   const photo = getCampusPhoto(variant);
 
@@ -261,7 +259,7 @@ export function InstitutionalArtwork({
       {!imgFailed ? (
         <img
           src={photo.src}
-          alt={locale === 'bn' ? photo.altBn : photo.altEn}
+          alt={photo.altBn}
           referrerPolicy="no-referrer"
           onError={() => setImgFailed(true)}
           className={cn(
@@ -302,10 +300,9 @@ export function PageHeader({
   subtitleEn?: string;
   actions?: React.ReactNode;
 }) {
-  const { locale } = useI18n();
-  const resolvedTitle = title ?? (locale === 'bn' ? titleBn || titleEn || '' : titleEn || titleBn || '');
+  const resolvedTitle = title ?? (titleBn || titleEn || '');
   const resolvedDescription =
-    description ?? (locale === 'bn' ? subtitleBn || subtitleEn : subtitleEn || subtitleBn);
+    description ?? (subtitleBn || subtitleEn);
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-5 border-b border-border">
@@ -369,11 +366,10 @@ export function EmptyState({
   description?: string;
   action?: React.ReactNode;
 }) {
-  const { t } = useI18n();
   return (
     <div className="flex flex-col items-center justify-center text-center py-12 px-6 border border-dashed border-border rounded-[var(--radius)] bg-surface">
       <Inbox className="w-8 h-8 text-muted-foreground mb-3" />
-      <h3 className="text-base font-semibold text-foreground">{title ?? t('status.empty')}</h3>
+      <h3 className="text-base font-semibold text-foreground">{title ?? 'কোনো তথ্য পাওয়া যায়নি'}</h3>
       {description && (
         <p className="text-sm text-muted-foreground mt-1.5 max-w-md">{description}</p>
       )}
@@ -389,16 +385,15 @@ export function ErrorState({
   message?: string;
   onRetry?: () => void;
 }) {
-  const { t } = useI18n();
   return (
     <div className="flex flex-col items-center justify-center text-center py-12 px-6 border border-destructive/30 rounded-[var(--radius)] bg-destructive/5">
       <AlertCircle className="w-8 h-8 text-destructive mb-3" />
-      <h3 className="text-base font-semibold text-foreground">{t('status.error')}</h3>
+      <h3 className="text-base font-semibold text-foreground">{'তথ্য লোড করতে সমস্যা হয়েছে'}</h3>
       {message && <p className="text-sm text-muted-foreground mt-1.5 max-w-md">{message}</p>}
       {onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry} className="mt-4">
           <RefreshCw className="w-3.5 h-3.5" />
-          {t('status.retry')}
+          {'পুনরায় চেষ্টা করুন'}
         </Button>
       )}
     </div>
@@ -435,20 +430,19 @@ export function ConfirmationDialog({
   destructive?: boolean;
   loading?: boolean;
 }) {
-  const { t } = useI18n();
   return (
     <Modal open={open} onClose={onClose} title={title} maxWidth="max-w-md">
       <p className="text-base text-muted-foreground leading-relaxed">{description}</p>
       <div className="flex items-center justify-end gap-2 mt-6">
         <Button variant="outline" onClick={onClose} disabled={loading}>
-          {t('cta.cancel')}
+          {'বাতিল'}
         </Button>
         <Button
           variant={destructive ? 'destructive' : 'primary'}
           onClick={onConfirm}
           disabled={loading}
         >
-          {confirmLabel ?? t('cta.submit')}
+          {confirmLabel ?? 'জমা দিন'}
         </Button>
       </div>
     </Modal>

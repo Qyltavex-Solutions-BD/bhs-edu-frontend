@@ -8,7 +8,6 @@ import {
   useCreateStaffMutation,
   useUpdateStaffMutation,
 } from '../api/staff.api';
-import { useI18n } from '@/src/lib/i18n';
 import { Button, FormField, Input, Modal, Select, Textarea } from '@/src/components/ui/primitives';
 import {
   BloodGroup,
@@ -36,7 +35,6 @@ export function StaffFormModal({
   member: Staff | null;
   defaultType: StaffType;
 }) {
-  const { pick } = useI18n();
   const [createStaff, { isLoading: creating }] = useCreateStaffMutation();
   const [updateStaff, { isLoading: updating }] = useUpdateStaffMutation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -128,11 +126,11 @@ export function StaffFormModal({
     if (!file) return;
 
     if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
-      toast.error(pick('শুধুমাত্র JPG, PNG অথবা WebP ছবি আপলোড করুন।', 'Please upload a JPG, PNG, or WebP image.'));
+      toast.error('শুধুমাত্র JPG, PNG অথবা WebP ছবি আপলোড করুন।');
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      toast.error(pick('ছবির সাইজ ৫ মেগাবাইটের কম হতে হবে।', 'Image size must be under 5 MB.'));
+      toast.error('ছবির সাইজ ৫ মেগাবাইটের কম হতে হবে।');
       return;
     }
 
@@ -211,10 +209,10 @@ export function StaffFormModal({
     try {
       if (member) {
         await updateStaff({ id: member.id, body }).unwrap();
-        toast.success(pick('স্টাফের তথ্য সফলভাবে হালনাগাদ হয়েছে।', 'Staff profile updated successfully.'));
+        toast.success('স্টাফের তথ্য সফলভাবে হালনাগাদ হয়েছে।');
       } else {
         await createStaff(body).unwrap();
-        toast.success(pick('নতুন স্টাফ সফলভাবে যুক্ত হয়েছে।', 'Staff member created successfully.'));
+        toast.success('নতুন স্টাফ সফলভাবে যুক্ত হয়েছে।');
       }
       onClose();
     } catch (err) {
@@ -222,8 +220,8 @@ export function StaffFormModal({
         errorMessage(
           err,
           member
-            ? pick('হালনাগাদ করা যায়নি।', 'Could not update staff member.')
-            : pick('সংরক্ষণ করা যায়নি।', 'Could not create staff member.')
+            ? 'হালনাগাদ করা যায়নি।'
+            : 'সংরক্ষণ করা যায়নি।'
         )
       );
     }
@@ -233,78 +231,75 @@ export function StaffFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={member ? pick('স্টাফ প্রোফাইল সম্পাদনা', 'Edit Staff Profile') : pick('নতুন স্টাফ যুক্ত করুন', 'Add New Staff')}
-      description={pick(
-        'প্রাতিষ্ঠানিক ও ব্যক্তিগত প্রয়োজনীয় তথ্য পূরণ করুন।',
-        'Fill in institutional and personal details for this staff member.'
-      )}
+      title={member ? 'স্টাফ প্রোফাইল সম্পাদনা' : 'নতুন স্টাফ যুক্ত করুন'}
+      description={'প্রাতিষ্ঠানিক ও ব্যক্তিগত প্রয়োজনীয় তথ্য পূরণ করুন।'}
       maxWidth="max-w-3xl"
     >
       <form onSubmit={submit} className="space-y-5">
         {/* Section 1: Institutional Details */}
         <div className="space-y-3">
           <h3 className="text-sm font-bold text-primary border-b border-border pb-1.5">
-            {pick('১. প্রাতিষ্ঠানিক তথ্য', '1. Institutional Details')}
+            {'১. প্রাতিষ্ঠানিক তথ্য'}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label={pick('পূর্ণ নাম', 'Full name')} required>
+            <FormField label={'পূর্ণ নাম'} required>
               <Input
                 required
                 value={form.name}
-                placeholder={pick('যেমন: মো. রফিকুল ইসলাম', 'e.g. Md. Rafiqul Islam')}
+                placeholder={'যেমন: মো. রফিকুল ইসলাম'}
                 onChange={(event) => setForm({ ...form, name: event.target.value })}
               />
             </FormField>
 
-            <FormField label={pick('স্টাফ আইডি', 'Staff ID')}>
+            <FormField label={'স্টাফ আইডি'}>
               <Input
                 value={form.employeeId}
-                placeholder={pick('খালি রাখলে স্বয়ংক্রিয়ভাবে তৈরি হবে (যেমন: T-101)', 'Auto-generated if left blank (e.g. T-101)')}
+                placeholder={'খালি রাখলে স্বয়ংক্রিয়ভাবে তৈরি হবে (যেমন: T-101)'}
                 onChange={(event) => setForm({ ...form, employeeId: event.target.value })}
               />
             </FormField>
 
-            <FormField label={pick('পদবি', 'Designation')} required>
+            <FormField label={'পদবি'} required>
               <Input
                 required
                 value={form.designation}
-                placeholder={pick('যেমন: সহকারী শিক্ষক (গণিত)', 'e.g. Assistant Teacher (Math)')}
+                placeholder={'যেমন: সহকারী শিক্ষক (গণিত)'}
                 onChange={(event) => setForm({ ...form, designation: event.target.value })}
               />
             </FormField>
 
-            <FormField label={pick('ধরন', 'Staff Type')} required>
+            <FormField label={'ধরন'} required>
               <Select
                 value={form.staffType}
                 onChange={(event) => setForm({ ...form, staffType: event.target.value })}
               >
-                <option value={StaffType.TEACHER}>{pick('শিক্ষক', 'Teacher')}</option>
-                <option value={StaffType.OFFICER}>{pick('কর্মকর্তা', 'Officer')}</option>
-                <option value={StaffType.EMPLOYEE}>{pick('কর্মচারী', 'Employee')}</option>
+                <option value={StaffType.TEACHER}>{'শিক্ষক'}</option>
+                <option value={StaffType.OFFICER}>{'কর্মকর্তা'}</option>
+                <option value={StaffType.EMPLOYEE}>{'কর্মচারী'}</option>
               </Select>
             </FormField>
 
-            <FormField label={pick('নিয়োগের ধরন', 'Employment Type')}>
+            <FormField label={'নিয়োগের ধরন'}>
               <Select
                 value={form.employmentType}
                 onChange={(event) => setForm({ ...form, employmentType: event.target.value })}
               >
-                <option value={EmploymentType.PERMANENT}>{pick('স্থায়ী', 'Permanent')}</option>
-                <option value={EmploymentType.PROBATIONARY}>{pick('প্রবেশন', 'Probation')}</option>
-                <option value={EmploymentType.CONTRACTUAL}>{pick('চুক্তিভিত্তিক', 'Contractual')}</option>
-                <option value={EmploymentType.PART_TIME}>{pick('খণ্ডকালীন', 'Part-time')}</option>
+                <option value={EmploymentType.PERMANENT}>{'স্থায়ী'}</option>
+                <option value={EmploymentType.PROBATIONARY}>{'প্রবেশন'}</option>
+                <option value={EmploymentType.CONTRACTUAL}>{'চুক্তিভিত্তিক'}</option>
+                <option value={EmploymentType.PART_TIME}>{'খণ্ডকালীন'}</option>
               </Select>
             </FormField>
 
-            <FormField label={pick('শিক্ষাগত যোগ্যতা', 'Qualification')}>
+            <FormField label={'শিক্ষাগত যোগ্যতা'}>
               <Input
                 value={form.qualification}
-                placeholder={pick('যেমন: M.Sc in Mathematics, B.Ed', 'e.g. M.Sc in Mathematics, B.Ed')}
+                placeholder={'যেমন: M.Sc in Mathematics, B.Ed'}
                 onChange={(event) => setForm({ ...form, qualification: event.target.value })}
               />
             </FormField>
 
-            <FormField label={pick('যোগদানের তারিখ', 'Joining Date')}>
+            <FormField label={'যোগদানের তারিখ'}>
               <Input
                 type="date"
                 value={form.joiningDate}
@@ -312,26 +307,23 @@ export function StaffFormModal({
               />
             </FormField>
 
-            <FormField label={pick('অবস্থা (Status)', 'Status')}>
+            <FormField label={'অবস্থা (Status)'}>
               <Select
                 value={form.status}
                 onChange={(event) => setForm({ ...form, status: event.target.value })}
               >
-                <option value={StaffStatus.ACTIVE}>{pick('কর্মরত (Active)', 'Active')}</option>
-                <option value={StaffStatus.RETIRED}>{pick('অবসরপ্রাপ্ত (Retired)', 'Retired')}</option>
-                <option value={StaffStatus.RESIGNED}>{pick('পদত্যাগকৃত (Resigned)', 'Resigned')}</option>
-                <option value={StaffStatus.TRANSFERRED}>{pick('বদলিজনিত (Transferred)', 'Transferred')}</option>
-                <option value={StaffStatus.TERMINATED}>{pick('অব্যাহতিপ্রাপ্ত (Terminated)', 'Terminated')}</option>
+                <option value={StaffStatus.ACTIVE}>{'কর্মরত (Active)'}</option>
+                <option value={StaffStatus.RETIRED}>{'অবসরপ্রাপ্ত (Retired)'}</option>
+                <option value={StaffStatus.RESIGNED}>{'পদত্যাগকৃত (Resigned)'}</option>
+                <option value={StaffStatus.TRANSFERRED}>{'বদলিজনিত (Transferred)'}</option>
+                <option value={StaffStatus.TERMINATED}>{'অব্যাহতিপ্রাপ্ত (Terminated)'}</option>
               </Select>
             </FormField>
 
             {form.status !== StaffStatus.ACTIVE && (
               <FormField
-                label={pick('বিদায় / অবসরের তারিখ', 'Leaving Date')}
-                hint={pick(
-                  'খালি রাখলে আজকের তারিখ স্বয়ংক্রিয়ভাবে সংরক্ষিত হবে।',
-                  'Defaults to today if left blank.'
-                )}
+                label={'বিদায় / অবসরের তারিখ'}
+                hint={'খালি রাখলে আজকের তারিখ স্বয়ংক্রিয়ভাবে সংরক্ষিত হবে।'}
               >
                 <Input
                   type="date"
@@ -346,74 +338,74 @@ export function StaffFormModal({
         {/* Section 2: Personal & Contact Information */}
         <div className="space-y-3">
           <h3 className="text-sm font-bold text-primary border-b border-border pb-1.5">
-            {pick('২. ব্যক্তিগত ও যোগাযোগের তথ্য', '2. Personal & Contact Information')}
+            {'২. ব্যক্তিগত ও যোগাযোগের তথ্য'}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <FormField label={pick('মোবাইল নম্বর', 'Phone')}>
+            <FormField label={'মোবাইল নম্বর'}>
               <Input
                 value={form.phone}
-                placeholder={pick('যেমন: 017XXXXXXXX', 'e.g. 017XXXXXXXX')}
+                placeholder={'যেমন: 017XXXXXXXX'}
                 onChange={(event) => setForm({ ...form, phone: event.target.value })}
               />
             </FormField>
 
-            <FormField label={pick('ইমেইল', 'Email')}>
+            <FormField label={'ইমেইল'}>
               <Input
                 type="email"
                 value={form.email}
-                placeholder={pick('যেমন: teacher@school.edu.bd', 'e.g. teacher@school.edu.bd')}
+                placeholder={'যেমন: teacher@school.edu.bd'}
                 onChange={(event) => setForm({ ...form, email: event.target.value })}
               />
             </FormField>
 
-            <FormField label={pick('জরুরি যোগাযোগ নম্বর', 'Emergency Phone')}>
+            <FormField label={'জরুরি যোগাযোগ নম্বর'}>
               <Input
                 value={form.emergencyContact}
-                placeholder={pick('যেমন: 018XXXXXXXX', 'e.g. 018XXXXXXXX')}
+                placeholder={'যেমন: 018XXXXXXXX'}
                 onChange={(event) => setForm({ ...form, emergencyContact: event.target.value })}
               />
             </FormField>
 
-            <FormField label={pick('জাতীয় পরিচয়পত্র (NID)', 'National ID (NID)')}>
+            <FormField label={'জাতীয় পরিচয়পত্র (NID)'}>
               <Input
                 value={form.nid}
-                placeholder={pick('১০ বা ১৭ সংখ্যার এনআইডি নম্বর', '10 or 17 digit NID number')}
+                placeholder={'১০ বা ১৭ সংখ্যার এনআইডি নম্বর'}
                 onChange={(event) => setForm({ ...form, nid: event.target.value })}
               />
             </FormField>
 
-            <FormField label={pick('লিঙ্গ', 'Gender')}>
+            <FormField label={'লিঙ্গ'}>
               <Select
                 value={form.gender}
                 onChange={(event) => setForm({ ...form, gender: event.target.value })}
               >
-                <option value="">{pick('নির্বাচন করুন', 'Select gender')}</option>
-                <option value={Gender.MALE}>{pick('পুরুষ', 'Male')}</option>
-                <option value={Gender.FEMALE}>{pick('নারী', 'Female')}</option>
-                <option value={Gender.OTHER}>{pick('অন্যান্য', 'Other')}</option>
+                <option value="">{'নির্বাচন করুন'}</option>
+                <option value={Gender.MALE}>{'পুরুষ'}</option>
+                <option value={Gender.FEMALE}>{'নারী'}</option>
+                <option value={Gender.OTHER}>{'অন্যান্য'}</option>
               </Select>
             </FormField>
 
-            <FormField label={pick('ধর্ম', 'Religion')}>
+            <FormField label={'ধর্ম'}>
               <Select
                 value={form.religion}
                 onChange={(event) => setForm({ ...form, religion: event.target.value })}
               >
-                <option value="">{pick('নির্বাচন করুন', 'Select religion')}</option>
-                <option value={Religion.ISLAM}>{pick('ইসলাম', 'Islam')}</option>
-                <option value={Religion.HINDUISM}>{pick('হিন্দু', 'Hinduism')}</option>
-                <option value={Religion.CHRISTIANITY}>{pick('খ্রিস্টান', 'Christianity')}</option>
-                <option value={Religion.BUDDHISM}>{pick('বৌদ্ধ', 'Buddhism')}</option>
-                <option value={Religion.OTHER}>{pick('অন্যান্য', 'Other')}</option>
+                <option value="">{'নির্বাচন করুন'}</option>
+                <option value={Religion.ISLAM}>{'ইসলাম'}</option>
+                <option value={Religion.HINDUISM}>{'হিন্দু'}</option>
+                <option value={Religion.CHRISTIANITY}>{'খ্রিস্টান'}</option>
+                <option value={Religion.BUDDHISM}>{'বৌদ্ধ'}</option>
+                <option value={Religion.OTHER}>{'অন্যান্য'}</option>
               </Select>
             </FormField>
 
-            <FormField label={pick('রক্তের গ্রুপ', 'Blood Group')}>
+            <FormField label={'রক্তের গ্রুপ'}>
               <Select
                 value={form.bloodGroup}
                 onChange={(event) => setForm({ ...form, bloodGroup: event.target.value })}
               >
-                <option value="">{pick('নির্বাচন করুন', 'Select blood group')}</option>
+                <option value="">{'নির্বাচন করুন'}</option>
                 {Object.values(BloodGroup).map((value) => (
                   <option key={value} value={value}>
                     {value.replace('_POSITIVE', '+').replace('_NEGATIVE', '−')}
@@ -422,7 +414,7 @@ export function StaffFormModal({
               </Select>
             </FormField>
 
-            <FormField label={pick('জন্ম তারিখ', 'Date of Birth')}>
+            <FormField label={'জন্ম তারিখ'}>
               <Input
                 type="date"
                 value={form.dateOfBirth}
@@ -432,8 +424,8 @@ export function StaffFormModal({
 
             <div className="sm:col-span-2">
               <FormField
-                label={pick('প্রোফাইল ছবি', 'Profile Photo')}
-                hint={pick('JPG, PNG বা WebP ফরম্যাটে সর্বোচ্চ ৫ মেগাবাইট ছবি আপলোড করুন।', 'Upload JPG, PNG, or WebP image (max 5 MB).')}
+                label={'প্রোফাইল ছবি'}
+                hint={'JPG, PNG বা WebP ফরম্যাটে সর্বোচ্চ ৫ মেগাবাইট ছবি আপলোড করুন।'}
               >
                 <div className="flex flex-wrap items-center gap-4 p-3 rounded-2xl border border-border bg-surface-muted/40">
                   <div className="w-16 h-16 rounded-2xl border border-border bg-surface overflow-hidden flex items-center justify-center shrink-0">
@@ -465,8 +457,8 @@ export function StaffFormModal({
                       <Upload className="w-4 h-4" />
                       <span>
                         {photoPreviewUrl
-                          ? pick('ছবি পরিবর্তন করুন', 'Change Photo')
-                          : pick('ছবি আপলোড করুন', 'Upload Photo')}
+                          ? 'ছবি পরিবর্তন করুন'
+                          : 'ছবি আপলোড করুন'}
                       </span>
                     </Button>
 
@@ -479,7 +471,7 @@ export function StaffFormModal({
                         className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="w-4 h-4" />
-                        <span>{pick('মুছুন', 'Remove')}</span>
+                        <span>{'মুছুন'}</span>
                       </Button>
                     )}
                   </div>
@@ -487,34 +479,34 @@ export function StaffFormModal({
               </FormField>
             </div>
 
-            <FormField label={pick('পিতার নাম', 'Father’s Name')}>
+            <FormField label={'পিতার নাম'}>
               <Input
                 value={form.fatherName}
-                placeholder={pick('যেমন: মো. আব্দুল করিম', 'e.g. Md. Abdul Karim')}
+                placeholder={'যেমন: মো. আব্দুল করিম'}
                 onChange={(event) => setForm({ ...form, fatherName: event.target.value })}
               />
             </FormField>
 
-            <FormField label={pick('মাতার নাম', 'Mother’s Name')}>
+            <FormField label={'মাতার নাম'}>
               <Input
                 value={form.motherName}
-                placeholder={pick('যেমন: মোসা. রহিমা বেগম', 'e.g. Mst. Rahima Begum')}
+                placeholder={'যেমন: মোসা. রহিমা বেগম'}
                 onChange={(event) => setForm({ ...form, motherName: event.target.value })}
               />
             </FormField>
 
-            <FormField label={pick('বর্তমান ঠিকানা', 'Present Address')}>
+            <FormField label={'বর্তমান ঠিকানা'}>
               <Textarea
                 value={form.presentAddress}
-                placeholder={pick('গ্রাম/বাড়ি নং, ডাকঘর, উপজেলা, জেলা লিখুন...', 'Enter village/house, post office, upazila, district...')}
+                placeholder={'গ্রাম/বাড়ি নং, ডাকঘর, উপজেলা, জেলা লিখুন...'}
                 onChange={(event) => setForm({ ...form, presentAddress: event.target.value })}
               />
             </FormField>
 
-            <FormField label={pick('স্থায়ী ঠিকানা', 'Permanent Address')}>
+            <FormField label={'স্থায়ী ঠিকানা'}>
               <Textarea
                 value={form.permanentAddress}
-                placeholder={pick('স্থায়ী ঠিকানা (গ্রাম/বাড়ি নং, ডাকঘর, উপজেলা, জেলা)...', 'Permanent address (village/house, post office, upazila, district)...')}
+                placeholder={'স্থায়ী ঠিকানা (গ্রাম/বাড়ি নং, ডাকঘর, উপজেলা, জেলা)...'}
                 onChange={(event) => setForm({ ...form, permanentAddress: event.target.value })}
               />
             </FormField>
@@ -532,29 +524,23 @@ export function StaffFormModal({
               />
               <div>
                 <p className="text-sm font-semibold text-foreground">
-                  {pick(
-                    'পোর্টাল লগইন অ্যাকাউন্ট তৈরি করুন (পাসওয়ার্ড ছাড়াই)',
-                    'Create Portal Login Account (Passwordless Onboarding)'
-                  )}
+                  {'পোর্টাল লগইন অ্যাকাউন্ট তৈরি করুন (পাসওয়ার্ড ছাড়াই)'}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {pick(
-                    'অ্যাডমিন থেকে কোনো পাসওয়ার্ড দিতে হবে না। প্রথমবার ইমেইল বা মোবাইল নম্বর দিয়ে লগইনের সময় তিনি নিজেই পাসওয়ার্ড সেট করতে পারবেন।',
-                    'No temporary password required. They will set their own password on first login using email or phone.'
-                  )}
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  {'অ্যাডমিন থেকে কোনো পাসওয়ার্ড দিতে হবে না। প্রথমবার ইমেইল বা মোবাইল নম্বর দিয়ে লগইনের সময় তিনি নিজেই পাসওয়ার্ড সেট করতে পারবেন।'}
                 </p>
               </div>
             </label>
 
             {createAccount && (
               <div className="pl-7 max-w-xs">
-                <FormField label={pick('পোর্টাল রোল', 'Portal Role')}>
+                <FormField label={'পোর্টাল রোল'}>
                   <Select
                     value={portalRole}
                     onChange={(e) => setPortalRole(e.target.value as 'TEACHER' | 'ACCOUNTANT')}
                   >
-                    <option value="TEACHER">{pick('শিক্ষক (Teacher Portal)', 'Teacher')}</option>
-                    <option value="ACCOUNTANT">{pick('হিসাবরক্ষক (Accountant Portal)', 'Accountant')}</option>
+                    <option value="TEACHER">{'শিক্ষক (Teacher Portal)'}</option>
+                    <option value="ACCOUNTANT">{'হিসাবরক্ষক (Accountant Portal)'}</option>
                   </Select>
                 </FormField>
               </div>
@@ -564,14 +550,14 @@ export function StaffFormModal({
 
         <div className="flex justify-end gap-2 pt-3 border-t border-border">
           <Button type="button" variant="outline" onClick={onClose}>
-            {pick('বাতিল', 'Cancel')}
+            {'বাতিল'}
           </Button>
           <Button type="submit" variant="primary" disabled={creating || updating}>
             {creating || updating
-              ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
+              ? 'সংরক্ষণ হচ্ছে...'
               : member
-                ? pick('হালনাগাদ করুন', 'Update')
-                : pick('সংরক্ষণ করুন', 'Save')}
+                ? 'হালনাগাদ করুন'
+                : 'সংরক্ষণ করুন'}
           </Button>
         </div>
       </form>

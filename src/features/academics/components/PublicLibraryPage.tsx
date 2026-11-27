@@ -27,7 +27,6 @@ import {
   Users,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatNumber, formatTime12h } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -56,7 +55,7 @@ import type { SyllabusExamTerm, SyllabusFile } from '@/src/types/entities';
 function getWeekdayLabel(dateStr: string, locale: 'bn' | 'en'): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     weekday: 'long',
   }).format(d);
 }
@@ -65,7 +64,7 @@ function getMonthLabel(yearMonth: string, locale: 'bn' | 'en'): string {
   const [y, m] = yearMonth.split('-').map(Number);
   if (!y || !m) return yearMonth;
   const d = new Date(y, m - 1, 1);
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     month: 'long',
   }).format(d);
 }
@@ -211,7 +210,6 @@ const STRUCTURED_DOC_SECTIONS: Record<AcademicDocumentType, StructuredDocSection
 
 export function PublicLibraryPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
 
@@ -250,7 +248,7 @@ export function PublicLibraryPage() {
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center border-b border-border pb-10">
         <div className="lg:col-span-7 space-y-5">
           <p className="text-sm font-semibold text-primary tracking-wide">
-            {pick('জ্ঞানচর্চা ও পাঠকক্ষ · ভোজেশ্বর উচ্চ বিদ্যালয়', 'Reading Room & Catalog · BHS')}
+            {'জ্ঞানচর্চা ও পাঠকক্ষ · ভোজেশ্বর উচ্চ বিদ্যালয়'}
           </p>
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight leading-tight">
             {db.libraryProfile.title}
@@ -262,21 +260,21 @@ export function PublicLibraryPage() {
           )}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
             <Card className="p-4">
-              <p className="text-xs text-muted-foreground">{pick('পাঠকক্ষের সময়সূচি', 'Reading Hours')}</p>
+              <p className="text-sm text-muted-foreground">{'পাঠকক্ষের সময়সূচি'}</p>
               <p className="text-sm font-bold text-foreground mt-1">
-                {pick('রবি–বৃহঃ · ১০:৩০ – ৩:৩০', 'Sun–Thu · 10:30–3:30')}
+                {'রবি–বৃহঃ · ১০:৩০ – ৩:৩০'}
               </p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-muted-foreground">{pick('নির্বাচিত বইয়ের ক্যাটালগ', 'Catalog Entries')}</p>
+              <p className="text-sm text-muted-foreground">{'নির্বাচিত বইয়ের ক্যাটালগ'}</p>
               <p className="text-xl font-bold text-primary tabular-nums mt-0.5">
-                {formatNumber(db.libraryBooks.length, locale)}
+                {formatNumber(db.libraryBooks.length, 'bn')}
               </p>
             </Card>
             <Card className="p-4">
-              <p className="text-xs text-muted-foreground">{pick('বিষয়ভিত্তিক বিভাগ', 'Book Categories')}</p>
+              <p className="text-sm text-muted-foreground">{'বিষয়ভিত্তিক বিভাগ'}</p>
               <p className="text-xl font-bold text-primary tabular-nums mt-0.5">
-                {formatNumber(categories.length, locale)}
+                {formatNumber(categories.length, 'bn')}
               </p>
             </Card>
           </div>
@@ -286,8 +284,8 @@ export function PublicLibraryPage() {
           <InstitutionalArtwork
             variant="library-room"
             className="h-64 sm:h-80 w-full border border-border"
-            title={pick('বিদ্যালয় কেন্দ্রীয় পাঠাগার ও অধ্যয়ন কক্ষ', 'Central Library & Study Room')}
-            subtitle={pick('সাহিত্য, মুক্তিযুদ্ধ, বিজ্ঞান ও রেফারেন্স গ্রন্থের সংগ্রহ', 'Literature, Liberation War, Science & Reference Collection')}
+            title={'বিদ্যালয় কেন্দ্রীয় পাঠাগার ও অধ্যয়ন কক্ষ'}
+            subtitle={'সাহিত্য, মুক্তিযুদ্ধ, বিজ্ঞান ও রেফারেন্স গ্রন্থের সংগ্রহ'}
           />
         </div>
       </section>
@@ -297,13 +295,10 @@ export function PublicLibraryPage() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
           <div>
             <h2 className="text-xl font-bold text-foreground">
-              {pick('গ্রন্থাগারের নির্বাচিত বইয়ের তালিকা', 'Selected Library Book Catalog')}
+              {'গ্রন্থাগারের নির্বাচিত বইয়ের তালিকা'}
             </h2>
             <p className="text-sm text-muted-foreground mt-0.5 tabular-nums">
-              {pick(
-                `প্রদর্শিত হচ্ছে ${formatNumber(filteredBooks.length, 'bn')} / ${formatNumber(db.libraryBooks.length, 'bn')}টি বই`,
-                `Showing ${filteredBooks.length} of ${db.libraryBooks.length} books`
-              )}
+              {`প্রদর্শিত হচ্ছে ${formatNumber(filteredBooks.length, 'bn')} / ${formatNumber(db.libraryBooks.length, 'bn')}টি বই`}
             </p>
           </div>
         </div>
@@ -314,7 +309,7 @@ export function PublicLibraryPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={pick('বইয়ের নাম, লেখক বা প্রকাশনী খুঁজুন...', 'Search by book title, author, or publisher...')}
+              placeholder={'বইয়ের নাম, লেখক বা প্রকাশনী খুঁজুন...'}
               className="pl-9"
             />
           </div>
@@ -326,7 +321,7 @@ export function PublicLibraryPage() {
               onClick={() => setCategoryFilter('ALL')}
               className="whitespace-nowrap"
             >
-              {pick('সকল বিভাগ', 'All Categories')}
+              {'সকল বিভাগ'}
             </Button>
             {categories.map((cat) => (
               <Button
@@ -345,7 +340,7 @@ export function PublicLibraryPage() {
 
         {filteredBooks.length === 0 ? (
           <EmptyState
-            title={pick('কোনো বই পাওয়া যায়নি', 'No Books Found')}
+            title={'কোনো বই পাওয়া যায়নি'}
             action={
               <Button
                 variant="outline"
@@ -355,7 +350,7 @@ export function PublicLibraryPage() {
                   setCategoryFilter('ALL');
                 }}
               >
-                <RotateCcw className="w-4 h-4" /> {pick('ফিল্টার রিসেট করুন', 'Reset Filters')}
+                <RotateCcw className="w-4 h-4" /> {'ফিল্টার রিসেট করুন'}
               </Button>
             }
           />
@@ -366,7 +361,7 @@ export function PublicLibraryPage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-primary">
                     <BookOpen className="w-4 h-4 shrink-0" />
-                    <span className="text-xs font-semibold">{book.category}</span>
+                    <span className="text-sm font-semibold">{book.category}</span>
                   </div>
                   <h3 className="text-base font-bold text-foreground">{book.title}</h3>
                   <p className="text-sm font-medium text-foreground/80">{book.author}</p>
@@ -375,8 +370,8 @@ export function PublicLibraryPage() {
                   )}
                 </div>
                 {book.publisher && (
-                  <p className="text-xs text-muted-foreground pt-2 border-t border-border">
-                    {pick('প্রকাশনী:', 'Publisher:')} {book.publisher}
+                  <p className="text-sm text-muted-foreground pt-2 border-t border-border">
+                    {'প্রকাশনী:'} {book.publisher}
                   </p>
                 )}
               </Card>
@@ -390,10 +385,10 @@ export function PublicLibraryPage() {
         <div className="flex items-center justify-between gap-2 border-b border-border pb-3">
           <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <FileText className="w-5 h-5 text-primary" />
-            {pick('বই ও পাঠ্যপুস্তক বিতরণ কার্যক্রম', 'Textbook & Book Distribution Activities')}
+            {'বই ও পাঠ্যপুস্তক বিতরণ কার্যক্রম'}
           </h2>
-          <span className="text-xs text-muted-foreground tabular-nums">
-            {pick(`${formatNumber(distributions.length, 'bn')}টি কর্মসূচি`, `${distributions.length} Programs`)}
+          <span className="text-sm text-muted-foreground tabular-nums">
+            {`${formatNumber(distributions.length, 'bn')}টি কর্মসূচি`}
           </span>
         </div>
         <div className="divide-y divide-border">
@@ -406,7 +401,7 @@ export function PublicLibraryPage() {
               </div>
               <span className="text-sm font-medium text-muted-foreground tabular-nums shrink-0 flex items-center gap-1.5">
                 <Calendar className="w-4 h-4 text-primary" />
-                {formatDateLong(dist.distributionDate, locale)}
+                {formatDateLong(dist.distributionDate, 'bn')}
               </span>
             </div>
           ))}

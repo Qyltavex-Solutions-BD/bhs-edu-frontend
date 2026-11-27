@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Pencil, User } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import { getEnumMeta } from '@/src/lib/constants/enums';
 import { formatDateLong, formatNumber } from '@/src/lib/formatters';
 import { SCHOOL_LOGO_SRC, SchoolEmblem } from '@/src/components/shared/Feedback';
@@ -64,7 +63,7 @@ export function buildAdmissionFormPrintData(
     school: db.schoolProfile ?? ({
       id: 'default',
       name: 'Bhojeshwar High School',
-      nameBn: 'বজেশ্বর উচ্চ বিদ্যালয়',
+      nameBn: 'ভোজেশ্বর উচ্চ বিদ্যালয়',
       nameEn: 'Bhojeshwar High School',
       eiin: '113587',
       address: 'নড়িয়া, শরীয়তপুর',
@@ -170,20 +169,15 @@ export function PrintableAdmissionFormDocument({
   onJumpToStep?: (step: 1 | 2 | 3) => void;
   isPreviewOnly?: boolean;
 }) {
-  const { locale, pick } = useI18n();
   const { school, values, numericClass, sessionLabel, submittedMeta } = data;
   const rules = getClassAdmissionRules(numericClass);
   const computedAge = calculateAgeYears(values.dateOfBirth);
   const bloodLabel =
     BLOOD_GROUP_OPTIONS.find((b) => b.value === values.bloodGroup)?.label || '—';
   const genderLabel =
-    locale === 'bn'
-      ? getEnumMeta('Gender', values.gender).bn
-      : getEnumMeta('Gender', values.gender).en;
+    getEnumMeta('Gender', values.gender).bn;
   const religionLabel =
-    locale === 'bn'
-      ? getEnumMeta('Religion', values.religion).bn
-      : getEnumMeta('Religion', values.religion).en;
+    getEnumMeta('Religion', values.religion).bn;
   const derivedGrade = gpaToLetterGrade(values.prevExamGpa);
   const presentParts = values.sameAsPermanent
     ? values.permanentAddressParts
@@ -191,14 +185,14 @@ export function PrintableAdmissionFormDocument({
 
   const primaryGuardianLabel =
     values.primaryGuardianType === 'FATHER'
-      ? pick('পিতা', 'Father')
+      ? 'পিতা'
       : values.primaryGuardianType === 'MOTHER'
-        ? pick('মাতা', 'Mother')
+        ? 'মাতা'
         : values.legalGuardianRelation
-          ? `${pick('বৈধ অভিভাবক', 'Legal Guardian')} (${values.legalGuardianRelation})`
-          : pick('বৈধ অভিভাবক', 'Legal Guardian');
+          ? `${'বৈধ অভিভাবক'} (${values.legalGuardianRelation})`
+          : 'বৈধ অভিভাবক';
 
-  const editLabel = pick('সংশোধন', 'Edit');
+  const editLabel = 'সংশোধন';
   const hasDeceasedParent = !values.fatherAlive || !values.motherAlive;
   const checklist = getRequiredDocumentChecklist(
     numericClass,
@@ -208,15 +202,15 @@ export function PrintableAdmissionFormDocument({
 
   const uploadedDocs = [
     values.attachments?.birthCertificate && {
-      label: pick('জন্ম নিবন্ধন', 'Birth Certificate'),
+      label: 'জন্ম নিবন্ধন',
       name: values.attachments.birthCertificate.name,
     },
     values.attachments?.parentsNid && {
-      label: pick('পিতা-মাতার এনআইডি', 'Parents’ NID'),
+      label: 'পিতা-মাতার এনআইডি',
       name: values.attachments.parentsNid.name,
     },
     values.attachments?.previousRecordOrTc && {
-      label: pick('পূর্ববর্তী সনদ / ছাড়পত্র', 'Transcript / TC'),
+      label: 'পূর্ববর্তী সনদ / ছাড়পত্র',
       name: values.attachments.previousRecordOrTc.name,
     },
   ].filter(Boolean) as Array<{ label: string; name: string }>;
@@ -265,20 +259,14 @@ export function PrintableAdmissionFormDocument({
                   </p>
                   <p className="text-[13px] text-[#3F3F46]">{school.address}</p>
                   <p className="text-[12px] text-[#52525B] tabular-nums">
-                    EIIN: {school.eiin ?? '113587'} · {pick('স্থাপিত:', 'Est.')}{' '}
-                    {formatNumber(school.establishedYear ?? 1978, locale)}
+                    EIIN: {school.eiin ?? '113587'} · {'স্থাপিত:'}{' '}
+                    {formatNumber(school.establishedYear ?? 1978, 'bn')}
                   </p>
                   <div className="pt-1.5">
                     <span className="inline-block text-[15px] font-bold text-[#111111] border-b-[1.5px] border-[#18181B] pb-0.5 px-3">
                       {isPreviewOnly
-                        ? pick(
-                            `অনলাইন ভর্তি আবেদনপত্র — প্রিভিউ (শিক্ষাবর্ষ: ${sessionLabel})`,
-                            `Online Admission Application Form — Preview (Session: ${sessionLabel})`
-                          )
-                        : pick(
-                            `অনলাইন ভর্তি আবেদনপত্র — আবেদনকারীর কপি (শিক্ষাবর্ষ: ${sessionLabel})`,
-                            `Online Admission Application Form — Applicant Copy (Session: ${sessionLabel})`
-                          )}
+                        ? `অনলাইন ভর্তি আবেদনপত্র — প্রিভিউ (শিক্ষাবর্ষ: ${sessionLabel})`
+                        : `অনলাইন ভর্তি আবেদনপত্র — আবেদনকারীর কপি (শিক্ষাবর্ষ: ${sessionLabel})`}
                     </span>
                   </div>
                 </div>
@@ -296,7 +284,7 @@ export function PrintableAdmissionFormDocument({
                     <div className="text-center text-[#71717A] px-1">
                       <User className="w-5 h-5 mx-auto opacity-60" />
                       <span className="block text-[11px] mt-1 leading-tight">
-                        {pick('পাসপোর্ট ছবি', 'Passport Photo')}
+                        {'পাসপোর্ট ছবি'}
                       </span>
                     </div>
                   )}
@@ -307,19 +295,19 @@ export function PrintableAdmissionFormDocument({
               {!isPreviewOnly && (
                 <div className="grid grid-cols-3 border border-[#52525B] divide-x divide-[#52525B] bg-[#F4F4F5] text-[12.5px] tabular-nums">
                   <div className="px-2.5 py-2 flex items-center justify-between gap-1.5">
-                    <span className="text-[#52525B]">{pick('আবেদন নম্বর:', 'Application No:')}</span>
+                    <span className="text-[#52525B]">{'আবেদন নম্বর:'}</span>
                     <strong className="font-mono text-[13.5px] text-[#111111]">
                       {submittedMeta.applicationNumber}
                     </strong>
                   </div>
                   <div className="px-2.5 py-2 flex items-center justify-between gap-1.5">
-                    <span className="text-[#52525B]">{pick('জমাদানের তারিখ:', 'Submitted:')}</span>
+                    <span className="text-[#52525B]">{'জমাদানের তারিখ:'}</span>
                     <strong className="text-[#111111]">
-                      {formatDateLong(submittedMeta.submittedAt, locale)}
+                      {formatDateLong(submittedMeta.submittedAt, 'bn')}
                     </strong>
                   </div>
                   <div className="px-2.5 py-2 flex items-center justify-between gap-1.5">
-                    <span className="text-[#52525B]">{pick('ভর্তি পরীক্ষার রোল:', 'Test Roll:')}</span>
+                    <span className="text-[#52525B]">{'ভর্তি পরীক্ষার রোল:'}</span>
                     <strong className="font-mono text-[13.5px] text-[#111111]">
                       {submittedMeta.admissionTestRoll || '—'}
                     </strong>
@@ -331,10 +319,7 @@ export function PrintableAdmissionFormDocument({
               <div className="border border-[#52525B]">
                 {/* Section 1: Admission & Previous Academic Records */}
                 <A4SectionBar
-                  title={pick(
-                    '১. ভর্তি ও পূর্ববর্তী একাডেমিক তথ্য',
-                    '1. Admission & Previous Academic Details'
-                  )}
+                  title={'১. ভর্তি ও পূর্ববর্তী একাডেমিক তথ্য'}
                   editStep={isPreviewOnly ? 1 : undefined}
                   onJumpToStep={onJumpToStep}
                   editLabel={editLabel}
@@ -342,62 +327,60 @@ export function PrintableAdmissionFormDocument({
                 />
                 <div className="grid grid-cols-2 gap-px bg-[#D4D4D8]">
                   <A4Row
-                    label={pick('ভর্তিচ্ছু শ্রেণি', 'Target Class')}
+                    label={'ভর্তিচ্ছু শ্রেণি'}
                     value={
                       <strong className="font-bold">
-                        {locale === 'bn' ? data.targetClassNameBn : data.targetClassNameEn}
+                        {data.targetClassNameBn}
                       </strong>
                     }
                   />
                   <A4Row
-                    label={pick('ভর্তির ধরন', 'Admission Type')}
+                    label={'ভর্তির ধরন'}
                     value={
-                      locale === 'bn'
-                        ? ADMISSION_TYPE_META[values.admissionType].bn
-                        : ADMISSION_TYPE_META[values.admissionType].en
+                      ADMISSION_TYPE_META[values.admissionType].bn
                     }
                   />
                   {rules.requiresGroup && (
                     <>
                       <A4Row
-                        label={pick('বিভাগ (Group)', 'Academic Group')}
+                        label={'বিভাগ (Group)'}
                         value={
                           <strong className="font-semibold">
-                            {(locale === 'bn' ? data.groupNameBn : data.groupNameEn) || '—'}
+                            {(data.groupNameBn) || '—'}
                           </strong>
                         }
                       />
                       <A4Row
-                        label={pick('৪র্থ / ঐচ্ছিক বিষয়', '4th / Optional')}
+                        label={'৪র্থ / ঐচ্ছিক বিষয়'}
                         value={data.optionalSubjectLabel || '—'}
                       />
                     </>
                   )}
                   <A4Row
-                    label={pick('পূর্ববর্তী শ্রেণি', 'Previous Class')}
+                    label={'পূর্ববর্তী শ্রেণি'}
                     value={
-                      locale === 'bn' ? rules.defaultPreviousClassBn : rules.defaultPreviousClassEn
+                      rules.defaultPreviousClassBn
                     }
                   />
                   <A4Row
-                    label={pick('পাসের সন', 'Passing Year')}
+                    label={'পাসের সন'}
                     value={values.prevExamPassingYear}
                     mono
                   />
                   <A4Row
-                    label={pick('পূর্ববর্তী বিদ্যালয়', 'Previous School')}
+                    label={'পূর্ববর্তী বিদ্যালয়'}
                     value={values.previousSchoolName}
                     colSpan2
                   />
                   {rules.showPreviousSchoolEiin && values.previousSchoolEiin && (
                     <A4Row
-                      label={pick('বিদ্যালয়ের EIIN', 'School EIIN')}
+                      label={'বিদ্যালয়ের EIIN'}
                       value={values.previousSchoolEiin}
                       mono
                     />
                   )}
                   <A4Row
-                    label={pick('পূর্ববর্তী রোল নং', 'Previous Roll')}
+                    label={'পূর্ববর্তী রোল নং'}
                     value={values.prevExamRoll}
                     mono
                     colSpan2={
@@ -408,7 +391,7 @@ export function PrintableAdmissionFormDocument({
                   />
                   {(rules.showPreviousGpa || Boolean(values.prevExamGpa)) && (
                     <A4Row
-                      label={pick('প্রাপ্ত জিপিএ', 'Annual GPA')}
+                      label={'প্রাপ্ত জিপিএ'}
                       value={
                         values.prevExamGpa
                           ? `${values.prevExamGpa}${derivedGrade ? ` (${derivedGrade})` : ''}`
@@ -423,14 +406,14 @@ export function PrintableAdmissionFormDocument({
                       <A4Row
                         label={
                           numericClass === 10
-                            ? pick('বোর্ড e-TC নং', 'Board e-TC No')
-                            : pick('ছাড়পত্র (TC) নং', 'TC Number')
+                            ? 'বোর্ড e-TC নং'
+                            : 'ছাড়পত্র (TC) নং'
                         }
                         value={values.transferCertificateNo}
                         mono
                       />
                       <A4Row
-                        label={pick('ছাড়পত্রের তারিখ', 'TC Issue Date')}
+                        label={'ছাড়পত্রের তারিখ'}
                         value={values.transferCertificateDate}
                         mono
                       />
@@ -439,12 +422,12 @@ export function PrintableAdmissionFormDocument({
                   {values.boardRegistrationNo && (
                     <>
                       <A4Row
-                        label={pick('বোর্ড রেজিস্ট্রেশন নং', 'Board Reg No')}
+                        label={'বোর্ড রেজিস্ট্রেশন নং'}
                         value={values.boardRegistrationNo}
                         mono
                       />
                       <A4Row
-                        label={pick('রেজিস্ট্রেশন সেশন', 'Reg Session')}
+                        label={'রেজিস্ট্রেশন সেশন'}
                         value={values.boardRegistrationSession}
                         mono
                       />
@@ -454,18 +437,18 @@ export function PrintableAdmissionFormDocument({
 
                 {/* Section 2: Student Personal Information */}
                 <A4SectionBar
-                  title={pick('২. শিক্ষার্থীর ব্যক্তিগত তথ্য', '2. Student Personal Information')}
+                  title={'২. শিক্ষার্থীর ব্যক্তিগত তথ্য'}
                   editStep={isPreviewOnly ? 2 : undefined}
                   onJumpToStep={onJumpToStep}
                   editLabel={editLabel}
                 />
                 <div className="grid grid-cols-2 gap-px bg-[#D4D4D8]">
                   <A4Row
-                    label={pick('নাম (বাংলায়)', 'Name (Bangla)')}
+                    label={'নাম (বাংলায়)'}
                     value={<strong className="font-bold">{values.studentNameBn}</strong>}
                   />
                   <A4Row
-                    label={pick('নাম (ইংরেজিতে)', 'Name (English)')}
+                    label={'নাম (ইংরেজিতে)'}
                     value={
                       <span className="uppercase tracking-wide font-semibold">
                         {values.studentNameEn}
@@ -473,7 +456,7 @@ export function PrintableAdmissionFormDocument({
                     }
                   />
                   <A4Row
-                    label={pick('জন্ম তারিখ', 'Date of Birth')}
+                    label={'জন্ম তারিখ'}
                     value={
                       values.dateOfBirth
                         ? `${values.dateOfBirth}${computedAge !== null ? ` (${computedAge} বছর)` : ''}`
@@ -482,17 +465,17 @@ export function PrintableAdmissionFormDocument({
                     mono
                   />
                   <A4Row
-                    label={pick('জন্ম নিবন্ধন (১৭ ডিজিট)', 'Birth Cert (17 Digits)')}
+                    label={'জন্ম নিবন্ধন (১৭ ডিজিট)'}
                     value={values.birthCertificateNo}
                     mono
                   />
-                  <A4Row label={pick('লিঙ্গ', 'Gender')} value={genderLabel} />
-                  <A4Row label={pick('ধর্ম', 'Religion')} value={religionLabel} />
-                  <A4Row label={pick('রক্তের গ্রুপ', 'Blood Group')} value={bloodLabel} />
-                  <A4Row label={pick('জাতীয়তা', 'Nationality')} value={values.nationality} />
+                  <A4Row label={'লিঙ্গ'} value={genderLabel} />
+                  <A4Row label={'ধর্ম'} value={religionLabel} />
+                  <A4Row label={'রক্তের গ্রুপ'} value={bloodLabel} />
+                  <A4Row label={'জাতীয়তা'} value={values.nationality} />
                   {values.studentPhone && (
                     <A4Row
-                      label={pick('শিক্ষার্থীর মোবাইল', 'Student Mobile')}
+                      label={'শিক্ষার্থীর মোবাইল'}
                       value={values.studentPhone}
                       mono
                       colSpan2
@@ -502,35 +485,32 @@ export function PrintableAdmissionFormDocument({
 
                 {/* Section 3: Father, Mother, Primary Contact & Legal Guardian */}
                 <A4SectionBar
-                  title={pick(
-                    '৩. পিতা, মাতা ও অভিভাবকের তথ্য',
-                    '3. Parents & Guardian Information'
-                  )}
+                  title={'৩. পিতা, মাতা ও অভিভাবকের তথ্য'}
                   editStep={isPreviewOnly ? 3 : undefined}
                   onJumpToStep={onJumpToStep}
                   editLabel={editLabel}
                 />
                 <div className="grid grid-cols-2 gap-px bg-[#D4D4D8]">
                   <A4Row
-                    label={pick('পিতার নাম (বাংলায়)', 'Father’s Name (BN)')}
+                    label={'পিতার নাম (বাংলায়)'}
                     value={
                       <span>
                         <strong className="font-semibold">{values.fatherNameBn}</strong>
                         {!values.fatherAlive && (
                           <span className="text-[12px] text-[#52525B] ml-1">
-                            ({pick('মৃত', 'Deceased')})
+                            ({'মৃত'})
                           </span>
                         )}
                       </span>
                     }
                   />
                   <A4Row
-                    label={pick('পিতার নাম (ইংরেজিতে)', 'Father’s Name (EN)')}
+                    label={'পিতার নাম (ইংরেজিতে)'}
                     value={<span className="uppercase">{values.fatherNameEn}</span>}
                   />
                   {(values.fatherAlive || values.fatherNid) && (
                     <A4Row
-                      label={pick('পিতার এনআইডি', 'Father’s NID')}
+                      label={'পিতার এনআইডি'}
                       value={values.fatherNid}
                       mono
                       colSpan2={!values.fatherAlive}
@@ -539,12 +519,12 @@ export function PrintableAdmissionFormDocument({
                   {values.fatherAlive && (
                     <>
                       <A4Row
-                        label={pick('পিতার মোবাইল', 'Father’s Mobile')}
+                        label={'পিতার মোবাইল'}
                         value={values.fatherPhone}
                         mono
                       />
                       <A4Row
-                        label={pick('পিতার পেশা', 'Father’s Occupation')}
+                        label={'পিতার পেশা'}
                         value={values.fatherOccupation}
                         colSpan2
                       />
@@ -552,25 +532,25 @@ export function PrintableAdmissionFormDocument({
                   )}
 
                   <A4Row
-                    label={pick('মাতার নাম (বাংলায়)', 'Mother’s Name (BN)')}
+                    label={'মাতার নাম (বাংলায়)'}
                     value={
                       <span>
                         <strong className="font-semibold">{values.motherNameBn}</strong>
                         {!values.motherAlive && (
                           <span className="text-[12px] text-[#52525B] ml-1">
-                            ({pick('মৃত', 'Deceased')})
+                            ({'মৃত'})
                           </span>
                         )}
                       </span>
                     }
                   />
                   <A4Row
-                    label={pick('মাতার নাম (ইংরেজিতে)', 'Mother’s Name (EN)')}
+                    label={'মাতার নাম (ইংরেজিতে)'}
                     value={<span className="uppercase">{values.motherNameEn}</span>}
                   />
                   {(values.motherAlive || values.motherNid) && (
                     <A4Row
-                      label={pick('মাতার এনআইডি', 'Mother’s NID')}
+                      label={'মাতার এনআইডি'}
                       value={values.motherNid}
                       mono
                       colSpan2={!values.motherAlive}
@@ -579,12 +559,12 @@ export function PrintableAdmissionFormDocument({
                   {values.motherAlive && (
                     <>
                       <A4Row
-                        label={pick('মাতার মোবাইল', 'Mother’s Mobile')}
+                        label={'মাতার মোবাইল'}
                         value={values.motherPhone}
                         mono
                       />
                       <A4Row
-                        label={pick('মাতার পেশা', 'Mother’s Occupation')}
+                        label={'মাতার পেশা'}
                         value={values.motherOccupation}
                         colSpan2
                       />
@@ -592,7 +572,7 @@ export function PrintableAdmissionFormDocument({
                   )}
 
                   <A4Row
-                    label={pick('প্রাথমিক যোগাযোগকারী', 'Primary Contact')}
+                    label={'প্রাথমিক যোগাযোগকারী'}
                     value={
                       <span>
                         <strong className="font-semibold">{primaryGuardianLabel}</strong>
@@ -602,7 +582,7 @@ export function PrintableAdmissionFormDocument({
                     }
                   />
                   <A4Row
-                    label={pick('পরিবারের মাসিক আয়', 'Monthly Income')}
+                    label={'পরিবারের মাসিক আয়'}
                     value={values.guardianMonthlyIncome ? `৳ ${values.guardianMonthlyIncome}` : '—'}
                     mono
                   />
@@ -610,7 +590,7 @@ export function PrintableAdmissionFormDocument({
                   {showLegalGuardian && (
                     <>
                       <A4Row
-                        label={pick('বৈধ অভিভাবকের নাম', 'Legal Guardian')}
+                        label={'বৈধ অভিভাবকের নাম'}
                         value={
                           values.legalGuardianNameEn
                             ? `${values.legalGuardianNameBn} (${values.legalGuardianNameEn})`
@@ -618,22 +598,22 @@ export function PrintableAdmissionFormDocument({
                         }
                       />
                       <A4Row
-                        label={pick('সম্পর্ক', 'Relationship')}
+                        label={'সম্পর্ক'}
                         value={values.legalGuardianRelation}
                       />
                       <A4Row
-                        label={pick('অভিভাবকের মোবাইল', 'Guardian Mobile')}
+                        label={'অভিভাবকের মোবাইল'}
                         value={values.legalGuardianPhone}
                         mono
                       />
                       <A4Row
-                        label={pick('অভিভাবকের এনআইডি', 'Guardian NID')}
+                        label={'অভিভাবকের এনআইডি'}
                         value={values.legalGuardianNid}
                         mono
                       />
                       {values.legalGuardianAddress && (
                         <A4Row
-                          label={pick('অভিভাবকের ঠিকানা', 'Guardian Address')}
+                          label={'অভিভাবকের ঠিকানা'}
                           value={values.legalGuardianAddress}
                           colSpan2
                         />
@@ -644,7 +624,7 @@ export function PrintableAdmissionFormDocument({
 
                 {/* Section 4: Structured Permanent & Present Addresses */}
                 <A4SectionBar
-                  title={pick('৪. স্থায়ী ও বর্তমান ঠিকানা', '4. Permanent & Present Address')}
+                  title={'৪. স্থায়ী ও বর্তমান ঠিকানা'}
                   editStep={isPreviewOnly ? 3 : undefined}
                   onJumpToStep={onJumpToStep}
                   editLabel={editLabel}
@@ -652,12 +632,12 @@ export function PrintableAdmissionFormDocument({
                 <div className="grid grid-cols-2 divide-x divide-[#D4D4D8] text-[13px] leading-[1.55]">
                   <div className="px-3 py-2 space-y-0.5">
                     <p className="font-bold text-[#18181B]">
-                      {pick('স্থায়ী ঠিকানা:', 'Permanent Address:')}
+                      {'স্থায়ী ঠিকানা:'}
                     </p>
                     <p>
-                      <span className="text-[#52525B]">{pick('গ্রাম/বাসা:', 'Village:')}</span>{' '}
+                      <span className="text-[#52525B]">{'গ্রাম/বাসা:'}</span>{' '}
                       {values.permanentAddressParts.village || '—'} ·{' '}
-                      <span className="text-[#52525B]">{pick('ডাকঘর:', 'Post:')}</span>{' '}
+                      <span className="text-[#52525B]">{'ডাকঘর:'}</span>{' '}
                       {values.permanentAddressParts.postOffice || '—'}
                       {values.permanentAddressParts.postCode
                         ? ` (${values.permanentAddressParts.postCode})`
@@ -665,7 +645,7 @@ export function PrintableAdmissionFormDocument({
                     </p>
                     <p>
                       <span className="text-[#52525B]">
-                        {pick('উপজেলা / জেলা:', 'Upazila / District:')}
+                        {'উপজেলা / জেলা:'}
                       </span>{' '}
                       {values.permanentAddressParts.upazila || '—'},{' '}
                       {values.permanentAddressParts.district || '—'}
@@ -674,23 +654,23 @@ export function PrintableAdmissionFormDocument({
 
                   <div className="px-3 py-2 space-y-0.5">
                     <p className="font-bold text-[#18181B]">
-                      {pick('বর্তমান ঠিকানা:', 'Present Address:')}
+                      {'বর্তমান ঠিকানা:'}
                       {values.sameAsPermanent && (
                         <span className="font-normal text-[#52525B] ml-1">
-                          ({pick('স্থায়ী ঠিকানার অনুরূপ', 'Same as permanent')})
+                          ({'স্থায়ী ঠিকানার অনুরূপ'})
                         </span>
                       )}
                     </p>
                     <p>
-                      <span className="text-[#52525B]">{pick('গ্রাম/বাসা:', 'Village:')}</span>{' '}
+                      <span className="text-[#52525B]">{'গ্রাম/বাসা:'}</span>{' '}
                       {presentParts.village || '—'} ·{' '}
-                      <span className="text-[#52525B]">{pick('ডাকঘর:', 'Post:')}</span>{' '}
+                      <span className="text-[#52525B]">{'ডাকঘর:'}</span>{' '}
                       {presentParts.postOffice || '—'}
                       {presentParts.postCode ? ` (${presentParts.postCode})` : ''}
                     </p>
                     <p>
                       <span className="text-[#52525B]">
-                        {pick('উপজেলা / জেলা:', 'Upazila / District:')}
+                        {'উপজেলা / জেলা:'}
                       </span>{' '}
                       {presentParts.upazila || '—'}, {presentParts.district || '—'}
                     </p>
@@ -701,10 +681,7 @@ export function PrintableAdmissionFormDocument({
                 {uploadedDocs.length > 0 && (
                   <>
                     <A4SectionBar
-                      title={pick(
-                        '৫. সংযুক্ত ডিজিটাল কাগজপত্র',
-                        '5. Attached Supporting Documents'
-                      )}
+                      title={'৫. সংযুক্ত ডিজিটাল কাগজপত্র'}
                       editLabel={editLabel}
                     />
                     <div className="px-3 py-2 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-[#111111]">
@@ -724,16 +701,13 @@ export function PrintableAdmissionFormDocument({
                 <div className="space-y-3 pt-1">
                   <div className="border border-[#D4D4D8] bg-[#FAFAFA] px-3 py-2.5 space-y-1">
                     <p className="text-[13px] font-bold text-[#111111]">
-                      {pick(
-                        'ভর্তির দিন বিদ্যালয় অফিসে জমাদানের প্রয়োজনীয় কাগজপত্র:',
-                        'Hardcopy Documents Required at School Office on Admission Day:'
-                      )}
+                      {'ভর্তির দিন বিদ্যালয় অফিসে জমাদানের প্রয়োজনীয় কাগজপত্র:'}
                     </p>
                     <ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12.5px] text-[#27272A] leading-[1.48]">
                       {checklist.map((item, idx) => (
                         <li key={item.key}>
-                          {formatNumber(idx + 1, locale)}.{' '}
-                          {locale === 'bn' ? item.labelBn : item.labelEn}
+                          {formatNumber(idx + 1, 'bn')}.{' '}
+                          {item.labelBn}
                         </li>
                       ))}
                     </ul>
@@ -741,7 +715,7 @@ export function PrintableAdmissionFormDocument({
 
                   <div className="px-1 space-y-1">
                     <p className="text-[13px] font-bold text-[#111111]">
-                      {pick('অঙ্গীকারনামা:', 'Declaration:')}
+                      {'অঙ্গীকারনামা:'}
                     </p>
                     <p className="text-[12.5px] text-[#27272A] leading-[1.58] text-justify">
                       {data.declarationText ||
@@ -753,17 +727,17 @@ export function PrintableAdmissionFormDocument({
                   <div className="grid grid-cols-3 gap-8 pt-10 px-2 text-center text-[13px] text-[#18181B]">
                     <div>
                       <div className="border-t border-[#27272A] pt-1.5 font-semibold">
-                        {pick('অভিভাবকের স্বাক্ষর ও তারিখ', 'Guardian Signature & Date')}
+                        {'অভিভাবকের স্বাক্ষর ও তারিখ'}
                       </div>
                     </div>
                     <div>
                       <div className="border-t border-[#27272A] pt-1.5 font-semibold">
-                        {pick('শিক্ষার্থীর স্বাক্ষর ও তারিখ', 'Student Signature & Date')}
+                        {'শিক্ষার্থীর স্বাক্ষর ও তারিখ'}
                       </div>
                     </div>
                     <div>
                       <div className="border-t border-[#27272A] pt-1.5 font-semibold">
-                        {pick('ভর্তি গ্রহণকারী / প্রধান শিক্ষক', 'Receiving Officer / Head Teacher')}
+                        {'ভর্তি গ্রহণকারী / প্রধান শিক্ষক'}
                       </div>
                     </div>
                   </div>

@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { useGetBootstrapQuery } from '@/src/store/api';
 import { useGetAdminNoticesQuery } from '@/src/features/notices/api/notices.api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import {
@@ -30,8 +29,6 @@ const TINT_CORAL = '#F4DAD5';
 export function AdminDashboardPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const { data: recentNoticePage, isLoading: loadingRecentNotices } = useGetAdminNoticesQuery({ limit: 5 });
-  const { locale, pick } = useI18n();
-
   const [timeRange, setTimeRange] = useState<'day' | 'week' | 'month'>('week');
   const [dismissedActions, setDismissedActions] = useState<string[]>([]);
 
@@ -79,14 +76,14 @@ export function AdminDashboardPage() {
   const maleCount = activeStudents.filter((s) => s.gender === Gender.MALE).length;
   const femaleCount = activeStudents.filter((s) => s.gender === Gender.FEMALE).length;
   const genderData = [
-    { name: pick('ছাত্র (Male)', 'Male'), value: maleCount, color: COLOR_PRIMARY },
-    { name: pick('ছাত্রী (Female)', 'Female'), value: femaleCount, color: COLOR_BLUE },
+    { name: 'ছাত্র', value: maleCount, color: COLOR_PRIMARY },
+    { name: 'ছাত্রী', value: femaleCount, color: COLOR_BLUE },
   ];
   const totalStudentsCount = maleCount + femaleCount || activeStudents.length;
 
   // 4. Chart 3: Class-wise Student Distribution (2026)
   const classDistData = db.classes.map((cls) => ({
-    name: locale === 'bn' ? cls.nameBn ?? cls.name : cls.name,
+    name: cls.nameBn ?? cls.name,
     students: db.enrollments.filter((e) => e.classId === cls.id && e.academicYearId === 'ay-2026').length,
   }));
 
@@ -100,7 +97,7 @@ export function AdminDashboardPage() {
         ? Math.round((res.reduce((acc, r) => acc + (r.totalMarks / es.fullMarks) * 100, 0) / res.length) * 10) / 10
         : 0;
       return {
-        subject: (locale === 'bn' ? sub?.nameBn : sub?.name)?.slice(0, 10) ?? '',
+        subject: (sub?.nameBn)?.slice(0, 10) ?? '',
         avgPct: avg,
       };
     });
@@ -124,8 +121,8 @@ export function AdminDashboardPage() {
       avatar: 'EX',
       avatarBg: TINT_BLUE,
       avatarText: COLOR_BLUE,
-      title: pick('বার্ষিক পরীক্ষা ২০২৬ নম্বর এন্ট্রি', 'Annual Exam 2026 Marks Entry'),
-      subtitle: pick('খসড়া অবস্থায় — যাচাই ও প্রকাশ করুন', 'Draft state — review & publish'),
+      title: 'বার্ষিক পরীক্ষা ২০২৬ নম্বর এন্ট্রি',
+      subtitle: 'খসড়া অবস্থায় — যাচাই ও প্রকাশ করুন',
       link: '/admin/examinations/marks-entry',
     },
     {
@@ -133,11 +130,8 @@ export function AdminDashboardPage() {
       avatar: 'OA',
       avatarBg: TINT_GREEN,
       avatarText: COLOR_PRIMARY,
-      title: pick('অনলাইন ভর্তি আবেদন পর্যালোচনা', 'Review Online Admissions'),
-      subtitle: pick(
-        `${formatNumber(pendingAdmissions, locale)}টি আবেদন অপেক্ষমাণ`,
-        `${formatNumber(pendingAdmissions, locale)} pending applications`
-      ),
+      title: 'অনলাইন ভর্তি আবেদন পর্যালোচনা',
+      subtitle: `${formatNumber(pendingAdmissions, 'bn')}টি আবেদন অপেক্ষমাণ`,
       link: '/admin/students/admissions',
     },
     {
@@ -145,11 +139,8 @@ export function AdminDashboardPage() {
       avatar: 'SM',
       avatarBg: TINT_CORAL,
       avatarText: '#9E2F22',
-      title: pick('ব্যর্থ SMS পুনরায় প্রেরণ', 'Retry Failed Attendance SMS'),
-      subtitle: pick(
-        `${formatNumber(smsFailed, locale)}টি ব্যর্থ SMS`,
-        `${formatNumber(smsFailed, locale)} failed SMS alerts`
-      ),
+      title: 'ব্যর্থ SMS পুনরায় প্রেরণ',
+      subtitle: `${formatNumber(smsFailed, 'bn')}টি ব্যর্থ SMS`,
       link: '/admin/attendance/sms-logs',
     },
     {
@@ -157,8 +148,8 @@ export function AdminDashboardPage() {
       avatar: 'TC',
       avatarBg: TINT_BLUE,
       avatarText: COLOR_BLUE,
-      title: pick('ছাড়পত্র ও প্রত্যয়নপত্র অনুমোদন', 'Verify Transfer Certificates'),
-      subtitle: pick('২ জন শিক্ষার্থীর ছাড়পত্র প্রস্তুত', '2 certificates pending verification'),
+      title: 'ছাড়পত্র ও প্রত্যয়নপত্র অনুমোদন',
+      subtitle: '২ জন শিক্ষার্থীর ছাড়পত্র প্রস্তুত',
       link: '/admin/students/transfers',
     },
   ].filter((a) => !dismissedActions.includes(a.id));
@@ -189,9 +180,9 @@ export function AdminDashboardPage() {
       studentId: st.studentId,
       nameBn: st.nameBn ?? st.nameEn,
       nameEn: st.nameEn,
-      className: locale === 'bn' ? cls?.nameBn ?? cls?.name ?? '৬ষ্ঠ শ্রেণি' : cls?.name ?? 'Class 6',
+      className: cls?.nameBn ?? cls?.name ?? '৬ষ্ঠ শ্রেণি',
       sectionName: sec?.name ?? 'A',
-      guardianName: parent ? (locale === 'bn' ? parent.nameBn ?? parent.name : parent.name) : 'মোঃ মাসুদ রানা',
+      guardianName: parent ? (parent.nameBn ?? parent.name) : 'মোঃ মাসুদ রানা',
       guardianPhone: parent?.phone || '01711000026',
       rate,
       status: st.status,
@@ -214,8 +205,6 @@ export function AdminDashboardPage() {
         teachersCount={teachers.length}
         otherStaffCount={otherStaff.length}
         classesCount={db.classes.length}
-        locale={locale}
-        pick={pick}
       />
 
       {/* 2. 4 Stat KPI Cards */}
@@ -232,8 +221,6 @@ export function AdminDashboardPage() {
         unpublishedExams={unpublishedExams}
         smsSent={smsSent}
         smsFailed={smsFailed}
-        locale={locale}
-        pick={pick}
       />
 
       {/* 3. Middle Section: Attendance Trend & Gender Ratio */}
@@ -248,8 +235,6 @@ export function AdminDashboardPage() {
         maleCount={maleCount}
         femaleCount={femaleCount}
         activeYearName={activeYear?.name}
-        locale={locale}
-        pick={pick}
       />
 
       {/* 4. Secondary Analytics: Class Distribution & Subject Performance */}
@@ -257,14 +242,11 @@ export function AdminDashboardPage() {
         classDistData={classDistData}
         subjectPerfData={subjectPerfData}
         passRateData={passRateData}
-        locale={locale}
-        pick={pick}
       />
 
       {/* 5. Student Directory Quick Preview Table */}
       <AdminDashboardStudentTable
         rows={studentTableRows}
-        pick={pick}
       />
 
       {/* 6. Operational Widgets */}
@@ -274,8 +256,6 @@ export function AdminDashboardPage() {
         notices={recentNoticePage?.items ?? []}
         noticesLoading={loadingRecentNotices}
         auditLogs={db.auditLogs}
-        locale={locale}
-        pick={pick}
       />
     </div>
   );

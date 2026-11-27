@@ -7,7 +7,6 @@ import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -56,11 +55,10 @@ function useCurrentStudent(db: MockDatabase | undefined) {
 
 export function StudentResourcesPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { pick } = useI18n();
   if (isLoading || !db) return <LoadingSkeleton />;
   return (
     <div className="space-y-6">
-      <PageHeader title={pick('শিক্ষা রিসোর্স', 'Academic Resources')} />
+      <PageHeader title={'শিক্ষা রিসোর্স'} />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {db.digitalResources.map((r) => (
           <Card key={r.id} className="p-5 space-y-2">
@@ -69,9 +67,9 @@ export function StudentResourcesPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => toast.info(pick('রিসোর্স খোলা হয়েছে', 'Resource opened'))}
+              onClick={() => toast.info('রিসোর্স খোলা হয়েছে')}
             >
-              {pick('পড়ুন', 'Open')}
+              {'পড়ুন'}
             </Button>
           </Card>
         ))}

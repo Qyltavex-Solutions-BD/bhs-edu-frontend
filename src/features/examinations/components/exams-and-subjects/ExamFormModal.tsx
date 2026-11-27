@@ -144,7 +144,7 @@ export function ExamFormModal({
                           classIds: allSelected ? [] : classesList.map((c) => c.id),
                         });
                       }}
-                      className="text-xs font-semibold text-primary hover:underline cursor-pointer"
+                      className="text-sm font-semibold text-primary hover:underline cursor-pointer"
                     >
                       {classesList.length > 0 && form.classIds.length === classesList.length
                         ? 'সবগুলো বাদ দিন'
@@ -159,7 +159,7 @@ export function ExamFormModal({
                     return (
                       <label
                         key={c.id}
-                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius)] border text-xs sm:text-sm font-medium transition-colors select-none ${
+                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius)] border text-sm font-medium transition-colors select-none ${
                           disabled
                             ? 'border-border/50 bg-surface-muted/50 text-muted-foreground/50 cursor-not-allowed opacity-60'
                             : checked
@@ -189,7 +189,7 @@ export function ExamFormModal({
 
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium mb-1">চলতি শিক্ষাবর্ষ *</label>
-                <Input
+                <Input placeholder="চলতি শিক্ষাবর্ষ লিখুন"
                   readOnly
                   disabled
                   value={
@@ -228,7 +228,7 @@ export function ExamFormModal({
 
           {!editingExam && !isSelectionExam && form.classIds.length > 0 && (
             <div className="sm:col-span-2 rounded-[var(--radius)] border border-border bg-surface-muted/40 p-3 space-y-2">
-              <span className="block text-xs font-semibold text-foreground">
+              <span className="block text-sm font-semibold text-foreground">
                 শ্রেণিভিত্তিক শেষের তারিখ *
               </span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -239,7 +239,7 @@ export function ExamFormModal({
                       key={c.id}
                       className="flex items-center justify-between gap-2 rounded-md border border-border/70 bg-background px-2.5 py-1.5"
                     >
-                      <span className="text-xs font-medium text-foreground truncate">
+                      <span className="text-sm font-medium text-foreground truncate">
                         {c.nameBn || c.name}
                       </span>
                       <Input
@@ -256,7 +256,7 @@ export function ExamFormModal({
                             },
                           })
                         }
-                        className="h-8 w-36 text-xs"
+                        className="h-8 w-36 text-sm"
                       />
                     </div>
                   ))}
@@ -284,7 +284,7 @@ export function ExamFormModal({
                     endDate: form.endDate || editingExam.endDate,
                   })}
                 />
-                <span className="text-[11px] text-muted-foreground">
+                <span className="text-sm text-muted-foreground">
                   সময়সূচি অনুযায়ী স্বয়ংক্রিয়
                 </span>
               </div>
@@ -303,7 +303,7 @@ export function ExamFormModal({
                 <strong className="text-foreground">
                   এনসিটিবি যৌথ পত্র পাশ নীতি (Combined Pass)
                 </strong>
-                <span className="block text-xs text-muted-foreground">
+                <span className="block text-sm text-muted-foreground">
                   বাংলা ১ম/২য় ও ইংরেজি ১ম/২য় পত্রের মতো জোড়া বিষয়ে বোর্ডের যৌথ পাশ নীতি প্রয়োগ হবে।
                 </span>
               </span>

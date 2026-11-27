@@ -8,7 +8,6 @@ import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -59,8 +58,6 @@ export function StudentDashboardPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const { data: noticePage } = useGetPublicNoticesQuery({ limit: 20 });
   const me = useCurrentStudent(db);
-  const { locale, pick } = useI18n();
-
   if (isLoading || !db || !me || !me.enrollment) return <LoadingSkeleton rows={6} />;
 
   const att = db.attendances.filter((a) => a.studentEnrollmentId === me.enrollment!.id);
@@ -81,45 +78,42 @@ export function StudentDashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick(
-          `স্বাগতম, ${me.student.nameBn || me.student.nameEn}`,
-          `Welcome, ${me.student.nameEn}`
-        )}
-        description={`${locale === 'bn' ? me.cls?.nameBn || me.cls?.name : me.cls?.name} (${me.sec?.name}) · ${pick('রোল', 'Roll')} ${formatNumber(me.enrollment.roll, locale)} · ID: ${me.student.studentId}`}
+        title={`স্বাগতম, ${me.student.nameBn || me.student.nameEn}`}
+        description={`${me.cls?.nameBn || me.cls?.name} (${me.sec?.name}) · ${'রোল'} ${formatNumber(me.enrollment.roll, 'bn')} · ID: ${me.student.studentId}`}
       />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label={pick('উপস্থিতির হার', 'Attendance')}
-          value={`${formatNumber(attPct, locale)}%`}
-          meta={`${formatNumber(present, locale)}/${formatNumber(att.length, locale)}`}
+          label={'উপস্থিতির হার'}
+          value={`${formatNumber(attPct, 'bn')}%`}
+          meta={`${formatNumber(present, 'bn')}/${formatNumber(att.length, 'bn')}`}
           accent="success"
         />
         <StatCard
-          label={pick('সর্বশেষ জিপিএ', 'Latest GPA')}
-          value={latest?.gpa ? formatNumber(latest.gpa, locale, 2) : '—'}
+          label={'সর্বশেষ জিপিএ'}
+          value={latest?.gpa ? formatNumber(latest.gpa, 'bn', 2) : '—'}
           meta={
             latest?.meritPosition
-              ? pick(`মেধা: #${formatNumber(latest.meritPosition, locale)}`, `Rank #${latest.meritPosition}`)
+              ? `মেধা: #${formatNumber(latest.meritPosition, 'bn')}`
               : '—'
           }
           accent="primary"
         />
         <StatCard
-          label={pick('শিক্ষা রিসোর্স', 'Learning Materials')}
-          value={formatNumber(db.digitalResources.length, locale)}
+          label={'শিক্ষা রিসোর্স'}
+          value={formatNumber(db.digitalResources.length, 'bn')}
         />
         <StatCard
-          label={pick('গ্রন্থাগার বই', 'Library Catalog')}
-          value={formatNumber(db.libraryBooks.length, locale)}
+          label={'গ্রন্থাগার বই'}
+          value={formatNumber(db.libraryBooks.length, 'bn')}
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="p-5">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold">{pick('আমার ফলাফলসমূহ', 'My Published Results')}</h2>
+            <h2 className="text-base font-semibold">{'আমার ফলাফলসমূহ'}</h2>
             <Link href="/student/results" className="text-sm font-medium text-primary hover:underline">
-              {pick('সব দেখুন', 'View All')}
+              {'সব দেখুন'}
             </Link>
           </div>
           {publishedSummaries.map((s) => {
@@ -132,7 +126,7 @@ export function StudentDashboardPage() {
               >
                 <span className="text-sm font-medium">{ex?.name}</span>
                 <span className="text-sm font-bold tabular-nums">
-                  GPA {s.gpa ? formatNumber(s.gpa, locale, 2) : '—'}
+                  GPA {s.gpa ? formatNumber(s.gpa, 'bn', 2) : '—'}
                 </span>
               </Link>
             );
@@ -141,16 +135,16 @@ export function StudentDashboardPage() {
 
         <Card className="p-5">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold">{pick('সাম্প্রতিক নোটিশ', 'Recent Notices')}</h2>
+            <h2 className="text-base font-semibold">{'সাম্প্রতিক নোটিশ'}</h2>
             <Link href="/student/notices" className="text-sm font-medium text-primary hover:underline">
-              {pick('সব নোটিশ', 'All Notices')}
+              {'সব নোটিশ'}
             </Link>
           </div>
           {(noticePage?.items ?? []).slice(0, 4).map((n) => (
             <div key={n.id} className="py-2 border-b last:border-0 border-border">
               <p className="text-sm font-medium">{n.title}</p>
-              <p className="text-xs text-muted-foreground tabular-nums">
-                {formatDateShort(n.publishedAt ?? n.createdAt, locale)}
+              <p className="text-sm text-muted-foreground tabular-nums">
+                {formatDateShort(n.publishedAt ?? n.createdAt, 'bn')}
               </p>
             </div>
           ))}

@@ -33,7 +33,6 @@ import {
   useUpdateAdmissionContentMutation,
   useUpsertCmsItemMutation,
 } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { LoadingSkeleton, PageHeader } from '@/src/components/shared/Feedback';
@@ -60,7 +59,6 @@ import type { Notice, NoticeAttachmentType } from '@/src/types/entities';
 // 7.11 Library
 export function AdminReportsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { pick } = useI18n();
   if (isLoading || !db) return <LoadingSkeleton />;
 
   const reportCards = [
@@ -73,10 +71,10 @@ export function AdminReportsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('রিপোর্ট ও বিশ্লেষণ কেন্দ্র', 'Reports & Analytics Center')}
+        title={'রিপোর্ট ও বিশ্লেষণ কেন্দ্র'}
         actions={
           <Button variant="outline" size="sm" onClick={triggerPrint}>
-            <Printer className="w-4 h-4" /> {pick('প্রিন্ট রিপোর্ট', 'Print View')}
+            <Printer className="w-4 h-4" /> {'প্রিন্ট রিপোর্ট'}
           </Button>
         }
       />
@@ -84,9 +82,9 @@ export function AdminReportsPage() {
         {reportCards.map((r) => (
           <Card key={r.file} className="p-5 flex items-center justify-between gap-4">
             <div>
-              <h3 className="text-base font-bold text-foreground">{pick(r.titleBn, r.titleEn)}</h3>
+              <h3 className="text-base font-bold text-foreground">{r.titleBn}</h3>
               <p className="text-sm text-muted-foreground tabular-nums mt-1">
-                {r.rows.length} {pick('টি রেকর্ড প্রস্তুত', 'records ready')}
+                {r.rows.length} {'টি রেকর্ড প্রস্তুত'}
               </p>
             </div>
             <Button

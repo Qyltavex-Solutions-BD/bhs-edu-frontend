@@ -35,8 +35,6 @@ interface AdminDashboardWidgetsProps {
   notices: Notice[];
   noticesLoading?: boolean;
   auditLogs: AuditLog[];
-  locale: 'bn' | 'en';
-  pick: (bn: string, en: string) => string;
 }
 
 export function AdminDashboardWidgets({
@@ -45,8 +43,8 @@ export function AdminDashboardWidgets({
   notices,
   noticesLoading = false,
   auditLogs,
-  locale,
-  pick,
+  
+  
 }: AdminDashboardWidgetsProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -56,13 +54,13 @@ export function AdminDashboardWidgets({
           <div className="flex items-center justify-between pb-3.5 border-b border-border">
             <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
               <GraduationCap className="w-5 h-5 text-[#1C6440]" />
-              {pick('অপেক্ষমাণ কাজ ও অনুমোদন', 'Pending Actions')}
+              {'অপেক্ষমাণ কাজ ও অনুমোদন'}
             </h3>
             <span
-              className="px-3 py-1 rounded-full text-sm font-bold tabular-nums"
+              className="px-2.5 py-0.5 rounded-full text-xs font-semibold tabular-nums"
               style={{ backgroundColor: TINT_CORAL, color: COLOR_CORAL }}
             >
-              {formatNumber(pendingActions.length, locale)} {pick('কাজ', 'pending')}
+              {formatNumber(pendingActions.length, 'bn')} {'কাজ'}
             </span>
           </div>
 
@@ -80,7 +78,7 @@ export function AdminDashboardWidgets({
                     {item.avatar}
                   </div>
                   <div className="min-w-0 leading-tight">
-                    <p className="font-semibold text-base text-foreground truncate group-hover:text-primary transition-colors">
+                    <p className="font-medium text-base text-foreground truncate group-hover:text-primary transition-colors">
                       {item.title}
                     </p>
                     <p className="text-sm text-muted-foreground truncate mt-0.5">{item.subtitle}</p>
@@ -91,7 +89,7 @@ export function AdminDashboardWidgets({
                   <button
                     type="button"
                     onClick={() => onDismissAction(item.id)}
-                    title={pick('বাতিল', 'Dismiss')}
+                    title={'বাতিল'}
                     className="w-8 h-8 rounded-full border border-border text-muted-foreground hover:text-[#DF6153] hover:bg-[#F4DAD5]/40 flex items-center justify-center transition cursor-pointer"
                   >
                     <X className="w-4 h-4" />
@@ -99,7 +97,7 @@ export function AdminDashboardWidgets({
                   <Link href={item.link}>
                     <button
                       type="button"
-                      title={pick('দেখুন', 'Open')}
+                      title={'দেখুন'}
                       className="w-8 h-8 rounded-full bg-[#1C6440] hover:bg-[#154E31] text-white flex items-center justify-center shadow-xs transition cursor-pointer"
                     >
                       <Check className="w-4 h-4" />
@@ -116,7 +114,7 @@ export function AdminDashboardWidgets({
             href="/admin/students/admissions"
             className="text-base font-semibold text-[#1C6440] hover:underline flex items-center justify-between"
           >
-            <span>{pick('সকল অপেক্ষমাণ আবেদন পর্যালোচনা', 'Manage all pending actions')}</span>
+            <span>{'সকল অপেক্ষমাণ আবেদন পর্যালোচনা'}</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -128,13 +126,13 @@ export function AdminDashboardWidgets({
           <div className="flex items-center justify-between pb-3.5 border-b border-border">
             <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
               <Bell className="w-5 h-5 text-[#1C6440]" />
-              {pick('সাম্প্রতিক নোটিশ', 'Recent Notices')}
+              {'সাম্প্রতিক নোটিশ'}
             </h3>
             <Link
               href="/admin/notices"
               className="text-sm font-semibold text-[#1C6440] hover:underline"
             >
-              {pick('সব দেখুন', 'Manage')}
+              {'সব দেখুন'}
             </Link>
           </div>
 
@@ -151,15 +149,15 @@ export function AdminDashboardWidgets({
               ))
             ) : notices.length === 0 ? (
               <div className="py-10 text-center text-sm text-muted-foreground">
-                {pick('এখনো কোনো নোটিশ প্রকাশ করা হয়নি।', 'No notices published yet.')}
+                {'এখনো কোনো নোটিশ প্রকাশ করা হয়নি।'}
               </div>
             ) : (
               notices.slice(0, 5).map((n) => (
                 <div key={n.id} className="py-3 flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-base font-semibold text-foreground truncate">{n.title}</p>
+                    <p className="text-base font-medium text-foreground truncate">{n.title}</p>
                     <p className="text-sm text-muted-foreground tabular-nums mt-0.5">
-                      {formatDateShort(n.createdAt, (locale === 'bn' ? 'bn' : 'en'))}
+                      {formatDateShort(n.createdAt, ('bn'))}
                     </p>
                   </div>
                   <StatusBadge enumName="NoticeStatus" value={n.status} />
@@ -174,7 +172,7 @@ export function AdminDashboardWidgets({
             href="/admin/notices"
             className="text-base font-semibold text-[#1C6440] hover:underline flex items-center justify-between"
           >
-            <span>{pick('নতুন নোটিশ তৈরি করুন', 'Create New Notice')}</span>
+            <span>{'নতুন নোটিশ তৈরি করুন'}</span>
             <Plus className="w-4 h-4" />
           </Link>
         </div>
@@ -186,25 +184,25 @@ export function AdminDashboardWidgets({
           <div className="flex items-center justify-between pb-3.5 border-b border-border">
             <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-[#1C6440]" />
-              {pick('সাম্প্রতিক অডিট লগ', 'Recent Activity Log')}
+              {'সাম্প্রতিক অডিট লগ'}
             </h3>
             <Link
               href="/admin/audit-logs"
               className="text-sm font-semibold text-[#1C6440] hover:underline"
             >
-              {pick('সম্পূর্ণ লগ', 'Full Log')}
+              {'সম্পূর্ণ লগ'}
             </Link>
           </div>
 
           <div className="divide-y divide-border/60">
             {auditLogs.slice(0, 4).map((log) => (
               <div key={log.id} className="py-3 text-base">
-                <p className="font-semibold text-foreground truncate text-base">
+                <p className="font-medium text-foreground truncate text-base">
                   {log.action} · <span className="text-[#1C6440]">{log.module}</span>
                 </p>
                 <p className="text-muted-foreground line-clamp-1 text-sm mt-0.5">{log.details}</p>
                 <p className="text-sm text-muted-foreground tabular-nums mt-0.5">
-                  {formatDateShort(log.createdAt, (locale === 'bn' ? 'bn' : 'en'))}
+                  {formatDateShort(log.createdAt, ('bn'))}
                 </p>
               </div>
             ))}
@@ -216,7 +214,7 @@ export function AdminDashboardWidgets({
             href="/admin/audit-logs"
             className="text-base font-semibold text-[#1C6440] hover:underline flex items-center justify-between"
           >
-            <span>{pick('অডিট ইতিহাস পরীক্ষা করুন', 'Inspect Audit History')}</span>
+            <span>{'অডিট ইতিহাস পরীক্ষা করুন'}</span>
             <ExternalLink className="w-4 h-4" />
           </Link>
         </div>

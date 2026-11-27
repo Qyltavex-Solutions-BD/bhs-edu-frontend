@@ -15,8 +15,6 @@ interface PublicDesktopNavProps {
   onScheduleCloseDropdown: () => void;
   onCloseDropdown: () => void;
   latestNotice?: Notice;
-  locale: string;
-  pick: (bn: string, en: string) => string;
 }
 
 export function PublicDesktopNav({
@@ -26,8 +24,8 @@ export function PublicDesktopNav({
   onScheduleCloseDropdown,
   onCloseDropdown,
   latestNotice,
-  locale,
-  pick,
+  
+  
 }: PublicDesktopNavProps) {
   return (
     <nav
@@ -35,7 +33,7 @@ export function PublicDesktopNav({
       aria-label="Primary navigation"
     >
       {PUBLIC_NAV.map((item) => {
-        const label = locale === 'bn' ? item.labelBn : item.labelEn;
+        const label = item.labelBn;
         const active = isGroupActive(item, pathname);
 
         if (!item.children) {
@@ -117,7 +115,7 @@ export function PublicDesktopNav({
                           onClick={onCloseDropdown}
                           className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
                         >
-                          <span>{pick('সব দেখুন', 'Explore all')}</span>
+                          <span>{'সব দেখুন'}</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                       )}
@@ -159,10 +157,10 @@ export function PublicDesktopNav({
                                     : 'text-foreground group-hover:text-primary'
                                 )}
                               >
-                                {locale === 'bn' ? sub.labelBn : sub.labelEn}
+                                {sub.labelBn}
                               </span>
-                              <span className="block text-xs text-muted-foreground leading-snug line-clamp-1 mt-0.5">
-                                {locale === 'bn' ? sub.descBn : sub.descEn}
+                              <span className="block text-sm text-muted-foreground leading-snug line-clamp-1 mt-0.5">
+                                {sub.descBn}
                               </span>
                             </span>
                           </Link>
@@ -175,17 +173,14 @@ export function PublicDesktopNav({
                       <div className="px-4 py-2.5 bg-surface-muted/65 border-t border-border flex items-center justify-between gap-3 text-sm">
                         <span className="text-muted-foreground tabular-nums">
                           <strong className="text-foreground font-semibold">BHS</strong> ·{' '}
-                          {pick(
-                            'স্থাপিত ১৯৭৮ · EIIN ১১৩৫৮৭ · ভোজেশ্বর, নড়িয়া',
-                            'Est. 1978 · EIIN 113587 · Noria, Shariatpur'
-                          )}
+                          {'স্থাপিত ১৯৭৮ · EIIN ১১৩৫৮৭ · ভোজেশ্বর, নড়িয়া'}
                         </span>
                         <Link
                           href="/about/teachers"
                           onClick={onCloseDropdown}
                           className="inline-flex items-center gap-1 font-semibold text-primary hover:underline whitespace-nowrap"
                         >
-                          <span>{pick('শিক্ষকমণ্ডলী', 'Meet Faculty')}</span>
+                          <span>{'শিক্ষকমণ্ডলী'}</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                       </div>
@@ -196,10 +191,7 @@ export function PublicDesktopNav({
                         <div className="flex items-center gap-2 text-muted-foreground min-w-0">
                           <Award className="w-4 h-4 text-primary shrink-0" />
                           <span className="truncate">
-                            {pick(
-                              'রোল নম্বর দিয়ে তাৎক্ষণিক পরীক্ষার ফলাফল ও মার্কশিট দেখুন',
-                              'Look up instant exam results & grade sheets by roll number'
-                            )}
+                            {'রোল নম্বর দিয়ে তাৎক্ষণিক পরীক্ষার ফলাফল ও মার্কশিট দেখুন'}
                           </span>
                         </div>
                         <Link
@@ -207,7 +199,7 @@ export function PublicDesktopNav({
                           onClick={onCloseDropdown}
                           className="inline-flex items-center gap-1 font-semibold text-primary hover:underline whitespace-nowrap shrink-0"
                         >
-                          <span>{pick('ফলাফল দেখুন', 'Check Results')}</span>
+                          <span>{'ফলাফল দেখুন'}</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                       </div>
@@ -216,10 +208,7 @@ export function PublicDesktopNav({
                     {item.id === 'admission' && (
                       <div className="px-4 py-2.5 bg-surface-muted/65 border-t border-border flex items-center justify-between gap-3 text-sm">
                         <span className="text-muted-foreground">
-                          {pick(
-                            '৬ষ্ঠ–৯ম শ্রেণিতে অনলাইন ভর্তি আবেদন ও স্ট্যাটাস যাচাই',
-                            'Online admission applications & live status tracking'
-                          )}
+                          {'৬ষ্ঠ–৯ম শ্রেণিতে অনলাইন ভর্তি আবেদন ও স্ট্যাটাস যাচাই'}
                         </span>
                         <div className="flex items-center gap-3 shrink-0">
                           <Link
@@ -227,14 +216,14 @@ export function PublicDesktopNav({
                             onClick={onCloseDropdown}
                             className="font-medium text-foreground hover:text-primary whitespace-nowrap"
                           >
-                            {pick('স্ট্যাটাস যাচাই', 'Track Status')}
+                            {'স্ট্যাটাস যাচাই'}
                           </Link>
                           <Link
                             href="/admission/apply"
                             onClick={onCloseDropdown}
                             className="inline-flex items-center gap-1 font-semibold text-primary hover:underline whitespace-nowrap"
                           >
-                            <span>{pick('আবেদন করুন', 'Apply Now')}</span>
+                            <span>{'আবেদন করুন'}</span>
                             <ArrowRight className="w-3.5 h-3.5" />
                           </Link>
                         </div>
@@ -250,11 +239,11 @@ export function PublicDesktopNav({
                         >
                           {latestNotice.isUrgent ? (
                             <span className="px-2 py-0.5 rounded bg-[#C81E24] text-white text-xs font-semibold shrink-0 leading-none">
-                              {pick('জরুরি', 'Urgent')}
+                              {'জরুরি'}
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded bg-primary/12 text-primary text-xs font-semibold shrink-0 leading-none">
-                              {pick('সর্বশেষ', 'Latest')}
+                              {'সর্বশেষ'}
                             </span>
                           )}
                           <span className="truncate text-foreground/85 group-hover:text-primary font-medium transition-colors">
@@ -266,7 +255,7 @@ export function PublicDesktopNav({
                           onClick={onCloseDropdown}
                           className="inline-flex items-center gap-1 font-semibold text-primary hover:underline whitespace-nowrap shrink-0"
                         >
-                          <span>{pick('সকল নোটিশ', 'All Notices')}</span>
+                          <span>{'সকল নোটিশ'}</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                       </div>

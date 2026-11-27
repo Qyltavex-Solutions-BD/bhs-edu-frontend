@@ -16,7 +16,6 @@ import {
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -81,13 +80,12 @@ function ChildSwitcherBar({
   selectedStudentId: string;
   onChange: (id: string) => void;
 }) {
-  const { locale, pick } = useI18n();
   if (childrenList.length <= 1) return null;
   return (
     <Card className="p-3.5 flex flex-wrap items-center justify-between gap-3 bg-surface-muted/40">
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
         <Users className="w-4 h-4 text-primary" />
-        <span>{pick('সন্তান নির্বাচন করুন:', 'Select Child:')}</span>
+        <span>{'সন্তান নির্বাচন করুন:'}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {childrenList.map((c) => {
@@ -103,8 +101,8 @@ function ChildSwitcherBar({
                   : 'bg-surface text-foreground border-border hover:bg-surface-muted'
               }`}
             >
-              {locale === 'bn' ? c.student.nameBn || c.student.nameEn : c.student.nameEn} ·{' '}
-              {locale === 'bn' ? c.cls?.nameBn || c.cls?.name : c.cls?.name} ({c.sec?.name})
+              {c.student.nameBn || c.student.nameEn} ·{' '}
+              {c.cls?.nameBn || c.cls?.name} ({c.sec?.name})
             </button>
           );
         })}
@@ -116,20 +114,19 @@ function ChildSwitcherBar({
 export function ParentRoutinesPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const { children } = useParentChildren(db);
-  const { locale, pick } = useI18n();
   const [selectedId, setSelectedId] = useState('stu-10-1');
 
   if (isLoading || !db) return <LoadingSkeleton />;
   const active = children.find((c) => c.student.id === selectedId) ?? children[0];
-  if (!active) return <EmptyState title={pick('কোনো তথ্য নেই', 'No data')} />;
+  if (!active) return <EmptyState title={'কোনো তথ্য নেই'} />;
 
   const routines = db.classRoutines.filter((r) => r.sectionId === active.enrollment.sectionId);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('ক্লাস রুটিন', 'Class Routine')}
-        description={`${locale === 'bn' ? active.cls?.nameBn || active.cls?.name : active.cls?.name} (${active.sec?.name})`}
+        title={'ক্লাস রুটিন'}
+        description={`${active.cls?.nameBn || active.cls?.name} (${active.sec?.name})`}
       />
       <ChildSwitcherBar
         childrenList={children}
@@ -145,10 +142,10 @@ export function ParentRoutinesPage() {
           return (
             <Card key={day} className="p-4">
               <h3 className="text-base font-bold text-primary mb-3">
-                {locale === 'bn' ? dayMeta?.bn ?? day : dayMeta?.en ?? day}
+                {dayMeta?.bn ?? day}
               </h3>
               {dayItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{pick('তালিকাভুক্ত ক্লাস নেই', 'No classes listed')}</p>
+                <p className="text-sm text-muted-foreground">{'তালিকাভুক্ত ক্লাস নেই'}</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {dayItems.map((r) => {
@@ -158,14 +155,14 @@ export function ParentRoutinesPage() {
                     const staff = db.staff.find((t) => t.id === r.staffId);
                     return (
                       <div key={r.id} className="p-3 rounded-[var(--radius)] border border-border bg-surface-muted/40">
-                        <p className="text-xs font-semibold text-primary tabular-nums">
-                          {formatTime12h(r.startTime, locale)} – {formatTime12h(r.endTime, locale)}
+                        <p className="text-sm font-semibold text-primary tabular-nums">
+                          {formatTime12h(r.startTime, 'bn')} – {formatTime12h(r.endTime, 'bn')}
                         </p>
                         <p className="text-base font-semibold mt-1">
-                          {locale === 'bn' ? sub?.nameBn || sub?.name : sub?.name}
+                          {sub?.nameBn || sub?.name}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {staff?.name ?? '—'} · {pick('কক্ষ:', 'Room:')} {r.room ?? '—'}
+                          {staff?.name ?? '—'} · {'কক্ষ:'} {r.room ?? '—'}
                         </p>
                       </div>
                     );

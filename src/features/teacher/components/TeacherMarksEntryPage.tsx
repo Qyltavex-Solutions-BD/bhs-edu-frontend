@@ -17,7 +17,6 @@ import {
   useGetGradingScalesQuery,
   useSaveBulkMarksMutation,
 } from '@/src/features/examinations/api/examinations.api';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -67,8 +66,6 @@ function getErrorMessage(err: unknown, fallback: string) {
 }
 
 export function TeacherMarksEntryPage() {
-  const { locale, pick } = useI18n();
-
   const { data: myAssignments = [], isLoading: loadingAssignments } =
     useGetMyTeacherAssignmentsQuery();
   const { data: examsRes, isLoading: loadingExams } = useGetExamsQuery({
@@ -269,10 +266,7 @@ export function TeacherMarksEntryPage() {
 
     if (editedStudents.length === 0) {
       toast.info(
-        pick(
-          'সংরক্ষণের জন্য অন্তত একজন শিক্ষার্থীর নম্বর লিখুন।',
-          'Please enter marks for at least one student before saving.'
-        )
+        'সংরক্ষণের জন্য অন্তত একজন শিক্ষার্থীর নম্বর লিখুন।'
       );
       return;
     }
@@ -295,15 +289,12 @@ export function TeacherMarksEntryPage() {
       }).unwrap();
 
       toast.success(
-        pick(
-          `${formatNumber(res.totalProcessed, locale)} জন শিক্ষার্থীর নম্বর সংরক্ষিত হয়েছে`,
-          `Saved marks for ${res.totalProcessed} students`
-        )
+        `${formatNumber(res.totalProcessed, 'bn')} জন শিক্ষার্থীর নম্বর সংরক্ষিত হয়েছে`
       );
       setEdits({});
       setIsEntryMode(false);
     } catch (err) {
-      toast.error(getErrorMessage(err, pick('নম্বর সংরক্ষণ ব্যর্থ হয়েছে', 'Failed to save marks')));
+      toast.error(getErrorMessage(err, 'নম্বর সংরক্ষণ ব্যর্থ হয়েছে'));
     }
   };
 
@@ -318,27 +309,21 @@ export function TeacherMarksEntryPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('শিক্ষক নম্বর এন্ট্রি', 'Teacher Marks Entry')}
-        description={pick(
-          'শুধুমাত্র আপনার নির্ধারিত শ্রেণি, শাখা ও বিষয়ের শিক্ষার্থীদের নম্বর এন্ট্রি করুন',
-          'Enter marks for your assigned classes, sections, and subjects'
-        )}
+        title={'শিক্ষক নম্বর এন্ট্রি'}
+        description={'শুধুমাত্র আপনার নির্ধারিত শ্রেণি, শাখা ও বিষয়ের শিক্ষার্থীদের নম্বর এন্ট্রি করুন'}
       />
 
       {activeAssignments.length === 0 ? (
         <EmptyState
-          title={pick('কোনো বিষয় বরাদ্দ নেই', 'No Subjects Assigned')}
-          description={pick(
-            'আপনাকে এখনও কোনো শ্রেণি ও বিষয়ের শিক্ষক হিসেবে নির্ধারণ করা হয়নি।',
-            'You have not been assigned to any class or subject yet.'
-          )}
+          title={'কোনো বিষয় বরাদ্দ নেই'}
+          description={'আপনাকে এখনও কোনো শ্রেণি ও বিষয়ের শিক্ষক হিসেবে নির্ধারণ করা হয়নি।'}
         />
       ) : (
         <>
           <Card className="p-4 flex flex-wrap items-end gap-3">
             <div className="w-full sm:w-52">
-              <label className="text-xs font-medium text-muted-foreground block mb-1">
-                {pick('পরীক্ষা নির্বাচন', 'Select Examination')}
+              <label className="text-sm font-medium text-muted-foreground block mb-1">
+                {'পরীক্ষা নির্বাচন'}
               </label>
               <Select
                 value={resolvedExamName}
@@ -352,7 +337,7 @@ export function TeacherMarksEntryPage() {
                 className="h-9 text-sm"
               >
                 {examNames.length === 0 && (
-                  <option value="">{pick('কোনো পরীক্ষা নেই', 'No exams')}</option>
+                  <option value="">{'কোনো পরীক্ষা নেই'}</option>
                 )}
                 {examNames.map((name) => (
                   <option key={name} value={name}>
@@ -363,8 +348,8 @@ export function TeacherMarksEntryPage() {
             </div>
 
             <div className="w-full sm:w-40">
-              <label className="text-xs font-medium text-muted-foreground block mb-1">
-                {pick('শ্রেণি নির্বাচন', 'Select Class')}
+              <label className="text-sm font-medium text-muted-foreground block mb-1">
+                {'শ্রেণি নির্বাচন'}
               </label>
               <Select
                 value={resolvedClassId}
@@ -378,15 +363,22 @@ export function TeacherMarksEntryPage() {
               >
                 {assignedClasses.map((cls) => (
                   <option key={cls.id} value={cls.id}>
-                    {locale === 'bn' ? cls.nameBn || cls.name : cls.name}
+                    {cls.nameBn ||
+                      ({
+                        'Class 6': '৬ষ্ঠ শ্রেণি',
+                        'Class 7': '৭ম শ্রেণি',
+                        'Class 8': '৮ম শ্রেণি',
+                        'Class 9': '৯ম শ্রেণি',
+                        'Class 10': '১০ম শ্রেণি',
+                      }[cls.name] ?? cls.name)}
                   </option>
                 ))}
               </Select>
             </div>
 
             <div className="w-full sm:w-56">
-              <label className="text-xs font-medium text-muted-foreground block mb-1">
-                {pick('বিষয় ও শাখা', 'Subject & Section')}
+              <label className="text-sm font-medium text-muted-foreground block mb-1">
+                {'বিষয় ও শাখা'}
               </label>
               <Select
                 value={activeAssignment?.id ?? ''}
@@ -399,16 +391,16 @@ export function TeacherMarksEntryPage() {
                 className="h-9 text-sm"
               >
                 {examAssignments.length === 0 && (
-                  <option value="">{pick('কোনো বিষয় নেই', 'No subjects')}</option>
+                  <option value="">{'কোনো বিষয় নেই'}</option>
                 )}
                 {examAssignments.map((a) => {
                   const sub = a.classSubject?.subject;
-                  const subName = locale === 'bn' ? sub?.nameBn || sub?.name : sub?.name;
+                  const subName = sub?.nameBn || sub?.name;
                   return (
                     <option key={a.id} value={a.id}>
                       {subName || '—'} ({a.section?.name ?? '—'}{' '}
-                      {pick('শাখা', 'Sec')})
-                      {a.canEnterMarks ? '' : ` [${pick('শুধু দেখা', 'Read-Only')}]`}
+                      {'শাখা'})
+                      {a.canEnterMarks ? '' : ` [${'শুধু দেখা'}]`}
                     </option>
                   );
                 })}
@@ -425,7 +417,7 @@ export function TeacherMarksEntryPage() {
                   onClick={() => setIsEntryMode(true)}
                 >
                   <Pencil className="w-4 h-4 mr-1.5" />
-                  {pick('নম্বর এন্ট্রি', 'Enter Marks')}
+                  {'নম্বর এন্ট্রি'}
                 </Button>
               ) : (
                 <>
@@ -439,7 +431,7 @@ export function TeacherMarksEntryPage() {
                       setEdits({});
                     }}
                   >
-                    {pick('বাতিল', 'Cancel')}
+                    {'বাতিল'}
                   </Button>
                   <Button
                     variant="primary"
@@ -450,8 +442,8 @@ export function TeacherMarksEntryPage() {
                   >
                     <Save className="w-4 h-4 mr-1.5" />
                     {saving
-                      ? pick('সংরক্ষণ হচ্ছে...', 'Saving...')
-                      : pick('নম্বর সংরক্ষণ করুন', 'Save Marks')}
+                      ? 'সংরক্ষণ হচ্ছে...'
+                      : 'নম্বর সংরক্ষণ করুন'}
                   </Button>
                 </>
               )}
@@ -463,16 +455,10 @@ export function TeacherMarksEntryPage() {
               <ShieldAlert className="w-5 h-5 text-warning shrink-0 mt-0.5" />
               <div>
                 <p className="font-semibold">
-                  {pick(
-                    'এই বিষয়ের নম্বর এন্ট্রি অনুমতি আপনার জন্য সীমাবদ্ধ',
-                    'Mark Entry Permission Restricted'
-                  )}
+                  {'এই বিষয়ের নম্বর এন্ট্রি অনুমতি আপনার জন্য সীমাবদ্ধ'}
                 </p>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {pick(
-                    'আপনি এই বিষয়ের নম্বর শুধুমাত্র দেখতে পারবেন, পরিবর্তন করতে পারবেন না।',
-                    'Your assignment for this subject is in read-only mode.'
-                  )}
+                  {'আপনি এই বিষয়ের নম্বর শুধুমাত্র দেখতে পারবেন, পরিবর্তন করতে পারবেন না।'}
                 </p>
               </div>
             </div>
@@ -482,10 +468,7 @@ export function TeacherMarksEntryPage() {
             <div className="p-3.5 rounded-[var(--radius)] border border-border bg-surface-muted flex items-center gap-2.5 text-sm">
               <Lock className="w-4 h-4 text-muted-foreground" />
               <span>
-                {pick(
-                  'এই পরীক্ষার নম্বর লক বা প্রকাশিত হয়ে গেছে। পরিবর্তনের জন্য অ্যাডমিনের অনুমতি প্রয়োজন।',
-                  'This examination is locked or published. Contact Admin to unlock marks.'
-                )}
+                {'এই পরীক্ষার নম্বর লক বা প্রকাশিত হয়ে গেছে। পরিবর্তনের জন্য অ্যাডমিনের অনুমতি প্রয়োজন।'}
               </span>
             </div>
           )}
@@ -494,10 +477,7 @@ export function TeacherMarksEntryPage() {
             <div className="p-3.5 rounded-[var(--radius)] border border-destructive/30 bg-destructive/10 flex items-center gap-2.5 text-sm text-destructive">
               <Clock className="w-4 h-4 shrink-0" />
               <span>
-                {pick(
-                  `নম্বর এন্ট্রির শেষ সময় (${formatDateShort(exam.marksEntryDeadline, 'bn')}) অতিক্রান্ত হয়েছে।`,
-                  `Marks entry deadline (${formatDateShort(exam.marksEntryDeadline, 'en')}) has passed.`
-                )}
+                {`নম্বর এন্ট্রির শেষ সময় (${formatDateShort(exam.marksEntryDeadline, 'bn')}) অতিক্রান্ত হয়েছে।`}
               </span>
             </div>
           )}
@@ -506,19 +486,13 @@ export function TeacherMarksEntryPage() {
             <LoadingSkeleton />
           ) : !examSubject ? (
             <EmptyState
-              title={pick('এই পরীক্ষায় বিষয়টি অন্তর্ভুক্ত নয়', 'Subject not scheduled in this exam')}
-              description={pick(
-                'অ্যাডমিন প্যানেল থেকে এই পরীক্ষায় বিষয়ের পূর্ণমান নির্ধারণ করা হয়নি।',
-                'This subject has not been configured in the selected exam yet.'
-              )}
+              title={'এই পরীক্ষায় বিষয়টি অন্তর্ভুক্ত নয়'}
+              description={'অ্যাডমিন প্যানেল থেকে এই পরীক্ষায় বিষয়ের পূর্ণমান নির্ধারণ করা হয়নি।'}
             />
           ) : students.length === 0 ? (
             <EmptyState
-              title={pick('কোনো শিক্ষার্থী পাওয়া যায়নি', 'No Students Found')}
-              description={pick(
-                'এই শ্রেণি ও শাখায় কোনো সক্রিয় শিক্ষার্থী ভর্তি নেই।',
-                'No active students are enrolled in this class and section.'
-              )}
+              title={'কোনো শিক্ষার্থী পাওয়া যায়নি'}
+              description={'এই শ্রেণি ও শাখায় কোনো সক্রিয় শিক্ষার্থী ভর্তি নেই।'}
             />
           ) : (
             <Card className="overflow-hidden">
@@ -526,23 +500,21 @@ export function TeacherMarksEntryPage() {
                 <span className="font-semibold">
                   {(() => {
                     const clsObj = assignedClasses.find((c) => c.id === resolvedClassId);
-                    const clsLabel = clsObj ? (locale === 'bn' ? clsObj.nameBn || clsObj.name : clsObj.name) : '';
+                    const clsLabel = clsObj ? (clsObj.nameBn || clsObj.name) : '';
                     const secLabel = activeAssignment?.section?.name
-                      ? `${activeAssignment.section.name} ${pick('শাখা', 'Sec')}`
+                      ? `${activeAssignment.section.name} ${'শাখা'}`
                       : '';
-                    const subLabel = locale === 'bn'
-                      ? activeAssignment?.classSubject?.subject?.nameBn ||
-                        activeAssignment?.classSubject?.subject?.name
-                      : activeAssignment?.classSubject?.subject?.name;
+                    const subLabel = activeAssignment?.classSubject?.subject?.nameBn ||
+                        activeAssignment?.classSubject?.subject?.name;
                     return [clsLabel, secLabel, subLabel].filter(Boolean).join(' · ');
                   })()}{' '}
-                  — {pick('পূর্ণমান:', 'Full:')}{' '}
-                  {formatNumber(gsSubject?.fullMarks ?? examSubject.fullMarks, locale)} (
+                  — {'পূর্ণমান:'}{' '}
+                  {formatNumber(gsSubject?.fullMarks ?? examSubject.fullMarks, 'bn')} (
                   {[
-                    wMax > 0 ? `${pick('লিখিত', 'Written')} ${formatNumber(wMax, locale)}` : null,
-                    mMax > 0 ? `MCQ ${formatNumber(mMax, locale)}` : null,
-                    pMax > 0 ? `${pick('ব্যবহারিক', 'Prac')} ${formatNumber(pMax, locale)}` : null,
-                    caMax > 0 ? `CA ${formatNumber(caMax, locale)}` : null,
+                    wMax > 0 ? `${'লিখিত'} ${formatNumber(wMax, 'bn')}` : null,
+                    mMax > 0 ? `MCQ ${formatNumber(mMax, 'bn')}` : null,
+                    pMax > 0 ? `${'ব্যবহারিক'} ${formatNumber(pMax, 'bn')}` : null,
+                    caMax > 0 ? `CA ${formatNumber(caMax, 'bn')}` : null,
                   ]
                     .filter(Boolean)
                     .join(' · ')}
@@ -550,11 +522,8 @@ export function TeacherMarksEntryPage() {
                 </span>
                 <div className="flex items-center gap-3">
                   {gradeSheet?.summary && (
-                    <span className="text-xs text-muted-foreground">
-                      {pick(
-                        `এন্ট্রি সম্পন্ন: ${formatNumber(gradeSheet.summary.marksEnteredCount, 'bn')}/${formatNumber(gradeSheet.summary.totalStudents, 'bn')}`,
-                        `Entered: ${gradeSheet.summary.marksEnteredCount}/${gradeSheet.summary.totalStudents}`
-                      )}
+                    <span className="text-sm text-muted-foreground">
+                      {`এন্ট্রি সম্পন্ন: ${formatNumber(gradeSheet.summary.marksEnteredCount, 'bn')}/${formatNumber(gradeSheet.summary.totalStudents, 'bn')}`}
                     </span>
                   )}
                   <StatusBadge
@@ -565,38 +534,38 @@ export function TeacherMarksEntryPage() {
               </div>
 
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[680px] text-sm">
+                <table className="w-full min-w-[680px] text-base">
                   <thead className="bg-surface-muted/70 text-sm text-muted-foreground border-b border-border">
                     <tr>
-                      <th className="px-3 py-3 text-center w-16 font-semibold">{pick('রোল', 'Roll')}</th>
-                      <th className="px-3 py-3 text-left min-w-[180px] font-semibold">{pick('শিক্ষার্থী', 'Student')}</th>
-                      <th className="px-3 py-3 text-center w-24 font-semibold">{pick('অনুপস্থিত', 'Absent')}</th>
+                      <th className="px-3 py-3 text-center w-16 font-semibold">{'রোল'}</th>
+                      <th className="px-3 py-3 text-left min-w-[180px] font-semibold">{'শিক্ষার্থী'}</th>
+                      <th className="px-3 py-3 text-center w-24 font-semibold">{'অনুপস্থিত'}</th>
                       {wMax > 0 && (
                         <th className="px-3 py-3 text-right w-28 font-semibold">
-                          <div>{pick('লিখিত', 'Written')}</div>
-                          <div className="text-xs font-normal text-primary">({formatNumber(wMax, locale)})</div>
+                          <div>{'লিখিত'}</div>
+                          <div className="text-sm font-normal text-primary">({formatNumber(wMax, 'bn')})</div>
                         </th>
                       )}
                       {mMax > 0 && (
                         <th className="px-3 py-3 text-right w-28 font-semibold">
                           <div>MCQ</div>
-                          <div className="text-xs font-normal text-primary">({formatNumber(mMax, locale)})</div>
+                          <div className="text-sm font-normal text-primary">({formatNumber(mMax, 'bn')})</div>
                         </th>
                       )}
                       {pMax > 0 && (
                         <th className="px-3 py-3 text-right w-28 font-semibold">
-                          <div>{pick('ব্যবহারিক', 'Practical')}</div>
-                          <div className="text-xs font-normal text-primary">({formatNumber(pMax, locale)})</div>
+                          <div>{'ব্যবহারিক'}</div>
+                          <div className="text-sm font-normal text-primary">({formatNumber(pMax, 'bn')})</div>
                         </th>
                       )}
                       {caMax > 0 && (
                         <th className="px-3 py-3 text-right w-28 font-semibold">
                           <div>CA</div>
-                          <div className="text-xs font-normal text-primary">({formatNumber(caMax, locale)})</div>
+                          <div className="text-sm font-normal text-primary">({formatNumber(caMax, 'bn')})</div>
                         </th>
                       )}
-                      <th className="px-3 py-3 text-right w-24 font-semibold">{pick('মোট', 'Total')}</th>
-                      <th className="px-3 py-3 text-center w-24 font-semibold">{pick('গ্রেড', 'Grade')}</th>
+                      <th className="px-3 py-3 text-right w-24 font-semibold">{'মোট'}</th>
+                      <th className="px-3 py-3 text-center w-24 font-semibold">{'গ্রেড'}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -631,12 +600,12 @@ export function TeacherMarksEntryPage() {
                       return (
                         <tr key={stu.studentEnrollmentId} className="hover:bg-surface-muted/30">
                           <td className="px-3 py-2.5 text-center font-semibold">
-                            {formatNumber(stu.roll, locale)}
+                            {formatNumber(stu.roll, 'bn')}
                           </td>
                           <td className="px-3 py-2.5 font-medium">
                             <div className="flex items-center gap-2">
                               <span>
-                                {locale === 'bn' ? stu.nameBn || stu.name : stu.name}
+                                {stu.nameBn || stu.name}
                               </span>
                               {rowLocked && (
                                 <Lock className="w-3.5 h-3.5 text-muted-foreground" />
@@ -662,7 +631,7 @@ export function TeacherMarksEntryPage() {
                           </td>
                           {wMax > 0 && (
                             <td className="px-3 py-2.5 text-right">
-                              <input
+                              <input placeholder="তথ্য লিখুন"
                                 type="text"
                                 inputMode="decimal"
                                 disabled={!rowEditable || row.isAbsent}
@@ -686,7 +655,7 @@ export function TeacherMarksEntryPage() {
                           )}
                           {mMax > 0 && (
                             <td className="px-3 py-2.5 text-right">
-                              <input
+                              <input placeholder="তথ্য লিখুন"
                                 type="text"
                                 inputMode="decimal"
                                 disabled={!rowEditable || row.isAbsent}
@@ -710,7 +679,7 @@ export function TeacherMarksEntryPage() {
                           )}
                           {pMax > 0 && (
                             <td className="px-3 py-2.5 text-right">
-                              <input
+                              <input placeholder="তথ্য লিখুন"
                                 type="text"
                                 inputMode="decimal"
                                 disabled={!rowEditable || row.isAbsent}
@@ -734,7 +703,7 @@ export function TeacherMarksEntryPage() {
                           )}
                           {caMax > 0 && (
                             <td className="px-3 py-2.5 text-right">
-                              <input
+                              <input placeholder="তথ্য লিখুন"
                                 type="text"
                                 inputMode="decimal"
                                 disabled={!rowEditable || row.isAbsent}
@@ -757,7 +726,7 @@ export function TeacherMarksEntryPage() {
                             </td>
                           )}
                           <td className="px-3 py-2.5 text-right font-bold">
-                            {hasEntered ? formatNumber(total, locale) : '—'}
+                            {hasEntered ? formatNumber(total, 'bn') : '—'}
                           </td>
                           <td
                             className={`px-3 py-2.5 text-center font-bold ${

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -15,7 +15,6 @@ import {
   Search,
   X,
 } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { cn, exportToCsv, triggerCertificatePrint } from '@/src/lib/utils/cn';
 import { localToday } from '@/src/lib/schoolDay';
@@ -74,7 +73,6 @@ const PURPOSE_PRESETS = [
 const LETTER_GRADES = ['A+', 'A', 'A-', 'B', 'C', 'D'];
 
 export function StudentTestimonials() {
-  const { locale, pick } = useI18n();
   const [issueTestimonial, { isLoading: issuing }] = useIssueTestimonialMutation();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -154,10 +152,10 @@ export function StudentTestimonials() {
         groupNameEn: grp ? grp.name : '',
         sessionName: yr?.name ?? activeYearName,
         roll: enr?.roll ?? null,
-        fatherName: father ? (locale === 'bn' ? father.nameBn || father.name : father.name) : null,
+        fatherName: father ? (father.nameBn || father.name) : null,
       };
     });
-  }, [studentsRes?.items, activeYearName, locale]);
+  }, [studentsRes?.items, activeYearName, 'bn']);
 
   const rows = useMemo<EnrichedTestimonial[]>(() => {
     return (testRes?.items ?? []).map((item: any) => {
@@ -173,8 +171,8 @@ export function StudentTestimonials() {
 
       const classSummary = [
         item.className,
-        item.sectionName ? `${pick('শাখা', 'Sec')}: ${item.sectionName}` : null,
-        item.roll ? `${pick('রোল', 'Roll')}: ${formatNumber(item.roll, locale)}` : null,
+        item.sectionName ? `${'শাখা'}: ${item.sectionName}` : null,
+        item.roll ? `${'রোল'}: ${formatNumber(item.roll, 'bn')}` : null,
       ]
         .filter(Boolean)
         .join(' · ');
@@ -182,14 +180,14 @@ export function StudentTestimonials() {
       const purposeOrResult =
         item.type === TestimonialType.SSC_GRADUATE
           ? [
-              item.passingYear ? `${pick('এসএসসি', 'SSC')} ${formatNumber(item.passingYear, locale)}` : null,
+              item.passingYear ? `${'এসএসসি'} ${formatNumber(item.passingYear, 'bn')}` : null,
               item.gpa ? `GPA ${item.gpa}` : null,
               item.letterGrade ? `(${item.letterGrade})` : null,
-              item.boardRoll ? `${pick('রোল', 'Roll')}: ${item.boardRoll}` : null,
+              item.boardRoll ? `${'রোল'}: ${item.boardRoll}` : null,
             ]
               .filter(Boolean)
               .join(' · ')
-          : item.purpose || pick('অধ্যয়ন ও চারিত্রিক প্রত্যয়ন', 'Study & character verification');
+          : item.purpose || 'অধ্যয়ন ও চারিত্রিক প্রত্যয়ন';
 
       return {
         ...item,
@@ -197,14 +195,14 @@ export function StudentTestimonials() {
         studentNameBn: student?.nameBn || student?.nameEn || '—',
         studentNameEn: student?.nameEn || '—',
         studentCode: student?.studentId || '—',
-        fatherName: father ? (locale === 'bn' ? father.nameBn || father.name : father.name) : null,
-        motherName: mother ? (locale === 'bn' ? mother.nameBn || mother.name : mother.name) : null,
+        fatherName: father ? (father.nameBn || father.name) : null,
+        motherName: mother ? (mother.nameBn || mother.name) : null,
         classSummary: classSummary || '—',
         purposeOrResult,
         rawStudent: student,
       };
     });
-  }, [testRes?.items, locale, pick]);
+  }, [testRes?.items]);
 
   const summary = testRes?.summary ?? {
     totalIssued: 0,
@@ -234,23 +232,18 @@ export function StudentTestimonials() {
       issueDate: today,
       purpose:
         presetType === TestimonialType.STUDY_CHARACTER
-          ? pick('উপবৃত্তি ও মেধাবৃত্তি আবেদনের জন্য', 'For scholarship & stipend application')
+          ? 'উপবৃত্তি ও মেধাবৃত্তি আবেদনের জন্য'
           : '',
-      boardName: pick(
-        'মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড, ঢাকা',
-        'Board of Intermediate and Secondary Education, Dhaka'
-      ),
+      boardName: 'মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড, ঢাকা',
       passingYear: activeYearName,
       boardRoll: '',
       registrationNo: defaultCandidate?.student.boardRegistrationNo ?? '',
       gpa: '5.00',
       letterGrade: 'A+',
       groupName: defaultCandidate
-        ? locale === 'bn'
-          ? defaultCandidate.groupNameBn
-          : defaultCandidate.groupNameEn
+        ? defaultCandidate.groupNameBn
         : '',
-      conductRemarks: pick('উত্তম ও শৃঙ্খলাপরায়ণ', 'Good and disciplined'),
+      conductRemarks: 'উত্তম ও শৃঙ্খলাপরায়ণ',
       remarks: '',
     });
     setIssueOpen(true);
@@ -262,26 +255,23 @@ export function StudentTestimonials() {
       ...prev,
       studentId,
       registrationNo: meta?.student.boardRegistrationNo ?? prev.registrationNo,
-      groupName: meta ? (locale === 'bn' ? meta.groupNameBn : meta.groupNameEn) : '',
+      groupName: meta ? (meta.groupNameBn) : '',
     }));
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.studentId) {
-      toast.error(pick('একজন শিক্ষার্থী নির্বাচন করুন।', 'Please select a student.'));
+      toast.error('একজন শিক্ষার্থী নির্বাচন করুন।');
       return;
     }
     if (!form.refNumber.trim()) {
-      toast.error(pick('স্মারক নম্বর দিন।', 'Reference number is required.'));
+      toast.error('স্মারক নম্বর দিন।');
       return;
     }
     if (form.type === TestimonialType.SSC_GRADUATE && (!form.passingYear.trim() || !form.boardRoll.trim())) {
       toast.error(
-        pick(
-          'এসএসসি প্রশংসাপত্রের জন্য পাসের সন ও বোর্ড রোল নম্বর আবশ্যক।',
-          'Passing year and board roll are required for SSC Graduate testimonials.'
-        )
+        'এসএসসি প্রশংসাপত্রের জন্য পাসের সন ও বোর্ড রোল নম্বর আবশ্যক।'
       );
       return;
     }
@@ -294,9 +284,7 @@ export function StudentTestimonials() {
         issueDate: form.issueDate,
         academicSession: selectedStudentMeta?.sessionName ?? activeYearName,
         className: selectedStudentMeta
-          ? locale === 'bn'
-            ? selectedStudentMeta.classNameBn
-            : selectedStudentMeta.classNameEn
+          ? selectedStudentMeta.classNameBn
           : '—',
         sectionName: selectedStudentMeta?.sectionName ?? null,
         roll: selectedStudentMeta?.roll ?? null,
@@ -313,12 +301,12 @@ export function StudentTestimonials() {
       }).unwrap();
 
       toast.success(
-        `${pick('প্রত্যয়নপত্র ইস্যু সম্পন্ন হয়েছে', 'Testimonial certificate issued')} (${created.refNumber})`
+        `${'প্রত্যয়নপত্র ইস্যু সম্পন্ন হয়েছে'} (${created.refNumber})`
       );
       setIssueOpen(false);
       setPrintId(created.id);
     } catch (err) {
-      toast.error(errorMessage(err, pick('প্রত্যয়নপত্র ইস্যু করা যায়নি।', 'Could not issue testimonial.')));
+      toast.error(errorMessage(err, 'প্রত্যয়নপত্র ইস্যু করা যায়নি।'));
     }
   };
 
@@ -350,72 +338,69 @@ export function StudentTestimonials() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
-            {pick('মোট ইস্যুকৃত প্রত্যয়নপত্র', 'Total Issued Certificates')}
+            {'মোট ইস্যুকৃত প্রত্যয়নপত্র'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(summary.totalIssued, locale)}
+              {formatNumber(summary.totalIssued, 'bn')}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick(
-                `${activeYearName} সেশনে ${formatNumber(summary.issuedThisYear, locale)}টি`,
-                `${summary.issuedThisYear} in ${activeYearName}`
-              )}
+              {`${activeYearName} সেশনে ${formatNumber(summary.issuedThisYear, 'bn')}টি`}
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
-            {pick('ক্রমিক স্মারক নং সহ দাপ্তরিক রেজিস্টার', 'Official registry with sequential Ref. No.')}
+            {'ক্রমিক স্মারক নং সহ দাপ্তরিক রেজিস্টার'}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
-            {pick('অধ্যয়ন ও চারিত্রিক প্রত্যয়ন', 'Study & Character')}
+            {'অধ্যয়ন ও চারিত্রিক প্রত্যয়ন'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(summary.studyCount, locale)}
+              {formatNumber(summary.studyCount, 'bn')}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick('টি ইস্যুকৃত', 'issued')}
+              {'টি ইস্যুকৃত'}
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
-            {pick('উপবৃত্তি, পাসপোর্ট ও ব্যাংক হিসাবের জন্য', 'For stipends, passport & official use')}
+            {'উপবৃত্তি, পাসপোর্ট ও ব্যাংক হিসাবের জন্য'}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
-            {pick('এসএসসি প্রশংসাপত্র', 'SSC Testimonials')}
+            {'এসএসসি প্রশংসাপত্র'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-              {formatNumber(summary.sscCount, locale)}
+              {formatNumber(summary.sscCount, 'bn')}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick('টি বোর্ড প্রশংসাপত্র', 'graduate copies')}
+              {'টি বোর্ড প্রশংসাপত্র'}
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
-            {pick('বোর্ড রোল, রেজিস্ট্রেশন ও জিপিএ যুক্ত', 'Includes board roll, reg. & GPA')}
+            {'বোর্ড রোল, রেজিস্ট্রেশন ও জিপিএ যুক্ত'}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-3">
           <span className="text-base font-bold text-foreground">
-            {pick('বর্তমান সক্রিয় শিক্ষার্থী', 'Active Student Roster')}
+            {'বর্তমান সক্রিয় শিক্ষার্থী'}
           </span>
           <div className="flex items-baseline gap-2 tabular-nums">
             <span className="text-2xl sm:text-3xl font-extrabold tracking-tight text-primary">
-              {formatNumber(summary.activeStudentsCount, locale)}
+              {formatNumber(summary.activeStudentsCount, 'bn')}
             </span>
             <span className="text-sm font-semibold text-muted-foreground">
-              {pick('জন অধ্যয়নরত', 'active students')}
+              {'জন অধ্যয়নরত'}
             </span>
           </div>
           <p className="text-sm text-muted-foreground">
-            {pick('প্রত্যয়নপত্র ইস্যুতে ভর্তি স্ট্যাটাস অপরিবর্তিত থাকে', 'Issuing never closes active enrollment')}
+            {'প্রত্যয়নপত্র ইস্যুতে ভর্তি স্ট্যাটাস অপরিবর্তিত থাকে'}
           </p>
         </Card>
       </div>
@@ -428,10 +413,7 @@ export function StudentTestimonials() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={pick(
-                'স্মারক নং, নাম বা আইডি খুঁজুন...',
-                'Search ref no, name, or ID...'
-              )}
+              placeholder={'স্মারক নং, নাম বা আইডি খুঁজুন...'}
               className="pl-9 pr-9 h-10 text-base w-full"
             />
             {searchQuery && (
@@ -439,7 +421,7 @@ export function StudentTestimonials() {
                 type="button"
                 onClick={() => setSearchQuery('')}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-muted-foreground hover:text-foreground cursor-pointer"
-                aria-label={pick('মুছুন', 'Clear')}
+                aria-label={'মুছুন'}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -455,12 +437,12 @@ export function StudentTestimonials() {
               }}
               className="h-10 text-base w-auto min-w-[190px]"
             >
-              <option value="ALL">{pick('ধরন: সব প্রত্যয়নপত্র', 'Type: All Certificates')}</option>
+              <option value="ALL">{'ধরন: সব প্রত্যয়নপত্র'}</option>
               <option value={TestimonialType.STUDY_CHARACTER}>
-                {pick('অধ্যয়ন ও চারিত্রিক প্রত্যয়নপত্র', 'Study & Character Certificate')}
+                {'অধ্যয়ন ও চারিত্রিক প্রত্যয়নপত্র'}
               </option>
               <option value={TestimonialType.SSC_GRADUATE}>
-                {pick('এসএসসি প্রশংসাপত্র', 'SSC / Graduate Testimonial')}
+                {'এসএসসি প্রশংসাপত্র'}
               </option>
             </Select>
 
@@ -476,13 +458,13 @@ export function StudentTestimonials() {
                 }}
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>{pick('রিসেট', 'Reset')}</span>
+                <span>{'রিসেট'}</span>
               </Button>
             )}
 
             <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={rows.length === 0}>
               <Download className="w-3.5 h-3.5" />
-              <span>{pick('CSV রপ্তানি', 'Export CSV')}</span>
+              <span>{'CSV রপ্তানি'}</span>
             </Button>
 
             <Button
@@ -491,7 +473,7 @@ export function StudentTestimonials() {
               onClick={() => openIssueModal(TestimonialType.STUDY_CHARACTER)}
             >
               <Plus className="w-4 h-4" />
-              <span>{pick('নতুন প্রত্যয়নপত্র ইস্যু', 'Issue Testimonial')}</span>
+              <span>{'নতুন প্রত্যয়নপত্র ইস্যু'}</span>
             </Button>
           </div>
         </div>
@@ -508,28 +490,25 @@ export function StudentTestimonials() {
           meta: testRes?.meta,
           onPage: setPage,
         }}
-        emptyTitle={pick(
-          'এই ফিল্টারে কোনো ইস্যুকৃত প্রত্যয়নপত্র পাওয়া যায়নি।',
-          'No issued testimonials match the selected filters.'
-        )}
+        emptyTitle={'এই ফিল্টারে কোনো ইস্যুকৃত প্রত্যয়নপত্র পাওয়া যায়নি।'}
         columns={[
           {
             accessorKey: 'refNumber',
-            header: pick('স্মারক ও তারিখ', 'Ref. No & Date'),
+            header: 'স্মারক ও তারিখ',
             cell: ({ row }) => (
               <div className="space-y-0.5 tabular-nums">
                 <span className="font-mono text-base font-semibold text-foreground block">
                   {row.original.refNumber}
                 </span>
                 <span className="text-sm text-muted-foreground block">
-                  {formatDateShort(`${row.original.issueDate}T12:00:00`, locale)}
+                  {formatDateShort(`${row.original.issueDate}T12:00:00`, 'bn')}
                 </span>
               </div>
             ),
           },
           {
             accessorKey: 'studentNameBn',
-            header: pick('শিক্ষার্থী', 'Student'),
+            header: 'শিক্ষার্থী',
             cell: ({ row }) => (
               <div className="flex items-center gap-2.5 min-w-[190px]">
                 <span className="w-8 h-8 rounded-[var(--radius)] bg-surface-muted border border-border text-sm font-semibold text-foreground inline-flex items-center justify-center shrink-0">
@@ -540,7 +519,7 @@ export function StudentTestimonials() {
                     href={`/admin/students/${row.original.studentId}`}
                     className="font-medium text-foreground hover:text-primary truncate block"
                   >
-                    {locale === 'bn' ? row.original.studentNameBn : row.original.studentNameEn}
+                    {row.original.studentNameBn}
                   </Link>
                   <span className="text-sm text-muted-foreground font-mono tabular-nums block">
                     {row.original.studentCode}
@@ -551,7 +530,7 @@ export function StudentTestimonials() {
           },
           {
             accessorKey: 'type',
-            header: pick('ধরন ও শ্রেণি', 'Type & Class'),
+            header: 'ধরন ও শ্রেণি',
             cell: ({ row }) => (
               <div className="space-y-1">
                 <StatusBadge enumName="TestimonialType" value={row.original.type} />
@@ -563,13 +542,13 @@ export function StudentTestimonials() {
           },
           {
             accessorKey: 'purposeOrResult',
-            header: pick('উদ্দেশ্য / বোর্ড ফলাফল', 'Purpose / Board Result'),
+            header: 'উদ্দেশ্য / বোর্ড ফলাফল',
             cell: ({ row }) => (
               <div className="max-w-[260px]">
                 <p className="text-sm text-foreground line-clamp-2">{row.original.purposeOrResult}</p>
                 {row.original.conductRemarks && (
                   <p className="text-sm text-muted-foreground mt-0.5 truncate">
-                    {pick('আচরণ:', 'Conduct:')} {row.original.conductRemarks}
+                    {'আচরণ:'} {row.original.conductRemarks}
                   </p>
                 )}
               </div>
@@ -586,10 +565,10 @@ export function StudentTestimonials() {
                   onClick={() => setPrintId(row.original.id)}
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span>{pick('দেখুন ও প্রিন্ট', 'Preview & Print')}</span>
+                  <span>{'দেখুন ও প্রিন্ট'}</span>
                 </Button>
                 <Link href={`/admin/students/${row.original.studentId}`}>
-                  <Button size="sm" variant="ghost" aria-label={pick('প্রোফাইল', 'Profile')}>
+                  <Button size="sm" variant="ghost" aria-label={'প্রোফাইল'}>
                     <Eye className="w-3.5 h-3.5" />
                   </Button>
                 </Link>
@@ -603,7 +582,7 @@ export function StudentTestimonials() {
       <Modal
         open={issueOpen}
         onClose={() => setIssueOpen(false)}
-        title={pick('নতুন প্রত্যয়নপত্র / প্রশংসাপত্র ইস্যু করুন', 'Issue Official Testimonial Certificate')}
+        title={'নতুন প্রত্যয়নপত্র / প্রশংসাপত্র ইস্যু করুন'}
         maxWidth="max-w-2xl"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -616,7 +595,7 @@ export function StudentTestimonials() {
                   type: TestimonialType.STUDY_CHARACTER,
                   purpose:
                     prev.purpose ||
-                    pick('উপবৃত্তি ও মেধাবৃত্তি আবেদনের জন্য', 'For scholarship & stipend application'),
+                    'উপবৃত্তি ও মেধাবৃত্তি আবেদনের জন্য',
                 }))
               }
               className={cn(
@@ -634,10 +613,10 @@ export function StudentTestimonials() {
               />
               <div>
                 <p className="text-sm font-semibold text-foreground">
-                  {pick('অধ্যয়ন ও চারিত্রিক প্রত্যয়নপত্র', 'Study & Character Certificate')}
+                  {'অধ্যয়ন ও চারিত্রিক প্রত্যয়নপত্র'}
                 </p>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {pick('বর্তমান শিক্ষার্থীদের বৃত্তি, পাসপোর্ট বা দাপ্তরিক প্রয়োজনে।', 'For active students (stipend, passport, bank, official use).')}
+                  {'বর্তমান শিক্ষার্থীদের বৃত্তি, পাসপোর্ট বা দাপ্তরিক প্রয়োজনে।'}
                 </p>
               </div>
             </button>
@@ -665,24 +644,24 @@ export function StudentTestimonials() {
               />
               <div>
                 <p className="text-sm font-semibold text-foreground">
-                  {pick('এসএসসি প্রশংসাপত্র (Testimonial)', 'SSC / Graduate Testimonial')}
+                  {'এসএসসি প্রশংসাপত্র (Testimonial)'}
                 </p>
                 <p className="text-sm text-muted-foreground mt-0.5">
-                  {pick('বোর্ড পরীক্ষার রোল, রেজিস্ট্রেশন, সন ও জিপিএ যুক্ত প্রশংসাপত্র।', 'Formal graduate testimonial with board roll, reg. & GPA.')}
+                  {'বোর্ড পরীক্ষার রোল, রেজিস্ট্রেশন, সন ও জিপিএ যুক্ত প্রশংসাপত্র।'}
                 </p>
               </div>
             </button>
           </div>
 
-          <FormField label={pick('শিক্ষার্থী নির্বাচন করুন', 'Select Student')} required>
+          <FormField label={'শিক্ষার্থী নির্বাচন করুন'} required>
             <Select value={form.studentId} onChange={(e) => handleStudentChange(e.target.value)}>
-              <option value="">{pick('শিক্ষার্থী বাছাই করুন...', 'Choose a student...')}</option>
+              <option value="">{'শিক্ষার্থী বাছাই করুন...'}</option>
               {studentOptions.map((item) => (
                 <option key={item.student.id} value={item.student.id}>
-                  {locale === 'bn' ? item.student.nameBn || item.student.nameEn : item.student.nameEn} ·{' '}
-                  {locale === 'bn' ? item.classNameBn : item.classNameEn}
+                  {item.student.nameBn || item.student.nameEn} ·{' '}
+                  {item.classNameBn}
                   {item.sectionName ? ` (${item.sectionName})` : ''}
-                  {item.roll ? ` · ${pick('রোল', 'Roll')} ${formatNumber(item.roll, locale)}` : ''} ·{' '}
+                  {item.roll ? ` · ${'রোল'} ${formatNumber(item.roll, 'bn')}` : ''} ·{' '}
                   {item.student.studentId}
                 </option>
               ))}
@@ -692,28 +671,28 @@ export function StudentTestimonials() {
           {selectedStudentMeta && (
             <div className="p-3 rounded-[var(--radius)] border border-border bg-surface-muted/40 grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm tabular-nums">
               <div>
-                <span className="text-muted-foreground block">{pick('শ্রেণি ও শাখা', 'Class & Section')}</span>
+                <span className="text-muted-foreground block">{'শ্রেণি ও শাখা'}</span>
                 <span className="font-semibold text-foreground">
-                  {locale === 'bn' ? selectedStudentMeta.classNameBn : selectedStudentMeta.classNameEn}
+                  {selectedStudentMeta.classNameBn}
                   {selectedStudentMeta.sectionName ? ` · ${selectedStudentMeta.sectionName}` : ''}
                 </span>
               </div>
               <div>
-                <span className="text-muted-foreground block">{pick('রোল ও সেশন', 'Roll & Session')}</span>
+                <span className="text-muted-foreground block">{'রোল ও সেশন'}</span>
                 <span className="font-semibold text-foreground">
-                  {selectedStudentMeta.roll ? formatNumber(selectedStudentMeta.roll, locale) : '—'} ·{' '}
+                  {selectedStudentMeta.roll ? formatNumber(selectedStudentMeta.roll, 'bn') : '—'} ·{' '}
                   {selectedStudentMeta.sessionName}
                 </span>
               </div>
               <div>
-                <span className="text-muted-foreground block">{pick('বিভাগ', 'Group')}</span>
+                <span className="text-muted-foreground block">{'বিভাগ'}</span>
                 <span className="font-semibold text-foreground">
-                  {(locale === 'bn' ? selectedStudentMeta.groupNameBn : selectedStudentMeta.groupNameEn) ||
-                    pick('সাধারণ', 'General')}
+                  {(selectedStudentMeta.groupNameBn) ||
+                    'সাধারণ'}
                 </span>
               </div>
               <div>
-                <span className="text-muted-foreground block">{pick('পিতার নাম', "Father's Name")}</span>
+                <span className="text-muted-foreground block">{'পিতার নাম'}</span>
                 <span className="font-semibold text-foreground truncate block">
                   {selectedStudentMeta.fatherName || '—'}
                 </span>
@@ -722,7 +701,7 @@ export function StudentTestimonials() {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <FormField label={pick('স্মারক নম্বর (Ref. No)', 'Reference Number')} required>
+            <FormField label={'স্মারক নম্বর (Ref. No)'} required>
               <Input
                 value={form.refNumber}
                 onChange={(e) => setForm((prev) => ({ ...prev, refNumber: e.target.value }))}
@@ -731,7 +710,7 @@ export function StudentTestimonials() {
               />
             </FormField>
 
-            <FormField label={pick('ইস্যুর তারিখ', 'Issue Date')} required>
+            <FormField label={'ইস্যুর তারিখ'} required>
               <Input
                 type="date"
                 value={form.issueDate}
@@ -742,16 +721,16 @@ export function StudentTestimonials() {
 
           {form.type === TestimonialType.STUDY_CHARACTER ? (
             <div className="space-y-2">
-              <FormField label={pick('প্রত্যয়নপত্র গ্রহণের উদ্দেশ্য', 'Purpose of Certificate')}>
+              <FormField label={'প্রত্যয়নপত্র গ্রহণের উদ্দেশ্য'}>
                 <Input
                   value={form.purpose}
                   onChange={(e) => setForm((prev) => ({ ...prev, purpose: e.target.value }))}
-                  placeholder={pick('যেমন: উপবৃত্তি আবেদনের জন্য', 'e.g., For scholarship application')}
+                  placeholder={'যেমন: উপবৃত্তি আবেদনের জন্য'}
                 />
               </FormField>
               <div className="flex flex-wrap gap-1.5">
                 {PURPOSE_PRESETS.map((preset) => {
-                  const text = locale === 'bn' ? preset.bn : preset.en;
+                  const text = preset.bn;
                   return (
                     <button
                       key={preset.en}
@@ -768,23 +747,23 @@ export function StudentTestimonials() {
           ) : (
             <div className="space-y-3.5 p-3.5 rounded-[var(--radius)] border border-border bg-surface-muted/30">
               <p className="text-sm font-semibold text-foreground">
-                {pick('বোর্ড পরীক্ষার তথ্য (এসএসসি প্রশংসাপত্র)', 'Board Examination Details (SSC Testimonial)')}
+                {'বোর্ড পরীক্ষার তথ্য (এসএসসি প্রশংসাপত্র)'}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <FormField label={pick('শিক্ষা বোর্ড', 'Education Board')}>
-                  <Input
+                <FormField label={'শিক্ষা বোর্ড'}>
+                  <Input placeholder="শিক্ষা বোর্ড লিখুন"
                     value={form.boardName}
                     onChange={(e) => setForm((prev) => ({ ...prev, boardName: e.target.value }))}
                   />
                 </FormField>
-                <FormField label={pick('বিভাগ (Group)', 'Academic Group')}>
+                <FormField label={'বিভাগ (Group)'}>
                   <Input
                     value={form.groupName}
                     onChange={(e) => setForm((prev) => ({ ...prev, groupName: e.target.value }))}
-                    placeholder={pick('বিজ্ঞান / মানবিক / ব্যবসায় শিক্ষা', 'Science / Humanities / Business')}
+                    placeholder={'বিজ্ঞান / মানবিক / ব্যবসায় শিক্ষা'}
                   />
                 </FormField>
-                <FormField label={pick('পাসের সন', 'Passing Year')} required>
+                <FormField label={'পাসের সন'} required>
                   <Input
                     value={form.passingYear}
                     onChange={(e) => setForm((prev) => ({ ...prev, passingYear: e.target.value }))}
@@ -792,7 +771,7 @@ export function StudentTestimonials() {
                     placeholder="2026"
                   />
                 </FormField>
-                <FormField label={pick('বোর্ড রোল নম্বর', 'Board Roll Number')} required>
+                <FormField label={'বোর্ড রোল নম্বর'} required>
                   <Input
                     value={form.boardRoll}
                     onChange={(e) => setForm((prev) => ({ ...prev, boardRoll: e.target.value }))}
@@ -800,7 +779,7 @@ export function StudentTestimonials() {
                     placeholder="241509"
                   />
                 </FormField>
-                <FormField label={pick('বোর্ড রেজিস্ট্রেশন নম্বর', 'Board Registration No.')}>
+                <FormField label={'বোর্ড রেজিস্ট্রেশন নম্বর'}>
                   <Input
                     value={form.registrationNo}
                     onChange={(e) => setForm((prev) => ({ ...prev, registrationNo: e.target.value }))}
@@ -809,7 +788,7 @@ export function StudentTestimonials() {
                   />
                 </FormField>
                 <div className="grid grid-cols-2 gap-2.5">
-                  <FormField label={pick('অর্জিত জিপিএ', 'GPA')}>
+                  <FormField label={'অর্জিত জিপিএ'}>
                     <Input
                       value={form.gpa}
                       onChange={(e) => setForm((prev) => ({ ...prev, gpa: e.target.value }))}
@@ -817,7 +796,7 @@ export function StudentTestimonials() {
                       placeholder="5.00"
                     />
                   </FormField>
-                  <FormField label={pick('গ্রেড', 'Grade')}>
+                  <FormField label={'গ্রেড'}>
                     <Select
                       value={form.letterGrade}
                       onChange={(e) => setForm((prev) => ({ ...prev, letterGrade: e.target.value }))}
@@ -835,31 +814,31 @@ export function StudentTestimonials() {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <FormField label={pick('স্বভাব ও চারিত্রিক মন্তব্য', 'Conduct & Character')}>
-              <Input
+            <FormField label={'স্বভাব ও চারিত্রিক মন্তব্য'}>
+              <Input placeholder="স্বভাব ও চারিত্রিক মন্তব্য লিখুন"
                 value={form.conductRemarks}
                 onChange={(e) => setForm((prev) => ({ ...prev, conductRemarks: e.target.value }))}
               />
             </FormField>
-            <FormField label={pick('দাপ্তরিক নোট (ঐচ্ছিক)', 'Office Note (Optional)')}>
+            <FormField label={'দাপ্তরিক নোট (ঐচ্ছিক)'}>
               <Input
                 value={form.remarks}
                 onChange={(e) => setForm((prev) => ({ ...prev, remarks: e.target.value }))}
-                placeholder={pick('রেজিস্টারের অভ্যন্তরীণ নোট', 'Internal register note')}
+                placeholder={'রেজিস্টারের অভ্যন্তরীণ নোট'}
               />
             </FormField>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={() => setIssueOpen(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button type="submit" variant="primary" disabled={issuing || !form.studentId}>
               <FileCheck2 className="w-4 h-4" />
               <span>
                 {issuing
-                  ? pick('ইস্যু হচ্ছে...', 'Issuing...')
-                  : pick('প্রত্যয়নপত্র ইস্যু ও প্রিন্ট করুন', 'Issue & Open Print Copy')}
+                  ? 'ইস্যু হচ্ছে...'
+                  : 'প্রত্যয়নপত্র ইস্যু ও প্রিন্ট করুন'}
               </span>
             </Button>
           </div>
@@ -872,8 +851,8 @@ export function StudentTestimonials() {
         onClose={() => setPrintId(null)}
         title={
           printedItem
-            ? `${pick('অফিসিয়াল প্রত্যয়নপত্র', 'Official Testimonial Certificate')} · ${printedItem.refNumber}`
-            : pick('প্রত্যয়নপত্র', 'Testimonial Certificate')
+            ? `${'অফিসিয়াল প্রত্যয়নপত্র'} · ${printedItem.refNumber}`
+            : 'প্রত্যয়নপত্র'
         }
         maxWidth="max-w-4xl"
       >
@@ -885,7 +864,7 @@ export function StudentTestimonials() {
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>{pick('শিক্ষার্থীর প্রোফাইল দেখুন', 'Open student dossier')}</span>
+                <span>{'শিক্ষার্থীর প্রোফাইল দেখুন'}</span>
               </Link>
               <Button
                 type="button"
@@ -903,7 +882,7 @@ export function StudentTestimonials() {
                 }
               >
                 <Printer className="w-4 h-4" />
-                <span>{pick('প্রিন্ট করুন', 'Print Certificate')}</span>
+                <span>{'প্রিন্ট করুন'}</span>
               </Button>
             </div>
             <PrintableTestimonialCertificate

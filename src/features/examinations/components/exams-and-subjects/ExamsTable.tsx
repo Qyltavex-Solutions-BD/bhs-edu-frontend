@@ -163,7 +163,7 @@ export function ExamsTable({
           cell: ({ row }) => {
             const { exam, deadlineExpired } = row.original;
             return (
-              <div className="whitespace-nowrap text-xs tabular-nums space-y-0.5">
+              <div className="whitespace-nowrap text-sm tabular-nums space-y-0.5">
                 <div className="text-foreground font-medium">
                   শুরু: {formatDateShort(exam.startDate, 'bn')}
                 </div>
@@ -196,7 +196,7 @@ export function ExamsTable({
               <div className="flex items-center justify-end gap-1 whitespace-nowrap">
                 <Link
                   href={`/admin/examinations/${exam.id}`}
-                  className="inline-flex h-8 px-2.5 items-center gap-1.5 rounded-md border border-border bg-surface text-xs font-medium text-foreground hover:bg-surface-muted transition-colors"
+                  className="inline-flex h-8 px-2.5 items-center gap-1.5 rounded-md border border-border bg-surface text-sm font-medium text-foreground hover:bg-surface-muted transition-colors"
                   title="বিষয় ও নম্বর বণ্টন কনফিগার"
                 >
                   <Settings2 className="w-3.5 h-3.5 text-primary" />
@@ -235,14 +235,14 @@ export function ExamsTable({
                   <span className="truncate">{exam.name}</span>
                   {exam.isLocked && <Lock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-sm text-muted-foreground mt-0.5">
                   {classLabel} · {typeLabel}
                 </p>
               </div>
               <StatusBadge enumName="ExamStatus" value={status} />
             </div>
 
-            <div className="text-xs tabular-nums bg-surface-muted/50 rounded-md p-2.5">
+            <div className="text-sm tabular-nums bg-surface-muted/50 rounded-md p-2.5">
               <span className="text-muted-foreground block">সময়সূচি</span>
               <span className="font-medium text-foreground">
                 শুরু: {formatDateShort(exam.startDate, 'bn')} · শেষ: {formatDateShort(exam.endDate, 'bn')}

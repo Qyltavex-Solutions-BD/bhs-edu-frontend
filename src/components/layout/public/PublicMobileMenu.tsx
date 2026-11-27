@@ -20,9 +20,6 @@ interface PublicMobileMenuProps {
   isAuthenticated: boolean;
   theme: string;
   onToggleTheme: () => void;
-  locale: string;
-  pick: (bn: string, en: string) => string;
-  t: (key: string) => string;
 }
 
 export function PublicMobileMenu({
@@ -36,9 +33,9 @@ export function PublicMobileMenu({
   isAuthenticated,
   theme,
   onToggleTheme,
-  locale,
-  pick,
-  t,
+  
+  
+  
 }: PublicMobileMenuProps) {
   return (
     <AnimatePresence>
@@ -69,17 +66,17 @@ export function PublicMobileMenu({
                 <SchoolEmblem size={34} />
                 <div className="min-w-0 leading-tight">
                   <span className="block text-base font-bold text-primary truncate">
-                    {pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}
+                    {'ভোজেশ্বর উচ্চ বিদ্যালয়'}
                   </span>
-                  <span className="block text-xs text-muted-foreground">
-                    BHS · {pick('স্থাপিত ১৯৭৮', 'Est. 1978')}
+                  <span className="block text-sm text-muted-foreground">
+                    BHS · {'স্থাপিত ১৯৭৮'}
                   </span>
                 </div>
               </Link>
               <button
                 type="button"
                 onClick={onClose}
-                aria-label={pick('মেনু বন্ধ করুন', 'Close menu')}
+                aria-label={'মেনু বন্ধ করুন'}
                 className="p-1.5 rounded-[var(--radius)] hover:bg-surface-muted cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -99,7 +96,7 @@ export function PublicMobileMenu({
               >
                 <Search className="w-4 h-4 shrink-0" />
                 <span className="truncate">
-                  {pick('নোটিশ, ফলাফল বা শিক্ষক খুঁজুন...', 'Search notices, results, teachers...')}
+                  {'নোটিশ, ফলাফল বা শিক্ষক খুঁজুন...'}
                 </span>
               </button>
 
@@ -108,12 +105,12 @@ export function PublicMobileMenu({
                 <Link href="/results" onClick={onClose}>
                   <Button variant="outline" size="sm" className="w-full">
                     <Award className="w-3.5 h-3.5" />
-                    {t('nav.results')}
+                    {'ফলাফল'}
                   </Button>
                 </Link>
                 <Link href="/admission/apply" onClick={onClose}>
                   <Button variant="primary" size="sm" className="w-full">
-                    {pick('ভর্তি আবেদন', 'Apply Now')}
+                    {'ভর্তি আবেদন'}
                   </Button>
                 </Link>
               </div>
@@ -121,7 +118,7 @@ export function PublicMobileMenu({
               {/* Collapsible Accordion Navigation */}
               <nav className="divide-y divide-border/70 border-t border-b border-border/70">
                 {PUBLIC_NAV.map((group) => {
-                  const groupLabel = locale === 'bn' ? group.labelBn : group.labelEn;
+                  const groupLabel = group.labelBn;
                   const groupActive = isGroupActive(group, pathname);
 
                   if (!group.children) {
@@ -191,7 +188,7 @@ export function PublicMobileMenu({
                                     )}
                                   >
                                     <SubIcon className="w-4 h-4 shrink-0 opacity-80" />
-                                    <span>{locale === 'bn' ? sub.labelBn : sub.labelEn}</span>
+                                    <span>{sub.labelBn}</span>
                                   </Link>
                                 );
                               })}
@@ -210,7 +207,7 @@ export function PublicMobileMenu({
               <Link href={portalUrl} onClick={onClose} className="block">
                 <Button variant="secondary" className="w-full">
                   <LogIn className="w-4 h-4" />
-                  {isAuthenticated ? t('nav.dashboard') : t('nav.portal')}
+                  {isAuthenticated ? 'ড্যাশবোর্ড' : 'পোর্টাল লগইন'}
                 </Button>
               </Link>
               <button
@@ -221,12 +218,12 @@ export function PublicMobileMenu({
                 {theme === 'dark' ? (
                   <>
                     <Sun className="w-3.5 h-3.5" />
-                    <span>{pick('লাইট মোড', 'Light')}</span>
+                    <span>{'লাইট মোড'}</span>
                   </>
                 ) : (
                   <>
                     <Moon className="w-3.5 h-3.5" />
-                    <span>{pick('ডার্ক মোড', 'Dark')}</span>
+                    <span>{'ডার্ক মোড'}</span>
                   </>
                 )}
               </button>

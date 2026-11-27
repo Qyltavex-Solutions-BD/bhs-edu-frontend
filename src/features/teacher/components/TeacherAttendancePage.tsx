@@ -32,7 +32,6 @@ import {
   useSaveMarksBatchMutation,
 } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -86,8 +85,6 @@ export function TeacherAttendancePage() {
   const [saveBatch, { isLoading: saving }] = useSaveAttendanceBatchMutation();
   const teacher = useCurrentTeacher(db);
   const auth = useAppSelector((s) => s.auth);
-  const { locale, pick } = useI18n();
-
   const mySectionIds = useMemo(
     () =>
       db && teacher
@@ -134,30 +131,24 @@ export function TeacherAttendancePage() {
         })),
       }).unwrap();
       toast.success(
-        pick(
-          `${formatNumber(res.saved, locale)} জন শিক্ষার্থীর হাজিরা সংরক্ষিত হয়েছে। অনুপস্থিত SMS কিউ: ${formatNumber(res.smsQueued, locale)}`,
-          `Saved attendance for ${res.saved} students. Absent SMS queued: ${res.smsQueued}`
-        )
+        `${formatNumber(res.saved, 'bn')} জন শিক্ষার্থীর হাজিরা সংরক্ষিত হয়েছে। অনুপস্থিত SMS কিউ: ${formatNumber(res.smsQueued, 'bn')}`
       );
     } catch {
-      toast.error(pick('হাজিরা সংরক্ষণ করা যায়নি', 'Failed to save attendance'));
+      toast.error('হাজিরা সংরক্ষণ করা যায়নি');
     }
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('দৈনিক হাজিরা গ্রহণ', 'Take Daily Attendance')}
-        description={pick(
-          'নির্ধারিত শাখার হাজিরা নথিভুক্ত করুন; অনুপস্থিতিতে অভিভাবকের কাছে স্বয়ংক্রিয় SMS কিউ হবে',
-          'Record section attendance; absences automatically queue guardian SMS alerts'
-        )}
+        title={'দৈনিক হাজিরা গ্রহণ'}
+        description={'নির্ধারিত শাখার হাজিরা নথিভুক্ত করুন; অনুপস্থিতিতে অভিভাবকের কাছে স্বয়ংক্রিয় SMS কিউ হবে'}
       />
 
       <Card className="p-4 flex flex-wrap items-end gap-4">
         <div className="w-56">
           <label className="text-sm font-medium text-muted-foreground block mb-1">
-            {pick('শাখা নির্বাচন', 'Select Section')}
+            {'শাখা নির্বাচন'}
           </label>
           <Select value={activeSecId} onChange={(e) => setSectionId(e.target.value)}>
             {mySectionIds.map((sid) => {
@@ -165,7 +156,7 @@ export function TeacherAttendancePage() {
               const c = db.classes.find((x) => x.id === s?.classId);
               return (
                 <option key={sid} value={sid}>
-                  {locale === 'bn' ? c?.nameBn || c?.name : c?.name} ({s?.name})
+                  {c?.nameBn || c?.name} ({s?.name})
                 </option>
               );
             })}
@@ -173,7 +164,7 @@ export function TeacherAttendancePage() {
         </div>
         <div className="w-44">
           <label className="text-sm font-medium text-muted-foreground block mb-1">
-            {pick('তারিখ', 'Date')}
+            {'তারিখ'}
           </label>
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
@@ -189,11 +180,11 @@ export function TeacherAttendancePage() {
               setDraftStatuses(all);
             }}
           >
-            {pick('সবাইকে উপস্থিত করুন', 'Mark All Present')}
+            {'সবাইকে উপস্থিত করুন'}
           </Button>
           <Button variant="primary" size="sm" disabled={saving} onClick={handleSave}>
             <Save className="w-4 h-4" />
-            {pick('হাজিরা সংরক্ষণ', 'Save Attendance')}
+            {'হাজিরা সংরক্ষণ'}
           </Button>
         </div>
       </Card>
@@ -202,22 +193,19 @@ export function TeacherAttendancePage() {
         <div className="p-3.5 rounded-[var(--radius)] border border-info/40 bg-info/10 text-sm flex items-start gap-2.5">
           <AlertTriangle className="w-4 h-4 text-info shrink-0 mt-0.5" />
           <p>
-            {pick(
-              'এই শ্রেণির জন্য প্রাথমিক হাজিরা পদ্ধতি RFID নির্ধারিত আছে। আপনি প্রয়োজনে ম্যানুয়াল ফলোব্যাক হিসেবে অনুপস্থিতি বা ছুটি হালনাগাদ করতে পারেন।',
-              'This class uses RFID as its primary attendance method. You may still apply manual fallback corrections if needed.'
-            )}
+            {'এই শ্রেণির জন্য প্রাথমিক হাজিরা পদ্ধতি RFID নির্ধারিত আছে। আপনি প্রয়োজনে ম্যানুয়াল ফলোব্যাক হিসেবে অনুপস্থিতি বা ছুটি হালনাগাদ করতে পারেন।'}
           </p>
         </div>
       )}
 
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead className="bg-surface-muted/70 text-sm text-muted-foreground border-b border-border">
               <tr>
-                <th className="px-4 py-3 text-left">{pick('রোল', 'Roll')}</th>
-                <th className="px-4 py-3 text-left">{pick('শিক্ষার্থী', 'Student')}</th>
-                <th className="px-4 py-3 text-left">{pick('হাজিরার অবস্থা', 'Status')}</th>
+                <th className="px-4 py-3 text-left">{'রোল'}</th>
+                <th className="px-4 py-3 text-left">{'শিক্ষার্থী'}</th>
+                <th className="px-4 py-3 text-left">{'হাজিরার অবস্থা'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border tabular-nums">
@@ -226,10 +214,10 @@ export function TeacherAttendancePage() {
                 const status = getStatus(enr.id);
                 return (
                   <tr key={enr.id}>
-                    <td className="px-4 py-3 font-semibold">{formatNumber(enr.roll, locale)}</td>
+                    <td className="px-4 py-3 font-semibold">{formatNumber(enr.roll, 'bn')}</td>
                     <td className="px-4 py-3">
-                      <p className="font-medium">{locale === 'bn' ? stu?.nameBn || stu?.nameEn : stu?.nameEn}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{stu?.studentId}</p>
+                      <p className="font-medium">{stu?.nameBn || stu?.nameEn}</p>
+                      <p className="text-sm text-muted-foreground font-mono">{stu?.studentId}</p>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1.5">
@@ -243,15 +231,13 @@ export function TeacherAttendancePage() {
                             key={st}
                             type="button"
                             onClick={() => setDraftStatuses((prev) => ({ ...prev, [enr.id]: st }))}
-                            className={`px-2.5 py-1 rounded text-xs font-medium border cursor-pointer transition-colors ${
+                            className={`px-2.5 py-1 rounded text-sm font-medium border cursor-pointer transition-colors ${
                               status === st
                                 ? 'bg-primary text-primary-foreground border-primary'
                                 : 'bg-surface border-border hover:bg-surface-muted'
                             }`}
                           >
-                            {locale === 'bn'
-                              ? ENUM_LABELS.AttendanceStatus[st]?.bn ?? st
-                              : ENUM_LABELS.AttendanceStatus[st]?.en ?? st}
+                            {ENUM_LABELS.AttendanceStatus[st]?.bn ?? st}
                           </button>
                         ))}
                       </div>

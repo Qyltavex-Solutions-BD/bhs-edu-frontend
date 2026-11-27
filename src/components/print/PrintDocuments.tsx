@@ -11,8 +11,6 @@ import type {
   StudentTransferCertificate,
 } from '@/src/types/entities';
 import type { OnlineAdmissionApplication } from '@/src/types/proposed/future';
-import { useI18n } from '@/src/lib/i18n';
-
 export function SchoolLetterhead({
   school,
   docTitleBn,
@@ -22,7 +20,6 @@ export function SchoolLetterhead({
   docTitleBn: string;
   docTitleEn: string;
 }) {
-  const { locale } = useI18n();
   return (
     <div className="border-b-2 border-[#0B7A34] pb-4 mb-5">
       <div className="flex items-center justify-center gap-4 text-center">
@@ -36,13 +33,13 @@ export function SchoolLetterhead({
           </p>
           <p className="text-sm text-muted-foreground mt-0.5">{school.address}</p>
           <p className="text-xs text-muted-foreground tabular-nums mt-0.5">
-            EIIN: {school.eiin ?? '113587'} · Est. {school.establishedYear ?? 1978} · “{school.motto ?? 'শিক্ষাই আলো, জ্ঞানই শক্তি'}”
+            EIIN: {school.eiin ?? '113587'} · স্থাপিত: {school.establishedYear ?? 1978} · “{school.motto ?? 'শিক্ষাই আলো, জ্ঞানই শক্তি'}”
           </p>
         </div>
       </div>
       <div className="mt-3 text-center">
         <span className="inline-block px-4 py-1 border border-[#124B96]/35 bg-[#EBF4EE] text-[#0B7A34] text-sm font-bold rounded">
-          {locale === 'bn' ? docTitleBn : docTitleEn}
+          {docTitleBn}
         </span>
       </div>
     </div>
@@ -50,22 +47,21 @@ export function SchoolLetterhead({
 }
 
 export function SignatureBlock() {
-  const { pick } = useI18n();
   return (
     <div className="grid grid-cols-3 gap-6 mt-12 pt-4 text-center text-sm text-foreground">
       <div>
         <div className="border-t border-foreground/40 pt-1.5 font-medium">
-          {pick('শ্রেণি শিক্ষক', 'Class Teacher')}
+          {'শ্রেণি শিক্ষক'}
         </div>
       </div>
       <div>
         <div className="border-t border-foreground/40 pt-1.5 font-medium">
-          {pick('পরীক্ষা নিয়ন্ত্রক / অভিভাবক', 'Exam Controller / Guardian')}
+          {'পরীক্ষা নিয়ন্ত্রক / অভিভাবক'}
         </div>
       </div>
       <div>
         <div className="border-t border-foreground/40 pt-1.5 font-medium">
-          {pick('প্রধান শিক্ষক', 'Head Teacher / Principal')}
+          {'প্রধান শিক্ষক'}
         </div>
       </div>
     </div>
@@ -99,7 +95,6 @@ export function PrintableAdmissionAdmitCard({
   targetClassName: string;
   groupName?: string | null;
 }) {
-  const { locale, pick } = useI18n();
   const isTransfer = application.admissionType === 'TRANSFER';
   return (
     <div className="w-full overflow-x-auto pb-1">
@@ -137,10 +132,8 @@ export function PrintableAdmissionAdmitCard({
                   </p>
                   <p className="text-[13.5px] text-[#3F3F46]">{school.address}</p>
                   <p className="text-[12px] text-[#52525B] tabular-nums">
-                    EIIN: {school.eiin ?? '113587'} · {pick('স্থাপিত:', 'Est.')}{' '}
-                    {locale === 'bn'
-                      ? String(school.establishedYear ?? 1978).replace(/[0-9]/g, (d) => '০১২৩৪৫৬৭৮৯'[Number(d)])
-                      : school.establishedYear ?? 1978}
+                    EIIN: {school.eiin ?? '113587'} · {'স্থাপিত:'}{' '}
+                    {String(school.establishedYear ?? 1978).replace(/[0-9]/g, (d) => '০১২৩৪৫৬৭৮৯'[Number(d)])}
                   </p>
                 </div>
                 <div className="w-[84px] h-[102px] border border-[#27272A] bg-[#FAFAFA] overflow-hidden flex items-center justify-center shrink-0">
@@ -153,7 +146,7 @@ export function PrintableAdmissionAdmitCard({
                     />
                   ) : (
                     <span className="text-[11.5px] text-[#71717A] text-center px-1">
-                      {pick('পাসপোর্ট ছবি', 'Passport Photo')}
+                      {'পাসপোর্ট ছবি'}
                     </span>
                   )}
                 </div>
@@ -163,14 +156,8 @@ export function PrintableAdmissionAdmitCard({
               <div className="text-center">
                 <h2 className="inline-block text-[19px] font-bold tracking-wide text-[#111111] border-b-[1.5px] border-[#18181B] pb-1 px-5">
                   {isTransfer
-                    ? pick(
-                        `ভর্তি ও বদলি (TC) প্রবেশপত্র — শিক্ষাবর্ষ ${application.academicSession}`,
-                        `Admission & Transfer Admit Card — Session ${application.academicSession}`
-                      )
-                    : pick(
-                        `ভর্তি পরীক্ষার প্রবেশপত্র — শিক্ষাবর্ষ ${application.academicSession}`,
-                        `Admission Test Admit Card — Session ${application.academicSession}`
-                      )}
+                    ? `ভর্তি ও বদলি (TC) প্রবেশপত্র — শিক্ষাবর্ষ ${application.academicSession}`
+                    : `ভর্তি পরীক্ষার প্রবেশপত্র — শিক্ষাবর্ষ ${application.academicSession}`}
                 </h2>
               </div>
 
@@ -179,7 +166,7 @@ export function PrintableAdmissionAdmitCard({
                 <div className="divide-y divide-[#D4D4D8]">
                   <div className="grid grid-cols-[144px_1fr]">
                     <div className="px-3 py-2 bg-[#F4F4F5] text-[13.5px] text-[#3F3F46] font-medium border-r border-[#D4D4D8]">
-                      {pick('আবেদন নম্বর', 'Application No')}
+                      {'আবেদন নম্বর'}
                     </div>
                     <div className="px-3 py-2 font-mono font-bold tabular-nums text-[#111111]">
                       {application.applicationNumber}
@@ -187,7 +174,7 @@ export function PrintableAdmissionAdmitCard({
                   </div>
                   <div className="grid grid-cols-[144px_1fr]">
                     <div className="px-3 py-2 bg-[#F4F4F5] text-[13.5px] text-[#3F3F46] font-medium border-r border-[#D4D4D8]">
-                      {pick('ভর্তি পরীক্ষার রোল', 'Test Roll No')}
+                      {'ভর্তি পরীক্ষার রোল'}
                     </div>
                     <div className="px-3 py-2 font-mono font-bold tabular-nums text-[#0A6E31]">
                       {application.admissionTestRoll ?? 'TBA'}
@@ -195,7 +182,7 @@ export function PrintableAdmissionAdmitCard({
                   </div>
                   <div className="grid grid-cols-[144px_1fr]">
                     <div className="px-3 py-2 bg-[#F4F4F5] text-[13.5px] text-[#3F3F46] font-medium border-r border-[#D4D4D8]">
-                      {pick('শিক্ষার্থীর নাম', 'Applicant Name')}
+                      {'শিক্ষার্থীর নাম'}
                     </div>
                     <div className="px-3 py-2 text-[#111111]">
                       <strong className="font-bold block">{application.studentNameBn}</strong>
@@ -206,13 +193,13 @@ export function PrintableAdmissionAdmitCard({
                   </div>
                   <div className="grid grid-cols-[144px_1fr]">
                     <div className="px-3 py-2 bg-[#F4F4F5] text-[13.5px] text-[#3F3F46] font-medium border-r border-[#D4D4D8]">
-                      {pick('পিতার নাম', 'Father’s Name')}
+                      {'পিতার নাম'}
                     </div>
                     <div className="px-3 py-2 text-[#111111]">{application.fatherNameBn}</div>
                   </div>
                   <div className="grid grid-cols-[144px_1fr]">
                     <div className="px-3 py-2 bg-[#F4F4F5] text-[13.5px] text-[#3F3F46] font-medium border-r border-[#D4D4D8]">
-                      {pick('মাতার নাম', 'Mother’s Name')}
+                      {'মাতার নাম'}
                     </div>
                     <div className="px-3 py-2 text-[#111111]">{application.motherNameBn}</div>
                   </div>
@@ -221,14 +208,14 @@ export function PrintableAdmissionAdmitCard({
                 <div className="divide-y divide-[#D4D4D8]">
                   <div className="grid grid-cols-[144px_1fr]">
                     <div className="px-3 py-2 bg-[#F4F4F5] text-[13.5px] text-[#3F3F46] font-medium border-r border-[#D4D4D8]">
-                      {pick('ভর্তিচ্ছু শ্রেণি', 'Target Class')}
+                      {'ভর্তিচ্ছু শ্রেণি'}
                     </div>
                     <div className="px-3 py-2 font-bold text-[#111111]">{targetClassName}</div>
                   </div>
                   {groupName && (
                     <div className="grid grid-cols-[144px_1fr]">
                       <div className="px-3 py-2 bg-[#F4F4F5] text-[13.5px] text-[#3F3F46] font-medium border-r border-[#D4D4D8]">
-                        {pick('বিভাগ ও ৪র্থ বিষয়', 'Group & 4th')}
+                        {'বিভাগ ও ৪র্থ বিষয়'}
                       </div>
                       <div className="px-3 py-2 text-[#111111]">
                         <strong className="font-semibold">{groupName}</strong>
@@ -241,7 +228,7 @@ export function PrintableAdmissionAdmitCard({
                   {application.boardRegistrationNo && (
                     <div className="grid grid-cols-[144px_1fr]">
                       <div className="px-3 py-2 bg-[#F4F4F5] text-[13.5px] text-[#3F3F46] font-medium border-r border-[#D4D4D8]">
-                        {pick('বোর্ড রেজিস্ট্রেশন', 'Board Reg No')}
+                        {'বোর্ড রেজিস্ট্রেশন'}
                       </div>
                       <div className="px-3 py-2 font-mono font-semibold tabular-nums text-[#111111]">
                         {application.boardRegistrationNo}
@@ -250,15 +237,15 @@ export function PrintableAdmissionAdmitCard({
                   )}
                   <div className="grid grid-cols-[144px_1fr]">
                     <div className="px-3 py-2 bg-[#F4F4F5] text-[13.5px] text-[#3F3F46] font-medium border-r border-[#D4D4D8]">
-                      {pick('পরীক্ষার তারিখ', 'Test Date')}
+                      {'পরীক্ষার তারিখ'}
                     </div>
                     <div className="px-3 py-2 font-semibold text-[#111111]">
-                      {formatDateLong(application.admissionTestDate, locale)}
+                      {formatDateLong(application.admissionTestDate, 'bn')}
                     </div>
                   </div>
                   <div className="grid grid-cols-[144px_1fr]">
                     <div className="px-3 py-2 bg-[#F4F4F5] text-[13.5px] text-[#3F3F46] font-medium border-r border-[#D4D4D8]">
-                      {pick('অভিভাবক মোবাইল', 'Guardian Mobile')}
+                      {'অভিভাবক মোবাইল'}
                     </div>
                     <div className="px-3 py-2 font-mono tabular-nums text-[#111111]">
                       {application.guardianPhone}
@@ -269,26 +256,23 @@ export function PrintableAdmissionAdmitCard({
 
               {/* Exam Day Instructions */}
               <div className="p-3.5 bg-[#FAFAFA] border border-[#D4D4D8] text-[13.5px] text-[#27272A] leading-relaxed">
-                <strong className="text-[#111111]">{pick('নির্দেশনা:', 'Instructions:')}</strong>{' '}
-                {pick(
-                  'পরীক্ষার/ভর্তির দিন এই প্রবেশপত্রের প্রিন্ট কপি, ১৭ ডিজিটের অনলাইন জন্ম সনদের ফটোকপি, পিতা-মাতার এনআইডি কপি, ২ কপি পাসপোর্ট সাইজ ছবি এবং প্রযোজ্য ক্ষেত্রে ছাড়পত্র (TC) / বোর্ড রেজিস্ট্রেশন কপি সঙ্গে আনতে হবে।',
-                  'Bring this printed admit card, copy of 17-digit online birth certificate, parents’ NID copies, 2 passport photos, and TC/Board Registration copy (where applicable).'
-                )}
+                <strong className="text-[#111111]">{'নির্দেশনা:'}</strong>{' '}
+                {'পরীক্ষার/ভর্তির দিন এই প্রবেশপত্রের প্রিন্ট কপি, ১৭ ডিজিটের অনলাইন জন্ম সনদের ফটোকপি, পিতা-মাতার এনআইডি কপি, ২ কপি পাসপোর্ট সাইজ ছবি এবং প্রযোজ্য ক্ষেত্রে ছাড়পত্র (TC) / বোর্ড রেজিস্ট্রেশন কপি সঙ্গে আনতে হবে।'}
               </div>
 
               {/* Clean 2-Column Institutional Signature Footer */}
               <div className="flex items-end justify-between gap-8 pt-12 text-center text-[13px] text-[#18181B]">
                 <div className="w-52 space-y-0.5">
                   <div className="border-t border-[#27272A] pt-1.5 font-semibold">
-                    {pick('আহ্বায়ক, ভর্তি কমিটি', 'Convener, Admission Committee')}
+                    {'আহ্বায়ক, ভর্তি কমিটি'}
                   </div>
                   <p className="text-[12px] text-[#52525B]">
-                    {pick('তারিখ ও স্বাক্ষর', 'Signature & Date')}
+                    {'তারিখ ও স্বাক্ষর'}
                   </p>
                 </div>
                 <div className="w-56 space-y-0.5">
                   <div className="border-t border-[#27272A] pt-1.5 font-semibold">
-                    {pick('প্রধান শিক্ষক', 'Head Teacher / Principal')}
+                    {'প্রধান শিক্ষক'}
                   </div>
                   <p className="text-[12px] text-[#52525B]">{school.name}</p>
                 </div>
@@ -333,7 +317,6 @@ export function PrintableAdmissionConfirmationSlip({
   guardianPhone: string;
   optionalSubjectName?: string | null;
 }) {
-  const { locale, pick } = useI18n();
   const bloodDisplay = student.bloodGroup
     ? student.bloodGroup.replace('_POSITIVE', '+').replace('_NEGATIVE', '-')
     : '—';
@@ -349,58 +332,58 @@ export function PrintableAdmissionConfirmationSlip({
       <div className="flex flex-col sm:flex-row items-start justify-between gap-5 text-sm">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 flex-1">
           <p className="tabular-nums">
-            <span className="text-muted-foreground">{pick('শিক্ষার্থী আইডি:', 'Student ID:')}</span>{' '}
+            <span className="text-muted-foreground">{'শিক্ষার্থী আইডি:'}</span>{' '}
             <strong className="font-mono text-primary">{student.studentId}</strong>
           </p>
           <p className="tabular-nums">
-            <span className="text-muted-foreground">{pick('শ্রেণি ও শাখা:', 'Class & Section:')}</span>{' '}
+            <span className="text-muted-foreground">{'শ্রেণি ও শাখা:'}</span>{' '}
             <strong>
               {classNameLabel} ({sectionName})
             </strong>
           </p>
           <p>
-            <span className="text-muted-foreground">{pick('শিক্ষার্থীর নাম:', 'Student Name:')}</span>{' '}
+            <span className="text-muted-foreground">{'শিক্ষার্থীর নাম:'}</span>{' '}
             <strong>{student.nameBn || student.nameEn}</strong>
             <span className="block text-xs font-mono uppercase text-muted-foreground">
               {student.nameEn}
             </span>
           </p>
           <p className="tabular-nums">
-            <span className="text-muted-foreground">{pick('রোল নম্বর:', 'Class Roll:')}</span>{' '}
-            <strong className="font-mono text-base">{formatNumber(enrollment.roll, locale)}</strong>
+            <span className="text-muted-foreground">{'রোল নম্বর:'}</span>{' '}
+            <strong className="font-mono text-base">{formatNumber(enrollment.roll, 'bn')}</strong>
           </p>
           <p>
-            <span className="text-muted-foreground">{pick('পিতার নাম:', 'Father:')}</span>{' '}
+            <span className="text-muted-foreground">{'পিতার নাম:'}</span>{' '}
             {fatherName}
           </p>
           <p>
-            <span className="text-muted-foreground">{pick('মাতার নাম:', 'Mother:')}</span>{' '}
+            <span className="text-muted-foreground">{'মাতার নাম:'}</span>{' '}
             {motherName}
           </p>
           <p className="tabular-nums">
-            <span className="text-muted-foreground">{pick('অভিভাবক মোবাইল:', 'Guardian Phone:')}</span>{' '}
+            <span className="text-muted-foreground">{'অভিভাবক মোবাইল:'}</span>{' '}
             <strong className="font-mono">{guardianPhone}</strong>
           </p>
           <p>
-            <span className="text-muted-foreground">{pick('রক্তের গ্রুপ:', 'Blood Group:')}</span>{' '}
+            <span className="text-muted-foreground">{'রক্তের গ্রুপ:'}</span>{' '}
             <strong className="text-destructive">{bloodDisplay}</strong>
           </p>
           {groupName && (
             <p>
-              <span className="text-muted-foreground">{pick('বিভাগ ও ৪র্থ বিষয়:', 'Group & 4th Subject:')}</span>{' '}
+              <span className="text-muted-foreground">{'বিভাগ ও ৪র্থ বিষয়:'}</span>{' '}
               <strong>{groupName}</strong>
               {optionalSubjectName ? ` · ${optionalSubjectName}` : ''}
             </p>
           )}
           {enrollment.formSerialNo && (
             <p className="tabular-nums">
-              <span className="text-muted-foreground">{pick('ফরম নং:', 'Form Serial:')}</span>{' '}
+              <span className="text-muted-foreground">{'ফরম নং:'}</span>{' '}
               <span className="font-mono">{enrollment.formSerialNo}</span>
             </p>
           )}
           {enrollment.remarks && (
             <p className="sm:col-span-2 text-xs text-muted-foreground">
-              {pick('অফিস নোট / ফি তথ্য:', 'Office Note / Receipt:')} {enrollment.remarks}
+              {'অফিস নোট / ফি তথ্য:'} {enrollment.remarks}
             </p>
           )}
         </div>
@@ -415,7 +398,7 @@ export function PrintableAdmissionConfirmationSlip({
             />
           ) : (
             <span className="text-[11px] text-muted-foreground text-center px-1">
-              {pick('পাসপোর্ট ছবি', 'Passport Photo')}
+              {'পাসপোর্ট ছবি'}
             </span>
           )}
         </div>
@@ -473,7 +456,6 @@ function FormalCertificateShell({
   titleEn: string;
   children: React.ReactNode;
 }) {
-  const { locale, pick } = useI18n();
   return (
     <div
       data-certificate-print-root="true"
@@ -512,10 +494,8 @@ function FormalCertificateShell({
                   <p className="text-xs text-[#3F3F46] pt-0.5">{school.address}</p>
                   <p className="text-[11px] text-[#52525B] tabular-nums">
                     EIIN: {school.eiin ?? '113587'} ·{' '}
-                    {pick('স্থাপিত:', 'Est.')}{' '}
-                    {locale === 'bn'
-                      ? String(school.establishedYear ?? 1978).replace(/[0-9]/g, (d) => '০১২৩৪৫৬৭৮৯'[Number(d)])
-                      : school.establishedYear ?? 1978}
+                    {'স্থাপিত:'}{' '}
+                    {String(school.establishedYear ?? 1978).replace(/[0-9]/g, (d) => '০১২৩৪৫৬৭৮৯'[Number(d)])}
                   </p>
                 </div>
               </div>
@@ -540,10 +520,10 @@ function FormalCertificateShell({
             {/* 3. Formal Centered Document Title */}
             <div className="text-center mb-8">
               <h2 className="inline-block text-lg sm:text-[22px] font-bold tracking-wide text-[#111111] border-b-[1.5px] border-[#18181B] pb-1 px-5">
-                {locale === 'bn' ? titleBn : titleEn}
+                {titleBn}
               </h2>
               <p className="text-[11px] uppercase tracking-[0.18em] text-[#52525B] mt-1.5">
-                {locale === 'bn' ? titleEn : titleBn}
+                {titleEn}
               </p>
             </div>
 
@@ -557,17 +537,17 @@ function FormalCertificateShell({
               <div className="w-48 space-y-1">
                 <div className="h-12" />
                 <div className="border-t border-[#27272A] pt-1.5 font-semibold">
-                  {pick('প্রস্তুতকারক / অফিস সহকারী', 'Prepared By / Office Asst.')}
+                  {'প্রস্তুতকারক / অফিস সহকারী'}
                 </div>
                 <p className="text-[11px] text-[#52525B]">
-                  {pick('তারিখ ও স্বাক্ষর', 'Signature & Date')}
+                  {'তারিখ ও স্বাক্ষর'}
                 </p>
               </div>
 
               <div className="w-56 space-y-1">
                 <div className="h-12" />
                 <div className="border-t border-[#27272A] pt-1.5 font-semibold">
-                  {pick('প্রধান শিক্ষক', 'Head Teacher / Principal')}
+                  {'প্রধান শিক্ষক'}
                 </div>
                 <p className="text-[11px] text-[#52525B]">{school.name}</p>
               </div>
@@ -596,30 +576,26 @@ export function PrintableTransferCertificate({
   sectionName?: string | null;
   roll?: number | null;
 }) {
-  const { locale, pick } = useI18n();
-
   const studentNameBn = student.nameBn || student.nameEn;
   const studentNameDisplay =
-    locale === 'bn'
-      ? `${studentNameBn}${student.nameBn && student.nameEn ? ` (${student.nameEn})` : ''}`
-      : student.nameEn;
+    `${studentNameBn}${student.nameBn && student.nameEn ? ` (${student.nameEn})` : ''}`;
   const addressText = student.permanentAddress || student.presentAddress || '—';
-  const dobText = student.dateOfBirth ? formatDateLong(student.dateOfBirth, locale) : '—';
-  const admissionDateText = student.admissionDate ? formatDateLong(student.admissionDate, locale) : '—';
-  const leavingDateText = formatDateLong(tc.leavingDate, locale);
-  const conductText = tc.conductRemarks || pick('উত্তম ও শৃঙ্খলাপরায়ণ', 'good and disciplined');
+  const dobText = student.dateOfBirth ? formatDateLong(student.dateOfBirth, 'bn') : '—';
+  const admissionDateText = student.admissionDate ? formatDateLong(student.admissionDate, 'bn') : '—';
+  const leavingDateText = formatDateLong(tc.leavingDate, 'bn');
+  const conductText = tc.conductRemarks || 'উত্তম ও শৃঙ্খলাপরায়ণ';
 
   return (
     <FormalCertificateShell
       school={school}
-      refLabel={pick('টিসি স্মারক নং:', 'TC Ref. No:')}
+      refLabel={'টিসি স্মারক নং:'}
       refValue={tc.tcNumber}
-      dateLabel={pick('তারিখ:', 'Date:')}
-      dateValue={formatDateLong(tc.issueDate, locale)}
+      dateLabel={'তারিখ:'}
+      dateValue={formatDateLong(tc.issueDate, 'bn')}
       titleBn="বিদ্যালয় পরিত্যাগের ছাড়পত্র"
       titleEn="TRANSFER CERTIFICATE"
     >
-      {locale === 'bn' ? (
+      {(
         <div className="space-y-6 text-[15px] sm:text-[16px] leading-[2.15] text-justify">
           <p>
             এই মর্মে প্রত্যয়ন করা যাইতেছে যে, <CertField>{studentNameDisplay}</CertField>
@@ -694,79 +670,6 @@ export function PrintableTransferCertificate({
             করি।
           </p>
         </div>
-      ) : (
-        <div className="space-y-6 text-[15px] sm:text-[16px] leading-[2.1] text-justify">
-          <p>
-            This is to certify that <CertField>{student.nameEn}</CertField>
-            {fatherName ? (
-              <>
-                , son/daughter of <CertField>{fatherName}</CertField>
-              </>
-            ) : null}
-            {motherName ? (
-              <>
-                {' '}
-                and <CertField>{motherName}</CertField>
-              </>
-            ) : null}
-            , residing at <CertField>{addressText}</CertField>, bearing Student ID{' '}
-            <CertField mono>{student.studentId}</CertField>, was a bona fide student of{' '}
-            {school.nameEn ?? school.name}. As per the official Admission Register, his/her date of
-            birth is <CertField>{dobText}</CertField>
-            {student.birthCertificateNo ? (
-              <>
-                {' '}
-                (Birth Reg. No. <CertField mono>{student.birthCertificateNo}</CertField>)
-              </>
-            ) : null}
-            . He/She was admitted to this institution on <CertField>{admissionDateText}</CertField>{' '}
-            and studied regularly in <CertField>{tc.leavingClass || '—'}</CertField>
-            {sectionName ? (
-              <>
-                , Section <CertField>{sectionName}</CertField>
-              </>
-            ) : null}
-            {roll ? (
-              <>
-                , Roll No. <CertField mono>{roll}</CertField>
-              </>
-            ) : null}{' '}
-            up to <CertField>{leavingDateText}</CertField>.
-          </p>
-
-          <p>
-            At the time of leaving, he/she was{' '}
-            <CertField>
-              {tc.promotedToNextClass
-                ? 'promoted and eligible for the next class'
-                : 'leaving mid-session'}
-            </CertField>{' '}
-            and his/her school dues are{' '}
-            <CertField>{tc.duesCleared ? 'fully cleared' : 'pending clearance'}</CertField>. This
-            Transfer Certificate is hereby issued upon application due to{' '}
-            <CertField>{tc.reason}</CertField>
-            {tc.destinationSchool ? (
-              <>
-                {' '}
-                for admission to <CertField>{tc.destinationSchool}</CertField>
-              </>
-            ) : null}
-            .
-            {tc.remarks ? (
-              <>
-                {' '}
-                Official remarks: <CertField>{tc.remarks}</CertField>.
-              </>
-            ) : null}
-          </p>
-
-          <p>
-            During his/her stay at this school, his/her conduct and moral character were{' '}
-            <CertField>{conductText}</CertField>. To the best of my knowledge, he/she never took
-            part in any activity subversive of the state or school discipline. We wish him/her every
-            success in future academic endeavors.
-          </p>
-        </div>
       )}
     </FormalCertificateShell>
   );
@@ -785,32 +688,29 @@ export function PrintableTestimonialCertificate({
   fatherName?: string | null;
   motherName?: string | null;
 }) {
-  const { locale, pick } = useI18n();
   const isSsc = testimonial.type === TestimonialType.SSC_GRADUATE;
 
   const studentNameDisplay =
-    locale === 'bn'
-      ? `${student.nameBn || student.nameEn}${student.nameBn && student.nameEn ? ` (${student.nameEn})` : ''}`
-      : student.nameEn;
+    `${student.nameBn || student.nameEn}${student.nameBn && student.nameEn ? ` (${student.nameEn})` : ''}`;
 
-  const dobText = student.dateOfBirth ? formatDateLong(student.dateOfBirth, locale) : '—';
+  const dobText = student.dateOfBirth ? formatDateLong(student.dateOfBirth, 'bn') : '—';
   const addressText = student.permanentAddress || student.presentAddress || '—';
   const conductText =
-    testimonial.conductRemarks || pick('উত্তম ও শৃঙ্খলাপরায়ণ', 'good and disciplined');
+    testimonial.conductRemarks || 'উত্তম ও শৃঙ্খলাপরায়ণ';
   const regNo = testimonial.registrationNo || student.boardRegistrationNo || null;
 
   return (
     <FormalCertificateShell
       school={school}
-      refLabel={pick('স্মারক নং:', 'Ref. No:')}
+      refLabel={'স্মারক নং:'}
       refValue={testimonial.refNumber}
-      dateLabel={pick('তারিখ:', 'Date:')}
-      dateValue={formatDateLong(testimonial.issueDate, locale)}
+      dateLabel={'তারিখ:'}
+      dateValue={formatDateLong(testimonial.issueDate, 'bn')}
       titleBn={isSsc ? 'প্রশংসাপত্র' : 'অধ্যয়ন ও চারিত্রিক প্রত্যয়নপত্র'}
       titleEn={isSsc ? 'TESTIMONIAL' : 'STUDY & CHARACTER CERTIFICATE'}
     >
       {isSsc ? (
-        locale === 'bn' ? (
+        (
           <div className="space-y-6 text-[15px] sm:text-[16px] leading-[2.15] text-justify">
             <p>
               এই মর্মে প্রত্যয়ন করা যাইতেছে যে, <CertField>{studentNameDisplay}</CertField>
@@ -873,68 +773,8 @@ export function PrintableTestimonialCertificate({
               আমি তাহার উজ্জ্বল ভবিষ্যৎ, সুস্বাস্থ্য ও জীবনের উত্তরোত্তর সাফল্য কামনা করি।
             </p>
           </div>
-        ) : (
-          <div className="space-y-6 text-[15px] sm:text-[16px] leading-[2.1] text-justify">
-            <p>
-              This is to certify that <CertField>{student.nameEn}</CertField>
-              {fatherName ? (
-                <>
-                  , son/daughter of <CertField>{fatherName}</CertField>
-                </>
-              ) : null}
-              {motherName ? (
-                <>
-                  {' '}
-                  and <CertField>{motherName}</CertField>
-                </>
-              ) : null}
-              , residing at <CertField>{addressText}</CertField>, bearing Student ID{' '}
-              <CertField mono>{student.studentId}</CertField>, was a regular student of{' '}
-              {school.nameEn ?? school.name}. According to the Admission Register, his/her date of
-              birth is <CertField>{dobText}</CertField>.
-            </p>
-
-            <p>
-              He/She appeared at the Secondary School Certificate (SSC) Examination held in{' '}
-              <CertField mono>{testimonial.passingYear || '—'}</CertField> under{' '}
-              <CertField>
-                {testimonial.boardName || 'Board of Intermediate and Secondary Education, Dhaka'}
-              </CertField>{' '}
-              for the academic session <CertField mono>{testimonial.academicSession}</CertField> in{' '}
-              <CertField>{testimonial.groupName || 'General'}</CertField> Group bearing Board Roll
-              No. <CertField mono>{testimonial.boardRoll || '—'}</CertField>
-              {regNo ? (
-                <>
-                  {' '}
-                  and Registration No. <CertField mono>{regNo}</CertField>
-                </>
-              ) : null}
-              , and passed successfully
-              {testimonial.gpa ? (
-                <>
-                  {' '}
-                  securing GPA <CertField mono>{testimonial.gpa}</CertField>
-                  {testimonial.letterGrade ? (
-                    <>
-                      {' '}
-                      (Grade <CertField mono>{testimonial.letterGrade}</CertField>)
-                    </>
-                  ) : null}
-                </>
-              ) : null}
-              .
-            </p>
-
-            <p>
-              During his/her stay at this institution, his/her conduct and moral character were{' '}
-              <CertField>{conductText}</CertField>. To the best of my knowledge, he/she did not take
-              part in any activity subversive of the state or school discipline.
-            </p>
-
-            <p>I wish him/her sound health and every success in life.</p>
-          </div>
         )
-      ) : locale === 'bn' ? (
+      ) : (
         <div className="space-y-6 text-[15px] sm:text-[16px] leading-[2.15] text-justify">
           <p>
             এই মর্মে প্রত্যয়ন করা যাইতেছে যে, <CertField>{studentNameDisplay}</CertField>
@@ -991,61 +831,6 @@ export function PrintableTestimonialCertificate({
             আমি তাহার সার্বিক সুস্বাস্থ্য, দীর্ঘায়ু এবং জীবনের উত্তরোত্তর সাফল্য ও মঙ্গল কামনা করি।
           </p>
         </div>
-      ) : (
-        <div className="space-y-6 text-[15px] sm:text-[16px] leading-[2.1] text-justify">
-          <p>
-            This is to certify that <CertField>{student.nameEn}</CertField>
-            {fatherName ? (
-              <>
-                , son/daughter of <CertField>{fatherName}</CertField>
-              </>
-            ) : null}
-            {motherName ? (
-              <>
-                {' '}
-                and <CertField>{motherName}</CertField>
-              </>
-            ) : null}
-            , residing at <CertField>{addressText}</CertField>, is a regular student of{' '}
-            <CertField>{testimonial.className}</CertField>
-            {testimonial.sectionName ? (
-              <>
-                , Section <CertField>{testimonial.sectionName}</CertField>
-              </>
-            ) : null}
-            {testimonial.roll ? (
-              <>
-                , Roll No. <CertField mono>{testimonial.roll}</CertField>
-              </>
-            ) : null}
-            {testimonial.groupName ? (
-              <>
-                {' '}
-                (<CertField>{testimonial.groupName}</CertField> Group)
-              </>
-            ) : null}{' '}
-            for the Academic Session <CertField mono>{testimonial.academicSession}</CertField> at{' '}
-            {school.nameEn ?? school.name}. As per the Admission Register, his/her Student ID is{' '}
-            <CertField mono>{student.studentId}</CertField> and date of birth is{' '}
-            <CertField>{dobText}</CertField>.
-          </p>
-
-          <p>
-            To the best of my knowledge, his/her character and conduct are{' '}
-            <CertField>{conductText}</CertField> and he/she has never taken part in any activity
-            subversive of the state or school discipline.
-            {testimonial.purpose ? (
-              <>
-                {' '}
-                This certificate is issued <CertField>{testimonial.purpose}</CertField>.
-              </>
-            ) : (
-              <> This certificate is issued upon request for official use.</>
-            )}
-          </p>
-
-          <p>I wish him/her sound health and continued success in future academic endeavors.</p>
-        </div>
       )}
     </FormalCertificateShell>
   );
@@ -1077,7 +862,6 @@ export function PrintableIdCardSheet({
     guardianPhone?: string | null;
   }>;
 }) {
-  const { pick } = useI18n();
   return (
     <div className="print-sheet bg-white border border-border rounded-[var(--radius)] p-6 text-foreground [-webkit-print-color-adjust:exact] [print-color-adjust:exact]">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 print:grid-cols-2 print:gap-4">
@@ -1108,7 +892,7 @@ export function PrintableIdCardSheet({
                   </p>
                   <div className="flex items-center justify-between gap-2 text-xs text-white/90 mt-0.5">
                     <span className="truncate">
-                      {school.address || pick('বাংলাদেশ', 'Bangladesh')}
+                      {school.address || 'বাংলাদেশ'}
                     </span>
                     <span className="font-mono shrink-0 bg-white/15 px-1.5 py-0.5 rounded">
                       EIIN: {school.eiin || '—'}
@@ -1121,8 +905,8 @@ export function PrintableIdCardSheet({
               <div className="bg-[#0E6B35]/8 border-b border-[#0E6B35]/15 px-4 py-1 flex items-center justify-between">
                 <span className="text-xs font-bold uppercase tracking-wider text-[#0E6B35]">
                   {holderType === 'STUDENT'
-                    ? pick('শিক্ষার্থী পরিচয়পত্র', 'STUDENT IDENTITY CARD')
-                    : pick('শিক্ষক ও কর্মচারী পরিচয়পত্র', 'STAFF IDENTITY CARD')}
+                    ? 'শিক্ষার্থী পরিচয়পত্র'
+                    : 'শিক্ষক ও কর্মচারী পরিচয়পত্র'}
                 </span>
                 {card.rfidNumber && (
                   <span className="text-xs font-mono font-semibold text-foreground/80">
@@ -1155,7 +939,7 @@ export function PrintableIdCardSheet({
                     )}
                   </div>
                   <span className="text-xs font-bold px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200 tabular-nums">
-                    {pick('রক্ত:', 'Blood:')} {bloodLabel}
+                    {'রক্ত:'} {bloodLabel}
                   </span>
                 </div>
 
@@ -1168,12 +952,12 @@ export function PrintableIdCardSheet({
                   <div className="grid grid-cols-1 gap-1 text-sm text-slate-700">
                     {card.className ? (
                       <div className="flex items-baseline gap-1.5">
-                        <span className="text-slate-500 shrink-0">{pick('শ্রেণি:', 'Class:')}</span>
+                        <span className="text-slate-500 shrink-0">{'শ্রেণি:'}</span>
                         <span className="font-semibold text-slate-900 truncate">
                           {card.className}
                           {card.sectionName ? ` (${card.sectionName})` : ''}
                           {card.roll !== undefined && card.roll !== null && card.roll !== 0
-                            ? ` · ${pick('রোল', 'Roll')}: ${card.roll}`
+                            ? ` · ${'রোল'}: ${card.roll}`
                             : ''}
                         </span>
                       </div>
@@ -1182,7 +966,7 @@ export function PrintableIdCardSheet({
                     )}
 
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-slate-500 shrink-0">{pick('আইডি:', 'ID No:')}</span>
+                      <span className="text-slate-500 shrink-0">{'আইডি:'}</span>
                       <span className="font-mono font-semibold text-slate-900 truncate">
                         {displayId}
                       </span>
@@ -1191,8 +975,8 @@ export function PrintableIdCardSheet({
                     <div className="flex items-baseline gap-1.5">
                       <span className="text-slate-500 shrink-0">
                         {holderType === 'STUDENT'
-                          ? pick('অভিভাবক:', 'Guardian:')
-                          : pick('মোবাইল:', 'Phone:')}
+                          ? 'অভিভাবক:'
+                          : 'মোবাইল:'}
                       </span>
                       <span className="font-mono font-medium text-slate-800 truncate">
                         {displayPhone}
@@ -1209,12 +993,12 @@ export function PrintableIdCardSheet({
               {/* Footer & Authority Signature */}
               <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex items-end justify-between gap-3 text-xs text-slate-600">
                 <div className="tabular-nums">
-                  <span className="text-slate-500">{pick('মেয়াদ উত্তীর্ণ:', 'Valid Until:')}</span>{' '}
+                  <span className="text-slate-500">{'মেয়াদ উত্তীর্ণ:'}</span>{' '}
                   <strong className="text-slate-800">{card.validUntil}</strong>
                 </div>
                 <div className="text-center pt-2">
                   <div className="w-28 border-t border-slate-400 pt-0.5 font-semibold text-slate-700">
-                    {pick('প্রধান শিক্ষক', 'Principal')}
+                    {'প্রধান শিক্ষক'}
                   </div>
                 </div>
               </div>

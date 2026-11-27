@@ -27,7 +27,6 @@ import {
   Users,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatNumber, formatTime12h } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -56,7 +55,7 @@ import type { SyllabusExamTerm, SyllabusFile } from '@/src/types/entities';
 function getWeekdayLabel(dateStr: string, locale: 'bn' | 'en'): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     weekday: 'long',
   }).format(d);
 }
@@ -65,7 +64,7 @@ function getMonthLabel(yearMonth: string, locale: 'bn' | 'en'): string {
   const [y, m] = yearMonth.split('-').map(Number);
   if (!y || !m) return yearMonth;
   const d = new Date(y, m - 1, 1);
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     month: 'long',
   }).format(d);
 }
@@ -211,7 +210,6 @@ const STRUCTURED_DOC_SECTIONS: Record<AcademicDocumentType, StructuredDocSection
 
 export function PublicSubjectsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState<string>('ALL');
   const [groupFilter, setGroupFilter] = useState<string>('ALL');
@@ -273,11 +271,8 @@ export function PublicSubjectsPage() {
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <PageHeader
-        title={pick('বিষয়সমূহের তালিকা ও বোর্ড কোড', 'Subjects Catalog & Board Codes')}
-        description={pick(
-          'শ্রেণি, বিভাগ ও ক্যাটাগরি অনুযায়ী এনসিটিবি বোর্ড কোডসহ বিদ্যালয়ের সকল পাঠ্যবিষয় দেখুন।',
-          'Filter school subjects by class, stream, and category with official NCTB board codes.'
-        )}
+        title={'বিষয়সমূহের তালিকা ও বোর্ড কোড'}
+        description={'শ্রেণি, বিভাগ ও ক্যাটাগরি অনুযায়ী এনসিটিবি বোর্ড কোডসহ বিদ্যালয়ের সকল পাঠ্যবিষয় দেখুন।'}
       />
 
       {/* Search, Class/Stream & Category Filter Bar */}
@@ -288,10 +283,7 @@ export function PublicSubjectsPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={pick(
-                'বিষয়ের নাম বা বোর্ড কোড খুঁজুন (যেমন: 109, গণিত)',
-                'Search subject name or code (e.g. 109, Math)'
-              )}
+              placeholder={'বিষয়ের নাম বা বোর্ড কোড খুঁজুন (যেমন: 109, গণিত)'}
               className="pl-9"
             />
           </div>
@@ -304,10 +296,10 @@ export function PublicSubjectsPage() {
                 setGroupFilter('ALL');
               }}
             >
-              <option value="ALL">{pick('সকল শ্রেণি (৬ষ্ঠ–১০ম)', 'All Classes (6–10)')}</option>
+              <option value="ALL">{'সকল শ্রেণি (৬ষ্ঠ–১০ম)'}</option>
               {db.classes.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {locale === 'bn' ? c.nameBn : c.name}
+                  {c.nameBn}
                 </option>
               ))}
             </Select>
@@ -316,10 +308,10 @@ export function PublicSubjectsPage() {
           {supportsGroups && (
             <div className="md:col-span-2">
               <Select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
-                <option value="ALL">{pick('সকল বিভাগ', 'All Streams')}</option>
+                <option value="ALL">{'সকল বিভাগ'}</option>
                 {db.academicGroups.map((g) => (
                   <option key={g.id} value={g.id}>
-                    {locale === 'bn' ? g.nameBn : g.name}
+                    {g.nameBn}
                   </option>
                 ))}
               </Select>
@@ -332,10 +324,7 @@ export function PublicSubjectsPage() {
             } flex items-center justify-between md:justify-end gap-2`}
           >
             <p className="text-sm text-muted-foreground tabular-nums whitespace-nowrap">
-              {pick(
-                `${formatNumber(filtered.length, 'bn')} / ${formatNumber(db.subjects.length, 'bn')}টি বিষয়`,
-                `${filtered.length} / ${db.subjects.length} subjects`
-              )}
+              {`${formatNumber(filtered.length, 'bn')} / ${formatNumber(db.subjects.length, 'bn')}টি বিষয়`}
             </p>
             {hasActiveFilter && (
               <Button
@@ -345,7 +334,7 @@ export function PublicSubjectsPage() {
                 onClick={handleReset}
                 className="whitespace-nowrap"
               >
-                <RotateCcw className="w-3.5 h-3.5" /> {pick('রিসেট', 'Reset')}
+                <RotateCcw className="w-3.5 h-3.5" /> {'রিসেট'}
               </Button>
             )}
           </div>
@@ -359,7 +348,7 @@ export function PublicSubjectsPage() {
             onClick={() => setCategoryFilter('ALL')}
             className="whitespace-nowrap"
           >
-            {pick('সকল ক্যাটাগরি', 'All Categories')}
+            {'সকল ক্যাটাগরি'}
           </Button>
           {categories.map((cat) => (
             <Button
@@ -378,30 +367,27 @@ export function PublicSubjectsPage() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title={pick('কোনো বিষয় পাওয়া যায়নি', 'No Matching Subjects')}
-          description={pick(
-            'শ্রেণি, বিভাগ বা ক্যাটাগরি পরিবর্তন করে পুনরায় চেষ্টা করুন।',
-            'Try clearing your class, stream, or category filter.'
-          )}
+          title={'কোনো বিষয় পাওয়া যায়নি'}
+          description={'শ্রেণি, বিভাগ বা ক্যাটাগরি পরিবর্তন করে পুনরায় চেষ্টা করুন।'}
           action={
             <Button variant="outline" size="sm" onClick={handleReset}>
-              <RotateCcw className="w-4 h-4" /> {pick('ফিল্টার রিসেট করুন', 'Reset Filters')}
+              <RotateCcw className="w-4 h-4" /> {'ফিল্টার রিসেট করুন'}
             </Button>
           }
         />
       ) : (
         <Card className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
+          <table className="w-full text-base border-collapse">
             <thead className="bg-surface-muted text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold">{pick('বোর্ড কোড', 'Code')}</th>
-                <th className="px-4 py-3 text-left font-semibold">{pick('বিষয়ের নাম (বাংলা)', 'Subject (Bangla)')}</th>
-                <th className="px-4 py-3 text-left font-semibold">{pick('ইংরেজি নাম', 'Subject (English)')}</th>
-                <th className="px-4 py-3 text-left font-semibold">{pick('ক্যাটাগরি', 'Category')}</th>
+                <th className="px-4 py-3 text-left font-semibold">{'বোর্ড কোড'}</th>
+                <th className="px-4 py-3 text-left font-semibold">{'বিষয়ের নাম (বাংলা)'}</th>
+                <th className="px-4 py-3 text-left font-semibold">{'ইংরেজি নাম'}</th>
+                <th className="px-4 py-3 text-left font-semibold">{'ক্যাটাগরি'}</th>
                 <th className="px-4 py-3 text-left font-semibold">
                   {classFilter !== 'ALL'
-                    ? pick('নির্বাচিত শ্রেণিতে ধরন', 'Status in Selected Class')
-                    : pick('পাঠদান শ্রেণি', 'Taught In Classes')}
+                    ? 'নির্বাচিত শ্রেণিতে ধরন'
+                    : 'পাঠদান শ্রেণি'}
                 </th>
               </tr>
             </thead>
@@ -457,11 +443,11 @@ export function PublicSubjectsPage() {
                                 }`}
                               >
                                 {grp
-                                  ? `${locale === 'bn' ? grp.nameBn : grp.name} · `
+                                  ? `${grp.nameBn} · `
                                   : ''}
                                 {entry.isOptional
-                                  ? pick('ঐচ্ছিক (৪র্থ)', 'Optional')
-                                  : pick('বাধ্যতামূলক', 'Compulsory')}
+                                  ? 'ঐচ্ছিক (৪র্থ)'
+                                  : 'বাধ্যতামূলক'}
                               </span>
                             );
                           })}
@@ -474,7 +460,7 @@ export function PublicSubjectsPage() {
                               href={`/academics/classes/${c.id}`}
                               className="text-xs font-medium px-2 py-0.5 rounded-[var(--radius)] border border-border bg-surface-muted/60 text-foreground hover:border-primary hover:text-primary transition-colors whitespace-nowrap"
                             >
-                              {locale === 'bn' ? `${formatNumber(c.numericValue, 'bn')}ম` : `Cls ${c.numericValue}`}
+                              {c.numericValue === 6 ? '৬ষ্ঠ' : `${formatNumber(c.numericValue, 'bn')}ম`}
                             </Link>
                           ))}
                         </div>

@@ -16,7 +16,6 @@ import {
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -81,13 +80,12 @@ function ChildSwitcherBar({
   selectedStudentId: string;
   onChange: (id: string) => void;
 }) {
-  const { locale, pick } = useI18n();
   if (childrenList.length <= 1) return null;
   return (
     <Card className="p-3.5 flex flex-wrap items-center justify-between gap-3 bg-surface-muted/40">
       <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
         <Users className="w-4 h-4 text-primary" />
-        <span>{pick('সন্তান নির্বাচন করুন:', 'Select Child:')}</span>
+        <span>{'সন্তান নির্বাচন করুন:'}</span>
       </div>
       <div className="flex flex-wrap gap-2">
         {childrenList.map((c) => {
@@ -103,8 +101,8 @@ function ChildSwitcherBar({
                   : 'bg-surface text-foreground border-border hover:bg-surface-muted'
               }`}
             >
-              {locale === 'bn' ? c.student.nameBn || c.student.nameEn : c.student.nameEn} ·{' '}
-              {locale === 'bn' ? c.cls?.nameBn || c.cls?.name : c.cls?.name} ({c.sec?.name})
+              {c.student.nameBn || c.student.nameEn} ·{' '}
+              {c.cls?.nameBn || c.cls?.name} ({c.sec?.name})
             </button>
           );
         })}
@@ -116,20 +114,19 @@ function ChildSwitcherBar({
 export function ParentExaminationsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const { children } = useParentChildren(db);
-  const { locale, pick } = useI18n();
   const [selectedId, setSelectedId] = useState('stu-10-1');
 
   if (isLoading || !db) return <LoadingSkeleton />;
   const active = children.find((c) => c.student.id === selectedId) ?? children[0];
-  if (!active) return <EmptyState title={pick('কোনো তথ্য নেই', 'No data')} />;
+  if (!active) return <EmptyState title={'কোনো তথ্য নেই'} />;
 
   const exams = db.exams.filter((e) => e.classId === active.enrollment.classId);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('পরীক্ষার সূচি', 'Examination Schedule')}
-        description={pick('আসন্ন ও সম্পন্ন পরীক্ষাসমূহ', 'Upcoming and completed examinations')}
+        title={'পরীক্ষার সূচি'}
+        description={'আসন্ন ও সম্পন্ন পরীক্ষাসমূহ'}
       />
       <ChildSwitcherBar
         childrenList={children}
@@ -144,7 +141,7 @@ export function ParentExaminationsPage() {
               <StatusBadge enumName="ResultPublicationStatus" value={ex.resultStatus} />
             </div>
             <p className="text-sm text-muted-foreground tabular-nums">
-              {formatDateLong(ex.startDate, locale)} – {formatDateLong(ex.endDate, locale)}
+              {formatDateLong(ex.startDate, 'bn')} – {formatDateLong(ex.endDate, 'bn')}
             </p>
           </Card>
         ))}

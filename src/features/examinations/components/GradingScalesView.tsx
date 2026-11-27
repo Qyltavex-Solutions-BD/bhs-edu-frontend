@@ -20,7 +20,6 @@ import {
   useUpsertGradeRangeMutation,
   useUpsertGradingScaleMutation,
 } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import {
   ConfirmDialog,
   LoadingSkeleton,
@@ -33,7 +32,6 @@ import type { GradeRange, GradingScale } from '@/src/types/entities';
 
 export function GradingScalesView() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [upsertScale, { isLoading: savingScale }] = useUpsertGradingScaleMutation();
   const [upsertRange, { isLoading: savingRange }] = useUpsertGradeRangeMutation();
   const [deleteRange] = useDeleteGradeRangeMutation();
@@ -96,23 +94,20 @@ export function GradingScalesView() {
     if (ranges.length === 0) return warnings;
     const sorted = [...ranges].sort((a, b) => a.minPercentage - b.minPercentage);
     if (sorted[0].minPercentage > 0) {
-      warnings.push(pick(`০% থেকে ${sorted[0].minPercentage}% পর্যন্ত কোনো গ্রেড নেই।`, `Gap between 0% and ${sorted[0].minPercentage}%.`));
+      warnings.push(`০% থেকে ${sorted[0].minPercentage}% পর্যন্ত কোনো গ্রেড নেই।`);
     }
     if (sorted[sorted.length - 1].maxPercentage < 100) {
-      warnings.push(pick(`${sorted[sorted.length - 1].maxPercentage}% থেকে ১০০% পর্যন্ত কোনো গ্রেড নেই।`, `Gap between ${sorted[sorted.length - 1].maxPercentage}% and 100%.`));
+      warnings.push(`${sorted[sorted.length - 1].maxPercentage}% থেকে ১০০% পর্যন্ত কোনো গ্রেড নেই।`);
     }
     for (let i = 1; i < sorted.length; i++) {
       if (sorted[i].minPercentage <= sorted[i - 1].maxPercentage) {
         warnings.push(
-          pick(
-            `${sorted[i - 1].letterGrade} এবং ${sorted[i].letterGrade} এর শতকরা সীমা ওভারল্যাপ করছে।`,
-            `Percentage range overlaps between ${sorted[i - 1].letterGrade} and ${sorted[i].letterGrade}.`
-          )
+          `${sorted[i - 1].letterGrade} এবং ${sorted[i].letterGrade} এর শতকরা সীমা ওভারল্যাপ করছে।`
         );
       }
     }
     return warnings;
-  }, [ranges, pick]);
+  }, [ranges]);
 
   const simulatedGpa = useMemo(() => {
     if (!activeScale || ranges.length === 0) return null;
@@ -163,13 +158,13 @@ export function GradingScalesView() {
       isDefault: scaleForm.isDefault,
     });
     if ('error' in res) {
-      toast.error(pick('গ্রেডিং স্কেল সংরক্ষণ ব্যর্থ হয়েছে।', 'Failed to save grading scale.'));
+      toast.error('গ্রেডিং স্কেল সংরক্ষণ ব্যর্থ হয়েছে।');
       return;
     }
     if ('data' in res && res.data?.id) {
       setSelectedScaleId(res.data.id);
     }
-    toast.success(pick('গ্রেডিং স্কেল সংরক্ষিত হয়েছে।', 'Grading scale saved.'));
+    toast.success('গ্রেডিং স্কেল সংরক্ষিত হয়েছে।');
     setScaleModalOpen(false);
   };
 
@@ -213,30 +208,30 @@ export function GradingScalesView() {
     });
     if ('error' in res) {
       const msg = (res.error as { message?: string })?.message;
-      toast.error(msg || pick('গ্রেড ব্যান্ড সংরক্ষণ ব্যর্থ হয়েছে।', 'Failed to save grade range.'));
+      toast.error(msg || 'গ্রেড ব্যান্ড সংরক্ষণ ব্যর্থ হয়েছে।');
       return;
     }
-    toast.success(pick('গ্রেড ব্যান্ড হালনাগাদ হয়েছে।', 'Grade band saved.'));
+    toast.success('গ্রেড ব্যান্ড হালনাগাদ হয়েছে।');
     setRangeModalOpen(false);
   };
 
   const handleDeleteRange = async () => {
     if (!deleteRangeTarget) return;
     await deleteRange({ id: deleteRangeTarget.id });
-    toast.success(pick('গ্রেড ব্যান্ড অপসারণ করা হয়েছে।', 'Grade band removed.'));
+    toast.success('গ্রেড ব্যান্ড অপসারণ করা হয়েছে।');
     setDeleteRangeTarget(null);
   };
 
   const handleArchiveScale = async () => {
     if (activeScale.isSystemDefault) {
-      toast.error(pick('সিস্টেম ডিফল্ট গ্রেডিং স্কেল আর্কাইভ করা যাবে না।', 'System default scale cannot be archived.'));
+      toast.error('সিস্টেম ডিফল্ট গ্রেডিং স্কেল আর্কাইভ করা যাবে না।');
       return;
     }
     await toggleArchive({ collection: 'gradingScales', id: activeScale.id });
     toast.success(
       activeScale.isDeleted
-        ? pick('স্কেল পুনরুদ্ধার করা হয়েছে।', 'Grading scale restored.')
-        : pick('স্কেল আর্কাইভ করা হয়েছে।', 'Grading scale archived.')
+        ? 'স্কেল পুনরুদ্ধার করা হয়েছে।'
+        : 'স্কেল আর্কাইভ করা হয়েছে।'
     );
   };
 
@@ -253,11 +248,11 @@ export function GradingScalesView() {
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={openCreateScale} className="whitespace-nowrap shrink-0">
               <Plus className="w-4 h-4" />
-              {pick('নতুন স্কেল তৈরি', 'New Scale')}
+              {'নতুন স্কেল তৈরি'}
             </Button>
             <Button onClick={openAddRange} className="whitespace-nowrap shrink-0">
               <Plus className="w-4 h-4" />
-              {pick('গ্রেড ব্যান্ড যুক্ত করুন', 'Add Grade Band')}
+              {'গ্রেড ব্যান্ড যুক্ত করুন'}
             </Button>
           </div>
         }
@@ -267,8 +262,8 @@ export function GradingScalesView() {
       <Card className="p-5 space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex-1 min-w-[260px] space-y-2">
-            <label className="block text-xs text-muted-foreground">
-              {pick('সক্রিয় গ্রেডিং স্কেল নির্বাচন করুন', 'Select Grading Scale')}
+            <label className="block text-sm text-muted-foreground">
+              {'সক্রিয় গ্রেডিং স্কেল নির্বাচন করুন'}
             </label>
             <div className="flex flex-wrap items-center gap-2">
               <Select
@@ -279,14 +274,14 @@ export function GradingScalesView() {
                 {db.gradingScales.map((gs) => (
                   <option key={gs.id} value={gs.id}>
                     {gs.name}
-                    {gs.isDefault ? ` (${pick('ডিফল্ট', 'Default')})` : ''}
-                    {gs.isDeleted ? ` [${pick('আর্কাইভ', 'Archived')}]` : ''}
+                    {gs.isDefault ? ` (${'ডিফল্ট'})` : ''}
+                    {gs.isDeleted ? ` [${'আর্কাইভ'}]` : ''}
                   </option>
                 ))}
               </Select>
               <Button variant="outline" size="sm" onClick={() => openEditScale(activeScale)}>
                 <Edit3 className="w-3.5 h-3.5" />
-                {pick('স্কেল সম্পাদনা', 'Edit Scale')}
+                {'স্কেল সম্পাদনা'}
               </Button>
               {!activeScale.isSystemDefault && (
                 <Button variant="ghost" size="sm" onClick={handleArchiveScale}>
@@ -299,18 +294,15 @@ export function GradingScalesView() {
               )}
             </div>
             {activeScale.description && (
-              <p className="text-xs text-muted-foreground">{activeScale.description}</p>
+              <p className="text-sm text-muted-foreground">{activeScale.description}</p>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t border-border">
           <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
           <span>
-            {pick(
-              `নীতি: কোনো আবশ্যিক বিষয়ে (লিখিত / MCQ / ব্যবহারিক / CA) ফেল করলে সার্বিক ফলাফল F (০.০০)। ৪র্থ বিষয়ে GP ${formatNumber(activeScale.optionalBonusThreshold ?? 2.0, locale, 2)}-এর অতিরিক্ত পয়েন্ট আবশ্যিক মোট জিপি-র সাথে যোগ হয়।`,
-              `Policy: Failing any compulsory subject component results in overall F (0.00). Optional 4th-subject points above ${formatNumber(activeScale.optionalBonusThreshold ?? 2.0, locale, 2)} add to compulsory GP sum, capped at ${formatNumber(activeScale.maxGpa, locale, 2)}.`
-            )}
+            {`নীতি: কোনো আবশ্যিক বিষয়ে (লিখিত / MCQ / ব্যবহারিক / CA) ফেল করলে সার্বিক ফলাফল F (০.০০)। ৪র্থ বিষয়ে GP ${formatNumber(activeScale.optionalBonusThreshold ?? 2.0, 'bn', 2)}-এর অতিরিক্ত পয়েন্ট আবশ্যিক মোট জিপি-র সাথে যোগ হয়।`}
           </span>
         </div>
       </Card>
@@ -319,51 +311,48 @@ export function GradingScalesView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('সর্বোচ্চ জিপিএ ও স্কেল', 'Max GPA & Scale')}
+            {'সর্বোচ্চ জিপিএ ও স্কেল'}
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
-            GPA {formatNumber(activeScale.maxGpa, locale, 2)}
+            GPA {formatNumber(activeScale.maxGpa, 'bn', 2)}
           </p>
           <p className="mt-1 text-sm text-muted-foreground truncate">
             {activeScale.name}
-            {activeScale.isDefault ? ` (${pick('ডিফল্ট', 'Default')})` : ''}
+            {activeScale.isDefault ? ` (${'ডিফল্ট'})` : ''}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('গ্রেড স্তর ও শতকরা বিস্তার', 'Grade Tiers & Range')}
+            {'গ্রেড স্তর ও শতকরা বিস্তার'}
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
-            {formatNumber(ranges.length, locale)}{' '}
-            <span className="text-sm font-semibold text-muted-foreground">{pick('টি স্তর', 'tiers')}</span>
+            {formatNumber(ranges.length, 'bn')}{' '}
+            <span className="text-sm font-semibold text-muted-foreground">{'টি স্তর'}</span>
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums truncate">
             {ranges.length > 0
-              ? `${ranges[0].letterGrade} (${formatNumber(ranges[0].minPercentage, locale)}%) ${pick('থেকে', 'to')} ${ranges[ranges.length - 1].letterGrade}`
-              : pick('কোনো রেঞ্জ নেই', 'No ranges')}
+              ? `${ranges[0].letterGrade} (${formatNumber(ranges[0].minPercentage, 'bn')}%) ${'থেকে'} ${ranges[ranges.length - 1].letterGrade}`
+              : 'কোনো রেঞ্জ নেই'}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('৪র্থ বিষয় বোনাস সীমা', '4th Subj. Bonus Threshold')}
+            {'৪র্থ বিষয় বোনাস সীমা'}
           </p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
-            &gt; {formatNumber(activeScale.optionalBonusThreshold ?? 2.0, locale, 2)}{' '}
+            &gt; {formatNumber(activeScale.optionalBonusThreshold ?? 2.0, 'bn', 2)}{' '}
             <span className="text-sm font-semibold text-muted-foreground">GP</span>
           </p>
           <p className="mt-1 text-sm text-muted-foreground truncate">
-            {pick(
-              `অতিরিক্ত পয়েন্ট যোগ (সর্বোচ্চ ${formatNumber(activeScale.maxGpa, locale, 2)})`,
-              `Surplus GP added (Cap ${activeScale.maxGpa})`
-            )}
+            {`অতিরিক্ত পয়েন্ট যোগ (সর্বোচ্চ ${formatNumber(activeScale.maxGpa, 'bn', 2)})`}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
           <p className="text-base font-bold text-foreground">
-            {pick('সংযুক্ত পরীক্ষা ও স্থিতি', 'Linked Exams & Status')}
+            {'সংযুক্ত পরীক্ষা ও স্থিতি'}
           </p>
           <p
             className={cn(
@@ -371,25 +360,25 @@ export function GradingScalesView() {
               activeScale.isDeleted ? 'text-destructive' : 'text-success'
             )}
           >
-            {formatNumber(linkedExams.length, locale)}{' '}
-            <span className="text-sm font-semibold text-muted-foreground">{pick('টি পরীক্ষা', 'exams')}</span>
+            {formatNumber(linkedExams.length, 'bn')}{' '}
+            <span className="text-sm font-semibold text-muted-foreground">{'টি পরীক্ষা'}</span>
           </p>
           <p className="mt-1 text-sm text-muted-foreground truncate">
             {activeScale.isDeleted
-              ? pick('আর্কাইভকৃত স্কেল', 'Archived')
+              ? 'আর্কাইভকৃত স্কেল'
               : activeScale.isSystemDefault
-                ? pick('সিস্টেম জাতীয় মানদণ্ড', 'National Standard')
-                : pick('কাস্টম স্কেল', 'Custom Scale')}
+                ? 'সিস্টেম জাতীয় মানদণ্ড'
+                : 'কাস্টম স্কেল'}
           </p>
         </Card>
       </div>
 
       {/* Range Overlap / Gap Warnings */}
       {rangeWarnings.length > 0 && (
-        <div className="p-3.5 rounded-[var(--radius)] border border-warning/40 bg-warning/10 text-xs space-y-1">
+        <div className="p-3.5 rounded-[var(--radius)] border border-warning/40 bg-warning/10 text-sm space-y-1">
           <div className="font-semibold text-warning flex items-center gap-1.5">
             <AlertTriangle className="w-4 h-4" />
-            {pick('গ্রেড সীমা সতর্কতা', 'Grade Range Coverage Warning')}
+            {'গ্রেড সীমা সতর্কতা'}
           </div>
           {rangeWarnings.map((w, i) => (
             <p key={i} className="text-foreground">
@@ -402,31 +391,31 @@ export function GradingScalesView() {
       {/* Grade Ranges Table */}
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-xs">
+          <table className="w-full text-base">
+            <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-sm">
               <tr>
-                <th className="px-4 py-3 text-left">{pick('শতকরা নম্বর সীমা (%)', 'Percentage Range (%)')}</th>
-                <th className="px-4 py-3 text-center">{pick('লেটার গ্রেড', 'Letter Grade')}</th>
-                <th className="px-4 py-3 text-right">{pick('গ্রেড পয়েন্ট (GP)', 'Grade Point')}</th>
-                <th className="px-4 py-3 text-left">{pick('মন্তব্য', 'Remarks')}</th>
-                <th className="px-4 py-3 text-center">{pick('ফলাফল ধরন', 'Pass / Fail')}</th>
-                <th className="px-4 py-3 text-right">{pick('অ্যাকশন', 'Actions')}</th>
+                <th className="px-4 py-3 text-left">{'শতকরা নম্বর সীমা (%)'}</th>
+                <th className="px-4 py-3 text-center">{'লেটার গ্রেড'}</th>
+                <th className="px-4 py-3 text-right">{'গ্রেড পয়েন্ট (GP)'}</th>
+                <th className="px-4 py-3 text-left">{'মন্তব্য'}</th>
+                <th className="px-4 py-3 text-center">{'ফলাফল ধরন'}</th>
+                <th className="px-4 py-3 text-right">{'অ্যাকশন'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border tabular-nums">
               {ranges.map((r) => (
                 <tr key={r.id} className="hover:bg-surface-muted/40">
                   <td className="px-4 py-3 font-medium">
-                    {formatNumber(r.minPercentage, locale)}% – {formatNumber(r.maxPercentage, locale)}%
+                    {formatNumber(r.minPercentage, 'bn')}% – {formatNumber(r.maxPercentage, 'bn')}%
                   </td>
                   <td className="px-4 py-3 text-center font-bold text-foreground">{r.letterGrade}</td>
                   <td className="px-4 py-3 text-right font-semibold">
-                    {formatNumber(r.gradePoint, locale, 2)}
+                    {formatNumber(r.gradePoint, 'bn', 2)}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs">{r.remarks || '—'}</td>
-                  <td className="px-4 py-3 text-center text-xs font-semibold">
+                  <td className="px-4 py-3 text-muted-foreground text-sm">{r.remarks || '—'}</td>
+                  <td className="px-4 py-3 text-center text-sm font-semibold">
                     <span className={r.isFailGrade ? 'text-destructive' : 'text-success'}>
-                      {r.isFailGrade ? pick('অকৃতকার্য (Fail)', 'Fail Grade') : pick('কৃতকার্য (Pass)', 'Pass Grade')}
+                      {r.isFailGrade ? 'অকৃতকার্য (Fail)' : 'কৃতকার্য (Pass)'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right whitespace-nowrap">
@@ -452,19 +441,19 @@ export function GradingScalesView() {
           <div className="flex items-center gap-2">
             <Calculator className="w-4 h-4 text-primary" />
             <h3 className="font-semibold text-foreground text-sm">
-              {pick('লাইভ GPA ক্যালকুলেশন সিমুলেটর (স্কেল যাচাই)', 'Live GPA Policy Simulator')}
+              {'লাইভ GPA ক্যালকুলেশন সিমুলেটর (স্কেল যাচাই)'}
             </h3>
           </div>
           {simulatedGpa && (
             <div className="text-sm tabular-nums flex items-center gap-4">
               <span className="text-muted-foreground">
-                {pick('৪র্থ ছাড়া:', 'w/o 4th:')}{' '}
-                <strong className="text-foreground">{formatNumber(simulatedGpa.gpaWithoutOptional, locale, 2)}</strong>
+                {'৪র্থ ছাড়া:'}{' '}
+                <strong className="text-foreground">{formatNumber(simulatedGpa.gpaWithoutOptional, 'bn', 2)}</strong>
               </span>
               <span className="text-muted-foreground">
-                {pick('চূড়ান্ত GPA:', 'Final GPA:')}{' '}
+                {'চূড়ান্ত GPA:'}{' '}
                 <strong className={simulatedGpa.isPassed ? 'text-primary text-base' : 'text-destructive text-base'}>
-                  {formatNumber(simulatedGpa.gpa, locale, 2)} ({simulatedGpa.letterGrade})
+                  {formatNumber(simulatedGpa.gpa, 'bn', 2)} ({simulatedGpa.letterGrade})
                 </strong>
               </span>
             </div>
@@ -474,8 +463,8 @@ export function GradingScalesView() {
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           {simCompulsory.map((val, idx) => (
             <div key={idx}>
-              <label className="block text-xs text-muted-foreground mb-1">
-                {pick(`আবশ্যিক #${formatNumber(idx + 1, locale)}`, `Compulsory #${idx + 1}`)}
+              <label className="block text-sm text-muted-foreground mb-1">
+                {`আবশ্যিক #${formatNumber(idx + 1, 'bn')}`}
               </label>
               <Select
                 value={String(val)}
@@ -487,20 +476,20 @@ export function GradingScalesView() {
               >
                 {validGps.map((gp) => (
                   <option key={gp} value={gp}>
-                    {formatNumber(gp, locale, 2)}
+                    {formatNumber(gp, 'bn', 2)}
                   </option>
                 ))}
               </Select>
             </div>
           ))}
           <div>
-            <label className="block text-xs text-primary font-semibold mb-1">
-              {pick('৪র্থ / ঐচ্ছিক', '4th / Optional')}
+            <label className="block text-sm text-primary font-semibold mb-1">
+              {'৪র্থ / ঐচ্ছিক'}
             </label>
             <Select value={String(simOptional)} onChange={(e) => setSimOptional(Number(e.target.value))}>
               {validGps.map((gp) => (
                 <option key={gp} value={gp}>
-                  {formatNumber(gp, locale, 2)}
+                  {formatNumber(gp, 'bn', 2)}
                 </option>
               ))}
             </Select>
@@ -514,32 +503,32 @@ export function GradingScalesView() {
         onClose={() => setScaleModalOpen(false)}
         title={
           editingScale
-            ? pick('গ্রেডিং স্কেল সম্পাদনা', 'Edit Grading Scale')
-            : pick('নতুন গ্রেডিং স্কেল তৈরি করুন', 'Create Grading Scale')
+            ? 'গ্রেডিং স্কেল সম্পাদনা'
+            : 'নতুন গ্রেডিং স্কেল তৈরি করুন'
         }
         size="md"
       >
         <form onSubmit={handleSaveScale} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">{pick('স্কেলের নাম *', 'Scale Name *')}</label>
+            <label className="block text-sm font-medium mb-1">{'স্কেলের নাম *'}</label>
             <Input
               required
               value={scaleForm.name}
               onChange={(e) => setScaleForm({ ...scaleForm, name: e.target.value })}
-              placeholder={pick('যেমন: NCTB Secondary 5.00 Scale', 'e.g. NCTB Secondary 5.00 Scale')}
+              placeholder={'যেমন: NCTB Secondary 5.00 Scale'}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">{pick('বিবরণ', 'Description')}</label>
-            <Input
+            <label className="block text-sm font-medium mb-1">{'বিবরণ'}</label>
+            <Input placeholder="বিবরণ লিখুন"
               value={scaleForm.description}
               onChange={(e) => setScaleForm({ ...scaleForm, description: e.target.value })}
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">{pick('সর্বোচ্চ GPA *', 'Max GPA *')}</label>
-              <Input
+              <label className="block text-sm font-medium mb-1">{'সর্বোচ্চ GPA *'}</label>
+              <Input placeholder="সর্বোচ্চ GPA লিখুন"
                 type="number"
                 step="0.1"
                 min={1}
@@ -551,9 +540,9 @@ export function GradingScalesView() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">
-                {pick('৪র্থ বিষয় বোনাস সীমা (GP)', '4th Subject Bonus Threshold')}
+                {'৪র্থ বিষয় বোনাস সীমা (GP)'}
               </label>
-              <Input
+              <Input placeholder="৪র্থ বিষয় বোনাস সীমা (GP) লিখুন"
                 type="number"
                 step="0.1"
                 min={0}
@@ -572,15 +561,15 @@ export function GradingScalesView() {
               checked={scaleForm.isDefault}
               onChange={(e) => setScaleForm({ ...scaleForm, isDefault: e.target.checked })}
             />
-            <span>{pick('ডিফল্ট গ্রেডিং স্কেল হিসেবে সেট করুন', 'Set as default grading scale')}</span>
+            <span>{'ডিফল্ট গ্রেডিং স্কেল হিসেবে সেট করুন'}</span>
           </label>
           <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={() => setScaleModalOpen(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button type="submit" disabled={savingScale}>
               <CheckCircle2 className="w-4 h-4" />
-              {pick('সংরক্ষণ করুন', 'Save Scale')}
+              {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -592,16 +581,16 @@ export function GradingScalesView() {
         onClose={() => setRangeModalOpen(false)}
         title={
           editingRange
-            ? pick('গ্রেড ব্যান্ড সম্পাদনা', 'Edit Grade Band')
-            : pick('নতুন গ্রেড ব্যান্ড যুক্ত করুন', 'Add Grade Band')
+            ? 'গ্রেড ব্যান্ড সম্পাদনা'
+            : 'নতুন গ্রেড ব্যান্ড যুক্ত করুন'
         }
         size="md"
       >
         <form onSubmit={handleSaveRange} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">{pick('সর্বনিম্ন % *', 'Min % *')}</label>
-              <Input
+              <label className="block text-sm font-medium mb-1">{'সর্বনিম্ন % *'}</label>
+              <Input placeholder="সর্বনিম্ন % লিখুন"
                 type="number"
                 step="0.01"
                 min={0}
@@ -612,8 +601,8 @@ export function GradingScalesView() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{pick('সর্বোচ্চ % *', 'Max % *')}</label>
-              <Input
+              <label className="block text-sm font-medium mb-1">{'সর্বোচ্চ % *'}</label>
+              <Input placeholder="সর্বোচ্চ % লিখুন"
                 type="number"
                 step="0.01"
                 min={0}
@@ -624,7 +613,7 @@ export function GradingScalesView() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{pick('লেটার গ্রেড *', 'Letter Grade *')}</label>
+              <label className="block text-sm font-medium mb-1">{'লেটার গ্রেড *'}</label>
               <Input
                 required
                 value={rangeForm.letterGrade}
@@ -633,8 +622,8 @@ export function GradingScalesView() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{pick('গ্রেড পয়েন্ট *', 'Grade Point *')}</label>
-              <Input
+              <label className="block text-sm font-medium mb-1">{'গ্রেড পয়েন্ট *'}</label>
+              <Input placeholder="গ্রেড পয়েন্ট লিখুন"
                 type="number"
                 step="0.01"
                 min={0}
@@ -645,11 +634,11 @@ export function GradingScalesView() {
               />
             </div>
             <div className="col-span-2">
-              <label className="block text-sm font-medium mb-1">{pick('মন্তব্য', 'Remarks')}</label>
+              <label className="block text-sm font-medium mb-1">{'মন্তব্য'}</label>
               <Input
                 value={rangeForm.remarks}
                 onChange={(e) => setRangeForm({ ...rangeForm, remarks: e.target.value })}
-                placeholder={pick('অসাধারণ / Outstanding', 'Outstanding')}
+                placeholder={'অসাধারণ / Outstanding'}
               />
             </div>
           </div>
@@ -659,14 +648,14 @@ export function GradingScalesView() {
               checked={rangeForm.isFailGrade}
               onChange={(e) => setRangeForm({ ...rangeForm, isFailGrade: e.target.checked })}
             />
-            <span>{pick('অকৃতকার্য (Fail) গ্রেড হিসেবে চিহ্নিত করুন', 'Mark as Fail Grade')}</span>
+            <span>{'অকৃতকার্য (Fail) গ্রেড হিসেবে চিহ্নিত করুন'}</span>
           </label>
           <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={() => setRangeModalOpen(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button type="submit" disabled={savingRange}>
-              {pick('সংরক্ষণ করুন', 'Save Band')}
+              {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -676,12 +665,9 @@ export function GradingScalesView() {
         open={Boolean(deleteRangeTarget)}
         onClose={() => setDeleteRangeTarget(null)}
         onConfirm={handleDeleteRange}
-        title={pick('গ্রেড ব্যান্ড অপসারণ', 'Delete Grade Band')}
-        description={pick(
-          `আপনি কি "${deleteRangeTarget?.letterGrade}" গ্রেড ব্যান্ডটি মুছে ফেলতে চান?`,
-          `Are you sure you want to remove the "${deleteRangeTarget?.letterGrade}" band?`
-        )}
-        confirmLabel={pick('মুছে ফেলুন', 'Delete')}
+        title={'গ্রেড ব্যান্ড অপসারণ'}
+        description={`আপনি কি "${deleteRangeTarget?.letterGrade}" গ্রেড ব্যান্ডটি মুছে ফেলতে চান?`}
+        confirmLabel={'মুছে ফেলুন'}
         destructive
       />
     </div>

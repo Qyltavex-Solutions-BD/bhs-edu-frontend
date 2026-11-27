@@ -12,7 +12,7 @@ export const AdmissionInput = React.forwardRef<
   HTMLInputElement,
   React.InputHTMLAttributes<HTMLInputElement>
 >(({ className, ...props }, ref) => (
-  <input
+  <input placeholder="তথ্য লিখুন"
     ref={ref}
     className={cn(
       'w-full h-11 px-4 rounded-2xl border border-border bg-surface text-foreground text-base placeholder:text-muted-foreground/70 transition-all duration-150 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-muted/60 disabled:text-muted-foreground disabled:cursor-not-allowed',

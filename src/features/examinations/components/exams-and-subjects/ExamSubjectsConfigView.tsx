@@ -658,23 +658,23 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
     if (!d) return null;
     return (
       <div className="flex items-center gap-1 min-w-[96px]">
-        <input
+        <input placeholder="সংখ্যা লিখুন"
           type="number"
           min={0}
           max={200}
           value={d[fullField]}
           onChange={(e) => updateBulkCell(esId, fullField, e.target.value)}
-          className="w-12 px-1.5 py-1 text-xs text-center rounded border border-border bg-background tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-12 px-1.5 py-1 text-sm text-center rounded border border-border bg-background tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
           aria-label="পূর্ণমান"
         />
-        <span className="text-muted-foreground text-xs">/</span>
-        <input
+        <span className="text-muted-foreground text-sm">/</span>
+        <input placeholder="সংখ্যা লিখুন"
           type="number"
           min={0}
           max={200}
           value={d[passField]}
           onChange={(e) => updateBulkCell(esId, passField, e.target.value)}
-          className="w-11 px-1.5 py-1 text-xs text-center rounded border border-border bg-background tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-11 px-1.5 py-1 text-sm text-center rounded border border-border bg-background tabular-nums focus:outline-none focus:ring-1 focus:ring-primary"
           aria-label="পাশ"
         />
       </div>
@@ -757,12 +757,12 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
         <Card className="p-3 flex flex-wrap lg:flex-nowrap items-end justify-between gap-2">
           <div className="flex flex-wrap lg:flex-nowrap items-end gap-2 flex-1 min-w-0">
             <div className="w-36 shrink-0">
-              <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
+              <label className="block text-sm font-medium text-muted-foreground mb-0.5">
                 {'শ্রেণি'}
               </label>
               <Select
                 value={resolvedClassId}
-                className="h-9 text-xs px-2"
+                className="h-9 text-sm px-2"
                 onChange={(e) => {
                   setSelectedClassId(e.target.value);
                   setSelectedExamId('');
@@ -779,12 +779,12 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
             </div>
 
             <div className="w-48 min-w-[160px] flex-1 max-w-[230px]">
-              <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
+              <label className="block text-sm font-medium text-muted-foreground mb-0.5">
                 {'পরীক্ষা'}
               </label>
               <Select
                 value={resolvedExamId}
-                className="h-9 text-xs px-2"
+                className="h-9 text-sm px-2"
                 onChange={(e) => {
                   setSelectedExamId(e.target.value);
                   setBulkEditMode(false);
@@ -805,12 +805,12 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
 
             {isClassNineTen && (
               <div className="w-36 shrink-0">
-                <label className="block text-[11px] font-medium text-muted-foreground mb-0.5">
+                <label className="block text-sm font-medium text-muted-foreground mb-0.5">
                   {'বিভাগ'}
                 </label>
                 <Select
                   value={selectedGroupId}
-                  className="h-9 text-xs px-2"
+                  className="h-9 text-sm px-2"
                   onChange={(e) => setSelectedGroupId(e.target.value)}
                 >
                   <option value="">{'সকল বিভাগ'}</option>
@@ -831,7 +831,7 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
                 size="sm"
                 onClick={handleBulkAddClassSubjects}
                 disabled={bulkAdding || saving || bulkEditMode}
-                className="h-9 text-xs whitespace-nowrap shrink-0"
+                className="h-9 text-sm whitespace-nowrap shrink-0"
               >
                 <Plus className="w-3.5 h-3.5" />
                 {bulkAdding ? 'লোড হচ্ছে...' : 'ক্লাসের সব বিষয় লোড করুন'}
@@ -841,7 +841,7 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
                 variant="outline"
                 onClick={() => setCopyModalOpen(true)}
                 disabled={copySourceExams.length === 0 || bulkEditMode}
-                className="h-9 text-xs whitespace-nowrap shrink-0"
+                className="h-9 text-sm whitespace-nowrap shrink-0"
               >
                 <Copy className="w-3.5 h-3.5" />
                 {'আগের পরীক্ষা থেকে কপি করুন'}
@@ -947,12 +947,12 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                   {row.original.subjectCode && (
-                    <span className="text-xs font-mono text-muted-foreground">
+                    <span className="text-sm font-mono text-muted-foreground">
                       {'কোড:'} {row.original.subjectCode}
                     </span>
                   )}
                   {row.original.isPairedPaper && (
-                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] font-medium">
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-xs font-medium">
                       <Link2 className="w-2.5 h-2.5" />
                       {'যৌথ পাশ'}
                     </span>
@@ -966,14 +966,14 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
             header: isClassNineTen ? 'বিভাগ / ধরন' : 'ধরন',
             cell: ({ row }) =>
               isClassNineTen ? (
-                <div className="text-xs whitespace-nowrap">
+                <div className="text-sm whitespace-nowrap">
                   <div className="text-foreground font-medium">{row.original.groupLabel}</div>
                   <div className="text-muted-foreground">
                     {row.original.es.isOptional ? 'ঐচ্ছিক / ৪র্থ বিষয়' : 'আবশ্যিক'}
                   </div>
                 </div>
               ) : (
-                <span className="text-xs text-muted-foreground whitespace-nowrap">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
                   {row.original.es.isOptional ? 'ঐচ্ছিক' : 'আবশ্যিক'}
                 </span>
               ),
@@ -990,7 +990,7 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
                   {formatNumber(row.original.es.passMarks, 'bn')}
                 </span>
               ) : (
-                <span className="text-xs text-muted-foreground">—</span>
+                <span className="text-sm text-muted-foreground">—</span>
               ),
           },
           {
@@ -1001,7 +1001,7 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
               bulkEditMode ? (
                 renderInlinePair(row.original.es.id, 'writtenFull', 'writtenPass')
               ) : (
-                <span className="text-xs tabular-nums whitespace-nowrap">
+                <span className="text-sm tabular-nums whitespace-nowrap">
                   {row.original.es.hasWritten
                     ? `${formatNumber(row.original.es.writtenFullMarks ?? 0, 'bn')} / ${formatNumber(row.original.es.writtenPassMarks ?? 0, 'bn')}`
                     : '—'}
@@ -1016,7 +1016,7 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
               bulkEditMode ? (
                 renderInlinePair(row.original.es.id, 'mcqFull', 'mcqPass')
               ) : (
-                <span className="text-xs tabular-nums whitespace-nowrap">
+                <span className="text-sm tabular-nums whitespace-nowrap">
                   {row.original.es.hasMcq
                     ? `${formatNumber(row.original.es.mcqFullMarks ?? 0, 'bn')} / ${formatNumber(row.original.es.mcqPassMarks ?? 0, 'bn')}`
                     : '—'}
@@ -1031,7 +1031,7 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
               bulkEditMode ? (
                 renderInlinePair(row.original.es.id, 'practicalFull', 'practicalPass')
               ) : (
-                <span className="text-xs tabular-nums whitespace-nowrap">
+                <span className="text-sm tabular-nums whitespace-nowrap">
                   {row.original.es.hasPractical
                     ? `${formatNumber(row.original.es.practicalFullMarks ?? 0, 'bn')} / ${formatNumber(row.original.es.practicalPassMarks ?? 0, 'bn')}`
                     : '—'}
@@ -1046,7 +1046,7 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
               bulkEditMode ? (
                 renderInlinePair(row.original.es.id, 'caFull', 'caPass')
               ) : (
-                <span className="text-xs tabular-nums whitespace-nowrap">
+                <span className="text-sm tabular-nums whitespace-nowrap">
                   {row.original.es.hasContinuousAssessment
                     ? `${formatNumber(row.original.es.continuousAssessmentFullMarks ?? 0, 'bn')} / ${formatNumber(row.original.es.continuousAssessmentPassMarks ?? 0, 'bn')}`
                     : '—'}
@@ -1088,7 +1088,7 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="font-semibold text-foreground">{subjectName}</div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="text-sm text-muted-foreground mt-0.5">
                     <span className="font-mono">{subjectCode}</span> · {groupLabel} ·{' '}
                     {es.isOptional ? 'ঐচ্ছিক (৪র্থ)' : 'আবশ্যিক'}
                   </p>
@@ -1097,27 +1097,27 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
                   {formatNumber(es.fullMarks, 'bn')} / {formatNumber(es.passMarks, 'bn')}
                 </span>
               </div>
-              <div className="grid grid-cols-4 gap-1.5 text-center text-xs tabular-nums bg-surface-muted/50 rounded-md p-2">
+              <div className="grid grid-cols-4 gap-1.5 text-center text-sm tabular-nums bg-surface-muted/50 rounded-md p-2">
                 <div>
-                  <span className="text-xs text-muted-foreground block">{'লিখিত'}</span>
+                  <span className="text-sm text-muted-foreground block">{'লিখিত'}</span>
                   <span className="font-semibold">
                     {es.hasWritten ? `${formatNumber(es.writtenFullMarks ?? 0, 'bn')}/${formatNumber(es.writtenPassMarks ?? 0, 'bn')}` : '—'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs text-muted-foreground block">MCQ</span>
+                  <span className="text-sm text-muted-foreground block">MCQ</span>
                   <span className="font-semibold">
                     {es.hasMcq ? `${formatNumber(es.mcqFullMarks ?? 0, 'bn')}/${formatNumber(es.mcqPassMarks ?? 0, 'bn')}` : '—'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs text-muted-foreground block">{'ব্যবহারিক'}</span>
+                  <span className="text-sm text-muted-foreground block">{'ব্যবহারিক'}</span>
                   <span className="font-semibold">
                     {es.hasPractical ? `${formatNumber(es.practicalFullMarks ?? 0, 'bn')}/${formatNumber(es.practicalPassMarks ?? 0, 'bn')}` : '—'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs text-muted-foreground block">{'ধারাবাহিক'}</span>
+                  <span className="text-sm text-muted-foreground block">{'ধারাবাহিক'}</span>
                   <span className="font-semibold">
                     {es.hasContinuousAssessment
                       ? `${formatNumber(es.continuousAssessmentFullMarks ?? 0, 'bn')}/${formatNumber(es.continuousAssessmentPassMarks ?? 0, 'bn')}`
@@ -1207,7 +1207,7 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
 
             <div>
               <label className="block text-sm font-medium mb-1">{'মোট পূর্ণমান *'}</label>
-              <Input
+              <Input placeholder="মোট পূর্ণমান লিখুন"
                 type="number"
                 min={10}
                 max={200}
@@ -1226,7 +1226,7 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
 
             <div>
               <label className="block text-sm font-medium mb-1">{'মোট পাশ নম্বর *'}</label>
-              <Input
+              <Input placeholder="মোট পাশ নম্বর লিখুন"
                 type="number"
                 min={1}
                 max={Number(form.fullMarks) || 200}
@@ -1317,7 +1317,7 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 text-xs tabular-nums">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-sm tabular-nums">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
                 type="checkbox"
@@ -1383,7 +1383,7 @@ export function ExamSubjectsConfigView({ initialExamId }: { initialExamId?: stri
               })}
             </Select>
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {copySourceLoading
               ? 'উৎস পরীক্ষার বিষয়গুলো লোড হচ্ছে...'
               : `নির্বাচিত পরীক্ষায় ${formatNumber(copySourceSubjects.length, 'bn')}টি বিষয় পাওয়া গেছে। যেগুলো বর্তমান পরীক্ষায় নেই, সেগুলো পূর্ণমান ও পাশ নম্বরসহ কপি হবে।`}

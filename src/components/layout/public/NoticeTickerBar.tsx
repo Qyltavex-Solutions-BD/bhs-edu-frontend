@@ -3,11 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { Megaphone, ArrowUpRight } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import type { Notice } from '@/src/types/entities';
 
 export function NoticeTickerBar({ notices }: { notices: Notice[] }) {
-  const { pick } = useI18n();
   if (!notices.length) return null;
 
   return (
@@ -18,7 +16,7 @@ export function NoticeTickerBar({ notices }: { notices: Notice[] }) {
           className="shrink-0 inline-flex items-center gap-1.5 pr-3 border-r border-white/20 text-sm font-semibold text-white hover:opacity-85 transition-opacity whitespace-nowrap"
         >
           <Megaphone className="w-3.5 h-3.5 opacity-85" />
-          <span>{pick('সর্বশেষ বিজ্ঞপ্তি', 'Latest Notices')}</span>
+          <span>{'সর্বশেষ বিজ্ঞপ্তি'}</span>
         </Link>
         <div className="relative flex-1 overflow-hidden">
           <div className="animate-notice-marquee items-center gap-8 text-sm">
@@ -30,7 +28,7 @@ export function NoticeTickerBar({ notices }: { notices: Notice[] }) {
               >
                 {notice.isUrgent && (
                   <span className="px-2 py-0.5 rounded bg-[#C81E24] text-white text-xs font-semibold leading-none">
-                    {pick('জরুরি', 'Urgent')}
+                    {'জরুরি'}
                   </span>
                 )}
                 <span>{notice.title}</span>
@@ -46,7 +44,7 @@ export function NoticeTickerBar({ notices }: { notices: Notice[] }) {
           href="/notices"
           className="hidden sm:inline-flex shrink-0 text-sm font-medium text-white/80 hover:text-white transition-colors whitespace-nowrap pl-3 border-l border-white/20"
         >
-          {pick('সব দেখুন', 'View All')}
+          {'সব দেখুন'}
         </Link>
       </div>
     </div>

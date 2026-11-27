@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAppDispatch } from '@/src/store/hooks';
 import { setSelectedAcademicYear } from '@/src/store/slices/uiSlice';
-import { useI18n } from '@/src/lib/i18n';
 import { PageHeader } from '@/src/components/shared/Feedback';
 import { Select } from '@/src/components/ui/primitives';
 import { cn } from '@/src/lib/utils/cn';
@@ -39,8 +38,6 @@ export function AcademicShell({
 }) {
   const pathname = usePathname();
   const dispatch = useAppDispatch();
-  const { pick } = useI18n();
-
   const activeGroup = SUB_TAB_GROUPS.find((group) =>
     group.some((item) => item.href === pathname)
   );
@@ -51,12 +48,12 @@ export function AcademicShell({
         value={selectedYear.id}
         onChange={(event) => dispatch(setSelectedAcademicYear(event.target.value))}
         className="w-auto min-w-44 h-10 text-base font-semibold"
-        aria-label={pick('শিক্ষাবর্ষ', 'Academic year')}
+        aria-label={'শিক্ষাবর্ষ'}
       >
         {years.map((year) => (
           <option key={year.id} value={year.id}>
             {year.name}
-            {year.isActive ? pick(' · চলতি', ' · Current') : ''}
+            {year.isActive ? ' · চলতি' : ''}
           </option>
         ))}
       </Select>
@@ -92,7 +89,7 @@ export function AcademicShell({
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 )}
               >
-                {pick(item.labelBn, item.labelEn)}
+                {item.labelBn}
               </Link>
             );
           })}

@@ -32,7 +32,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { MasonryPhotoAlbum } from 'react-photo-album';
 
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -60,7 +59,6 @@ type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
 
 export function PublicPublicationsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [yearFilter, setYearFilter] = useState('ALL');
@@ -84,11 +82,8 @@ export function PublicPublicationsPage() {
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <PageHeader
-        title={pick('বিদ্যালয়ের প্রকাশনা ও ম্যাগাজিন', 'School Publications')}
-        description={pick(
-          'বার্ষিক ম্যাগাজিন, দেয়াল পত্রিকা, জার্নাল ও অন্যান্য প্রকাশনা খুঁজুন ও পড়ুন।',
-          'Search and browse school magazines, wall magazines, journals, and special publications.'
-        )}
+        title={'বিদ্যালয়ের প্রকাশনা ও ম্যাগাজিন'}
+        description={'বার্ষিক ম্যাগাজিন, দেয়াল পত্রিকা, জার্নাল ও অন্যান্য প্রকাশনা খুঁজুন ও পড়ুন।'}
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
@@ -97,25 +92,25 @@ export function PublicPublicationsPage() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={pick('প্রকাশনার শিরোনাম বা বিবরণ দিয়ে খুঁজুন...', 'Search publications by title or keyword...')}
+            placeholder={'প্রকাশনার শিরোনাম বা বিবরণ দিয়ে খুঁজুন...'}
             className="pl-9"
           />
         </div>
         <div className="sm:col-span-3">
           <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-            <option value="ALL">{pick('সব ধরন', 'All Types')}</option>
-            <option value={PublicationType.SCHOOL_MAGAZINE}>{pick('বিদ্যালয় ম্যাগাজিন', 'School Magazine')}</option>
-            <option value={PublicationType.WALL_MAGAZINE}>{pick('দেয়াল পত্রিকা', 'Wall Magazine')}</option>
-            <option value={PublicationType.JOURNAL}>{pick('বার্ষিকী / জার্নাল', 'Journal')}</option>
-            <option value={PublicationType.OTHER}>{pick('অন্যান্য', 'Other')}</option>
+            <option value="ALL">{'সব ধরন'}</option>
+            <option value={PublicationType.SCHOOL_MAGAZINE}>{'বিদ্যালয় ম্যাগাজিন'}</option>
+            <option value={PublicationType.WALL_MAGAZINE}>{'দেয়াল পত্রিকা'}</option>
+            <option value={PublicationType.JOURNAL}>{'বার্ষিকী / জার্নাল'}</option>
+            <option value={PublicationType.OTHER}>{'অন্যান্য'}</option>
           </Select>
         </div>
         <div className="sm:col-span-3">
           <Select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)}>
-            <option value="ALL">{pick('সব বছর', 'All Years')}</option>
+            <option value="ALL">{'সব বছর'}</option>
             {years.map((y) => (
               <option key={y} value={String(y)}>
-                {formatNumber(y, locale)}
+                {formatNumber(y, 'bn')}
               </option>
             ))}
           </Select>
@@ -124,7 +119,7 @@ export function PublicPublicationsPage() {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title={pick('কোনো প্রকাশনা পাওয়া যায়নি', 'No publications matched your filter')}
+          title={'কোনো প্রকাশনা পাওয়া যায়নি'}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -152,7 +147,7 @@ export function PublicPublicationsPage() {
                       <StatusBadge enumName="PublicationType" value={pub.type} />
                       {pub.publishYear && (
                         <span className="text-sm text-muted-foreground tabular-nums">
-                          {formatNumber(pub.publishYear, locale)}
+                          {formatNumber(pub.publishYear, 'bn')}
                         </span>
                       )}
                     </div>
@@ -165,7 +160,7 @@ export function PublicPublicationsPage() {
                         <a href={pub.fileUrl} target="_blank" rel="noopener noreferrer">
                           <Button variant="outline" size="sm">
                             <Download className="w-4 h-4" />
-                            {pick('পড়ুন / ডাউনলোড করুন', 'Read / Download')}
+                            {'পড়ুন / ডাউনলোড করুন'}
                           </Button>
                         </a>
                       ) : (
@@ -174,15 +169,12 @@ export function PublicPublicationsPage() {
                           size="sm"
                           onClick={() =>
                             toast.info(
-                              pick(
-                                'বিদ্যালয়ের মূল আর্কাইভ পিডিএফ সংযুক্ত হলে এখান থেকে সরাসরি ডাউনলোড করা যাবে।',
-                                'PDF download will be available once the archive document URL is attached.'
-                              )
+                              'বিদ্যালয়ের মূল আর্কাইভ পিডিএফ সংযুক্ত হলে এখান থেকে সরাসরি ডাউনলোড করা যাবে।'
                             )
                           }
                         >
                           <FileText className="w-4 h-4" />
-                          {pick('ডিজিটাল কপি (আর্কাইভ)', 'Digital Copy (Archive)')}
+                          {'ডিজিটাল কপি (আর্কাইভ)'}
                         </Button>
                       )}
                     </div>

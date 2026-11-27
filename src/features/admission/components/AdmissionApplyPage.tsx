@@ -15,7 +15,6 @@ import { toast } from 'sonner';
 import { useGetPublicAdmissionCatalogQuery } from '@/src/features/admission/api/admission.api';
 import type { AdmissionCatalogData } from '@/src/features/admission/rules';
 import type { SchoolProfile } from '@/src/types/entities';
-import { useI18n } from '@/src/lib/i18n';
 import { formatBdt, formatDateLong } from '@/src/lib/formatters';
 import { LoadingSkeleton, PageHeader, SchoolEmblem } from '@/src/components/shared/Feedback';
 import { Button, Card, Input } from '@/src/components/ui/primitives';
@@ -37,7 +36,6 @@ import { buildDefaultAdmissionValues } from '@/src/features/admission/mappers';
 
 export function AdmissionApplyPage() {
   const { data: catalogData, isLoading } = useGetPublicAdmissionCatalogQuery();
-  const { locale, pick } = useI18n();
   const [submittedApp, setSubmittedApp] = useState<OnlineAdmissionApplication | null>(null);
   const [docTab, setDocTab] = useState<'form' | 'admit'>('form');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
@@ -56,7 +54,7 @@ export function AdmissionApplyPage() {
     ({
       id: 'default',
       name: 'Bhojeshwar High School',
-      nameBn: 'বজেশ্বর উচ্চ বিদ্যালয়',
+      nameBn: 'ভোজেশ্বর উচ্চ বিদ্যালয়',
       nameEn: 'Bhojeshwar High School',
       eiin: '113587',
       address: 'নড়িয়া, শরীয়তপুর',
@@ -73,7 +71,7 @@ export function AdmissionApplyPage() {
     admissionContent: catalogData.admissionContent ?? {
       admissionStatus: 'OPEN',
       academicSession: '২০২৭',
-      schoolNameBn: 'বজেশ্বর উচ্চ বিদ্যালয়',
+      schoolNameBn: 'ভোজেশ্বর উচ্চ বিদ্যালয়',
       schoolNameEn: 'Bhojeshwar High School',
     },
     schoolProfile,
@@ -85,40 +83,34 @@ export function AdmissionApplyPage() {
     return (
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-12 space-y-6">
         <PageHeader
-          title={pick('অনলাইন ভর্তি আবেদন', 'Online Admission Application')}
-          description={`${admissionContent.schoolNameBn ?? 'বজেশ্বর উচ্চ বিদ্যালয়'} · ${pick('শিক্ষাবর্ষ:', 'Session:')} ${admissionContent.academicSession ?? '২০২৭'}`}
+          title={'অনলাইন ভর্তি আবেদন'}
+          description={`${admissionContent.schoolNameBn ?? 'ভোজেশ্বর উচ্চ বিদ্যালয়'} · ${'শিক্ষাবর্ষ:'} ${admissionContent.academicSession ?? '২০২৭'}`}
         />
         <Card className="p-6 sm:p-8 space-y-4">
           <h2 className="text-lg font-bold text-foreground">
             {cycleStatus === 'UPCOMING'
-              ? pick('অনলাইন ভর্তি আবেদন শীঘ্রই শুরু হবে', 'Online Admission Applications Opening Soon')
-              : pick('বর্তমান শিক্ষাবর্ষের অনলাইন ভর্তি আবেদন বন্ধ রয়েছে', 'Online Admission Applications Are Currently Closed')}
+              ? 'অনলাইন ভর্তি আবেদন শীঘ্রই শুরু হবে'
+              : 'বর্তমান শিক্ষাবর্ষের অনলাইন ভর্তি আবেদন বন্ধ রয়েছে'}
           </h2>
           <p className="text-base text-muted-foreground leading-relaxed">
             {cycleStatus === 'UPCOMING'
-              ? pick(
-                  `নির্ধারিত তারিখ (${formatDateLong(admissionContent.startDate ?? '', locale)}) থেকে অনলাইন আবেদন গ্রহণ শুরু হবে। ইতোমধ্যে ভর্তি নির্দেশিকা ও প্রয়োজনীয় কাগজপত্রের তালিকা দেখে নিতে পারেন।`,
-                  `Online applications will open on ${formatDateLong(admissionContent.startDate ?? '', locale)}. You can review guidelines and required documents in the meantime.`
-                )
-              : pick(
-                  'চলমান শিক্ষাবর্ষের আবেদন গ্রহণের সময়সীমা শেষ হয়েছে। পূর্বে জমাকৃত আবেদনের অবস্থা জানতে স্ট্যাটাস যাচাই পেজ ব্যবহার করুন অথবা বিদ্যালয় অফিসে যোগাযোগ করুন।',
-                  'The application window for this session has closed. Existing applicants may check their application status below or contact the school office.'
-                )}
+              ? `নির্ধারিত তারিখ (${formatDateLong(admissionContent.startDate ?? '', 'bn')}) থেকে অনলাইন আবেদন গ্রহণ শুরু হবে। ইতোমধ্যে ভর্তি নির্দেশিকা ও প্রয়োজনীয় কাগজপত্রের তালিকা দেখে নিতে পারেন।`
+              : 'চলমান শিক্ষাবর্ষের আবেদন গ্রহণের সময়সীমা শেষ হয়েছে। পূর্বে জমাকৃত আবেদনের অবস্থা জানতে স্ট্যাটাস যাচাই পেজ ব্যবহার করুন অথবা বিদ্যালয় অফিসে যোগাযোগ করুন।'}
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Link href="/admission/status">
               <Button variant="primary">
                 <Search className="w-4 h-4" />
-                {pick('আবেদনের স্ট্যাটাস যাচাই', 'Check Application Status')}
+                {'আবেদনের স্ট্যাটাস যাচাই'}
               </Button>
             </Link>
             <Link href="/admission/guidelines">
-              <Button variant="outline">{pick('ভর্তি নির্দেশিকা', 'Admission Guidelines')}</Button>
+              <Button variant="outline">{'ভর্তি নির্দেশিকা'}</Button>
             </Link>
             <Link href="/admission/download-form">
               <Button variant="ghost">
                 <Download className="w-4 h-4" />
-                {pick('নমুনা ফরম দেখুন', 'Preview Printable Form')}
+                {'নমুনা ফরম দেখুন'}
               </Button>
             </Link>
           </div>
@@ -152,8 +144,8 @@ export function AdmissionApplyPage() {
             kind: 'ADMIT_CARD',
             school: schoolProfile,
             application: submittedApp,
-            targetClassName: locale === 'bn' ? cls?.nameBn ?? '' : cls?.name ?? '',
-            groupName: grp ? (locale === 'bn' ? grp.nameBn : grp.name) : null,
+            targetClassName: cls?.nameBn ?? '',
+            groupName: grp ? (grp.nameBn) : null,
           };
 
     const handlePrint = () => {
@@ -167,18 +159,12 @@ export function AdmissionApplyPage() {
         const ok = await exportNodeToA4Pdf(submittedDocRef.current, docTitle);
         if (ok) {
           toast.success(
-            pick(
-              'A4 পিডিএফ (PDF) সফলভাবে ডাউনলোড হয়েছে।',
-              'A4 PDF downloaded successfully.'
-            )
+            'A4 পিডিএফ (PDF) সফলভাবে ডাউনলোড হয়েছে।'
           );
         }
       } catch {
         toast.error(
-          pick(
-            'পিডিএফ তৈরি করতে সমস্যা হয়েছে। অনুগ্রহ করে প্রিন্ট বাটন থেকে Save as PDF ব্যবহার করুন।',
-            'Could not generate PDF. Please use Print → Save as PDF.'
-          )
+          'পিডিএফ তৈরি করতে সমস্যা হয়েছে। অনুগ্রহ করে প্রিন্ট বাটন থেকে Save as PDF ব্যবহার করুন।'
         );
       } finally {
         setDownloadingPdf(false);
@@ -188,11 +174,8 @@ export function AdmissionApplyPage() {
     return (
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
         <PageHeader
-          title={pick('অনলাইন ভর্তি আবেদন গৃহীত হয়েছে', 'Online Admission Application Submitted')}
-          description={pick(
-            `আবেদন নম্বর: ${submittedApp.applicationNumber} · নিচের অফিশিয়াল A4 কপিটি প্রিন্ট বা PDF ডাউনলোড করে সংরক্ষণ করুন।`,
-            `Application No: ${submittedApp.applicationNumber} · Print or download the official A4 PDF copy below.`
-          )}
+          title={'অনলাইন ভর্তি আবেদন গৃহীত হয়েছে'}
+          description={`আবেদন নম্বর: ${submittedApp.applicationNumber} · নিচের অফিশিয়াল A4 কপিটি প্রিন্ট বা PDF ডাউনলোড করে সংরক্ষণ করুন।`}
         />
 
         {/* Crisp Confirmation & Action Bar */}
@@ -201,10 +184,10 @@ export function AdmissionApplyPage() {
             <div className="space-y-1">
               <p className="text-base font-bold text-primary flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 shrink-0" />
-                {pick('অনলাইন ভর্তি আবেদন সফলভাবে গৃহীত হয়েছে', 'Online Admission Application Submitted')}
+                {'অনলাইন ভর্তি আবেদন সফলভাবে গৃহীত হয়েছে'}
               </p>
               <p className="text-sm text-muted-foreground">
-                {pick('আবেদন নম্বর সংরক্ষণ করুন:', 'Save your Application Number:')}{' '}
+                {'আবেদন নম্বর সংরক্ষণ করুন:'}{' '}
                 <strong className="font-mono text-foreground">{submittedApp.applicationNumber}</strong>
               </p>
             </div>
@@ -217,7 +200,7 @@ export function AdmissionApplyPage() {
                 onClick={handlePrint}
               >
                 <Printer className="w-4 h-4" />
-                {pick('প্রিন্ট করুন', 'Print')}
+                {'প্রিন্ট করুন'}
               </Button>
               <Button
                 variant="outline"
@@ -232,12 +215,12 @@ export function AdmissionApplyPage() {
                   <Download className="w-4 h-4" />
                 )}
                 {downloadingPdf
-                  ? pick('PDF তৈরি হচ্ছে...', 'Generating PDF...')
-                  : pick('PDF ডাউনলোড করুন', 'Download PDF')}
+                  ? 'PDF তৈরি হচ্ছে...'
+                  : 'PDF ডাউনলোড করুন'}
               </Button>
               <Link href="/admission/status">
                 <Button variant="outline" size="sm" className="rounded-[4px]">
-                  {pick('অবস্থা যাচাই', 'Track Status')}
+                  {'অবস্থা যাচাই'}
                 </Button>
               </Link>
               <Button
@@ -249,7 +232,7 @@ export function AdmissionApplyPage() {
                   setDocTab('form');
                 }}
               >
-                {pick('নতুন আবেদন', 'New Application')}
+                {'নতুন আবেদন'}
               </Button>
             </div>
           </div>
@@ -265,7 +248,7 @@ export function AdmissionApplyPage() {
                   : 'text-foreground hover:bg-surface-muted/60'
               }`}
             >
-              {pick('পূর্ণাঙ্গ আবেদনপত্র (Application Copy)', 'Full Application Form')}
+              {'পূর্ণাঙ্গ আবেদনপত্র (Application Copy)'}
             </button>
             <button
               type="button"
@@ -276,7 +259,7 @@ export function AdmissionApplyPage() {
                   : 'text-foreground hover:bg-surface-muted/60'
               }`}
             >
-              {pick('ভর্তি পরীক্ষার প্রবেশপত্র (Admit Card)', 'Admission Test Admit Card')}
+              {'ভর্তি পরীক্ষার প্রবেশপত্র (Admit Card)'}
             </button>
           </div>
         </div>
@@ -297,8 +280,8 @@ export function AdmissionApplyPage() {
             <PrintableAdmissionAdmitCard
               school={schoolProfile}
               application={submittedApp}
-              targetClassName={locale === 'bn' ? cls?.nameBn ?? '' : cls?.name ?? ''}
-              groupName={grp ? (locale === 'bn' ? grp.nameBn : grp.name) : null}
+              targetClassName={cls?.nameBn ?? ''}
+              groupName={grp ? (grp.nameBn) : null}
             />
           )}
         </div>
@@ -309,11 +292,8 @@ export function AdmissionApplyPage() {
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <PageHeader
-        title={pick('অনলাইন ভর্তি আবেদন ফরম (৬ষ্ঠ – ১০ম শ্রেণি)', 'Online Admission Application (Classes 6–10)')}
-        description={pick(
-          `${admissionContent.schoolNameBn ?? 'বজেশ্বর উচ্চ বিদ্যালয়'} · শিক্ষাবর্ষ ${admissionContent.academicSession ?? '২০২৭'} · জন্ম নিবন্ধন ও এনআইডি অনুযায়ী তথ্য পূরণ করুন।`,
-          `${admissionContent.schoolNameEn || schoolProfile.nameEn} · Session ${admissionContent.academicSession ?? '2027'} · Complete accurately per Birth Certificate & NID.`
-        )}
+        title={'অনলাইন ভর্তি আবেদন ফরম (৬ষ্ঠ – ১০ম শ্রেণি)'}
+        description={`${admissionContent.schoolNameBn ?? 'ভোজেশ্বর উচ্চ বিদ্যালয়'} · শিক্ষাবর্ষ ${admissionContent.academicSession ?? '২০২৭'} · জন্ম নিবন্ধন ও এনআইডি অনুযায়ী তথ্য পূরণ করুন।`}
       />
 
       <UnifiedAdmissionForm

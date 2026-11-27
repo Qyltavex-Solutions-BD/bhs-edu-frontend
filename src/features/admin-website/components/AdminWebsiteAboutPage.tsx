@@ -34,7 +34,6 @@ import {
   useUpdateSchoolProfileMutation,
   useUpsertCmsItemMutation,
 } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   getCampusPhoto,
@@ -150,7 +149,6 @@ export function AdminWebsiteAboutPage({
   const [upsertCms, { isLoading: saving }] = useUpsertCmsItemMutation();
   const [deleteCms] = useDeleteCmsItemMutation();
   const [toggleCms] = useToggleCmsItemMutation();
-  const { pick } = useI18n();
   const [tab, setTab] = useState(defaultTab);
 
   // Mission & Vision State
@@ -212,7 +210,7 @@ export function AdminWebsiteAboutPage({
   const handleSaveMission = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateProfile({ mission: mission.trim(), vision: vision.trim(), description: description.trim() }).unwrap();
-    toast.success(pick('লক্ষ্য ও দৃষ্টিভঙ্গি সফলভাবে সংরক্ষিত হয়েছে।', 'Mission & Vision updated successfully.'));
+    toast.success('লক্ষ্য ও দৃষ্টিভঙ্গি সফলভাবে সংরক্ষিত হয়েছে।');
   };
 
   const openContentEditor = (c?: InstitutionContent) => {
@@ -264,16 +262,13 @@ export function AdminWebsiteAboutPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('পরিচিতি ও নেতৃত্ব ব্যবস্থাপনা (About CMS)', 'About & Leadership CMS')}
-        description={pick(
-          'বিদ্যালয়ের ইতিহাস, লক্ষ্য ও দৃষ্টিভঙ্গি, প্রধান শিক্ষক ও সভাপতির বাণী, ম্যানেজিং কমিটি এবং ক্যাম্পাস সুবিধাসমূহ সম্পাদনা করুন।',
-          'Manage school history, mission & vision, leadership messages, managing committee, and campus facilities.'
-        )}
+        title={'পরিচিতি ও নেতৃত্ব ব্যবস্থাপনা (About CMS)'}
+        description={'বিদ্যালয়ের ইতিহাস, লক্ষ্য ও দৃষ্টিভঙ্গি, প্রধান শিক্ষক ও সভাপতির বাণী, ম্যানেজিং কমিটি এবং ক্যাম্পাস সুবিধাসমূহ সম্পাদনা করুন।'}
         actions={
           <Link href="/about" target="_blank" rel="noopener noreferrer">
             <Button variant="outline" size="sm" className="whitespace-nowrap">
               <ExternalLink className="w-4 h-4" />
-              {pick('পরিচিতি পেজ দেখুন', 'View About Page')}
+              {'পরিচিতি পেজ দেখুন'}
             </Button>
           </Link>
         }
@@ -283,11 +278,11 @@ export function AdminWebsiteAboutPage({
         value={tab}
         onChange={setTab}
         items={[
-          { value: 'history', label: pick('ইতিহাস ও পরিচিতি', 'History & Profile'), count: db.institutionContents.length },
-          { value: 'mission', label: pick('লক্ষ্য ও দৃষ্টিভঙ্গি', 'Mission & Vision') },
-          { value: 'leadership', label: pick('নেতৃত্বের বাণী', 'Leadership Messages'), count: db.leadershipMessages.length },
-          { value: 'committee', label: pick('ম্যানেজিং কমিটি', 'Managing Committee'), count: db.managingCommittee.length },
-          { value: 'facilities', label: pick('অবকাঠামো ও সুবিধা', 'Campus Facilities'), count: db.facilities.length },
+          { value: 'history', label: 'ইতিহাস ও পরিচিতি', count: db.institutionContents.length },
+          { value: 'mission', label: 'লক্ষ্য ও দৃষ্টিভঙ্গি' },
+          { value: 'leadership', label: 'নেতৃত্বের বাণী', count: db.leadershipMessages.length },
+          { value: 'committee', label: 'ম্যানেজিং কমিটি', count: db.managingCommittee.length },
+          { value: 'facilities', label: 'অবকাঠামো ও সুবিধা', count: db.facilities.length },
         ]}
       />
 
@@ -296,7 +291,7 @@ export function AdminWebsiteAboutPage({
           <div className="flex justify-end">
             <Button variant="primary" size="sm" onClick={() => openContentEditor()}>
               <Plus className="w-4 h-4" />
-              {pick('নতুন অনুচ্ছেদ যুক্ত করুন', 'Add Content Block')}
+              {'নতুন অনুচ্ছেদ যুক্ত করুন'}
             </Button>
           </div>
           <div className="grid gap-4">
@@ -311,7 +306,7 @@ export function AdminWebsiteAboutPage({
                     <Switch
                       checked={c.isPublished}
                       onChange={() => toggleCms({ collection: 'institutionContents', id: c.id, field: 'isPublished' })}
-                      label={c.isPublished ? pick('প্রকাশিত', 'Published') : pick('খসড়া', 'Draft')}
+                      label={c.isPublished ? 'প্রকাশিত' : 'খসড়া'}
                     />
                     <Button variant="outline" size="sm" onClick={() => openContentEditor(c)}>
                       <Pencil className="w-3.5 h-3.5" />
@@ -321,7 +316,7 @@ export function AdminWebsiteAboutPage({
                       size="sm"
                       onClick={async () => {
                         await deleteCms({ collection: 'institutionContents', id: c.id }).unwrap();
-                        toast.success(pick('কনটেন্ট মুছে ফেলা হয়েছে।', 'Content block removed.'));
+                        toast.success('কনটেন্ট মুছে ফেলা হয়েছে।');
                       }}
                     >
                       <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -338,18 +333,18 @@ export function AdminWebsiteAboutPage({
       {tab === 'mission' && (
         <Card className="p-6">
           <form onSubmit={handleSaveMission} className="space-y-5 max-w-3xl">
-            <FormField label={pick('বিদ্যালয় পরিচিতি সারসংক্ষেপ', 'Institutional Overview Summary')}>
-              <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
+            <FormField label={'বিদ্যালয় পরিচিতি সারসংক্ষেপ'}>
+              <Textarea placeholder="বিদ্যালয় পরিচিতি সারসংক্ষেপ লিখুন..." rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
             </FormField>
-            <FormField label={pick('আমাদের লক্ষ্য (Mission)', 'Our Mission')} required>
-              <Textarea rows={4} value={mission} onChange={(e) => setMission(e.target.value)} />
+            <FormField label={'আমাদের লক্ষ্য (Mission)'} required>
+              <Textarea placeholder="আমাদের লক্ষ্য (Mission) লিখুন..." rows={4} value={mission} onChange={(e) => setMission(e.target.value)} />
             </FormField>
-            <FormField label={pick('আমাদের দৃষ্টিভঙ্গি (Vision)', 'Our Vision')} required>
-              <Textarea rows={4} value={vision} onChange={(e) => setVision(e.target.value)} />
+            <FormField label={'আমাদের দৃষ্টিভঙ্গি (Vision)'} required>
+              <Textarea placeholder="আমাদের দৃষ্টিভঙ্গি (Vision) লিখুন..." rows={4} value={vision} onChange={(e) => setVision(e.target.value)} />
             </FormField>
             <Button type="submit" variant="primary" disabled={savingMission}>
               <Save className="w-4 h-4" />
-              {savingMission ? pick('সংরক্ষণ হচ্ছে...', 'Saving...') : pick('লক্ষ্য ও দৃষ্টিভঙ্গি সংরক্ষণ করুন', 'Save Mission & Vision')}
+              {savingMission ? 'সংরক্ষণ হচ্ছে...' : 'লক্ষ্য ও দৃষ্টিভঙ্গি সংরক্ষণ করুন'}
             </Button>
           </form>
         </Card>
@@ -360,7 +355,7 @@ export function AdminWebsiteAboutPage({
           <div className="flex justify-end">
             <Button variant="primary" size="sm" onClick={() => openLeaderEditor()}>
               <Plus className="w-4 h-4" />
-              {pick('নতুন বাণী যুক্ত করুন', 'Add Leadership Message')}
+              {'নতুন বাণী যুক্ত করুন'}
             </Button>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -388,7 +383,7 @@ export function AdminWebsiteAboutPage({
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Button variant="outline" size="sm" onClick={() => openLeaderEditor(m)}>
                       <Pencil className="w-3.5 h-3.5" />
-                      {pick('সম্পাদনা', 'Edit')}
+                      {'সম্পাদনা'}
                     </Button>
                   </div>
                 </div>
@@ -397,15 +392,15 @@ export function AdminWebsiteAboutPage({
                   <Switch
                     checked={m.isPublished}
                     onChange={() => toggleCms({ collection: 'leadershipMessages', id: m.id, field: 'isPublished' })}
-                    label={m.isPublished ? pick('ওয়েবসাইটে প্রকাশিত', 'Published') : pick('খসড়া', 'Draft')}
+                    label={m.isPublished ? 'ওয়েবসাইটে প্রকাশিত' : 'খসড়া'}
                   />
                   <Link
                     href={m.type === LeadershipType.PRINCIPAL ? '/about/principal-message' : '/about/president-message'}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-semibold text-primary hover:underline"
+                    className="text-sm font-semibold text-primary hover:underline"
                   >
-                    {pick('পাবলিক পেজে দেখুন ↗', 'View Live ↗')}
+                    {'পাবলিক পেজে দেখুন ↗'}
                   </Link>
                 </div>
               </Card>
@@ -418,24 +413,21 @@ export function AdminWebsiteAboutPage({
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              {pick(
-                'ম্যানেজিং কমিটির সদস্যদের ছবি, পদবি ও যোগাযোগ নম্বর এখান থেকে যোগ বা পরিবর্তন করুন।',
-                'Add, edit, or upload portraits for Managing Committee members.'
-              )}
+              {'ম্যানেজিং কমিটির সদস্যদের ছবি, পদবি ও যোগাযোগ নম্বর এখান থেকে যোগ বা পরিবর্তন করুন।'}
             </p>
             <Button variant="primary" size="sm" onClick={() => openCommitteeEditor()}>
               <Plus className="w-4 h-4" />
-              {pick('নতুন সদস্য যুক্ত করুন', 'Add Committee Member')}
+              {'নতুন সদস্য যুক্ত করুন'}
             </Button>
           </div>
           <Card className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-base">
               <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border">
                 <tr>
-                  <th className="p-3 text-left">{pick('সদস্যের নাম', 'Member Name')}</th>
-                  <th className="p-3 text-left">{pick('পদবি', 'Designation')}</th>
-                  <th className="p-3 text-left">{pick('ফোন', 'Phone')}</th>
-                  <th className="p-3 text-right">{pick('অ্যাকশন', 'Actions')}</th>
+                  <th className="p-3 text-left">{'সদস্যের নাম'}</th>
+                  <th className="p-3 text-left">{'পদবি'}</th>
+                  <th className="p-3 text-left">{'ফোন'}</th>
+                  <th className="p-3 text-right">{'অ্যাকশন'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -464,7 +456,7 @@ export function AdminWebsiteAboutPage({
                           size="sm"
                           onClick={async () => {
                             await deleteCms({ collection: 'managingCommittee', id: m.id }).unwrap();
-                            toast.success(pick('সদস্য তালিকা থেকে সরানো হয়েছে।', 'Member removed.'));
+                            toast.success('সদস্য তালিকা থেকে সরানো হয়েছে।');
                           }}
                         >
                           <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -484,7 +476,7 @@ export function AdminWebsiteAboutPage({
           <div className="flex justify-end">
             <Button variant="primary" size="sm" onClick={() => openFacilityEditor()}>
               <Plus className="w-4 h-4" />
-              {pick('নতুন সুবিধা যুক্ত করুন', 'Add Facility')}
+              {'নতুন সুবিধা যুক্ত করুন'}
             </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -504,7 +496,7 @@ export function AdminWebsiteAboutPage({
                       size="sm"
                       onClick={async () => {
                         await deleteCms({ collection: 'facilities', id: f.id }).unwrap();
-                        toast.success(pick('সুবিধা মুছে ফেলা হয়েছে।', 'Facility removed.'));
+                        toast.success('সুবিধা মুছে ফেলা হয়েছে।');
                       }}
                     >
                       <Trash2 className="w-3.5 h-3.5 text-destructive" />
@@ -522,7 +514,7 @@ export function AdminWebsiteAboutPage({
       <Modal
         open={contentModalOpen}
         onClose={() => setContentModalOpen(false)}
-        title={contentForm.id ? pick('পরিচিতি অনুচ্ছেদ সম্পাদনা', 'Edit Content Block') : pick('নতুন অনুচ্ছেদ', 'New Content Block')}
+        title={contentForm.id ? 'পরিচিতি অনুচ্ছেদ সম্পাদনা' : 'নতুন অনুচ্ছেদ'}
         maxWidth="max-w-xl"
       >
         <form
@@ -539,32 +531,32 @@ export function AdminWebsiteAboutPage({
                 isPublished: contentForm.isPublished,
               },
             }).unwrap();
-            toast.success(pick('পরিচিতি কনটেন্ট সংরক্ষিত হয়েছে।', 'Content block saved.'));
+            toast.success('পরিচিতি কনটেন্ট সংরক্ষিত হয়েছে।');
             setContentModalOpen(false);
           }}
           className="space-y-4"
         >
-          <FormField label={pick('ধরন', 'Content Type')}>
+          <FormField label={'ধরন'}>
             <Select
               value={contentForm.type}
               onChange={(e) => setContentForm({ ...contentForm, type: e.target.value as InstitutionContentType })}
             >
-              <option value={InstitutionContentType.HISTORY}>{pick('ইতিহাস', 'History')}</option>
-              <option value={InstitutionContentType.TRADITION}>{pick('ঐতিহ্য', 'Tradition')}</option>
-              <option value={InstitutionContentType.INFRASTRUCTURE}>{pick('অবকাঠামো', 'Infrastructure')}</option>
-              <option value={InstitutionContentType.INTRODUCTION}>{pick('পরিচিতি', 'Introduction')}</option>
+              <option value={InstitutionContentType.HISTORY}>{'ইতিহাস'}</option>
+              <option value={InstitutionContentType.TRADITION}>{'ঐতিহ্য'}</option>
+              <option value={InstitutionContentType.INFRASTRUCTURE}>{'অবকাঠামো'}</option>
+              <option value={InstitutionContentType.INTRODUCTION}>{'পরিচিতি'}</option>
             </Select>
           </FormField>
-          <FormField label={pick('শিরোনাম', 'Title')} required>
-            <Input value={contentForm.title} onChange={(e) => setContentForm({ ...contentForm, title: e.target.value })} />
+          <FormField label={'শিরোনাম'} required>
+            <Input placeholder="শিরোনাম লিখুন" value={contentForm.title} onChange={(e) => setContentForm({ ...contentForm, title: e.target.value })} />
           </FormField>
-          <FormField label={pick('বিস্তারিত বিবরণ', 'Description')} required>
-            <Textarea rows={5} value={contentForm.description} onChange={(e) => setContentForm({ ...contentForm, description: e.target.value })} />
+          <FormField label={'বিস্তারিত বিবরণ'} required>
+            <Textarea placeholder="বিস্তারিত বিবরণ লিখুন..." rows={5} value={contentForm.description} onChange={(e) => setContentForm({ ...contentForm, description: e.target.value })} />
           </FormField>
           <div className="flex items-center justify-between pt-2">
-            <Switch checked={contentForm.isPublished} onChange={(v) => setContentForm({ ...contentForm, isPublished: v })} label={pick('প্রকাশিত', 'Published')} />
+            <Switch checked={contentForm.isPublished} onChange={(v) => setContentForm({ ...contentForm, isPublished: v })} label={'প্রকাশিত'} />
             <Button type="submit" variant="primary" disabled={saving}>
-              <Save className="w-4 h-4" /> {pick('সংরক্ষণ করুন', 'Save')}
+              <Save className="w-4 h-4" /> {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -574,7 +566,7 @@ export function AdminWebsiteAboutPage({
       <Modal
         open={leaderModalOpen}
         onClose={() => setLeaderModalOpen(false)}
-        title={pick('নেতৃত্বের বাণী সম্পাদনা', 'Edit Leadership Message')}
+        title={'নেতৃত্বের বাণী সম্পাদনা'}
         maxWidth="max-w-2xl"
       >
         <form
@@ -593,27 +585,27 @@ export function AdminWebsiteAboutPage({
                 isPublished: leaderForm.isPublished,
               },
             }).unwrap();
-            toast.success(pick('বাণী সফলভাবে সংরক্ষিত হয়েছে।', 'Leadership message saved.'));
+            toast.success('বাণী সফলভাবে সংরক্ষিত হয়েছে।');
             setLeaderModalOpen(false);
           }}
           className="space-y-4"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <FormField label={pick('নাম', 'Full Name')} required>
-              <Input value={leaderForm.personName} onChange={(e) => setLeaderForm({ ...leaderForm, personName: e.target.value })} />
+            <FormField label={'নাম'} required>
+              <Input placeholder="নাম লিখুন" value={leaderForm.personName} onChange={(e) => setLeaderForm({ ...leaderForm, personName: e.target.value })} />
             </FormField>
-            <FormField label={pick('পদবি', 'Designation')} required>
-              <Input value={leaderForm.designation} onChange={(e) => setLeaderForm({ ...leaderForm, designation: e.target.value })} />
+            <FormField label={'পদবি'} required>
+              <Input placeholder="পদবি লিখুন" value={leaderForm.designation} onChange={(e) => setLeaderForm({ ...leaderForm, designation: e.target.value })} />
             </FormField>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-            <FormField label={pick('ভূমিকা', 'Role Type')}>
+            <FormField label={'ভূমিকা'}>
               <Select value={leaderForm.type} onChange={(e) => setLeaderForm({ ...leaderForm, type: e.target.value as LeadershipType })}>
-                <option value={LeadershipType.PRINCIPAL}>{pick('প্রধান শিক্ষক', 'Head Teacher / Principal')}</option>
-                <option value={LeadershipType.CHAIRMAN}>{pick('সভাপতি (ম্যানেজিং কমিটি)', 'Chairman / President')}</option>
+                <option value={LeadershipType.PRINCIPAL}>{'প্রধান শিক্ষক'}</option>
+                <option value={LeadershipType.CHAIRMAN}>{'সভাপতি (ম্যানেজিং কমিটি)'}</option>
               </Select>
             </FormField>
-            <FormField label={pick('পোর্ট্রেট ছবি আপলোড', 'Upload Portrait Photo')}>
+            <FormField label={'পোর্ট্রেট ছবি আপলোড'}>
               <input
                 type="file"
                 accept="image/*"
@@ -625,12 +617,12 @@ export function AdminWebsiteAboutPage({
               />
             </FormField>
           </div>
-          <FormField label={pick('সম্পূর্ণ বাণী', 'Full Message')} required>
-            <Textarea rows={6} value={leaderForm.message} onChange={(e) => setLeaderForm({ ...leaderForm, message: e.target.value })} />
+          <FormField label={'সম্পূর্ণ বাণী'} required>
+            <Textarea placeholder="সম্পূর্ণ বাণী লিখুন..." rows={6} value={leaderForm.message} onChange={(e) => setLeaderForm({ ...leaderForm, message: e.target.value })} />
           </FormField>
           <div className="flex justify-end">
             <Button type="submit" variant="primary" disabled={saving}>
-              <Save className="w-4 h-4" /> {pick('বাণী সংরক্ষণ করুন', 'Save Message')}
+              <Save className="w-4 h-4" /> {'বাণী সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -640,7 +632,7 @@ export function AdminWebsiteAboutPage({
       <Modal
         open={committeeModalOpen}
         onClose={() => setCommitteeModalOpen(false)}
-        title={committeeForm.id ? pick('কমিটি সদস্য সম্পাদনা', 'Edit Committee Member') : pick('নতুন কমিটি সদস্য', 'Add Committee Member')}
+        title={committeeForm.id ? 'কমিটি সদস্য সম্পাদনা' : 'নতুন কমিটি সদস্য'}
       >
         <form
           onSubmit={async (e) => {
@@ -656,21 +648,21 @@ export function AdminWebsiteAboutPage({
                 photo: committeeForm.photo || null,
               },
             }).unwrap();
-            toast.success(pick('কমিটি সদস্য সংরক্ষিত হয়েছে।', 'Committee member saved.'));
+            toast.success('কমিটি সদস্য সংরক্ষিত হয়েছে।');
             setCommitteeModalOpen(false);
           }}
           className="space-y-4"
         >
-          <FormField label={pick('নাম', 'Full Name')} required>
-            <Input value={committeeForm.name} onChange={(e) => setCommitteeForm({ ...committeeForm, name: e.target.value })} />
+          <FormField label={'নাম'} required>
+            <Input placeholder="নাম লিখুন" value={committeeForm.name} onChange={(e) => setCommitteeForm({ ...committeeForm, name: e.target.value })} />
           </FormField>
-          <FormField label={pick('পদবি', 'Designation')} required>
-            <Input value={committeeForm.designation} onChange={(e) => setCommitteeForm({ ...committeeForm, designation: e.target.value })} />
+          <FormField label={'পদবি'} required>
+            <Input placeholder="পদবি লিখুন" value={committeeForm.designation} onChange={(e) => setCommitteeForm({ ...committeeForm, designation: e.target.value })} />
           </FormField>
-          <FormField label={pick('ফোন নম্বর', 'Phone Number')}>
-            <Input value={committeeForm.phone} onChange={(e) => setCommitteeForm({ ...committeeForm, phone: e.target.value })} />
+          <FormField label={'ফোন নম্বর'}>
+            <Input placeholder="মোবাইল নম্বর লিখুন (যেমন: 017XXXXXXXX)" value={committeeForm.phone} onChange={(e) => setCommitteeForm({ ...committeeForm, phone: e.target.value })} />
           </FormField>
-          <FormField label={pick('সদস্যের ছবি আপলোড', 'Upload Portrait Photo')}>
+          <FormField label={'সদস্যের ছবি আপলোড'}>
             <input
               type="file"
               accept="image/*"
@@ -683,7 +675,7 @@ export function AdminWebsiteAboutPage({
           </FormField>
           <div className="flex justify-end">
             <Button type="submit" variant="primary" disabled={saving}>
-              <Save className="w-4 h-4" /> {pick('সংরক্ষণ করুন', 'Save Member')}
+              <Save className="w-4 h-4" /> {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>
@@ -693,7 +685,7 @@ export function AdminWebsiteAboutPage({
       <Modal
         open={facilityModalOpen}
         onClose={() => setFacilityModalOpen(false)}
-        title={facilityForm.id ? pick('সুবিধা সম্পাদনা', 'Edit Facility') : pick('নতুন সুবিধা যুক্ত করুন', 'Add Campus Facility')}
+        title={facilityForm.id ? 'সুবিধা সম্পাদনা' : 'নতুন সুবিধা যুক্ত করুন'}
       >
         <form
           onSubmit={async (e) => {
@@ -709,29 +701,29 @@ export function AdminWebsiteAboutPage({
                 isActive: facilityForm.isActive,
               },
             }).unwrap();
-            toast.success(pick('ক্যাম্পাস সুবিধা সংরক্ষিত হয়েছে।', 'Facility saved.'));
+            toast.success('ক্যাম্পাস সুবিধা সংরক্ষিত হয়েছে।');
             setFacilityModalOpen(false);
           }}
           className="space-y-4"
         >
-          <FormField label={pick('সুবিধার নাম', 'Facility Name')} required>
-            <Input value={facilityForm.name} onChange={(e) => setFacilityForm({ ...facilityForm, name: e.target.value })} />
+          <FormField label={'সুবিধার নাম'} required>
+            <Input placeholder="সুবিধার নাম লিখুন" value={facilityForm.name} onChange={(e) => setFacilityForm({ ...facilityForm, name: e.target.value })} />
           </FormField>
-          <FormField label={pick('ধরন', 'Category')}>
+          <FormField label={'ধরন'}>
             <Select value={facilityForm.type} onChange={(e) => setFacilityForm({ ...facilityForm, type: e.target.value as FacilityType })}>
-              <option value={FacilityType.LAB}>{pick('গবেষণাগার / ল্যাব', 'Laboratory')}</option>
-              <option value={FacilityType.MULTIMEDIA}>{pick('মাল্টিমিডিয়া ও আইসিটি', 'Multimedia / ICT')}</option>
-              <option value={FacilityType.LIBRARY}>{pick('গ্রন্থাগার', 'Library')}</option>
-              <option value={FacilityType.PLAYGROUND}>{pick('খেলার মাঠ', 'Playground')}</option>
-              <option value={FacilityType.OTHER}>{pick('অন্যান্য', 'Other')}</option>
+              <option value={FacilityType.LAB}>{'গবেষণাগার / ল্যাব'}</option>
+              <option value={FacilityType.MULTIMEDIA}>{'মাল্টিমিডিয়া ও আইসিটি'}</option>
+              <option value={FacilityType.LIBRARY}>{'গ্রন্থাগার'}</option>
+              <option value={FacilityType.PLAYGROUND}>{'খেলার মাঠ'}</option>
+              <option value={FacilityType.OTHER}>{'অন্যান্য'}</option>
             </Select>
           </FormField>
-          <FormField label={pick('বিবরণ', 'Description')}>
-            <Textarea rows={3} value={facilityForm.description} onChange={(e) => setFacilityForm({ ...facilityForm, description: e.target.value })} />
+          <FormField label={'বিবরণ'}>
+            <Textarea placeholder="বিবরণ লিখুন..." rows={3} value={facilityForm.description} onChange={(e) => setFacilityForm({ ...facilityForm, description: e.target.value })} />
           </FormField>
           <div className="flex justify-end">
             <Button type="submit" variant="primary" disabled={saving}>
-              <Save className="w-4 h-4" /> {pick('সংরক্ষণ করুন', 'Save Facility')}
+              <Save className="w-4 h-4" /> {'সংরক্ষণ করুন'}
             </Button>
           </div>
         </form>

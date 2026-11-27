@@ -32,7 +32,6 @@ import {
   useSaveMarksBatchMutation,
 } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -84,8 +83,6 @@ function getAssignmentSubject(db: MockDatabase, classSubjectId: string) {
 export function TeacherProfilePage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const teacher = useCurrentTeacher(db);
-  const { locale, pick } = useI18n();
-
   if (isLoading || !db || !teacher) return <LoadingSkeleton />;
   const dept = db.departments.find((d) => d.id === teacher.departmentId);
   const myAssignments = db.teacherAssignments.filter((a) => a.staffId === teacher.id);
@@ -93,35 +90,35 @@ export function TeacherProfilePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick('আমার প্রোফাইল', 'My Profile')}
-        description={pick('শিক্ষক পরিচিতি ও নির্ধারিত বিষয়ের বিবরণ', 'Faculty profile and teaching assignments')}
+        title={'আমার প্রোফাইল'}
+        description={'শিক্ষক পরিচিতি ও নির্ধারিত বিষয়ের বিবরণ'}
       />
       <Card className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-base">
           <div>
-            <p className="text-sm text-muted-foreground">{pick('পূর্ণ নাম', 'Full Name')}</p>
+            <p className="text-sm text-muted-foreground">{'পূর্ণ নাম'}</p>
             <p className="font-semibold mt-0.5">{teacher.name}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{pick('পদবি ও বিভাগ', 'Designation & Department')}</p>
+            <p className="text-sm text-muted-foreground">{'পদবি ও বিভাগ'}</p>
             <p className="font-medium mt-0.5">
               {teacher.designation} · {dept?.name ?? '—'}
             </p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{pick('কর্মচারী আইডি', 'Employee ID')}</p>
+            <p className="text-sm text-muted-foreground">{'কর্মচারী আইডি'}</p>
             <p className="font-mono mt-0.5">{teacher.employeeId ?? '—'}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{pick('যোগদানের তারিখ', 'Joining Date')}</p>
-            <p className="tabular-nums mt-0.5">{formatDateLong(teacher.joiningDate, locale)}</p>
+            <p className="text-sm text-muted-foreground">{'যোগদানের তারিখ'}</p>
+            <p className="tabular-nums mt-0.5">{formatDateLong(teacher.joiningDate, 'bn')}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{pick('শিক্ষাগত যোগ্যতা', 'Qualification')}</p>
+            <p className="text-sm text-muted-foreground">{'শিক্ষাগত যোগ্যতা'}</p>
             <p className="mt-0.5">{teacher.qualification ?? '—'}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">{pick('যোগাযোগ', 'Contact')}</p>
+            <p className="text-sm text-muted-foreground">{'যোগাযোগ'}</p>
             <p className="tabular-nums mt-0.5">
               {teacher.phone ?? '—'} · {teacher.email ?? '—'}
             </p>
@@ -136,15 +133,15 @@ export function TeacherProfilePage() {
 
       <Card className="p-5">
         <h2 className="text-base font-semibold mb-3">
-          {pick('নির্ধারিত বিষয় ও নম্বর এন্ট্রি অনুমতি', 'Subject Assignments & Mark Entry Rights')}
+          {'নির্ধারিত বিষয় ও নম্বর এন্ট্রি অনুমতি'}
         </h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-base">
             <thead>
               <tr className="border-b border-border text-left text-sm text-muted-foreground">
-                <th className="py-2 pr-4">{pick('শ্রেণি ও শাখা', 'Class & Section')}</th>
-                <th className="py-2 pr-4">{pick('বিষয়', 'Subject')}</th>
-                <th className="py-2">{pick('নম্বর এন্ট্রি অনুমতি', 'Mark Entry Permission')}</th>
+                <th className="py-2 pr-4">{'শ্রেণি ও শাখা'}</th>
+                <th className="py-2 pr-4">{'বিষয়'}</th>
+                <th className="py-2">{'নম্বর এন্ট্রি অনুমতি'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -155,19 +152,19 @@ export function TeacherProfilePage() {
                 return (
                   <tr key={a.id}>
                     <td className="py-2.5 pr-4 font-medium">
-                      {locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name} ({sec?.name})
+                      {cls?.nameBn || cls?.name} ({sec?.name})
                     </td>
-                    <td className="py-2.5 pr-4">{locale === 'bn' ? sub?.nameBn || sub?.name : sub?.name}</td>
+                    <td className="py-2.5 pr-4">{sub?.nameBn || sub?.name}</td>
                     <td className="py-2.5">
                       {a.canEnterMarks ? (
                         <span className="inline-flex items-center gap-1 text-sm font-semibold text-success">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          {pick('অনুমোদিত', 'Allowed')}
+                          {'অনুমোদিত'}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-sm font-semibold text-muted-foreground">
                           <Lock className="w-3.5 h-3.5" />
-                          {pick('শুধুমাত্র পাঠদান (নম্বর এন্ট্রি সীমিত)', 'Teaching Only (Read-Only)')}
+                          {'শুধুমাত্র পাঠদান (নম্বর এন্ট্রি সীমিত)'}
                         </span>
                       )}
                     </td>

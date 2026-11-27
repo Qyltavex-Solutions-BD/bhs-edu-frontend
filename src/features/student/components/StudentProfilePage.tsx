@@ -7,7 +7,6 @@ import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -57,41 +56,40 @@ function useCurrentStudent(db: MockDatabase | undefined) {
 export function StudentProfilePage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const me = useCurrentStudent(db);
-  const { locale, pick } = useI18n();
   if (isLoading || !db || !me) return <LoadingSkeleton />;
 
   return (
     <div className="space-y-6">
-      <PageHeader title={pick('আমার প্রোফাইল', 'My Profile')} />
+      <PageHeader title={'আমার প্রোফাইল'} />
       <Card className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-base">
         <div>
-          <p className="text-sm text-muted-foreground">{pick('নাম (বাংলা)', 'Name (Bangla)')}</p>
+          <p className="text-sm text-muted-foreground">{'নাম (বাংলা)'}</p>
           <p className="font-semibold mt-0.5">{me.student.nameBn ?? '—'}</p>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground">{pick('নাম (ইংরেজি)', 'Name (English)')}</p>
+          <p className="text-sm text-muted-foreground">{'নাম (ইংরেজি)'}</p>
           <p className="font-semibold mt-0.5">{me.student.nameEn}</p>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground">{pick('শিক্ষার্থী আইডি', 'Student ID')}</p>
+          <p className="text-sm text-muted-foreground">{'শিক্ষার্থী আইডি'}</p>
           <p className="font-mono mt-0.5">{me.student.studentId}</p>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground">{pick('জন্ম তারিখ', 'Date of Birth')}</p>
-          <p className="tabular-nums mt-0.5">{formatDateLong(me.student.dateOfBirth, locale)}</p>
+          <p className="text-sm text-muted-foreground">{'জন্ম তারিখ'}</p>
+          <p className="tabular-nums mt-0.5">{formatDateLong(me.student.dateOfBirth, 'bn')}</p>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground">{pick('রক্তের গ্রুপ', 'Blood Group')}</p>
+          <p className="text-sm text-muted-foreground">{'রক্তের গ্রুপ'}</p>
           <p className="mt-0.5">{me.student.bloodGroup ?? '—'}</p>
         </div>
         <div>
-          <p className="text-sm text-muted-foreground">{pick('ঠিকানা', 'Address')}</p>
+          <p className="text-sm text-muted-foreground">{'ঠিকানা'}</p>
           <p className="mt-0.5">{me.student.presentAddress ?? me.student.permanentAddress ?? '—'}</p>
         </div>
       </Card>
 
       <CommonProfilePanel
-        roleLabel={pick('শিক্ষার্থী (Student)', 'Student Account')}
+        roleLabel={'শিক্ষার্থী (Student)'}
         extraMeta={`ID: ${me.student.studentId}`}
       />
     </div>

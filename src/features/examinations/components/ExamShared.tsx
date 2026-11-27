@@ -22,8 +22,8 @@ export function resolveStudentParents(db: MockDatabase, studentId: string, local
   const father = fatherLink ? db.parents.find((p) => p.id === fatherLink.parentId) : null;
   const mother = motherLink ? db.parents.find((p) => p.id === motherLink.parentId) : null;
   return {
-    fatherName: father ? (locale === 'bn' ? father.nameBn || father.name : father.name) : null,
-    motherName: mother ? (locale === 'bn' ? mother.nameBn || mother.name : mother.name) : null,
+    fatherName: father ? (father.nameBn || father.name) : null,
+    motherName: mother ? (mother.nameBn || mother.name) : null,
   };
 }
 
@@ -57,24 +57,24 @@ export function buildSeatPlanRooms(
       seatNo,
       roll: enr.roll,
       studentId: stu?.studentId ?? enr.studentId,
-      studentName: locale === 'bn' ? stu?.nameBn || stu?.nameEn || '—' : stu?.nameEn || '—',
-      className: locale === 'bn' ? cls?.nameBn || cls?.name || '' : cls?.name || '',
+      studentName: stu?.nameBn || stu?.nameEn || '—',
+      className: cls?.nameBn || cls?.name || '',
       sectionName: sec?.name ?? '',
-      groupName: grp ? (locale === 'bn' ? grp.nameBn : grp.name) : null,
+      groupName: grp ? (grp.nameBn) : null,
     };
   };
 
   if (configuredRooms.length === 0) {
     const fallbackSeats = enrollments.map((enr, idx) => {
       const seatNo = idx + 1;
-      seatLookup.set(enr.id, { roomNo: locale === 'bn' ? 'হল রুম ১০১' : 'Hall Room 101', seatNo });
+      seatLookup.set(enr.id, { roomNo: 'হল রুম ১০১', seatNo });
       return toSeatEntry(enr, seatNo);
     });
     return {
       rooms: [
         {
-          roomNo: locale === 'bn' ? 'হল রুম ১০১' : 'Hall Room 101',
-          buildingName: locale === 'bn' ? 'মূল একাডেমিক ভবন' : 'Main Academic Building',
+          roomNo: 'হল রুম ১০১',
+          buildingName: 'মূল একাডেমিক ভবন',
           capacity: Math.max(fallbackSeats.length, 30),
           invigilatorName: null,
           assistantInvigilatorName: null,
@@ -112,8 +112,8 @@ export function buildSeatPlanRooms(
       roomNo: room.roomNo,
       buildingName: room.buildingName,
       capacity: room.capacity,
-      invigilatorName: inv ? (locale === 'bn' ? inv.nameBn || inv.name : inv.name) : null,
-      assistantInvigilatorName: asst ? (locale === 'bn' ? asst.nameBn || asst.name : asst.name) : null,
+      invigilatorName: inv ? (inv.nameBn || inv.name) : null,
+      assistantInvigilatorName: asst ? (asst.nameBn || asst.name) : null,
       seats,
     };
   });
@@ -138,7 +138,7 @@ export function buildStudentMarksheetProps(
   const sec = db.sections.find((s) => s.id === enr.sectionId);
   const grp = enr.groupId ? db.academicGroups.find((g) => g.id === enr.groupId) : null;
   const year = db.academicYears.find((y) => y.id === enr.academicYearId);
-  const { fatherName, motherName } = resolveStudentParents(db, stu.id, locale);
+  const { fatherName, motherName } = resolveStudentParents(db, stu.id, 'bn');
 
   const examSubs = db.examSubjects
     .filter((es) => es.examId === exam.id)

@@ -3,7 +3,6 @@
 import React from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { AlertCircle, Info } from 'lucide-react';
-import { useI18n } from '@/src/lib/i18n';
 import type { AdmissionType } from '@/src/types/proposed/future';
 import {
   type AdmissionCatalogData,
@@ -37,7 +36,6 @@ export function StepClassAndAcademic({
   mode,
   boardRegDuplicate,
 }: StepClassAndAcademicProps) {
-  const { locale, pick } = useI18n();
   const {
     register,
     watch,
@@ -162,17 +160,14 @@ export function StepClassAndAcademic({
       {/* 1. Target Class & Admission Type */}
       <div className="space-y-4">
         <AdmissionSectionHeader
-          title={pick('১. ভর্তিচ্ছু শ্রেণি ও ভর্তির ধরন', '1. Target Class & Admission Type')}
-          subtitle={pick(
-            'ভর্তিচ্ছু শ্রেণি নির্বাচন করুন — শ্রেণি অনুযায়ী আবশ্যক তথ্যসমূহ প্রদর্শিত হবে।',
-            'Select target class — required fields adjust automatically.'
-          )}
+          title={'১. ভর্তিচ্ছু শ্রেণি ও ভর্তির ধরন'}
+          subtitle={'ভর্তিচ্ছু শ্রেণি নির্বাচন করুন — শ্রেণি অনুযায়ী আবশ্যক তথ্যসমূহ প্রদর্শিত হবে।'}
         />
 
         {/* Crisp Segmented Institutional Class Bar */}
         <div className="space-y-2.5">
           <label className="block text-base font-semibold text-foreground">
-            {pick('ভর্তিচ্ছু শ্রেণি', 'Target Class')}
+            {'ভর্তিচ্ছু শ্রেণি'}
             <span className="text-destructive ml-1">*</span>
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
@@ -191,18 +186,18 @@ export function StepClassAndAcademic({
                   }`}
                 >
                   <span className="block text-base font-bold leading-tight">
-                    {locale === 'bn' ? cls.nameBn || cls.name : cls.name}
+                    {cls.nameBn || cls.name}
                   </span>
                   <span
-                    className={`block text-xs mt-1 leading-tight ${
+                    className={`block text-sm mt-1 leading-tight ${
                       active ? 'text-primary-foreground/90' : 'text-muted-foreground'
                     }`}
                   >
                     {clsRules.isTransferOrReadmissionOnly
-                      ? pick('বোর্ড e-TC / পুনঃভর্তি', 'e-TC / Readmit')
+                      ? 'বোর্ড e-TC / পুনঃভর্তি'
                       : clsRules.requiresGroup
-                        ? pick('বিভাগ ও ৪র্থ বিষয়', 'Stream & 4th Sub')
-                        : pick('সাধারণ শাখা', 'General')}
+                        ? 'বিভাগ ও ৪র্থ বিষয়'
+                        : 'সাধারণ শাখা'}
                   </span>
                 </button>
               );
@@ -219,14 +214,14 @@ export function StepClassAndAcademic({
         <div className="flex items-start gap-3 px-4 py-3 rounded-2xl border border-primary/20 bg-primary/5 text-sm text-foreground/90">
           <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
           <p className="leading-relaxed">
-            {locale === 'bn' ? rules.policyNoteBn : rules.policyNoteEn}
+            {rules.policyNoteBn}
           </p>
         </div>
 
         {/* Admission Type Inline Radio Controls */}
         <div className="space-y-2.5">
           <label className="block text-base font-semibold text-foreground">
-            {pick('ভর্তির ধরন', 'Admission Type')}
+            {'ভর্তির ধরন'}
             <span className="text-destructive ml-1">*</span>
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -259,18 +254,16 @@ export function StepClassAndAcademic({
                   </span>
                   <span className="min-w-0">
                     <span className="block text-base font-semibold leading-tight">
-                      {locale === 'bn' ? meta.bn : meta.en}
+                      {meta.bn}
                     </span>
-                    <span className="block text-xs text-muted-foreground mt-1 leading-snug">
+                    <span className="block text-sm text-muted-foreground mt-1 leading-snug">
                       {!allowed
                         ? numericClass === 6
-                          ? pick('৬ষ্ঠ শ্রেণিতে প্রযোজ্য নয়', 'Not applicable for Class 6')
+                          ? '৬ষ্ঠ শ্রেণিতে প্রযোজ্য নয়'
                           : numericClass === 10
-                            ? pick('১০ম শ্রেণিতে প্রযোজ্য নয়', 'Not applicable for Class 10')
-                            : pick('এই শ্রেণিতে প্রযোজ্য নয়', 'Not applicable for this class')
-                        : locale === 'bn'
-                          ? meta.descBn
-                          : meta.descEn}
+                            ? '১০ম শ্রেণিতে প্রযোজ্য নয়'
+                            : 'এই শ্রেণিতে প্রযোজ্য নয়'
+                        : meta.descBn}
                     </span>
                   </span>
                 </button>
@@ -288,7 +281,7 @@ export function StepClassAndAcademic({
         {rules.requiresGroup && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             <AdmissionField
-              label={pick('বিভাগ (Group)', 'Academic Group')}
+              label={'বিভাগ (Group)'}
               required
               error={errors.targetGroupId?.message}
             >
@@ -296,23 +289,23 @@ export function StepClassAndAcademic({
                 value={targetGroupId}
                 onChange={(e) => handleGroupChange(e.target.value)}
               >
-                <option value="">{pick('নির্বাচন করুন', 'Select Group')}</option>
+                <option value="">{'নির্বাচন করুন'}</option>
                 {db.academicGroups
                   .filter((g) => g.isActive)
                   .map((g) => (
                     <option key={g.id} value={g.id}>
-                      {locale === 'bn' ? g.nameBn || g.name : g.name}
+                      {g.nameBn || g.name}
                     </option>
                   ))}
               </AdmissionSelect>
             </AdmissionField>
 
             <AdmissionField
-              label={pick('৪র্থ / ঐচ্ছিক বিষয়', '4th / Optional Subject')}
+              label={'৪র্থ / ঐচ্ছিক বিষয়'}
               required
               hint={
                 !targetGroupId
-                  ? pick('প্রথমে বিভাগ নির্বাচন করুন।', 'Select an academic group first.')
+                  ? 'প্রথমে বিভাগ নির্বাচন করুন।'
                   : undefined
               }
               error={errors.optionalClassSubjectId?.message}
@@ -322,11 +315,11 @@ export function StepClassAndAcademic({
                 disabled={!targetGroupId}
               >
                 <option value="">
-                  {pick('নির্বাচন করুন', 'Select 4th Subject')}
+                  {'নির্বাচন করুন'}
                 </option>
                 {optionalSubjects.map((opt) => (
                   <option key={opt.classSubjectId} value={opt.classSubjectId}>
-                    {locale === 'bn' ? opt.nameBn : opt.nameEn}
+                    {opt.nameBn}
                     {opt.officialCode ? ` (${opt.officialCode})` : ''}
                   </option>
                 ))}
@@ -339,10 +332,7 @@ export function StepClassAndAcademic({
       {/* 2. Previous School & Annual Exam Record */}
       <div className="space-y-4">
         <AdmissionSectionHeader
-          title={pick(
-            `২. পূর্ববর্তী বিদ্যালয় ও ${rules.defaultPreviousClassBn}-এর তথ্য`,
-            `2. Previous School & ${rules.defaultPreviousClassEn} Details`
-          )}
+          title={`২. পূর্ববর্তী বিদ্যালয় ও ${rules.defaultPreviousClassBn}-এর তথ্য`}
         />
 
         <div
@@ -352,9 +342,7 @@ export function StepClassAndAcademic({
         >
           <AdmissionField
             label={
-              locale === 'bn'
-                ? rules.previousSchoolLabelBn
-                : rules.previousSchoolLabelEn
+              rules.previousSchoolLabelBn
             }
             required={admissionType !== 'READMISSION'}
             error={errors.previousSchoolName?.message}
@@ -376,7 +364,7 @@ export function StepClassAndAcademic({
 
           {rules.showPreviousSchoolEiin && (
             <AdmissionField
-              label={pick('বিদ্যালয়ের EIIN (ঐচ্ছিক)', 'School EIIN (Optional)')}
+              label={'বিদ্যালয়ের EIIN (ঐচ্ছিক)'}
               error={errors.previousSchoolEiin?.message}
             >
               <AdmissionInput
@@ -395,7 +383,7 @@ export function StepClassAndAcademic({
           )}
 
           <AdmissionField
-            label={pick(`${rules.defaultPreviousClassBn} পাসের সন`, 'Passing Year')}
+            label={`${rules.defaultPreviousClassBn} পাসের সন`}
           >
             <AdmissionInput
               value={watch('prevExamPassingYear')}
@@ -410,7 +398,7 @@ export function StepClassAndAcademic({
           </AdmissionField>
 
           <AdmissionField
-            label={pick(`${rules.defaultPreviousClassBn}-এর রোল নং (ঐচ্ছিক)`, 'Previous Roll No (Optional)')}
+            label={`${rules.defaultPreviousClassBn}-এর রোল নং (ঐচ্ছিক)`}
           >
             <AdmissionInput
               value={watch('prevExamRoll')}
@@ -426,13 +414,13 @@ export function StepClassAndAcademic({
           {/* GPA only shown for Classes 7–10 (Not Class 6 where PEC is discontinued) */}
           {rules.showPreviousGpa && (
             <AdmissionField
-              label={pick('বার্ষিক পরীক্ষার জিপিএ (ঐচ্ছিক)', 'Annual Exam GPA (Optional)')}
+              label={'বার্ষিক পরীক্ষার জিপিএ (ঐচ্ছিক)'}
               hint={
                 derivedGrade
-                  ? pick(`সমতুল্য গ্রেড: ${derivedGrade}`, `Equivalent Grade: ${derivedGrade}`)
+                  ? `সমতুল্য গ্রেড: ${derivedGrade}`
                   : numericClass === 9
-                    ? pick('০.০০–৫.০০ স্কেলে (বিভাগ যাচাইয়ে সহায়ক)', '0.00–5.00 scale (helps stream review)')
-                    : pick('০.০০ থেকে ৫.০০ স্কেলে (যেমন: 5.00)', 'Scale 0.00 to 5.00 (e.g. 5.00)')
+                    ? '০.০০–৫.০০ স্কেলে (বিভাগ যাচাইয়ে সহায়ক)'
+                    : '০.০০ থেকে ৫.০০ স্কেলে (যেমন: 5.00)'
               }
               error={errors.prevExamGpa?.message}
             >
@@ -458,8 +446,8 @@ export function StepClassAndAcademic({
             <AdmissionField
               label={
                 numericClass === 10
-                  ? pick('বোর্ড e-TC / ছাড়পত্র নম্বর', 'Board e-TC / TC Number')
-                  : pick('ছাড়পত্র (TC) নম্বর', 'Transfer Certificate (TC) Number')
+                  ? 'বোর্ড e-TC / ছাড়পত্র নম্বর'
+                  : 'ছাড়পত্র (TC) নম্বর'
               }
               required
               error={errors.transferCertificateNo?.message}
@@ -472,7 +460,7 @@ export function StepClassAndAcademic({
             </AdmissionField>
 
             <AdmissionField
-              label={pick('ছাড়পত্র ইস্যুর তারিখ', 'TC Issue Date')}
+              label={'ছাড়পত্র ইস্যুর তারিখ'}
             >
               <AdmissionInput type="date" {...register('transferCertificateDate')} />
             </AdmissionField>
@@ -485,8 +473,8 @@ export function StepClassAndAcademic({
             <AdmissionField
               label={
                 numericClass === 10
-                  ? pick('৯ম শ্রেণির এসএসসি বোর্ড রেজিস্ট্রেশন নম্বর', 'Class 9 SSC Board Registration No')
-                  : pick('বোর্ড রেজিস্ট্রেশন নম্বর (ইস্যু হয়ে থাকলে)', 'Board Registration No (If Issued)')
+                  ? '৯ম শ্রেণির এসএসসি বোর্ড রেজিস্ট্রেশন নম্বর'
+                  : 'বোর্ড রেজিস্ট্রেশন নম্বর (ইস্যু হয়ে থাকলে)'
               }
               required={rules.requiresBoardRegistration}
               error={errors.boardRegistrationNo?.message || boardRegDuplicate}
@@ -508,7 +496,7 @@ export function StepClassAndAcademic({
             </AdmissionField>
 
             <AdmissionField
-              label={pick('রেজিস্ট্রেশন শিক্ষাবর্ষ (সেশন)', 'Registration Session')}
+              label={'রেজিস্ট্রেশন শিক্ষাবর্ষ (সেশন)'}
             >
               <AdmissionInput
                 {...register('boardRegistrationSession')}

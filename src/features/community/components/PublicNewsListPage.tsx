@@ -32,7 +32,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { MasonryPhotoAlbum } from 'react-photo-album';
 
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -60,7 +59,6 @@ type NoticeTab = 'all' | 'urgent' | 'exam' | 'admission';
 
 export function PublicNewsListPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   if (isLoading || !db) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
 
   const sortedNews = [...db.news]
@@ -74,11 +72,8 @@ export function PublicNewsListPage() {
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-6">
       <PageHeader
-        title={pick('সংবাদ ও প্রতিবেদন', 'School News & Updates')}
-        description={pick(
-          'ভোজেশ্বর উচ্চ বিদ্যালয়ের ক্যাম্পাস কার্যক্রম, বিজ্ঞান মেলা, সহশিক্ষা ও সাম্প্রতিক সাফল্যের সংবাদ।',
-          'Campus stories, science exhibitions, co-curricular programs, and student achievements.'
-        )}
+        title={'সংবাদ ও প্রতিবেদন'}
+        description={'ভোজেশ্বর উচ্চ বিদ্যালয়ের ক্যাম্পাস কার্যক্রম, বিজ্ঞান মেলা, সহশিক্ষা ও সাম্প্রতিক সাফল্যের সংবাদ।'}
       />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {sortedNews.map((item) => (
@@ -98,7 +93,7 @@ export function PublicNewsListPage() {
               </div>
               <div className="p-5 space-y-2">
                 <p className="text-sm text-muted-foreground tabular-nums">
-                  {formatDateLong(item.publishedAt ?? item.createdAt, locale)}
+                  {formatDateLong(item.publishedAt ?? item.createdAt, 'bn')}
                 </p>
                 <h2 className="text-base font-bold text-foreground group-hover:text-primary transition-colors leading-snug">
                   {item.title}
@@ -109,7 +104,7 @@ export function PublicNewsListPage() {
               </div>
             </div>
             <div className="px-5 pb-4 pt-3 border-t border-border/60 flex items-center justify-between text-sm font-semibold text-primary">
-              <span>{pick('সম্পূর্ণ সংবাদ পড়ুন', 'Read Full Story')}</span>
+              <span>{'সম্পূর্ণ সংবাদ পড়ুন'}</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
             </div>
           </Link>

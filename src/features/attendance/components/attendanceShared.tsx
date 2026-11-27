@@ -76,8 +76,8 @@ export function attendanceBarTone(rate: number | null): string {
 
 export function getStatusLabel(status: AttendanceStatus | undefined, locale: 'bn' | 'en'): string {
   const found = STATUS_OPTIONS.find((item) => item.value === status);
-  if (!found) return locale === 'bn' ? 'অচিহ্নিত' : 'Unmarked';
-  return locale === 'bn' ? found.bn : found.en;
+  if (!found) return 'অচিহ্নিত';
+  return found.bn;
 }
 
 const TONE_CLASSES: Record<'primary' | 'success' | 'warning' | 'danger' | 'info' | 'neutral', string> = {

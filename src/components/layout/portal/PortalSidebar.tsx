@@ -9,6 +9,7 @@ import { cn } from '@/src/lib/utils/cn';
 import type { AuthUser } from '@/src/store/slices/authSlice';
 
 interface PortalSidebarProps {
+  portal: string;
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
   navGroups: NavGroup[];
@@ -17,11 +18,10 @@ interface PortalSidebarProps {
   onToggleMenu: (to: string) => void;
   user: AuthUser | null;
   onLogout: () => void;
-  locale: string;
-  pick: (bn: string, en: string) => string;
 }
 
 export function PortalSidebar({
+  portal,
   sidebarCollapsed,
   onToggleSidebar,
   navGroups,
@@ -30,8 +30,8 @@ export function PortalSidebar({
   onToggleMenu,
   user,
   onLogout,
-  locale,
-  pick,
+  
+  
 }: PortalSidebarProps) {
   return (
     <aside
@@ -83,9 +83,9 @@ export function PortalSidebar({
               <SchoolEmblem size={28} />
               <div className="min-w-0 leading-tight">
                 <span className="text-sm font-bold text-white tracking-tight truncate block">
-                  {pick('ভোজেশ্বর উচ্চ বিদ্যালয়', 'Bhojeshwar High School')}
+                  {'ভোজেশ্বর উচ্চ বিদ্যালয়'}
                 </span>
-                <span className="text-xs text-white/80 truncate block">
+                <span className="text-sm text-white/80 truncate block">
                   EIIN: 113587 · Admin
                 </span>
               </div>
@@ -104,8 +104,8 @@ export function PortalSidebar({
             )}
           >
             {group.labelEn && !sidebarCollapsed && (
-              <p className="px-3 pt-3.5 pb-1.5 text-xs sm:text-[13px] font-bold text-white uppercase tracking-wider">
-                {locale === 'bn' ? group.labelBn : group.labelEn}
+              <p className="px-3 pt-3.5 pb-1.5 text-sm font-bold text-white uppercase tracking-wider">
+                {group.labelBn}
               </p>
             )}
             <div className="space-y-0.5">
@@ -126,11 +126,11 @@ export function PortalSidebar({
                           : 'text-white/95 hover:text-white hover:bg-white/10',
                         sidebarCollapsed ? 'justify-center px-2' : ''
                       )}
-                      title={sidebarCollapsed ? (locale === 'bn' ? item.labelBn : item.labelEn) : undefined}
+                      title={sidebarCollapsed ? (item.labelBn) : undefined}
                     >
                       <Icon className={cn('w-4.5 h-4.5 shrink-0', selfActive ? 'text-[#1C6440]' : 'text-white/90')} />
                       {!sidebarCollapsed && (
-                        <span className="truncate flex-1">{locale === 'bn' ? item.labelBn : item.labelEn}</span>
+                        <span className="truncate flex-1">{item.labelBn}</span>
                       )}
                       {item.badge && !sidebarCollapsed && (
                         <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#DF6153] text-white leading-none shrink-0">
@@ -155,7 +155,7 @@ export function PortalSidebar({
                       )}
                     >
                       <Icon className="w-4.5 h-4.5 shrink-0 text-white/90" />
-                      <span className="truncate flex-1 text-left">{locale === 'bn' ? item.labelBn : item.labelEn}</span>
+                      <span className="truncate flex-1 text-left">{item.labelBn}</span>
                       {item.badge && (
                         <span className="mr-1.5 px-2 py-0.5 rounded-full text-xs font-bold bg-[#DF6153] text-white leading-none shrink-0">
                           {item.badge}
@@ -178,7 +178,7 @@ export function PortalSidebar({
                                   : 'text-white/90 hover:text-white hover:bg-white/10'
                               )}
                             >
-                              {locale === 'bn' ? child.labelBn : child.labelEn}
+                              {child.labelBn}
                             </Link>
                           );
                         })}
@@ -192,54 +192,39 @@ export function PortalSidebar({
         ))}
       </nav>
 
-      {/* Mini Impact Widget Card */}
-      {!sidebarCollapsed && (
+      {/* Mini Impact Widget Card (Admin Portal Only) */}
+      {portal === 'admin' && !sidebarCollapsed && (
         <div className="mx-3 mb-2.5 p-3.5 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-xs text-white shrink-0 relative z-10">
-          <div className="flex items-center gap-1.5 text-xs text-white/90 font-medium mb-1">
+          <div className="flex items-center gap-1.5 text-sm text-white/90 font-medium mb-1">
             <span className="w-1.5 h-1.5 rounded-full bg-[#EBAF3E]" />
-            {pick('সাপ্তাহিক সারসংক্ষেপ', 'Weekly Overview')}
+            {'সাপ্তাহিক সারসংক্ষেপ'}
           </div>
           <p className="font-bold text-base leading-snug">
-            {pick('একাডেমিক অগ্রগতি ও\nদৈনিক উপস্থিতি ৯৪%', 'Academic Attendance &\nActive Session')}
+            {'একাডেমিক অগ্রগতি ও\nদৈনিক উপস্থিতি ৯৪%'}
           </p>
           <Link href="/admin/reports" className="block mt-2">
             <button
               type="button"
               className="w-full bg-white text-[#1C6440] hover:bg-white/90 text-sm font-semibold py-2 px-3 rounded-xl shadow-xs transition cursor-pointer"
             >
-              {pick('রিপোর্ট দেখুন', 'View report')}
+              {'রিপোর্ট দেখুন'}
             </button>
           </Link>
         </div>
       )}
 
-      {/* User Profile Pill at Bottom */}
-      <div className="p-2.5 mx-2 mb-2 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between shrink-0 relative z-10">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-full bg-[#DCEFE0] text-[#1C6440] font-bold text-sm flex items-center justify-center shrink-0">
-            {user?.name ? user.name.slice(0, 2).toUpperCase() : 'AD'}
-          </div>
-          {!sidebarCollapsed && (
-            <div className="min-w-0 leading-tight">
-              <p className="text-base font-bold text-white truncate">
-                {user?.name ?? 'Admin'}
-              </p>
-              <p className="text-sm text-white/85 truncate">
-                {user?.role ?? 'SUPER_ADMIN'}
-              </p>
-            </div>
-          )}
-        </div>
-        {!sidebarCollapsed && (
-          <button
-            type="button"
-            onClick={onLogout}
-            title={pick('লগ আউট', 'Sign Out')}
-            className="p-1.5 text-white/60 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-          </button>
-        )}
+      {/* Full-width Clickable Logout Section at Bottom */}
+      <div className="px-3 pb-3 pt-1 shrink-0 relative z-10">
+        <button
+          type="button"
+          onClick={onLogout}
+          title={'লগআউট'}
+          aria-label={'লগআউট'}
+          className="w-full flex items-center justify-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-white/10 hover:bg-[#DF6153]/85 border border-white/15 text-white text-base font-semibold transition cursor-pointer"
+        >
+          <LogOut className="w-4.5 h-4.5 shrink-0" />
+          {!sidebarCollapsed && <span>{'লগআউট'}</span>}
+        </button>
       </div>
     </aside>
   );

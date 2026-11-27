@@ -32,7 +32,6 @@ import { AnimatePresence, motion } from 'motion/react';
 import { MasonryPhotoAlbum } from 'react-photo-album';
 
 import { useGetPublicNoticeQuery, useGetPublicNoticesQuery } from '@/src/features/notices/api/notices.api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -62,7 +61,6 @@ export function PublicNoticeDetailPage() {
   const { id } = useParams();
   const { currentData: notice, isLoading, isError, error } = useGetPublicNoticeQuery(typeof id === 'string' ? id : '', { skip: typeof id !== 'string' });
   const { data: latest } = useGetPublicNoticesQuery({ limit: 5 });
-  const { locale, pick } = useI18n();
   if (isLoading) return <div className="max-w-[1440px] mx-auto p-6"><LoadingSkeleton /></div>;
 
   if (isError && (error as { status?: number })?.status !== 404) return <p role="alert" className="p-6">Could not load the notice.</p>;
@@ -73,15 +71,15 @@ export function PublicNoticeDetailPage() {
     .slice(0, 4);
 
   const updatedDate = new Date(notice.updatedAt ?? notice.publishedAt ?? notice.createdAt);
-  const dayName = new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', { weekday: 'long' }).format(updatedDate);
-  const dateFormatted = formatDateLong(notice.publishedAt ?? notice.createdAt, locale);
+  const dayName = new Intl.DateTimeFormat('bn-BD', { weekday: 'long' }).format(updatedDate);
+  const dateFormatted = formatDateLong(notice.publishedAt ?? notice.createdAt, 'bn');
 
   const pubDate = new Date(notice.publishedAt ?? notice.createdAt);
   const day = String(pubDate.getDate()).padStart(2, '0');
   const month = String(pubDate.getMonth() + 1).padStart(2, '0');
   const year = pubDate.getFullYear();
   const rawDate = `${day}-${month}-${year}`;
-  const formattedDateCode = locale === 'bn' ? formatNumber(rawDate, 'bn') : rawDate;
+  const formattedDateCode = formatNumber(rawDate, 'bn');
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-6">
@@ -92,12 +90,12 @@ export function PublicNoticeDetailPage() {
           className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-primary hover:underline"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>{pick('সকল নোটিশ আর্কাইভ', 'All Notices Archive')}</span>
+          <span>{'সকল নোটিশ আর্কাইভ'}</span>
         </Link>
 
         <div>
           <span>
-            {pick('কনটেন্টটি শেষ হাল-নাগাদ করা হয়েছে:', 'Content Last Updated:')}{' '}
+            {'কনটেন্টটি শেষ হাল-নাগাদ করা হয়েছে:'}{' '}
             <strong className="font-semibold text-foreground">{dayName}, {dateFormatted}</strong>
           </span>
         </div>
@@ -110,20 +108,20 @@ export function PublicNoticeDetailPage() {
         </h1>
 
         {/* Metadata Chips Strip */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+        <div className="flex flex-wrap items-center gap-2 pt-1 text-sm">
           <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium">
-            {pick('কনটেন্ট: নোটিশ', 'Content: Notice')}
+            {'কনটেন্ট: নোটিশ'}
           </span>
           <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium tabular-nums">
-            {pick('প্রকাশের তারিখ:', 'Published:')} {formattedDateCode}
+            {'প্রকাশের তারিখ:'} {formattedDateCode}
           </span>
           {notice.memoNo && (
             <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium font-mono">
-              {pick('স্মারক নং:', 'Memo No:')} {notice.memoNo}
+              {'স্মারক নং:'} {notice.memoNo}
             </span>
           )}
           <span className="px-3 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium">
-            {pick('বিভাগ:', 'Category:')} {notice.isUrgent ? pick('জরুরি বিজ্ঞপ্তি', 'Urgent') : pick('সাধারণ নোটিশ', 'General')}
+            {'বিভাগ:'} {notice.isUrgent ? 'জরুরি বিজ্ঞপ্তি' : 'সাধারণ নোটিশ'}
           </span>
         </div>
       </div>
@@ -137,10 +135,10 @@ export function PublicNoticeDetailPage() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
               <FileText className="w-4 h-4 text-emerald-700 dark:text-emerald-500" />
-              <span>{pick('অন্যান্য সাম্প্রতিক নোটিশ', 'Other Recent Notices')}</span>
+              <span>{'অন্যান্য সাম্প্রতিক নোটিশ'}</span>
             </h2>
-            <Link href="/notices" className="text-xs font-semibold text-primary hover:underline">
-              {pick('সব নোটিশ', 'View All')}
+            <Link href="/notices" className="text-sm font-semibold text-primary hover:underline">
+              {'সব নোটিশ'}
             </Link>
           </div>
 
@@ -151,7 +149,7 @@ export function PublicNoticeDetailPage() {
               const iMonth = String(itemDate.getMonth() + 1).padStart(2, '0');
               const iYear = itemDate.getFullYear();
               const iRaw = `${iDay}-${iMonth}-${iYear}`;
-              const iFormatted = locale === 'bn' ? formatNumber(iRaw, 'bn') : iRaw;
+              const iFormatted = formatNumber(iRaw, 'bn');
 
               return (
                 <div
@@ -166,11 +164,11 @@ export function PublicNoticeDetailPage() {
                     >
                       {item.title}
                     </Link>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground tabular-nums">
                       <span>{iFormatted}</span>
                       {item.isUrgent && (
-                        <span className="px-1.5 py-0.2 rounded bg-red-600 text-white text-[10px] font-bold">
-                          {pick('জরুরি', 'Urgent')}
+                        <span className="px-1.5 py-0.2 rounded bg-red-600 text-white text-xs font-bold">
+                          {'জরুরি'}
                         </span>
                       )}
                     </div>

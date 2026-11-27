@@ -4,7 +4,6 @@ import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Printer, X } from 'lucide-react';
 import { Button } from '@/src/components/ui/primitives';
-import { useI18n } from '@/src/lib/i18n';
 import {
   DOC_PRINT_STORAGE_PREFIX,
   type StandaloneDocumentPrintPayload,
@@ -12,7 +11,6 @@ import {
 
 function PrintDocumentContent() {
   const searchParams = useSearchParams();
-  const { pick } = useI18n();
   const key = searchParams.get('key');
   const [payload, setPayload] = useState<StandaloneDocumentPrintPayload | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -159,13 +157,10 @@ function PrintDocumentContent() {
       <div className="min-h-screen bg-white text-[#111111] flex items-center justify-center p-6">
         <div className="max-w-md text-center space-y-2 border border-neutral-300 rounded-md p-6">
           <p className="text-base font-semibold">
-            {pick('প্রিন্টের জন্য ডকুমেন্ট পাওয়া যায়নি।', 'Document data for printing was not found.')}
+            {'প্রিন্টের জন্য ডকুমেন্ট পাওয়া যায়নি।'}
           </p>
           <p className="text-sm text-neutral-600">
-            {pick(
-              'অনুগ্রহ করে মূল পাতা থেকে আবার "প্রিন্ট" বাটনে ক্লিক করুন।',
-              'Please return to the previous page and click the "Print" button again.'
-            )}
+            {'অনুগ্রহ করে মূল পাতা থেকে আবার "প্রিন্ট" বাটনে ক্লিক করুন।'}
           </p>
         </div>
       </div>
@@ -182,21 +177,21 @@ function PrintDocumentContent() {
           isLandscape ? 'max-w-[297mm]' : 'max-w-[210mm]'
         } mx-auto mb-4 flex flex-wrap items-center justify-between gap-3 bg-white border border-neutral-300 rounded-md px-4 py-2.5 shadow-xs no-print`}
       >
-        <div className="text-xs sm:text-sm text-neutral-700">
+        <div className="text-sm text-neutral-700">
           <span className="font-semibold text-[#111111]">
             {isLandscape
-              ? pick('A4 ল্যান্ডস্কেপ প্রিন্ট প্রিভিউ (২৯৭ × ২১০ মিমি)', 'A4 Landscape Print Preview (297 × 210 mm)')
-              : pick('A4 পোর্ট্রেট প্রিন্ট প্রিভিউ (২১০ × ২৯৭ মিমি)', 'A4 Portrait Print Preview (210 × 297 mm)')}
+              ? 'A4 ল্যান্ডস্কেপ প্রিন্ট প্রিভিউ (২৯৭ × ২১০ মিমি)'
+              : 'A4 পোর্ট্রেট প্রিন্ট প্রিভিউ (২১০ × ২৯৭ মিমি)'}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => window.close()}>
             <X className="w-4 h-4" />
-            <span>{pick('বন্ধ করুন', 'Close')}</span>
+            <span>{'বন্ধ করুন'}</span>
           </Button>
           <Button type="button" variant="primary" size="sm" onClick={() => window.print()}>
             <Printer className="w-4 h-4" />
-            <span>{pick('প্রিন্ট / PDF সংরক্ষণ', 'Print / Save PDF')}</span>
+            <span>{'প্রিন্ট / PDF সংরক্ষণ'}</span>
           </Button>
         </div>
       </div>

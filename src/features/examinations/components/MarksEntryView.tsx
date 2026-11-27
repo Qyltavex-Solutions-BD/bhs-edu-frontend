@@ -24,7 +24,6 @@ import {
 } from '@/src/features/examinations/api/examinations.api';
 import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
 import { useGetSectionsQuery } from '@/src/services/academic/section.api';
-import { useI18n } from '@/src/lib/i18n';
 import {
   ConfirmDialog,
   EmptyState,
@@ -79,17 +78,17 @@ function getErrorMessage(err: unknown, fallback: string) {
 function failReasonLabel(reason: ComponentFailReason, locale: 'bn' | 'en') {
   switch (reason) {
     case 'ABSENT':
-      return locale === 'bn' ? 'অনুপস্থিত' : 'Absent';
+      return 'অনুপস্থিত';
     case 'WRITTEN_FAIL':
-      return locale === 'bn' ? 'লিখিত ফেল' : 'Written Fail';
+      return 'লিখিত ফেল';
     case 'MCQ_FAIL':
-      return locale === 'bn' ? 'MCQ ফেল' : 'MCQ Fail';
+      return 'MCQ ফেল';
     case 'PRACTICAL_FAIL':
-      return locale === 'bn' ? 'ব্যবহারিক ফেল' : 'Practical Fail';
+      return 'ব্যবহারিক ফেল';
     case 'CA_FAIL':
-      return locale === 'bn' ? 'CA ফেল' : 'CA Fail';
+      return 'CA ফেল';
     case 'TOTAL_FAIL':
-      return locale === 'bn' ? 'মোট ফেল' : 'Total Fail';
+      return 'মোট ফেল';
     default:
       return null;
   }
@@ -100,7 +99,6 @@ export function MarksEntryView() {
   const urlExamId = searchParams.get('examId') ?? '';
   const urlSubjectId = searchParams.get('subjectId') ?? '';
 
-  const { locale, pick } = useI18n();
   const { data: examsRes, isLoading: loadingExams } = useGetExamsQuery({
     limit: 100,
     isDeleted: false,
@@ -203,9 +201,9 @@ export function MarksEntryView() {
           return hay.includes(q);
         });
     return [...filtered].sort(
-      (a, b) => a.roll - b.roll || a.section.localeCompare(b.section, locale)
+      (a, b) => a.roll - b.roll || a.section.localeCompare(b.section, 'bn')
     );
-  }, [allStudents, search, locale]);
+  }, [allStudents, search, 'bn']);
 
   const scaleRanges = useMemo<GradeRange[]>(() => {
     const scales = scalesRes?.items ?? [];
@@ -299,10 +297,7 @@ export function MarksEntryView() {
 
     if (editedStudents.length === 0) {
       toast.info(
-        pick(
-          'সংরক্ষণের জন্য অন্তত একজন শিক্ষার্থীর নম্বর পরিবর্তন বা এন্ট্রি করুন।',
-          'No edited or newly entered marks to save.'
-        )
+        'সংরক্ষণের জন্য অন্তত একজন শিক্ষার্থীর নম্বর পরিবর্তন বা এন্ট্রি করুন।'
       );
       return;
     }
@@ -323,19 +318,13 @@ export function MarksEntryView() {
       const c = Number(row.ca || 0);
       if (w < 0 || m < 0 || p < 0 || c < 0) {
         toast.error(
-          pick(
-            `রোল ${formatNumber(stu.roll, locale)}: ঋণাত্মক নম্বর গ্রহণযোগ্য নয়।`,
-            `Roll ${stu.roll}: Negative marks are not allowed.`
-          )
+          `রোল ${formatNumber(stu.roll, 'bn')}: ঋণাত্মক নম্বর গ্রহণযোগ্য নয়।`
         );
         return;
       }
       if (w > wMax || m > mMax || p > pMax || c > cMax) {
         toast.error(
-          pick(
-            `রোল ${formatNumber(stu.roll, locale)}: কোনো উপাংশের নম্বর সর্বোচ্চ সীমা অতিক্রম করেছে।`,
-            `Roll ${stu.roll}: Mark exceeds maximum allowed for a component.`
-          )
+          `রোল ${formatNumber(stu.roll, 'bn')}: কোনো উপাংশের নম্বর সর্বোচ্চ সীমা অতিক্রম করেছে।`
         );
         return;
       }
@@ -361,13 +350,10 @@ export function MarksEntryView() {
       setDrafts({});
       setIsEditMode(false);
       toast.success(
-        pick(
-          `${formatNumber(res.totalProcessed, locale)} জন শিক্ষার্থীর নম্বর সংরক্ষিত হয়েছে।`,
-          `Saved marks for ${res.totalProcessed} students.`
-        )
+        `${formatNumber(res.totalProcessed, 'bn')} জন শিক্ষার্থীর নম্বর সংরক্ষিত হয়েছে।`
       );
     } catch (err) {
-      toast.error(getErrorMessage(err, pick('নম্বর সংরক্ষণ ব্যর্থ হয়েছে।', 'Failed to save marks.')));
+      toast.error(getErrorMessage(err, 'নম্বর সংরক্ষণ ব্যর্থ হয়েছে।'));
     }
   };
 
@@ -383,13 +369,10 @@ export function MarksEntryView() {
         marksEntryDeadline: nextWeek,
       }).unwrap();
       toast.success(
-        pick(
-          'পরীক্ষা আনলক এবং সময়সীমা ৭ দিন বাড়ানো হয়েছে। এখন নম্বর এন্ট্রি করতে পারবেন।',
-          'Exam unlocked and deadline extended by 7 days.'
-        )
+        'পরীক্ষা আনলক এবং সময়সীমা ৭ দিন বাড়ানো হয়েছে। এখন নম্বর এন্ট্রি করতে পারবেন।'
       );
     } catch (err) {
-      toast.error(getErrorMessage(err, pick('আনলক করা যায়নি।', 'Failed to unlock exam.')));
+      toast.error(getErrorMessage(err, 'আনলক করা যায়নি।'));
     }
   };
 
@@ -397,10 +380,7 @@ export function MarksEntryView() {
     if (!stu.mark?.id) return;
     if (!stu.mark.isLocked && !canLockMarks) {
       toast.info(
-        pick(
-          `নম্বর এন্ট্রির শেষ তারিখ (${formatDateShort(activeExam!.marksEntryDeadline!, 'bn')}) পার হওয়ার পর লক করা যাবে।`,
-          `Marks can only be locked after the deadline (${formatDateShort(activeExam!.marksEntryDeadline!, 'en')}).`
-        )
+        `নম্বর এন্ট্রির শেষ তারিখ (${formatDateShort(activeExam!.marksEntryDeadline!, 'bn')}) পার হওয়ার পর লক করা যাবে।`
       );
       return;
     }
@@ -411,11 +391,11 @@ export function MarksEntryView() {
       }).unwrap();
       toast.success(
         !stu.mark.isLocked
-          ? pick('নম্বর লক করা হয়েছে।', 'Mark locked.')
-          : pick('নম্বর আনলক করা হয়েছে।', 'Mark unlocked.')
+          ? 'নম্বর লক করা হয়েছে।'
+          : 'নম্বর আনলক করা হয়েছে।'
       );
     } catch (err) {
-      toast.error(getErrorMessage(err, pick('লক পরিবর্তন করা যায়নি।', 'Could not update mark lock.')));
+      toast.error(getErrorMessage(err, 'লক পরিবর্তন করা যায়নি।'));
     }
   };
 
@@ -423,10 +403,7 @@ export function MarksEntryView() {
     if (!activeExamSubject) return;
     if (lockState && !canLockMarks) {
       toast.info(
-        pick(
-          `নম্বর এন্ট্রির শেষ তারিখ (${formatDateShort(activeExam!.marksEntryDeadline!, 'bn')}) পার হওয়ার পর লক করা যাবে।`,
-          `Marks can only be locked after the deadline (${formatDateShort(activeExam!.marksEntryDeadline!, 'en')}).`
-        )
+        `নম্বর এন্ট্রির শেষ তারিখ (${formatDateShort(activeExam!.marksEntryDeadline!, 'bn')}) পার হওয়ার পর লক করা যাবে।`
       );
       return;
     }
@@ -438,17 +415,11 @@ export function MarksEntryView() {
       }).unwrap();
       toast.success(
         lockState
-          ? pick(
-              `${formatNumber(res.updatedCount, 'bn')} জন শিক্ষার্থীর নম্বর লক করা হয়েছে।`,
-              `Locked marks for ${res.updatedCount} student(s).`
-            )
-          : pick(
-              `${formatNumber(res.updatedCount, 'bn')} জন শিক্ষার্থীর নম্বর আনলক করা হয়েছে।`,
-              `Unlocked marks for ${res.updatedCount} student(s).`
-            )
+          ? `${formatNumber(res.updatedCount, 'bn')} জন শিক্ষার্থীর নম্বর লক করা হয়েছে।`
+          : `${formatNumber(res.updatedCount, 'bn')} জন শিক্ষার্থীর নম্বর আনলক করা হয়েছে।`
       );
     } catch (err) {
-      toast.error(getErrorMessage(err, pick('বাল্ক লক পরিবর্তন করা যায়নি।', 'Failed to bulk lock marks.')));
+      toast.error(getErrorMessage(err, 'বাল্ক লক পরিবর্তন করা যায়নি।'));
     }
   };
 
@@ -526,7 +497,7 @@ export function MarksEntryView() {
                 className="whitespace-nowrap shrink-0"
               >
                 <Pencil className="w-4 h-4" />
-                {pick('নম্বর আপডেট', 'Update Marks')}
+                {'নম্বর আপডেট'}
               </Button>
             ) : (
               <>
@@ -539,7 +510,7 @@ export function MarksEntryView() {
                   disabled={saving}
                   className="whitespace-nowrap shrink-0"
                 >
-                  {pick('বাতিল', 'Cancel')}
+                  {'বাতিল'}
                 </Button>
                 <Button
                   onClick={handleSaveSheet}
@@ -548,8 +519,8 @@ export function MarksEntryView() {
                 >
                   <Save className="w-4 h-4" />
                   {dirtyCount > 0
-                    ? pick(`নম্বর সংরক্ষণ (${formatNumber(dirtyCount, locale)})`, `Save Marks (${dirtyCount})`)
-                    : pick('নম্বর সংরক্ষণ করুন', 'Save Marks')}
+                    ? `নম্বর সংরক্ষণ (${formatNumber(dirtyCount, 'bn')})`
+                    : 'নম্বর সংরক্ষণ করুন'}
                 </Button>
               </>
             )}
@@ -561,26 +532,26 @@ export function MarksEntryView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5">
           <p className="text-base font-bold text-foreground">
-            {pick('মোট পরীক্ষার্থী ও বিষয়', 'Total Examinees & Subject')}
+            {'মোট পরীক্ষার্থী ও বিষয়'}
           </p>
           <p className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground">
-            {formatNumber(kpis.total, locale)}{' '}
-            <span className="text-sm font-medium text-muted-foreground">{pick('জন', '')}</span>
+            {formatNumber(kpis.total, 'bn')}{' '}
+            <span className="text-sm font-medium text-muted-foreground">{'জন'}</span>
           </p>
           <p className="mt-1.5 text-sm text-muted-foreground truncate">
             {activeExamSubject
-              ? `${pick('পূর্ণমান', 'Full')}: ${formatNumber(activeExamSubject.fullMarks, locale)}${
+              ? `${'পূর্ণমান'}: ${formatNumber(activeExamSubject.fullMarks, 'bn')}${
                   showSubjectCode && activeSubjectInfo?.officialCode
                     ? ` | ${activeSubjectInfo.officialCode}`
                     : ''
                 }`
-              : pick('বিষয় নির্বাচিত হয়নি', 'No subject selected')}
+              : 'বিষয় নির্বাচিত হয়নি'}
           </p>
         </Card>
 
         <Card className="p-5">
           <p className="text-base font-bold text-foreground">
-            {pick('এন্ট্রি অগ্রগতি', 'Entry Progress')}
+            {'এন্ট্রি অগ্রগতি'}
           </p>
           <p
             className={cn(
@@ -592,19 +563,16 @@ export function MarksEntryView() {
                   : 'text-muted-foreground'
             )}
           >
-            {formatNumber(kpis.progressPct, locale)}%
+            {formatNumber(kpis.progressPct, 'bn')}%
           </p>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            {pick(
-              `${formatNumber(kpis.enteredCount, locale)} / ${formatNumber(kpis.total, locale)} জনের নম্বর এন্ট্রি`,
-              `${kpis.enteredCount} of ${kpis.total} marks recorded`
-            )}
+            {`${formatNumber(kpis.enteredCount, 'bn')} / ${formatNumber(kpis.total, 'bn')} জনের নম্বর এন্ট্রি`}
           </p>
         </Card>
 
         <Card className="p-5">
           <p className="text-base font-bold text-foreground">
-            {pick('উপস্থিতি ও অনুপস্থিতি', 'Attendance & Absent')}
+            {'উপস্থিতি ও অনুপস্থিতি'}
           </p>
           <p
             className={cn(
@@ -612,22 +580,19 @@ export function MarksEntryView() {
               kpis.absentCount > 0 ? 'text-destructive' : 'text-foreground'
             )}
           >
-            {formatNumber(kpis.absentCount, locale)}{' '}
+            {formatNumber(kpis.absentCount, 'bn')}{' '}
             <span className="text-sm font-medium text-muted-foreground">
-              {pick('অনুপস্থিত', 'absent')}
+              {'অনুপস্থিত'}
             </span>
           </p>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            {pick(
-              `উপস্থিত: ${formatNumber(kpis.total - kpis.absentCount, locale)} জন`,
-              `Present: ${kpis.total - kpis.absentCount}`
-            )}
+            {`উপস্থিত: ${formatNumber(kpis.total - kpis.absentCount, 'bn')} জন`}
           </p>
         </Card>
 
         <Card className="p-5">
           <p className="text-base font-bold text-foreground">
-            {pick('প্রাথমিক মূল্যায়ন (পাস / ফেল)', 'Pass / Fail Summary')}
+            {'প্রাথমিক মূল্যায়ন (পাস / ফেল)'}
           </p>
           <p
             className={cn(
@@ -635,13 +600,13 @@ export function MarksEntryView() {
               kpis.failedCount > 0 ? 'text-warning' : 'text-success'
             )}
           >
-            {formatNumber(kpis.passedCount, locale)}{' '}
-            <span className="text-sm font-medium text-muted-foreground">{pick('পাস', 'passed')}</span>
+            {formatNumber(kpis.passedCount, 'bn')}{' '}
+            <span className="text-sm font-medium text-muted-foreground">{'পাস'}</span>
           </p>
           <p className="mt-1.5 text-sm text-muted-foreground truncate">
             {kpis.failedCount > 0
-              ? pick(`${formatNumber(kpis.failedCount, locale)} জন অকৃতকার্য`, `${kpis.failedCount} failed`)
-              : pick('মূল্যায়নকৃত সবাই উত্তীর্ণ', 'All evaluated passed')}
+              ? `${formatNumber(kpis.failedCount, 'bn')} জন অকৃতকার্য`
+              : 'মূল্যায়নকৃত সবাই উত্তীর্ণ'}
           </p>
         </Card>
       </div>
@@ -649,8 +614,8 @@ export function MarksEntryView() {
       {/* Compact Selection Toolbar */}
       <Card className="p-4 flex flex-wrap items-end gap-3">
         <div className="w-full sm:w-52">
-          <label className="block text-xs text-muted-foreground mb-1">
-            {pick('পরীক্ষা নির্বাচন করুন', 'Examination')}
+          <label className="block text-sm text-muted-foreground mb-1">
+            {'পরীক্ষা নির্বাচন করুন'}
           </label>
           <Select
             value={resolvedExamName}
@@ -659,7 +624,7 @@ export function MarksEntryView() {
             className="h-9 text-sm"
           >
             {examNames.length === 0 && (
-              <option value="">{pick('কোনো পরীক্ষা নেই', 'No exams')}</option>
+              <option value="">{'কোনো পরীক্ষা নেই'}</option>
             )}
             {examNames.map((name) => (
               <option key={name} value={name}>
@@ -670,8 +635,8 @@ export function MarksEntryView() {
         </div>
 
         <div className="w-full sm:w-36">
-          <label className="block text-xs text-muted-foreground mb-1">
-            {pick('শ্রেণি', 'Class')}
+          <label className="block text-sm text-muted-foreground mb-1">
+            {'শ্রেণি'}
           </label>
           <Select
             value={resolvedClassId}
@@ -681,15 +646,15 @@ export function MarksEntryView() {
           >
             {activeClasses.map((cls) => (
               <option key={cls.id} value={cls.id}>
-                {locale === 'bn' ? cls.nameBn || cls.name : cls.name}
+                {cls.nameBn || cls.name}
               </option>
             ))}
           </Select>
         </div>
 
         <div className="w-full sm:w-52">
-          <label className="block text-xs text-muted-foreground mb-1">
-            {pick('বিষয় নির্বাচন করুন', 'Subject')}
+          <label className="block text-sm text-muted-foreground mb-1">
+            {'বিষয় নির্বাচন করুন'}
           </label>
           <Select
             value={resolvedSubjectId}
@@ -698,14 +663,14 @@ export function MarksEntryView() {
             className="h-9 text-sm"
           >
             {examSubjects.length === 0 && (
-              <option value="">{pick('কোনো বিষয় নেই', 'No subjects')}</option>
+              <option value="">{'কোনো বিষয় নেই'}</option>
             )}
             {examSubjects.map((es) => {
-              const subName = locale === 'bn' ? es.subject?.nameBn || es.subject?.name : es.subject?.name;
+              const subName = es.subject?.nameBn || es.subject?.name;
               const code =
                 showSubjectCode && es.subject?.officialCode ? ` (${es.subject.officialCode})` : '';
               const grpName = es.group
-                ? ` — ${locale === 'bn' ? es.group.nameBn || es.group.name : es.group.name}`
+                ? ` — ${es.group.nameBn || es.group.name}`
                 : '';
               return (
                 <option key={es.id} value={es.id}>
@@ -719,18 +684,18 @@ export function MarksEntryView() {
         </div>
 
         <div className="w-full sm:w-32">
-          <label className="block text-xs text-muted-foreground mb-1">
-            {pick('শাখা', 'Section')}
+          <label className="block text-sm text-muted-foreground mb-1">
+            {'শাখা'}
           </label>
           <Select
             value={sectionFilter}
             onChange={(e) => setSectionFilter(e.target.value)}
             className="h-9 text-sm"
           >
-            <option value="ALL">{pick('সকল শাখা', 'All')}</option>
+            <option value="ALL">{'সকল শাখা'}</option>
             {classSections.map((s) => (
               <option key={s.id} value={s.id}>
-                {pick('শাখা', 'Sec')} {s.name}
+                {'শাখা'} {s.name}
               </option>
             ))}
           </Select>
@@ -741,7 +706,7 @@ export function MarksEntryView() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={pick('রোল বা নাম...', 'Roll/name...')}
+            placeholder={'রোল বা নাম...'}
             className="pl-9 h-9 text-sm"
           />
         </div>
@@ -755,25 +720,22 @@ export function MarksEntryView() {
             <div>
               <p className="font-semibold text-foreground">
                 {activeExam.resultStatus === ResultPublicationStatus.PUBLISHED
-                  ? pick('ফলাফল ইতিমধ্যে প্রকাশিত হয়েছে (শুধুমাত্র দেখার মোড)', 'Results already published (Read-only mode)')
+                  ? 'ফলাফল ইতিমধ্যে প্রকাশিত হয়েছে (শুধুমাত্র দেখার মোড)'
                   : activeExam.isLocked
-                    ? pick('পরীক্ষাটি লক করা আছে (শুধুমাত্র দেখার মোড)', 'Exam is locked (Read-only mode)')
-                    : pick(
-                        `শিক্ষকদের নম্বর এন্ট্রির সময়সীমা অতিক্রান্ত হয়েছে (${formatDateShort(activeExam.marksEntryDeadline!, locale)}) — অ্যাডমিন এন্ট্রি করতে পারবেন`,
-                        `Teacher marks deadline expired (${formatDateShort(activeExam.marksEntryDeadline!, locale)}) — Admin can still edit`
-                      )}
+                    ? 'পরীক্ষাটি লক করা আছে (শুধুমাত্র দেখার মোড)'
+                    : `শিক্ষকদের নম্বর এন্ট্রির সময়সীমা অতিক্রান্ত হয়েছে (${formatDateShort(activeExam.marksEntryDeadline!, 'bn')}) — অ্যাডমিন এন্ট্রি করতে পারবেন`}
               </p>
             </div>
           </div>
           {activeExam.resultStatus !== ResultPublicationStatus.PUBLISHED ? (
             <Button variant="outline" size="sm" onClick={handleQuickUnlock} disabled={unlocking}>
               <Unlock className="w-3.5 h-3.5" />
-              {pick('আনলক ও ৭ দিন সময় বাড়ান', 'Unlock & Extend 7 Days')}
+              {'আনলক ও ৭ দিন সময় বাড়ান'}
             </Button>
           ) : (
             <Link href="/admin/examinations/results">
               <Button variant="outline" size="sm">
-                {pick('ফলাফল প্যানেল', 'Open Results Panel')}
+                {'ফলাফল প্যানেল'}
               </Button>
             </Link>
           )}
@@ -785,32 +747,30 @@ export function MarksEntryView() {
         <LoadingSkeleton rows={6} />
       ) : !activeExamSubject ? (
         <EmptyState
-          title={pick('কোনো বিষয় কনফিগার করা নেই', 'No exam subjects configured')}
-          description={pick('আগে পরীক্ষা ও বিষয় পেজ থেকে বিষয় যুক্ত করুন।', 'Add subjects in Exams & Subjects first.')}
+          title={'কোনো বিষয় কনফিগার করা নেই'}
+          description={'আগে পরীক্ষা ও বিষয় পেজ থেকে বিষয় যুক্ত করুন।'}
         />
       ) : targetStudents.length === 0 ? (
         <EmptyState
-          title={pick('কোনো শিক্ষার্থী পাওয়া যায়নি', 'No matching students')}
-          description={pick('অনুসন্ধান বা শাখা ফিল্টার পরিবর্তন করুন।', 'Adjust your section filter or search query.')}
+          title={'কোনো শিক্ষার্থী পাওয়া যায়নি'}
+          description={'অনুসন্ধান বা শাখা ফিল্টার পরিবর্তন করুন।'}
         />
       ) : (
         <Card className="overflow-hidden">
-          <div className="px-4 py-3 border-b border-border bg-surface-muted/50 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div className="px-4 py-3 border-b border-border bg-surface-muted/50 flex flex-wrap items-center justify-between gap-2 text-sm">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <strong className="text-sm text-foreground">
-                {locale === 'bn'
-                  ? activeSubjectInfo?.nameBn || activeSubjectInfo?.name || gsSubject?.subjectName
-                  : activeSubjectInfo?.name || gsSubject?.subjectName}
+                {activeSubjectInfo?.nameBn || activeSubjectInfo?.name || gsSubject?.subjectName}
                 {showSubjectCode && activeSubjectInfo?.officialCode
                   ? ` (${activeSubjectInfo.officialCode})`
                   : ''}
               </strong>
               <span className="text-muted-foreground">
-                {pick('পূর্ণমান:', 'Full:')} <strong>{formatNumber(activeExamSubject.fullMarks, locale)}</strong> ·{' '}
-                {pick('পাশ:', 'Pass:')} <strong>{formatNumber(activeExamSubject.passMarks, locale)}</strong>
+                {'পূর্ণমান:'} <strong>{formatNumber(activeExamSubject.fullMarks, 'bn')}</strong> ·{' '}
+                {'পাশ:'} <strong>{formatNumber(activeExamSubject.passMarks, 'bn')}</strong>
               </span>
               {activeExamSubject.isOptional && (
-                <span className="font-semibold text-primary">{pick('৪র্থ / ঐচ্ছিক বিষয়', '4th / Optional')}</span>
+                <span className="font-semibold text-primary">{'৪র্থ / ঐচ্ছিক বিষয়'}</span>
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -825,16 +785,13 @@ export function MarksEntryView() {
                       onClick={() => handleBulkLock(true)}
                       title={
                         !canLockMarks && activeExam?.marksEntryDeadline
-                          ? pick(
-                              `শেষ তারিখ (${formatDateShort(activeExam.marksEntryDeadline, 'bn')}) পার হলে লক করা যাবে`,
-                              `Available after deadline (${formatDateShort(activeExam.marksEntryDeadline, 'en')})`
-                            )
-                          : pick('সব নম্বর লক করুন', 'Lock all entered marks')
+                          ? `শেষ তারিখ (${formatDateShort(activeExam.marksEntryDeadline, 'bn')}) পার হলে লক করা যাবে`
+                          : 'সব নম্বর লক করুন'
                       }
-                      className="h-7 px-2.5 text-xs"
+                      className="h-7 px-2.5 text-sm"
                     >
                       <Lock className="w-3 h-3 mr-1" />
-                      {pick('সব লক করুন', 'Lock All')}
+                      {'সব লক করুন'}
                     </Button>
                   )}
                   {targetStudents.some((s) => s.mark?.isLocked) && (
@@ -844,10 +801,10 @@ export function MarksEntryView() {
                       size="sm"
                       disabled={bulkLocking}
                       onClick={() => handleBulkLock(false)}
-                      className="h-7 px-2.5 text-xs"
+                      className="h-7 px-2.5 text-sm"
                     >
                       <Unlock className="w-3 h-3 mr-1" />
-                      {pick('সব আনলক করুন', 'Unlock All')}
+                      {'সব আনলক করুন'}
                     </Button>
                   )}
                 </>
@@ -862,53 +819,53 @@ export function MarksEntryView() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[760px] text-base">
               <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-sm font-semibold">
                 <tr>
-                  <th className="px-3 py-3 text-center w-16">{pick('রোল', 'Roll')}</th>
-                  <th className="px-3 py-3 text-left min-w-[170px]">{pick('শিক্ষার্থীর নাম', 'Student Name')}</th>
-                  <th className="px-3 py-3 text-center w-20">{pick('শাখা', 'Section')}</th>
-                  <th className="px-3 py-3 text-left min-w-[140px]">{pick('নম্বর প্রদানকারী', 'Entered By')}</th>
-                  <th className="px-2.5 py-3 text-center w-20">{pick('অনুপস্থিত', 'Absent')}</th>
+                  <th className="px-3 py-3 text-center w-16">{'রোল'}</th>
+                  <th className="px-3 py-3 text-left min-w-[170px]">{'শিক্ষার্থীর নাম'}</th>
+                  <th className="px-3 py-3 text-center w-20">{'শাখা'}</th>
+                  <th className="px-3 py-3 text-left min-w-[140px]">{'নম্বর প্রদানকারী'}</th>
+                  <th className="px-2.5 py-3 text-center w-20">{'অনুপস্থিত'}</th>
                   {activeExamSubject.hasWritten && (
                     <th className="px-2.5 py-3 text-right w-28">
-                      <div>{pick('লিখিত', 'Written')}</div>
-                      <div className="text-xs font-medium text-primary">
-                        {formatNumber(activeExamSubject.writtenFullMarks ?? 0, locale)} ({pick('পাশ', 'Pass')}{' '}
-                        {formatNumber(activeExamSubject.writtenPassMarks ?? 0, locale)})
+                      <div>{'লিখিত'}</div>
+                      <div className="text-sm font-medium text-primary">
+                        {formatNumber(activeExamSubject.writtenFullMarks ?? 0, 'bn')} ({'পাশ'}{' '}
+                        {formatNumber(activeExamSubject.writtenPassMarks ?? 0, 'bn')})
                       </div>
                     </th>
                   )}
                   {activeExamSubject.hasMcq && (
                     <th className="px-2.5 py-3 text-right w-28">
                       <div>MCQ</div>
-                      <div className="text-xs font-medium text-primary">
-                        {formatNumber(activeExamSubject.mcqFullMarks ?? 0, locale)} ({pick('পাশ', 'Pass')}{' '}
-                        {formatNumber(activeExamSubject.mcqPassMarks ?? 0, locale)})
+                      <div className="text-sm font-medium text-primary">
+                        {formatNumber(activeExamSubject.mcqFullMarks ?? 0, 'bn')} ({'পাশ'}{' '}
+                        {formatNumber(activeExamSubject.mcqPassMarks ?? 0, 'bn')})
                       </div>
                     </th>
                   )}
                   {activeExamSubject.hasPractical && (
                     <th className="px-2.5 py-3 text-right w-28">
-                      <div>{pick('ব্যবহারিক', 'Practical')}</div>
-                      <div className="text-xs font-medium text-primary">
-                        {formatNumber(activeExamSubject.practicalFullMarks ?? 0, locale)} ({pick('পাশ', 'Pass')}{' '}
-                        {formatNumber(activeExamSubject.practicalPassMarks ?? 0, locale)})
+                      <div>{'ব্যবহারিক'}</div>
+                      <div className="text-sm font-medium text-primary">
+                        {formatNumber(activeExamSubject.practicalFullMarks ?? 0, 'bn')} ({'পাশ'}{' '}
+                        {formatNumber(activeExamSubject.practicalPassMarks ?? 0, 'bn')})
                       </div>
                     </th>
                   )}
                   {activeExamSubject.hasContinuousAssessment && (
                     <th className="px-2.5 py-3 text-right w-28">
-                      <div>{pick('ধারাবাহিক (CA)', 'CA')}</div>
-                      <div className="text-xs font-medium text-primary">
-                        {formatNumber(activeExamSubject.continuousAssessmentFullMarks ?? 0, locale)} ({pick('পাশ', 'Pass')}{' '}
-                        {formatNumber(activeExamSubject.continuousAssessmentPassMarks ?? 0, locale)})
+                      <div>{'ধারাবাহিক (CA)'}</div>
+                      <div className="text-sm font-medium text-primary">
+                        {formatNumber(activeExamSubject.continuousAssessmentFullMarks ?? 0, 'bn')} ({'পাশ'}{' '}
+                        {formatNumber(activeExamSubject.continuousAssessmentPassMarks ?? 0, 'bn')})
                       </div>
                     </th>
                   )}
-                  <th className="px-3 py-3 text-right w-20">{pick('মোট', 'Total')}</th>
-                  <th className="px-3 py-3 text-center w-32">{pick('গ্রেড', 'Grade')}</th>
-                  <th className="px-3 py-3 text-center w-20">{pick('লক', 'Lock')}</th>
+                  <th className="px-3 py-3 text-right w-20">{'মোট'}</th>
+                  <th className="px-3 py-3 text-center w-32">{'গ্রেড'}</th>
+                  <th className="px-3 py-3 text-center w-20">{'লক'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -941,7 +898,7 @@ export function MarksEntryView() {
                     activeExamSubject,
                     scaleRanges
                   );
-                  const reasonText = hasEntered ? failReasonLabel(evalRes.failReason, locale) : null;
+                  const reasonText = hasEntered ? failReasonLabel(evalRes.failReason, 'bn') : null;
 
                   const updateField = (patch: Partial<DraftMarkRow>) => {
                     setDrafts((prev) => ({
@@ -956,17 +913,17 @@ export function MarksEntryView() {
                       className={`${isDirty ? 'bg-primary/5' : 'hover:bg-surface-muted/40'} transition-colors`}
                     >
                       <td className="px-3 py-2.5 text-center font-semibold">
-                        {formatNumber(stu.roll, locale)}
+                        {formatNumber(stu.roll, 'bn')}
                       </td>
                       <td className="px-3 py-2.5 font-medium text-foreground">
-                        {locale === 'bn' ? stu.nameBn || stu.name : stu.name}
+                        {stu.nameBn || stu.name}
                       </td>
                       <td className="px-3 py-2.5 text-center">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-surface-muted text-foreground border border-border">
                           {stu.section}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5 text-left text-xs sm:text-sm text-muted-foreground">
+                      <td className="px-3 py-2.5 text-left text-sm text-muted-foreground">
                         {stu.mark?.enteredBy ? (
                           <span className="font-medium text-foreground">{stu.mark.enteredBy}</span>
                         ) : (
@@ -984,7 +941,7 @@ export function MarksEntryView() {
                       </td>
                       {activeExamSubject.hasWritten && (
                         <td className="px-2.5 py-2 text-right">
-                          <input
+                          <input placeholder="তথ্য লিখুন"
                             type="text"
                             inputMode="decimal"
                             disabled={rowDisabled || row.isAbsent}
@@ -1005,7 +962,7 @@ export function MarksEntryView() {
                       )}
                       {activeExamSubject.hasMcq && (
                         <td className="px-2.5 py-2 text-right">
-                          <input
+                          <input placeholder="তথ্য লিখুন"
                             type="text"
                             inputMode="decimal"
                             disabled={rowDisabled || row.isAbsent}
@@ -1026,7 +983,7 @@ export function MarksEntryView() {
                       )}
                       {activeExamSubject.hasPractical && (
                         <td className="px-2.5 py-2 text-right">
-                          <input
+                          <input placeholder="তথ্য লিখুন"
                             type="text"
                             inputMode="decimal"
                             disabled={rowDisabled || row.isAbsent}
@@ -1047,7 +1004,7 @@ export function MarksEntryView() {
                       )}
                       {activeExamSubject.hasContinuousAssessment && (
                         <td className="px-2.5 py-2 text-right">
-                          <input
+                          <input placeholder="তথ্য লিখুন"
                             type="text"
                             inputMode="decimal"
                             disabled={rowDisabled || row.isAbsent}
@@ -1071,7 +1028,7 @@ export function MarksEntryView() {
                           ? '—'
                           : row.isAbsent
                             ? '0'
-                            : formatNumber(evalRes.totalMarks, locale)}
+                            : formatNumber(evalRes.totalMarks, 'bn')}
                       </td>
                       <td className="px-3 py-2 text-center">
                         {!hasEntered ? (
@@ -1087,10 +1044,10 @@ export function MarksEntryView() {
                             >
                               {row.isAbsent
                                 ? 'F (0.00)'
-                                : `${evalRes.letterGrade} (${formatNumber(evalRes.gradePoint, locale, 2)})`}
+                                : `${evalRes.letterGrade} (${formatNumber(evalRes.gradePoint, 'bn', 2)})`}
                             </span>
                             {reasonText && (
-                              <span className="block text-xs text-destructive font-medium">
+                              <span className="block text-sm text-destructive font-medium">
                                 {reasonText}
                               </span>
                             )}
@@ -1105,13 +1062,10 @@ export function MarksEntryView() {
                             onClick={() => handleToggleStudentLock(stu)}
                             title={
                               !rowLocked && !canLockMarks && activeExam?.marksEntryDeadline
-                                ? pick(
-                                    `শেষ তারিখ (${formatDateShort(activeExam.marksEntryDeadline, 'bn')}) পার হলে লক করা যাবে`,
-                                    `Lock available after deadline (${formatDateShort(activeExam.marksEntryDeadline, 'en')})`
-                                  )
+                                ? `শেষ তারিখ (${formatDateShort(activeExam.marksEntryDeadline, 'bn')}) পার হলে লক করা যাবে`
                                 : rowLocked
-                                  ? pick('আনলক করুন', 'Unlock mark')
-                                  : pick('লক করুন', 'Lock mark')
+                                  ? 'আনলক করুন'
+                                  : 'লক করুন'
                             }
                             className={`p-1.5 rounded border transition-colors cursor-pointer disabled:opacity-40 ${
                               rowLocked
@@ -1126,7 +1080,7 @@ export function MarksEntryView() {
                             )}
                           </button>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-sm text-muted-foreground">—</span>
                         )}
                       </td>
                     </tr>
@@ -1142,12 +1096,9 @@ export function MarksEntryView() {
         open={Boolean(pendingSwitch)}
         onClose={() => setPendingSwitch(null)}
         onConfirm={confirmSwitch}
-        title={pick('অসংরক্ষিত পরিবর্তন রয়েছে', 'Unsaved Marks Detected')}
-        description={pick(
-          `আপনার ${formatNumber(dirtyCount, locale)} জন শিক্ষার্থীর নম্বর এখনো সংরক্ষণ করা হয়নি। এগিয়ে গেলে পরিবর্তনগুলো হারিয়ে যাবে।`,
-          `You have unsaved marks for ${dirtyCount} student(s). Switching now will discard those edits.`
-        )}
-        confirmLabel={pick('পরিবর্তন বাদ দিয়ে এগিয়ে যান', 'Discard & Switch')}
+        title={'অসংরক্ষিত পরিবর্তন রয়েছে'}
+        description={`আপনার ${formatNumber(dirtyCount, 'bn')} জন শিক্ষার্থীর নম্বর এখনো সংরক্ষণ করা হয়নি। এগিয়ে গেলে পরিবর্তনগুলো হারিয়ে যাবে।`}
+        confirmLabel={'পরিবর্তন বাদ দিয়ে এগিয়ে যান'}
         destructive
       />
     </div>

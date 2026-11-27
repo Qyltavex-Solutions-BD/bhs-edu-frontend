@@ -27,7 +27,6 @@ import {
   Users,
 } from 'lucide-react';
 import { useGetBootstrapQuery } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateLong, formatNumber, formatTime12h } from '@/src/lib/formatters';
 import {
   EmptyState,
@@ -56,7 +55,7 @@ import type { SyllabusExamTerm, SyllabusFile } from '@/src/types/entities';
 function getWeekdayLabel(dateStr: string, locale: 'bn' | 'en'): string {
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     weekday: 'long',
   }).format(d);
 }
@@ -65,7 +64,7 @@ function getMonthLabel(yearMonth: string, locale: 'bn' | 'en'): string {
   const [y, m] = yearMonth.split('-').map(Number);
   if (!y || !m) return yearMonth;
   const d = new Date(y, m - 1, 1);
-  return new Intl.DateTimeFormat(locale === 'bn' ? 'bn-BD' : 'en-US', {
+  return new Intl.DateTimeFormat('bn-BD', {
     month: 'long',
   }).format(d);
 }
@@ -211,7 +210,6 @@ const STRUCTURED_DOC_SECTIONS: Record<AcademicDocumentType, StructuredDocSection
 
 export function PublicResourcesPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
-  const { locale, pick } = useI18n();
   const [classFilter, setClassFilter] = useState('ALL');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [search, setSearch] = useState('');
@@ -235,17 +233,14 @@ export function PublicResourcesPage() {
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-10 space-y-10">
       <PageHeader
-        title={pick('ডিজিটাল শিক্ষা রিসোর্স ও স্মার্ট ক্লাসরুম', 'Digital Education Resources & Smart Classrooms')}
-        description={pick(
-          'বিদ্যালয়ের মাল্টিমিডিয়া স্মার্ট শ্রেণিকক্ষ, আইসিটি ল্যাব এবং শ্রেণিভিত্তিক ডিজিটাল পাঠসামগ্রী।',
-          'Explore our multimedia smart classrooms, ICT laboratory, and curated class-wise digital lessons.'
-        )}
+        title={'ডিজিটাল শিক্ষা রিসোর্স ও স্মার্ট ক্লাসরুম'}
+        description={'বিদ্যালয়ের মাল্টিমিডিয়া স্মার্ট শ্রেণিকক্ষ, আইসিটি ল্যাব এবং শ্রেণিভিত্তিক ডিজিটাল পাঠসামগ্রী।'}
       />
 
       {/* Smart Classrooms & ICT Lab Showcase (Previously unused seed data!) */}
       <section className="space-y-4">
         <h2 className="text-xl font-bold text-foreground">
-          {pick('স্মার্ট ক্লাসরুম ও ডিজিটাল ল্যাব সুবিধাসমূহ', 'Smart Classrooms & ICT Facilities')}
+          {'স্মার্ট ক্লাসরুম ও ডিজিটাল ল্যাব সুবিধাসমূহ'}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {db.digitalClassrooms
@@ -262,7 +257,7 @@ export function PublicResourcesPage() {
                     <p className="text-sm text-muted-foreground leading-relaxed">{dc.description}</p>
                   </div>
                   {dc.location && (
-                    <p className="text-xs font-medium text-primary flex items-center gap-1.5 pt-2 border-t border-border">
+                    <p className="text-sm font-medium text-primary flex items-center gap-1.5 pt-2 border-t border-border">
                       <MapPin className="w-3.5 h-3.5 shrink-0" />
                       <span>{dc.location}</span>
                     </p>
@@ -278,13 +273,10 @@ export function PublicResourcesPage() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
           <div>
             <h2 className="text-xl font-bold text-foreground">
-              {pick('শ্রেণিভিত্তিক ডিজিটাল পাঠ ও ভিডিও লেকচার', 'Class-wise Digital Lessons & Videos')}
+              {'শ্রেণিভিত্তিক ডিজিটাল পাঠ ও ভিডিও লেকচার'}
             </h2>
             <p className="text-sm text-muted-foreground mt-0.5 tabular-nums">
-              {pick(
-                `প্রদর্শিত হচ্ছে ${formatNumber(list.length, 'bn')} / ${formatNumber(published.length, 'bn')}টি রিসোর্স`,
-                `Showing ${list.length} of ${published.length} resources`
-              )}
+              {`প্রদর্শিত হচ্ছে ${formatNumber(list.length, 'bn')} / ${formatNumber(published.length, 'bn')}টি রিসোর্স`}
             </p>
           </div>
         </div>
@@ -296,15 +288,15 @@ export function PublicResourcesPage() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={pick('পাঠের শিরোনাম বা বিষয় খুঁজুন...', 'Search lesson title or topic...')}
+                placeholder={'পাঠের শিরোনাম বা বিষয় খুঁজুন...'}
                 className="pl-9"
               />
             </div>
             <div className="md:col-span-4">
               <Select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
-                <option value="ALL">{pick('সকল শ্রেণি', 'All Classes')}</option>
+                <option value="ALL">{'সকল শ্রেণি'}</option>
                 {db.classes.map((c) => (
-                  <option key={c.id} value={c.id}>{locale === 'bn' ? c.nameBn : c.name}</option>
+                  <option key={c.id} value={c.id}>{c.nameBn}</option>
                 ))}
               </Select>
             </div>
@@ -318,7 +310,7 @@ export function PublicResourcesPage() {
               onClick={() => setTypeFilter('ALL')}
               className="whitespace-nowrap"
             >
-              {pick('সকল ধরন', 'All Types')}
+              {'সকল ধরন'}
             </Button>
             {resourceTypes.map((rt) => (
               <Button
@@ -337,8 +329,8 @@ export function PublicResourcesPage() {
 
         {list.length === 0 ? (
           <EmptyState
-            title={pick('কোনো ডিজিটাল রিসোর্স পাওয়া যায়নি', 'No Digital Resources Found')}
-            description={pick('শ্রেণি বা রিসোর্সের ধরন পরিবর্তন করে আবার চেষ্টা করুন।', 'Try resetting class or type filters.')}
+            title={'কোনো ডিজিটাল রিসোর্স পাওয়া যায়নি'}
+            description={'শ্রেণি বা রিসোর্সের ধরন পরিবর্তন করে আবার চেষ্টা করুন।'}
             action={
               <Button
                 variant="outline"
@@ -349,7 +341,7 @@ export function PublicResourcesPage() {
                   setSearch('');
                 }}
               >
-                <RotateCcw className="w-4 h-4" /> {pick('ফিল্টার রিসেট করুন', 'Reset Filters')}
+                <RotateCcw className="w-4 h-4" /> {'ফিল্টার রিসেট করুন'}
               </Button>
             }
           />
@@ -363,8 +355,8 @@ export function PublicResourcesPage() {
                   <div className="space-y-2.5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <StatusBadge enumName="ResourceType" value={res.resourceType} />
-                      <span className="text-xs font-medium text-muted-foreground">
-                        {locale === 'bn' ? cls?.nameBn : cls?.name} · {locale === 'bn' ? sub?.nameBn : sub?.name}
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {cls?.nameBn} · {sub?.nameBn}
                       </span>
                     </div>
                     <h3 className="text-base font-bold text-foreground flex items-start gap-2 leading-snug">
@@ -376,8 +368,8 @@ export function PublicResourcesPage() {
                     )}
                   </div>
                   <div className="pt-3 border-t border-border flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {pick('শিক্ষা বাতায়ন / মুক্তপাঠ', 'National Portal Resource')}
+                    <span className="text-sm text-muted-foreground">
+                      {'শিক্ষা বাতায়ন / মুক্তপাঠ'}
                     </span>
                     <a
                       href={res.url}
@@ -385,7 +377,7 @@ export function PublicResourcesPage() {
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline whitespace-nowrap"
                     >
-                      {pick('রিসোর্স খুলুন', 'Open Resource')} <ExternalLink className="w-4 h-4" />
+                      {'রিসোর্স খুলুন'} <ExternalLink className="w-4 h-4" />
                     </a>
                   </div>
                 </Card>

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Maximize2, X } from 'lucide-react';
 import type { Gallery, GalleryMedia } from '@/src/types/entities';
-import { useI18n } from '@/src/lib/i18n';
 import { getCampusPhoto, InstitutionalArtwork } from '@/src/components/shared/Feedback';
 import { cn } from '@/src/lib/utils/cn';
 
@@ -20,7 +19,6 @@ export function HomeCampusLifeSection({
   galleries,
   galleryMedia,
 }: HomeCampusLifeSectionProps) {
-  const { pick } = useI18n();
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   const galleryShowcase = useMemo(() => {
@@ -46,7 +44,7 @@ export function HomeCampusLifeSection({
       combined.push({
         id: gal.id,
         title: gal.title,
-        category: gal.category ?? pick('ক্যাম্পাস', 'Campus'),
+        category: gal.category ?? 'ক্যাম্পাস',
         variant: cover.mediaUrl,
         to: `/gallery/${gal.id}`,
       });
@@ -65,7 +63,7 @@ export function HomeCampusLifeSection({
           combined.push({
             id: media.id,
             title: media.caption || gal.title,
-            category: gal.category ?? pick('ক্যাম্পাস', 'Campus'),
+            category: gal.category ?? 'ক্যাম্পাস',
             variant: media.mediaUrl,
             to: `/gallery/${gal.id}`,
           });
@@ -76,29 +74,29 @@ export function HomeCampusLifeSection({
     const extraVisuals = [
       {
         id: 'vis-classroom',
-        title: pick('মাল্টিমিডিয়া স্মার্ট শ্রেণিকক্ষ', 'Multimedia Smart Classroom'),
-        category: pick('ডিজিটাল শিক্ষা', 'Digital Learning'),
+        title: 'মাল্টিমিডিয়া স্মার্ট শ্রেণিকক্ষ',
+        category: 'ডিজিটাল শিক্ষা',
         variant: 'digital-classroom',
         to: '/about/facilities',
       },
       {
         id: 'vis-lab',
-        title: pick('বিজ্ঞান ও আইসিটি গবেষণাগার', 'Science & ICT Laboratory'),
-        category: pick('গবেষণাগার', 'Laboratory'),
+        title: 'বিজ্ঞান ও আইসিটি গবেষণাগার',
+        category: 'গবেষণাগার',
         variant: 'science-lab',
         to: '/about/facilities',
       },
       {
         id: 'vis-library',
-        title: pick('বিদ্যালয় পাঠাগার', 'School Reading Library'),
-        category: pick('পাঠাগার', 'Library'),
+        title: 'বিদ্যালয় পাঠাগার',
+        category: 'পাঠাগার',
         variant: 'library-room',
         to: '/academics/library',
       },
       {
         id: 'vis-sports',
-        title: pick('বার্ষিক ক্রীড়া ও খেলার মাঠ', 'Annual Sports & Playground'),
-        category: pick('সহশিক্ষা', 'Co-Curricular'),
+        title: 'বার্ষিক ক্রীড়া ও খেলার মাঠ',
+        category: 'সহশিক্ষা',
         variant: 'sports-day',
         to: '/gallery',
       },
@@ -112,7 +110,7 @@ export function HomeCampusLifeSection({
       }
     }
     return combined;
-  }, [galleries, galleryMedia, pick]);
+  }, [galleries, galleryMedia]);
 
   return (
     <>
@@ -126,21 +124,18 @@ export function HomeCampusLifeSection({
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-              {pick('ক্যাম্পাস অবকাঠামো ও ফটো গ্যালারি', 'Campus Facilities & Visual Gallery')}
+              {'ক্যাম্পাস অবকাঠামো ও ফটো গ্যালারি'}
             </h2>
             <p className="text-base text-muted-foreground mt-1">
-              {pick(
-                'ঐতিহ্যবাহী ভবন, স্মার্ট শ্রেণিকক্ষ, বিজ্ঞান গবেষণাগার, পাঠাগার ও খেলার মাঠ।',
-                'Heritage building, smart classrooms, science labs, reading library, and athletic field.'
-              )}
+              {'ঐতিহ্যবাহী ভবন, স্মার্ট শ্রেণিকক্ষ, বিজ্ঞান গবেষণাগার, পাঠাগার ও খেলার মাঠ।'}
             </p>
           </div>
           <div className="flex items-center gap-4 text-sm font-semibold">
             <Link href="/about/facilities" className="text-primary hover:underline">
-              {pick('সব সুবিধা', 'All Facilities')}
+              {'সব সুবিধা'}
             </Link>
             <Link href="/gallery" className="text-primary hover:underline">
-              {pick('সম্পূর্ণ গ্যালারি', 'Full Gallery')}
+              {'সম্পূর্ণ গ্যালারি'}
             </Link>
           </div>
         </div>

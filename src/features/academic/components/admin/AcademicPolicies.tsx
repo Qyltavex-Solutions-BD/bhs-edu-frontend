@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { useRemoveAcademicDocumentMutation, useSaveAcademicDocumentMutation } from '@/src/store/api';
-import { useI18n } from '@/src/lib/i18n';
 import { Button, FormField, Input, Modal, Select, Textarea } from '@/src/components/ui/primitives';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import type { AcademicDocument } from '@/src/types/entities';
@@ -33,7 +32,6 @@ const TYPE_LABEL: Record<AcademicDocumentType, [string, string]> = {
 };
 
 export function AcademicPolicies({ db }: { db: MockDatabase }) {
-  const { pick } = useI18n();
   const [saveDocument, { isLoading: saving }] = useSaveAcademicDocumentMutation();
   const [removeDocument, { isLoading: removing }] = useRemoveAcademicDocumentMutation();
   const [form, setForm] = useState(EMPTY);
@@ -60,11 +58,11 @@ export function AcademicPolicies({ db }: { db: MockDatabase }) {
         description: form.description.trim() || null,
         isPublished: form.isPublished,
       }).unwrap();
-      toast.success(form.id ? pick('নীতিমালা আপডেট হয়েছে।', 'Policy updated.') : pick('নীতিমালা প্রকাশ হয়েছে।', 'Policy published.'));
+      toast.success(form.id ? 'নীতিমালা আপডেট হয়েছে।' : 'নীতিমালা প্রকাশ হয়েছে।');
       setForm(EMPTY);
       setOpen(false);
     } catch (err) {
-      toast.error(errorMessage(err, pick('নীতিমালা সংরক্ষণ হয়নি।', 'Could not save the policy.')));
+      toast.error(errorMessage(err, 'নীতিমালা সংরক্ষণ হয়নি।'));
     }
   };
 
@@ -72,9 +70,9 @@ export function AcademicPolicies({ db }: { db: MockDatabase }) {
     try {
       await removeDocument({ id }).unwrap();
       if (form.id === id) setForm(EMPTY);
-      toast.success(pick('নীতিমালা মুছে ফেলা হয়েছে।', 'Policy removed.'));
+      toast.success('নীতিমালা মুছে ফেলা হয়েছে।');
     } catch (err) {
-      toast.error(errorMessage(err, pick('নীতিমালা মোছা যায়নি।', 'Could not remove the policy.')));
+      toast.error(errorMessage(err, 'নীতিমালা মোছা যায়নি।'));
     }
   };
 
@@ -89,31 +87,31 @@ export function AcademicPolicies({ db }: { db: MockDatabase }) {
             setOpen(true);
           }}
         >
-          {pick('নীতিমালা যোগ', 'Add policy')}
+          {'নীতিমালা যোগ'}
         </Button>
       </div>
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        title={form.id ? pick('নীতিমালা সম্পাদনা', 'Edit policy') : pick('নীতিমালা যোগ', 'Add policy')}
-        description={pick('প্রকাশিত হলে পাবলিক সিলেবাস পাতায় দেখা যায়।', 'Published policies appear on the public syllabus page.')}
+        title={form.id ? 'নীতিমালা সম্পাদনা' : 'নীতিমালা যোগ'}
+        description={'প্রকাশিত হলে পাবলিক সিলেবাস পাতায় দেখা যায়।'}
       >
       <form onSubmit={onSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
-        <FormField label={pick('ধরন', 'Type')}>
+        <FormField label={'ধরন'}>
           <Select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value as AcademicDocumentType })}>
             {Object.values(AcademicDocumentType).map((type) => (
               <option key={type} value={type}>
-                {pick(TYPE_LABEL[type][0], TYPE_LABEL[type][1])}
+                {TYPE_LABEL[type][0]}
               </option>
             ))}
           </Select>
         </FormField>
-        <FormField label={pick('শিরোনাম', 'Title')}>
-          <Input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required />
+        <FormField label={'শিরোনাম'}>
+          <Input placeholder="শিরোনাম লিখুন" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} required />
         </FormField>
         <div className="sm:col-span-2">
-          <FormField label={pick('সারাংশ', 'Summary')}>
-            <Textarea rows={2} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
+          <FormField label={'সারাংশ'}>
+            <Textarea placeholder="সারাংশ লিখুন..." rows={2} value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
           </FormField>
         </div>
         <label className="flex items-center gap-2 text-sm">
@@ -122,15 +120,15 @@ export function AcademicPolicies({ db }: { db: MockDatabase }) {
             checked={form.isPublished}
             onChange={(event) => setForm({ ...form, isPublished: event.target.checked })}
           />
-          {pick('পাবলিক পাতায় প্রকাশ', 'Publish on the public page')}
+          {'পাবলিক পাতায় প্রকাশ'}
         </label>
         <div className="flex gap-2">
           <Button type="submit" variant="primary" disabled={saving}>
-            {form.id ? pick('আপডেট', 'Update') : pick('যোগ করুন', 'Add')}
+            {form.id ? 'আপডেট' : 'যোগ করুন'}
           </Button>
           {form.id && (
             <Button type="button" variant="outline" onClick={() => setForm(EMPTY)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
           )}
         </div>
@@ -142,16 +140,16 @@ export function AcademicPolicies({ db }: { db: MockDatabase }) {
             <div className="space-y-1">
               <StatusBadge enumName="AcademicDocumentType" value={doc.type} />
               <p className="text-sm font-semibold">{doc.title}</p>
-              <p className="text-xs text-muted-foreground">
-                {doc.isPublished ? pick('প্রকাশিত', 'Published') : pick('অপ্রকাশিত', 'Unpublished')}
+              <p className="text-sm text-muted-foreground">
+                {doc.isPublished ? 'প্রকাশিত' : 'অপ্রকাশিত'}
               </p>
             </div>
             <div className="flex gap-1">
               <Button type="button" variant="ghost" size="sm" onClick={() => fill(doc)}>
-                {pick('সম্পাদনা', 'Edit')}
+                {'সম্পাদনা'}
               </Button>
               <Button type="button" variant="ghost" size="sm" disabled={removing} onClick={() => onRemove(doc.id)}>
-                {pick('মুছুন', 'Remove')}
+                {'মুছুন'}
               </Button>
             </div>
           </div>

@@ -7,7 +7,6 @@ import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -57,7 +56,6 @@ function useCurrentStudent(db: MockDatabase | undefined) {
 export function StudentResultsPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const me = useCurrentStudent(db);
-  const { locale, pick } = useI18n();
   if (isLoading || !db || !me || !me.enrollment) return <LoadingSkeleton />;
 
   const summaries = db.resultSummaries.filter((r) => {
@@ -70,7 +68,7 @@ export function StudentResultsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={pick('আমার প্রকাশিত ফলাফল', 'My Published Results')} />
+      <PageHeader title={'আমার প্রকাশিত ফলাফল'} />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {summaries.map((s) => {
           const ex = db.exams.find((e) => e.id === s.examId);
@@ -79,13 +77,13 @@ export function StudentResultsPage() {
               <div>
                 <h3 className="text-base font-bold">{ex?.name}</h3>
                 <p className="text-sm text-muted-foreground mt-1 tabular-nums">
-                  GPA: {s.gpa ? formatNumber(s.gpa, locale, 2) : '—'} · {pick('গ্রেড:', 'Grade:')}{' '}
+                  GPA: {s.gpa ? formatNumber(s.gpa, 'bn', 2) : '—'} · {'গ্রেড:'}{' '}
                   {s.letterGrade ?? '—'}
                 </p>
               </div>
               <Link href={`/student/results/${s.id}`}>
                 <Button variant="primary" size="sm">
-                  {pick('মার্কশিট', 'Marksheet')}
+                  {'মার্কশিট'}
                 </Button>
               </Link>
             </Card>

@@ -12,9 +12,6 @@ interface PublicHeaderProps {
   isHome: boolean;
   isAtHeroTop: boolean;
   school?: SchoolProfile;
-  locale: string;
-  pick: (bn: string, en: string) => string;
-  t: (key: string) => string;
   pathname: string;
   openDropdown: string | null;
   onOpenDropdown: (id: string) => void;
@@ -33,9 +30,9 @@ export function PublicHeader({
   isHome,
   isAtHeroTop,
   school,
-  locale,
-  pick,
-  t,
+  
+  
+  
   pathname,
   openDropdown,
   onOpenDropdown,
@@ -89,16 +86,14 @@ export function PublicHeader({
           />
           <div className="min-w-0 leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]">
             <span className="block font-bold text-sm sm:text-base text-white tracking-tight whitespace-nowrap truncate max-w-[200px] sm:max-w-[265px]">
-              {locale === 'bn'
-                ? school?.name ?? t('school.name')
-                : school?.nameEn ?? 'Bhojeshwar High School'}
+              {school?.name ?? 'ভোজেশ্বর উচ্চ বিদ্যালয়'}
             </span>
-            <span className="hidden sm:block text-xs font-medium text-white/95">
+            <span className="hidden sm:block text-sm font-medium text-white/95">
               <span className="font-semibold text-white">BHS</span>
               <span className="mx-1.5 text-white/75" aria-hidden="true">
                 ·
               </span>
-              {pick('ভোজেশ্বর, নড়িয়া, শরীয়তপুর', 'Est. 1978 · Shariatpur')}
+              {'ভোজেশ্বর, নড়িয়া, শরীয়তপুর'}
             </span>
           </div>
         </Link>
@@ -111,8 +106,6 @@ export function PublicHeader({
           onScheduleCloseDropdown={onScheduleCloseDropdown}
           onCloseDropdown={onCloseDropdown}
           latestNotice={latestNotice}
-          locale={locale}
-          pick={pick}
         />
 
         {/* Action Zone */}
@@ -121,8 +114,8 @@ export function PublicHeader({
           <button
             type="button"
             onClick={onOpenSearch}
-            aria-label={pick('অনুসন্ধান করুন', 'Search school site')}
-            title={pick('অনুসন্ধান (Ctrl+K)', 'Search (Ctrl+K)')}
+            aria-label={'অনুসন্ধান করুন'}
+            title={'অনুসন্ধান (Ctrl+K)'}
             className="h-8 w-8 inline-flex items-center justify-center rounded-[var(--radius)] text-white hover:bg-white/15 transition-colors cursor-pointer shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
           >
             <Search className="w-4 h-4" />
@@ -132,7 +125,7 @@ export function PublicHeader({
           <button
             type="button"
             onClick={onToggleTheme}
-            aria-label={pick('থিম পরিবর্তন করুন', 'Toggle color theme')}
+            aria-label={'থিম পরিবর্তন করুন'}
             className="h-9 w-9 inline-flex items-center justify-center rounded-[var(--radius)] text-white hover:bg-white/15 transition-colors cursor-pointer shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
           >
             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -150,7 +143,7 @@ export function PublicHeader({
             className="hidden sm:inline-flex items-center gap-1.5 h-9 px-2.5 text-sm font-medium rounded-[var(--radius)] text-white hover:bg-white/15 transition-colors whitespace-nowrap shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
           >
             <LogIn className="w-3.5 h-3.5" />
-            <span>{isAuthenticated ? t('nav.dashboard') : t('nav.portal')}</span>
+            <span>{isAuthenticated ? 'ড্যাশবোর্ড' : 'পোর্টাল লগইন'}</span>
           </Link>
 
           {/* Single Dominant Primary CTA */}
@@ -158,14 +151,14 @@ export function PublicHeader({
             href="/admission/apply"
             className="hidden md:inline-flex items-center h-9 px-3.5 text-sm font-semibold rounded-[var(--radius)] bg-[#0E833C] hover:bg-[#119947] text-white border border-white/25 shadow-sm shadow-black/25 transition-colors whitespace-nowrap shrink-0"
           >
-            {pick('ভর্তি আবেদন', 'Apply Now')}
+            {'ভর্তি আবেদন'}
           </Link>
 
           {/* Mobile Hamburger Button */}
           <button
             type="button"
             onClick={onOpenMobileDrawer}
-            aria-label={pick('মেনু খুলুন', 'Open menu')}
+            aria-label={'মেনু খুলুন'}
             className="lg:hidden h-9 w-9 inline-flex items-center justify-center rounded-[var(--radius)] text-white border border-white/30 hover:bg-white/15 transition-colors cursor-pointer shrink-0 ml-0.5"
           >
             <Menu className="w-4 h-4" />

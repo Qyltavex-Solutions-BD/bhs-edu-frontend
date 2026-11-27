@@ -32,7 +32,6 @@ import {
   useSaveMarksBatchMutation,
 } from '@/src/store/api';
 import { useAppSelector } from '@/src/store/hooks';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -84,8 +83,6 @@ function getAssignmentSubject(db: MockDatabase, classSubjectId: string) {
 export function TeacherDashboardPage() {
   const { data: db, isLoading } = useGetBootstrapQuery();
   const teacher = useCurrentTeacher(db);
-  const { locale, pick } = useI18n();
-
   if (isLoading || !db || !teacher) return <LoadingSkeleton rows={6} />;
 
   const myAssignments = db.teacherAssignments.filter((a) => a.staffId === teacher.id);
@@ -121,23 +118,20 @@ export function TeacherDashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={pick(`স্বাগতম, ${teacher.name}`, `Welcome, ${teacher.name}`)}
-        description={pick(
-          `${teacher.designation} · কর্মচারী আইডি: ${teacher.employeeId ?? '—'}`,
-          `${teacher.designation} · Employee ID: ${teacher.employeeId ?? '—'}`
-        )}
+        title={`স্বাগতম, ${teacher.name}`}
+        description={`${teacher.designation} · কর্মচারী আইডি: ${teacher.employeeId ?? '—'}`}
         actions={
           <div className="flex flex-wrap gap-2">
             <Link href="/teacher/attendance">
               <Button variant="primary" size="sm">
                 <ClipboardCheck className="w-4 h-4" />
-                {pick('হাজিরা নিন', 'Take Attendance')}
+                {'হাজিরা নিন'}
               </Button>
             </Link>
             <Link href="/teacher/marks-entry">
               <Button variant="outline" size="sm">
                 <FileSpreadsheet className="w-4 h-4" />
-                {pick('নম্বর এন্ট্রি', 'Marks Entry')}
+                {'নম্বর এন্ট্রি'}
               </Button>
             </Link>
           </div>
@@ -146,35 +140,29 @@ export function TeacherDashboardPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label={pick('নির্ধারিত বিষয় ও শাখা', 'Assigned Subjects')}
-          value={formatNumber(myAssignments.length, locale)}
-          meta={pick(
-            `${formatNumber(mySectionIds.length, locale)}টি শাখায় পাঠদান`,
-            `Teaching across ${mySectionIds.length} sections`
-          )}
+          label={'নির্ধারিত বিষয় ও শাখা'}
+          value={formatNumber(myAssignments.length, 'bn')}
+          meta={`${formatNumber(mySectionIds.length, 'bn')}টি শাখায় পাঠদান`}
           accent="primary"
         />
         <StatCard
-          label={pick('মোট নির্ধারিত শিক্ষার্থী', 'Assigned Students')}
-          value={formatNumber(myEnrollments.length, locale)}
+          label={'মোট নির্ধারিত শিক্ষার্থী'}
+          value={formatNumber(myEnrollments.length, 'bn')}
           meta={
             classTeacherSections.length > 0
-              ? pick('শ্রেণি শিক্ষক: দশম-ক', 'Class Teacher: Class 10-Ka')
-              : pick('বিষয়ভিত্তিক শিক্ষক', 'Subject Teacher')
+              ? 'শ্রেণি শিক্ষক: দশম-ক'
+              : 'বিষয়ভিত্তিক শিক্ষক'
           }
         />
         <StatCard
-          label={pick('সাপ্তাহিক পিরিয়ড', 'Weekly Periods')}
-          value={formatNumber(myRoutines.length, locale)}
-          meta={pick(
-            `আজকের ক্লাস: ${formatNumber(todayRoutines.length, locale)}টি`,
-            `Today's periods: ${todayRoutines.length}`
-          )}
+          label={'সাপ্তাহিক পিরিয়ড'}
+          value={formatNumber(myRoutines.length, 'bn')}
+          meta={`আজকের ক্লাস: ${formatNumber(todayRoutines.length, 'bn')}টি`}
         />
         <StatCard
-          label={pick('চলমান নম্বর এন্ট্রি', 'Pending Marks Entry')}
-          value={formatNumber(draftExams.length, locale)}
-          meta={pick('খসড়া পরীক্ষা সক্রিয়', 'Draft exams open for entry')}
+          label={'চলমান নম্বর এন্ট্রি'}
+          value={formatNumber(draftExams.length, 'bn')}
+          meta={'খসড়া পরীক্ষা সক্রিয়'}
           accent="warning"
         />
       </div>
@@ -184,18 +172,18 @@ export function TeacherDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-semibold">
-                {pick('আজকের ক্লাস রুটিন (রবিবার)', "Today's Schedule (Sunday)")}
+                {'আজকের ক্লাস রুটিন (রবিবার)'}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {pick('আপনার নির্ধারিত পিরিয়ডসমূহ', 'Your assigned periods for today')}
+                {'আপনার নির্ধারিত পিরিয়ডসমূহ'}
               </p>
             </div>
             <Link href="/teacher/routines" className="text-sm font-medium text-primary hover:underline">
-              {pick('পূর্ণ রুটিন দেখুন', 'Full Routine')}
+              {'পূর্ণ রুটিন দেখুন'}
             </Link>
           </div>
           {todayRoutines.length === 0 ? (
-            <EmptyState title={pick('আজ কোনো পিরিয়ড নির্ধারিত নেই', 'No periods scheduled today')} />
+            <EmptyState title={'আজ কোনো পিরিয়ড নির্ধারিত নেই'} />
           ) : (
             <div className="divide-y divide-border">
               {todayRoutines.map((r) => {
@@ -207,19 +195,19 @@ export function TeacherDashboardPage() {
                   <div key={r.id} className="py-3 flex items-center justify-between gap-4">
                     <div>
                       <p className="text-base font-semibold">
-                        {locale === 'bn' ? sub?.nameBn || sub?.name : sub?.name}
+                        {sub?.nameBn || sub?.name}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name} ({sec?.name}) ·{' '}
-                        {pick('কক্ষ:', 'Room:')} {r.room ?? '—'}
+                        {cls?.nameBn || cls?.name} ({sec?.name}) ·{' '}
+                        {'কক্ষ:'} {r.room ?? '—'}
                       </p>
                     </div>
                     <div className="text-right tabular-nums">
                       <p className="text-sm font-semibold text-primary">
-                        {formatTime12h(r.startTime, locale)} – {formatTime12h(r.endTime, locale)}
+                        {formatTime12h(r.startTime, 'bn')} – {formatTime12h(r.endTime, 'bn')}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {pick(`পিরিয়ড ${formatNumber(r.periodNumber, locale)}`, `Period ${r.periodNumber}`)}
+                      <p className="text-sm text-muted-foreground">
+                        {`পিরিয়ড ${formatNumber(r.periodNumber, 'bn')}`}
                       </p>
                     </div>
                   </div>
@@ -231,10 +219,10 @@ export function TeacherDashboardPage() {
 
         <Card className="p-5">
           <h2 className="text-base font-semibold mb-1">
-            {pick('শ্রেণির গড় জিপিএ প্রবণতা', 'Assigned Class GPA Trend')}
+            {'শ্রেণির গড় জিপিএ প্রবণতা'}
           </h2>
           <p className="text-sm text-muted-foreground mb-4">
-            {pick('পরীক্ষাভিত্তিক ফলাফল তুলনা', 'Average GPA across examinations')}
+            {'পরীক্ষাভিত্তিক ফলাফল তুলনা'}
           </p>
           <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
@@ -249,7 +237,7 @@ export function TeacherDashboardPage() {
                   stroke="#0B7A34"
                   strokeWidth={2.5}
                   dot={{ r: 4, fill: '#124B96' }}
-                  name={pick('গড় জিপিএ', 'Avg GPA')}
+                  name={'গড় জিপিএ'}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -261,15 +249,15 @@ export function TeacherDashboardPage() {
         <Card className="p-5">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-base font-semibold">
-              {pick('শ্রেণি শিক্ষক দায়িত্ব', 'Class Teacher Overview')}
+              {'শ্রেণি শিক্ষক দায়িত্ব'}
             </h2>
             <Link href="/teacher/classes" className="text-sm font-medium text-primary hover:underline">
-              {pick('সকল শ্রেণি', 'All Classes')}
+              {'সকল শ্রেণি'}
             </Link>
           </div>
           {classTeacherSections.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              {pick('কোনো শাখার শ্রেণি শিক্ষক হিসেবে নির্ধারিত নন।', 'Not assigned as a class teacher.')}
+              {'কোনো শাখার শ্রেণি শিক্ষক হিসেবে নির্ধারিত নন।'}
             </p>
           ) : (
             <div className="space-y-3">
@@ -291,17 +279,17 @@ export function TeacherDashboardPage() {
                   >
                     <div>
                       <p className="text-base font-semibold">
-                        {locale === 'bn' ? cls?.nameBn || cls?.name : cls?.name} — {pick('শাখা', 'Section')} {sec.name}
+                        {cls?.nameBn || cls?.name} — {'শাখা'} {sec.name}
                       </p>
                       <p className="text-sm text-muted-foreground mt-0.5 tabular-nums">
-                        {pick('শিক্ষার্থী:', 'Students:')} {formatNumber(secEnrollments.length, locale)} ·{' '}
-                        {pick('সর্বশেষ উপস্থিতি:', 'Latest Present:')}{' '}
-                        {formatNumber(presentCount, locale)}/{formatNumber(secEnrollments.length, locale)}
+                        {'শিক্ষার্থী:'} {formatNumber(secEnrollments.length, 'bn')} ·{' '}
+                        {'সর্বশেষ উপস্থিতি:'}{' '}
+                        {formatNumber(presentCount, 'bn')}/{formatNumber(secEnrollments.length, 'bn')}
                       </p>
                     </div>
                     <Link href={`/teacher/classes/${sec.id}`}>
                       <Button variant="outline" size="sm">
-                        {pick('বিস্তারিত', 'Details')}
+                        {'বিস্তারিত'}
                       </Button>
                     </Link>
                   </div>
@@ -313,9 +301,9 @@ export function TeacherDashboardPage() {
 
         <Card className="p-5">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-semibold">{pick('সাম্প্রতিক নোটিশ', 'Recent Notices')}</h2>
+            <h2 className="text-base font-semibold">{'সাম্প্রতিক নোটিশ'}</h2>
             <Link href="/teacher/notices" className="text-sm font-medium text-primary hover:underline">
-              {pick('সব নোটিশ', 'All Notices')}
+              {'সব নোটিশ'}
             </Link>
           </div>
           <div className="divide-y divide-border">
@@ -323,8 +311,8 @@ export function TeacherDashboardPage() {
               <div key={n.id} className="py-2.5 flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{n.title}</p>
-                  <p className="text-xs text-muted-foreground tabular-nums">
-                    {formatDateShort(n.publishedAt ?? n.createdAt, locale)}
+                  <p className="text-sm text-muted-foreground tabular-nums">
+                    {formatDateShort(n.publishedAt ?? n.createdAt, 'bn')}
                   </p>
                 </div>
                 <StatusBadge enumName="NoticeStatus" value={n.status} />

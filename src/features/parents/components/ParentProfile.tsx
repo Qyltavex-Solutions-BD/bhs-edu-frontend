@@ -21,7 +21,6 @@ import {
   Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import { Button, Card, Modal } from '@/src/components/ui/primitives';
@@ -36,11 +35,11 @@ import {
 import { shownPhone, ParentFormModal } from './ParentFormModal';
 import { ParentLinkEditModal } from './ParentLinkModal';
 
-function relationLabel(value: string, pick: (bn: string, en: string) => string) {
-  if (value === RelationshipType.FATHER) return pick('পিতা', 'Father');
-  if (value === RelationshipType.MOTHER) return pick('মাতা', 'Mother');
-  if (value === RelationshipType.GUARDIAN) return pick('অভিভাবক', 'Guardian');
-  return pick('অন্যান্য', 'Other');
+function relationLabel(value: string) {
+  if (value === RelationshipType.FATHER) return 'পিতা';
+  if (value === RelationshipType.MOTHER) return 'মাতা';
+  if (value === RelationshipType.GUARDIAN) return 'অভিভাবক';
+  return 'অন্যান্য';
 }
 
 function errorMessage(err: unknown, fallback: string) {
@@ -49,7 +48,6 @@ function errorMessage(err: unknown, fallback: string) {
 }
 
 export function ParentProfile({ parentId }: { parentId: string }) {
-  const { locale, pick } = useI18n();
   const router = useRouter();
   const { data: parent, isLoading } = useGetParentByIdQuery(parentId, {
     skip: !parentId,
@@ -72,12 +70,12 @@ export function ParentProfile({ parentId }: { parentId: string }) {
     return (
       <Card className="p-8 text-center space-y-3">
         <p className="text-base font-medium text-muted-foreground">
-          {pick('অভিভাবক পাওয়া যায়নি।', 'Guardian was not found.')}
+          {'অভিভাবক পাওয়া যায়নি।'}
         </p>
         <Link href="/admin/parents">
           <Button size="sm" variant="outline">
             <ArrowLeft className="w-4 h-4" />
-            <span>{pick('অভিভাবক তালিকায় ফিরুন', 'Back to Guardian List')}</span>
+            <span>{'অভিভাবক তালিকায় ফিরুন'}</span>
           </Button>
         </Link>
       </Card>
@@ -86,17 +84,17 @@ export function ParentProfile({ parentId }: { parentId: string }) {
 
   const children = parent.children ?? [];
   const hasContact = Boolean(shownPhone(parent.phone) || parent.email);
-  const numLocale = locale === 'bn' ? 'bn' : 'en';
+  const numLocale = 'bn';
   const portalIsActive = Boolean(parent.user?.isActive);
 
   const confirmDelete = async () => {
     try {
       await removeParent({ id: parent.id }).unwrap();
-      toast.success(pick('অভিভাবক প্রোফাইল মুছে ফেলা হয়েছে।', 'Profile removed.'));
+      toast.success('অভিভাবক প্রোফাইল মুছে ফেলা হয়েছে।');
       setDeleteConfirmOpen(false);
       router.push('/admin/parents');
     } catch (err) {
-      toast.error(errorMessage(err, pick('মুছা যায়নি।', 'Could not remove the profile.')));
+      toast.error(errorMessage(err, 'মুছা যায়নি।'));
     }
   };
 
@@ -104,17 +102,14 @@ export function ParentProfile({ parentId }: { parentId: string }) {
     try {
       await createPortalAccount(parent.id).unwrap();
       toast.success(
-        pick(
-          'অভিভাবকের পোর্টাল লগইন অ্যাকাউন্ট তৈরি হয়েছে।',
-          'Guardian portal account created.'
-        )
+        'অভিভাবকের পোর্টাল লগইন অ্যাকাউন্ট তৈরি হয়েছে।'
       );
       setPortalConfirmOpen(false);
     } catch (err) {
       toast.error(
         errorMessage(
           err,
-          pick('পোর্টাল অ্যাকাউন্ট তৈরি করা যায়নি।', 'Failed to create portal account.')
+          'পোর্টাল অ্যাকাউন্ট তৈরি করা যায়নি।'
         )
       );
     }
@@ -126,15 +121,15 @@ export function ParentProfile({ parentId }: { parentId: string }) {
       await togglePortalAccess({ id: parent.id, isActive: nextState }).unwrap();
       toast.success(
         nextState
-          ? pick('পোর্টাল অ্যাক্সেস চালু করা হয়েছে।', 'Portal access enabled.')
-          : pick('পোর্টাল অ্যাক্সেস বন্ধ করা হয়েছে।', 'Portal access disabled.')
+          ? 'পোর্টাল অ্যাক্সেস চালু করা হয়েছে।'
+          : 'পোর্টাল অ্যাক্সেস বন্ধ করা হয়েছে।'
       );
       setToggleConfirmOpen(false);
     } catch (err) {
       toast.error(
         errorMessage(
           err,
-          pick('পোর্টাল অ্যাক্সেস পরিবর্তন করা যায়নি।', 'Failed to update portal access.')
+          'পোর্টাল অ্যাক্সেস পরিবর্তন করা যায়নি।'
         )
       );
     }
@@ -149,7 +144,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
           className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>{pick('অভিভাবক তালিকায় ফিরুন', 'Back to Guardian List')}</span>
+          <span>{'অভিভাবক তালিকায় ফিরুন'}</span>
         </Link>
       </div>
 
@@ -177,14 +172,14 @@ export function ParentProfile({ parentId }: { parentId: string }) {
                     <ShieldOff className="w-3.5 h-3.5" />
                   )}
                   {!parent.user.isActive
-                    ? pick('পোর্টাল: বন্ধ রয়েছে', 'Portal: Disabled')
+                    ? 'পোর্টাল: বন্ধ রয়েছে'
                     : parent.user.mustSetPassword
-                      ? pick('পোর্টাল: পাসওয়ার্ড সেট বাকি', 'Portal: Pending Setup')
-                      : pick('পোর্টাল: সক্রিয়', 'Portal: Active')}
+                      ? 'পোর্টাল: পাসওয়ার্ড সেট বাকি'
+                      : 'পোর্টাল: সক্রিয়'}
                 </span>
               ) : (
                 <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-muted text-muted-foreground border border-border">
-                  {pick('পোর্টাল অ্যাকাউন্ট নেই', 'No Portal Account')}
+                  {'পোর্টাল অ্যাকাউন্ট নেই'}
                 </span>
               )}
             </div>
@@ -202,7 +197,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
                 onClick={() => setPortalConfirmOpen(true)}
               >
                 <KeyRound className="w-4 h-4 text-emerald-600" />
-                <span>{pick('পোর্টাল অ্যাক্সেস দিন', 'Grant Portal Access')}</span>
+                <span>{'পোর্টাল অ্যাক্সেস দিন'}</span>
               </Button>
             )}
             {parent.user && (
@@ -219,19 +214,19 @@ export function ParentProfile({ parentId }: { parentId: string }) {
                 {portalIsActive ? (
                   <>
                     <ShieldOff className="w-4 h-4" />
-                    <span>{pick('পোর্টাল বন্ধ করুন', 'Disable Portal')}</span>
+                    <span>{'পোর্টাল বন্ধ করুন'}</span>
                   </>
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    <span>{pick('পোর্টাল চালু করুন', 'Enable Portal')}</span>
+                    <span>{'পোর্টাল চালু করুন'}</span>
                   </>
                 )}
               </Button>
             )}
             <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
               <Pencil className="w-4 h-4" />
-              <span>{pick('তথ্য সম্পাদনা', 'Edit Info')}</span>
+              <span>{'তথ্য সম্পাদনা'}</span>
             </Button>
             <Button
               size="sm"
@@ -241,15 +236,12 @@ export function ParentProfile({ parentId }: { parentId: string }) {
               className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/5 disabled:opacity-50"
               title={
                 children.length > 0
-                  ? pick(
-                      'সন্তান যুক্ত থাকা অবস্থায় প্রোফাইল মুছা যাবে না',
-                      'Cannot delete while children are linked'
-                    )
-                  : pick('অভিভাবক প্রোফাইল মুছুন', 'Delete Guardian Profile')
+                  ? 'সন্তান যুক্ত থাকা অবস্থায় প্রোফাইল মুছা যাবে না'
+                  : 'অভিভাবক প্রোফাইল মুছুন'
               }
             >
               <Trash2 className="w-4 h-4" />
-              <span>{pick('প্রোফাইল মুছুন', 'Delete Profile')}</span>
+              <span>{'প্রোফাইল মুছুন'}</span>
             </Button>
           </div>
         </div>
@@ -259,7 +251,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
           <div className="flex items-start gap-3">
             <Phone className="w-4 h-4 text-muted-foreground mt-1 shrink-0" />
             <div>
-              <p className="text-sm text-muted-foreground">{pick('মোবাইল নম্বর', 'Mobile Number')}</p>
+              <p className="text-sm text-muted-foreground">{'মোবাইল নম্বর'}</p>
               <p className="text-base font-medium font-mono tabular-nums text-foreground">
                 {shownPhone(parent.phone) || '—'}
               </p>
@@ -269,7 +261,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
           <div className="flex items-start gap-3">
             <Mail className="w-4 h-4 text-muted-foreground mt-1 shrink-0" />
             <div>
-              <p className="text-sm text-muted-foreground">{pick('ইমেইল', 'Email')}</p>
+              <p className="text-sm text-muted-foreground">{'ইমেইল'}</p>
               <p className="text-base font-medium break-all text-foreground">{parent.email || '—'}</p>
             </div>
           </div>
@@ -277,7 +269,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
           <div className="flex items-start gap-3">
             <CreditCard className="w-4 h-4 text-muted-foreground mt-1 shrink-0" />
             <div>
-              <p className="text-sm text-muted-foreground">{pick('জাতীয় পরিচয়পত্র (NID)', 'NID Number')}</p>
+              <p className="text-sm text-muted-foreground">{'জাতীয় পরিচয়পত্র (NID)'}</p>
               <p className="text-base font-medium font-mono tabular-nums text-foreground">{parent.nid || '—'}</p>
             </div>
           </div>
@@ -285,7 +277,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
           <div className="flex items-start gap-3">
             <Briefcase className="w-4 h-4 text-muted-foreground mt-1 shrink-0" />
             <div>
-              <p className="text-sm text-muted-foreground">{pick('পেশা ও মাসিক আয়', 'Occupation & Income')}</p>
+              <p className="text-sm text-muted-foreground">{'পেশা ও মাসিক আয়'}</p>
               <p className="text-base font-medium text-foreground">
                 {parent.occupation || '—'}
                 {parent.monthlyIncome != null
@@ -298,7 +290,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
           <div className="flex items-start gap-3 sm:col-span-2">
             <MapPin className="w-4 h-4 text-muted-foreground mt-1 shrink-0" />
             <div>
-              <p className="text-sm text-muted-foreground">{pick('ঠিকানা', 'Address')}</p>
+              <p className="text-sm text-muted-foreground">{'ঠিকানা'}</p>
               <p className="text-base font-medium text-foreground">{parent.address || '—'}</p>
             </div>
           </div>
@@ -312,18 +304,15 @@ export function ParentProfile({ parentId }: { parentId: string }) {
             <Users className="w-5 h-5 text-primary" />
             <div>
               <h3 className="text-lg font-bold text-foreground">
-                {pick('যুক্ত শিক্ষার্থী ও যোগাযোগের ভূমিকা', 'Linked Students & Contact Roles')}
+                {'যুক্ত শিক্ষার্থী ও যোগাযোগের ভূমিকা'}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {pick(
-                  'কোন সন্তানের জন্য প্রাথমিক অভিভাবক, জরুরি যোগাযোগ বা SMS প্রাপক হবেন তা এখান থেকে নির্ধারণ করুন।',
-                  'Manage primary guardian, emergency contact, and SMS receiver roles for each linked student.'
-                )}
+                {'কোন সন্তানের জন্য প্রাথমিক অভিভাবক, জরুরি যোগাযোগ বা SMS প্রাপক হবেন তা এখান থেকে নির্ধারণ করুন।'}
               </p>
             </div>
           </div>
           <span className="text-sm font-semibold text-muted-foreground tabular-nums">
-            {pick(`মোট ${formatNumber(children.length, numLocale)} জন`, `Total ${children.length}`)}
+            {`মোট ${formatNumber(children.length, numLocale)} জন`}
           </span>
         </div>
 
@@ -331,13 +320,13 @@ export function ParentProfile({ parentId }: { parentId: string }) {
           <table className="w-full text-base">
             <thead className="bg-surface-muted/60 text-muted-foreground text-sm font-semibold uppercase tracking-wider">
               <tr>
-                <th className="px-4 py-3 text-left">{pick('সন্তান', 'Student')}</th>
-                <th className="px-4 py-3 text-left">{pick('শ্রেণি / শাখা', 'Class / Section')}</th>
-                <th className="px-4 py-3 text-left">{pick('সম্পর্ক', 'Relationship')}</th>
-                <th className="px-4 py-3 text-center">{pick('প্রাথমিক', 'Primary')}</th>
-                <th className="px-4 py-3 text-center">{pick('জরুরি', 'Emergency')}</th>
+                <th className="px-4 py-3 text-left">{'সন্তান'}</th>
+                <th className="px-4 py-3 text-left">{'শ্রেণি / শাখা'}</th>
+                <th className="px-4 py-3 text-left">{'সম্পর্ক'}</th>
+                <th className="px-4 py-3 text-center">{'প্রাথমিক'}</th>
+                <th className="px-4 py-3 text-center">{'জরুরি'}</th>
                 <th className="px-4 py-3 text-center">SMS</th>
-                <th className="px-4 py-3 text-right">{pick('অ্যাকশন', 'Action')}</th>
+                <th className="px-4 py-3 text-right">{'অ্যাকশন'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border text-base">
@@ -360,13 +349,13 @@ export function ParentProfile({ parentId }: { parentId: string }) {
                       : '—'}
                   </td>
                   <td className="px-4 py-3.5 font-medium">
-                    {relationLabel(link.relationship, pick)}
+                    {relationLabel(link.relationship)}
                   </td>
                   <td className="px-4 py-3.5 text-center">
                     {link.isPrimary ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 text-xs font-semibold">
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        {pick('হ্যাঁ', 'Yes')}
+                        {'হ্যাঁ'}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -376,7 +365,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
                     {link.isEmergencyContact ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 text-xs font-semibold">
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        {pick('হ্যাঁ', 'Yes')}
+                        {'হ্যাঁ'}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -386,7 +375,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
                     {link.isSmsReceiver ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 px-2.5 py-0.5 text-xs font-semibold">
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        {pick('হ্যাঁ', 'Yes')}
+                        {'হ্যাঁ'}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>
@@ -399,7 +388,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
                       onClick={() => setEditingLink(link)}
                     >
                       <SlidersHorizontal className="w-3.5 h-3.5" />
-                      <span>{pick('ভূমিকা পরিবর্তন', 'Edit Roles')}</span>
+                      <span>{'ভূমিকা পরিবর্তন'}</span>
                     </Button>
                   </td>
                 </tr>
@@ -408,7 +397,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
           </table>
           {!children.length && (
             <p className="p-6 text-center text-base text-muted-foreground">
-              {pick('এখনো কোনো সন্তান যুক্ত নেই।', 'No child is linked yet.')}
+              {'এখনো কোনো সন্তান যুক্ত নেই।'}
             </p>
           )}
         </div>
@@ -424,7 +413,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
       <Modal
         open={portalConfirmOpen}
         onClose={() => setPortalConfirmOpen(false)}
-        title={pick('পোর্টাল অ্যাক্সেস নিশ্চিতকরণ', 'Confirm Portal Access')}
+        title={'পোর্টাল অ্যাক্সেস নিশ্চিতকরণ'}
         maxWidth="max-w-md"
       >
         <div className="space-y-4">
@@ -432,16 +421,10 @@ export function ParentProfile({ parentId }: { parentId: string }) {
             <KeyRound className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="text-base font-semibold text-foreground">
-                {pick(
-                  `"${parent.nameBn || parent.name}"-এর জন্য পোর্টাল লগইন চালু করবেন?`,
-                  `Enable portal login for "${parent.name}"?`
-                )}
+                {`"${parent.nameBn || parent.name}"-এর জন্য পোর্টাল লগইন চালু করবেন?`}
               </p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {pick(
-                  'কোনো পাসওয়ার্ড দিতে হবে না। প্রথমবার মোবাইল নম্বর বা ইমেইল দিয়ে লগইন করার সময় অভিভাবক নিজেই ওটিপি যাচাই করে পাসওয়ার্ড সেট করতে পারবেন।',
-                  'No temporary password is needed. The guardian will verify an OTP and set their own password on first login.'
-                )}
+                {'কোনো পাসওয়ার্ড দিতে হবে না। প্রথমবার মোবাইল নম্বর বা ইমেইল দিয়ে লগইন করার সময় অভিভাবক নিজেই ওটিপি যাচাই করে পাসওয়ার্ড সেট করতে পারবেন।'}
               </p>
             </div>
           </div>
@@ -452,7 +435,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
               variant="outline"
               onClick={() => setPortalConfirmOpen(false)}
             >
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button
               type="button"
@@ -461,8 +444,8 @@ export function ParentProfile({ parentId }: { parentId: string }) {
               onClick={confirmGrantPortal}
             >
               {provisioning
-                ? pick('তৈরি হচ্ছে...', 'Creating...')
-                : pick('হ্যাঁ, অ্যাক্সেস দিন', 'Yes, Grant Access')}
+                ? 'তৈরি হচ্ছে...'
+                : 'হ্যাঁ, অ্যাক্সেস দিন'}
             </Button>
           </div>
         </div>
@@ -474,8 +457,8 @@ export function ParentProfile({ parentId }: { parentId: string }) {
         onClose={() => setToggleConfirmOpen(false)}
         title={
           portalIsActive
-            ? pick('পোর্টাল অ্যাক্সেস বন্ধ করুন', 'Disable Portal Access')
-            : pick('পোর্টাল অ্যাক্সেস চালু করুন', 'Enable Portal Access')
+            ? 'পোর্টাল অ্যাক্সেস বন্ধ করুন'
+            : 'পোর্টাল অ্যাক্সেস চালু করুন'
         }
         maxWidth="max-w-md"
       >
@@ -495,25 +478,13 @@ export function ParentProfile({ parentId }: { parentId: string }) {
             <div className="space-y-1">
               <p className="text-base font-semibold text-foreground">
                 {portalIsActive
-                  ? pick(
-                      `"${parent.nameBn || parent.name}"-এর পোর্টাল অ্যাক্সেস বন্ধ করবেন?`,
-                      `Disable portal access for "${parent.name}"?`
-                    )
-                  : pick(
-                      `"${parent.nameBn || parent.name}"-এর পোর্টাল অ্যাক্সেস পুনরায় চালু করবেন?`,
-                      `Re-enable portal access for "${parent.name}"?`
-                    )}
+                  ? `"${parent.nameBn || parent.name}"-এর পোর্টাল অ্যাক্সেস বন্ধ করবেন?`
+                  : `"${parent.nameBn || parent.name}"-এর পোর্টাল অ্যাক্সেস পুনরায় চালু করবেন?`}
               </p>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {portalIsActive
-                  ? pick(
-                      'বন্ধ করলে তিনি আর পোর্টালে লগইন করতে পারবেন না এবং বর্তমান সব সক্রিয় সেশন বাতিল হয়ে যাবে।',
-                      'They will no longer be able to log in and all active sessions will be revoked.'
-                    )
-                  : pick(
-                      'চালু করলে তিনি আবার পোর্টালে লগইন করে সন্তানের তথ্য দেখতে পারবেন।',
-                      'They will be able to log in to the parent portal again.'
-                    )}
+                  ? 'বন্ধ করলে তিনি আর পোর্টালে লগইন করতে পারবেন না এবং বর্তমান সব সক্রিয় সেশন বাতিল হয়ে যাবে।'
+                  : 'চালু করলে তিনি আবার পোর্টালে লগইন করে সন্তানের তথ্য দেখতে পারবেন।'}
               </p>
             </div>
           </div>
@@ -524,7 +495,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
               variant="outline"
               onClick={() => setToggleConfirmOpen(false)}
             >
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button
               type="button"
@@ -533,10 +504,10 @@ export function ParentProfile({ parentId }: { parentId: string }) {
               onClick={confirmTogglePortal}
             >
               {toggling
-                ? pick('হালনাগাদ হচ্ছে...', 'Updating...')
+                ? 'হালনাগাদ হচ্ছে...'
                 : portalIsActive
-                  ? pick('হ্যাঁ, বন্ধ করুন', 'Yes, Disable')
-                  : pick('হ্যাঁ, চালু করুন', 'Yes, Enable')}
+                  ? 'হ্যাঁ, বন্ধ করুন'
+                  : 'হ্যাঁ, চালু করুন'}
             </Button>
           </div>
         </div>
@@ -546,7 +517,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
       <Modal
         open={deleteConfirmOpen}
         onClose={() => setDeleteConfirmOpen(false)}
-        title={pick('অভিভাবক প্রোফাইল মুছে ফেলা', 'Delete Guardian Profile')}
+        title={'অভিভাবক প্রোফাইল মুছে ফেলা'}
         maxWidth="max-w-md"
       >
         <div className="space-y-4">
@@ -554,16 +525,10 @@ export function ParentProfile({ parentId }: { parentId: string }) {
             <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="text-base font-semibold text-foreground">
-                {pick(
-                  `আপনি কি নিশ্চিত যে "${parent.nameBn || parent.name}"-এর প্রোফাইল স্থায়ীভাবে মুছে ফেলতে চান?`,
-                  `Are you sure you want to permanently delete "${parent.name}"?`
-                )}
+                {`আপনি কি নিশ্চিত যে "${parent.nameBn || parent.name}"-এর প্রোফাইল স্থায়ীভাবে মুছে ফেলতে চান?`}
               </p>
               <p className="text-sm text-muted-foreground">
-                {pick(
-                  'মুছে ফেলার পর এই তথ্য আর পুনরুদ্ধার করা যাবে না।',
-                  'This action cannot be undone.'
-                )}
+                {'মুছে ফেলার পর এই তথ্য আর পুনরুদ্ধার করা যাবে না।'}
               </p>
             </div>
           </div>
@@ -574,7 +539,7 @@ export function ParentProfile({ parentId }: { parentId: string }) {
               variant="outline"
               onClick={() => setDeleteConfirmOpen(false)}
             >
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button
               type="button"
@@ -584,8 +549,8 @@ export function ParentProfile({ parentId }: { parentId: string }) {
               className="bg-destructive hover:bg-destructive/90 text-white"
             >
               {removing
-                ? pick('মুছে ফেলা হচ্ছে...', 'Deleting...')
-                : pick('হ্যাঁ, মুছে ফেলুন', 'Yes, Delete')}
+                ? 'মুছে ফেলা হচ্ছে...'
+                : 'হ্যাঁ, মুছে ফেলুন'}
             </Button>
           </div>
         </div>

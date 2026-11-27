@@ -11,7 +11,6 @@ import {
   useUploadSyllabusMutation,
   type SyllabusFileRecord,
 } from '@/src/services/academic';
-import { useI18n } from '@/src/lib/i18n';
 import { formatDateShort } from '@/src/lib/formatters';
 import { ConfirmDialog } from '@/src/components/shared/Feedback';
 import { Button, Card, FormField, Input, Modal, Select, Switch } from '@/src/components/ui/primitives';
@@ -22,7 +21,6 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-
 const isUuid = (val?: string) => Boolean(val && UUID_REGEX.test(val));
 
 export function SyllabusPanel({ year }: { year: AcademicYear }) {
-  const { locale, pick } = useI18n();
   const { data: classes = [] } = useGetSchoolClassesQuery();
   const [filterClassId, setFilterClassId] = useState<string>('');
   const { data: syllabi = [], isLoading } = useGetSyllabiQuery(
@@ -63,11 +61,11 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !classId || !file) {
-      toast.error(pick('শিরোনাম, শ্রেণি এবং ফাইল দিন।', 'Title, class, and file are required.'));
+      toast.error('শিরোনাম, শ্রেণি এবং ফাইল দিন।');
       return;
     }
     if (file.size > MAX_SYLLABUS_BYTES) {
-      toast.error(pick('সর্বোচ্চ ২৫ MB পর্যন্ত ফাইল আপলোড করা যাবে।', 'File must be under 25 MB.'));
+      toast.error('সর্বোচ্চ ২৫ MB পর্যন্ত ফাইল আপলোড করা যাবে।');
       return;
     }
 
@@ -81,19 +79,19 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
 
     try {
       await uploadSyllabus(body).unwrap();
-      toast.success(pick('সিলেবাস সফলভাবে আপলোড হয়েছে।', 'Syllabus uploaded successfully.'));
+      toast.success('সিলেবাস সফলভাবে আপলোড হয়েছে।');
       resetForm();
     } catch (err: any) {
-      toast.error(err?.message || pick('সিলেবাস আপলোড করা যায়নি।', 'Could not upload syllabus.'));
+      toast.error(err?.message || 'সিলেবাস আপলোড করা যায়নি।');
     }
   };
 
   const handleToggle = async (item: SyllabusFileRecord) => {
     try {
       await togglePublish({ id: item.id, isPublished: !item.isPublished }).unwrap();
-      toast.success(pick('স্ট্যাটাস আপডেট হয়েছে।', 'Publish status updated.'));
+      toast.success('স্ট্যাটাস আপডেট হয়েছে।');
     } catch (err: any) {
-      toast.error(err?.message || pick('আপডেট করা যায়নি।', 'Could not update status.'));
+      toast.error(err?.message || 'আপডেট করা যায়নি।');
     }
   };
 
@@ -105,10 +103,10 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
     if (!deleteTarget) return;
     try {
       await deleteSyllabus(deleteTarget.id).unwrap();
-      toast.success(pick('সিলেবাস মুছে ফেলা হয়েছে।', 'Syllabus deleted.'));
+      toast.success('সিলেবাস মুছে ফেলা হয়েছে।');
       setDeleteTarget(null);
     } catch (err: any) {
-      toast.error(err?.message || pick('মুছে ফেলা যায়নি।', 'Could not delete syllabus.'));
+      toast.error(err?.message || 'মুছে ফেলা যায়নি।');
     }
   };
 
@@ -119,12 +117,12 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
           <Select
             value={filterClassId}
             onChange={(e) => setFilterClassId(e.target.value)}
-            aria-label={pick('শ্রেণি ফিল্টার', 'Filter by class')}
+            aria-label={'শ্রেণি ফিল্টার'}
           >
-            <option value="">{pick('সকল শ্রেণি', 'All Classes')}</option>
+            <option value="">{'সকল শ্রেণি'}</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
-                {locale === 'bn' ? c.nameBn || c.name : c.name}
+                {c.nameBn || c.name}
               </option>
             ))}
           </Select>
@@ -132,7 +130,7 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
 
         <Button type="button" variant="primary" onClick={() => setOpen(true)}>
           <Plus className="w-4 h-4" />
-          {pick('সিলেবাস আপলোড করুন', 'Upload Syllabus')}
+          {'সিলেবাস আপলোড করুন'}
         </Button>
       </div>
 
@@ -140,12 +138,12 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
         <table className="w-full text-base">
           <thead className="bg-surface-muted text-sm text-muted-foreground">
             <tr>
-              <th className="p-3.5 text-left font-semibold">{pick('শিরোনাম', 'Syllabus Title')}</th>
-              <th className="p-3.5 text-left font-semibold">{pick('শ্রেণি', 'Class')}</th>
-              <th className="p-3.5 text-left font-semibold">{pick('ফাইল', 'File')}</th>
-              <th className="p-3.5 text-left font-semibold">{pick('তারিখ', 'Date')}</th>
-              <th className="p-3.5 text-left font-semibold">{pick('অবস্থা', 'Published')}</th>
-              <th className="p-3.5 text-right font-semibold">{pick('ব্যবস্থাপনা', 'Actions')}</th>
+              <th className="p-3.5 text-left font-semibold">{'শিরোনাম'}</th>
+              <th className="p-3.5 text-left font-semibold">{'শ্রেণি'}</th>
+              <th className="p-3.5 text-left font-semibold">{'ফাইল'}</th>
+              <th className="p-3.5 text-left font-semibold">{'তারিখ'}</th>
+              <th className="p-3.5 text-left font-semibold">{'অবস্থা'}</th>
+              <th className="p-3.5 text-right font-semibold">{'ব্যবস্থাপনা'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -164,13 +162,10 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
               <tr>
                 <td colSpan={6} className="py-12 px-4 text-center text-muted-foreground">
                   <p className="text-base font-semibold text-foreground">
-                    {pick('কোনো সিলেবাস পাওয়া যায়নি', 'No syllabus files uploaded yet')}
+                    {'কোনো সিলেবাস পাওয়া যায়নি'}
                   </p>
                   <p className="text-sm mt-1">
-                    {pick(
-                      'উপরের "সিলেবাস আপলোড করুন" বাটনে ক্লিক করে PDF বা ইমেজ আপলোড করুন।',
-                      'Click "Upload Syllabus" above to upload a PDF or image syllabus.'
-                    )}
+                    {'উপরের "সিলেবাস আপলোড করুন" বাটনে ক্লিক করে PDF বা ইমেজ আপলোড করুন।'}
                   </p>
                 </td>
               </tr>
@@ -184,19 +179,17 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
                   <tr key={item.id}>
                     <td className="p-3.5 font-semibold text-foreground">{item.title}</td>
                     <td className="p-3.5 text-sm text-muted-foreground">
-                      {locale === 'bn'
-                        ? item.schoolClass?.nameBn || item.schoolClass?.name
-                        : item.schoolClass?.name}
+                      {item.schoolClass?.nameBn || item.schoolClass?.name}
                     </td>
                     <td className="p-3.5">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold border bg-surface-muted text-foreground border-border">
                         {isPdf ? <FileText className="w-3.5 h-3.5" /> : <ImageIcon className="w-3.5 h-3.5" />}
-                        {isPdf ? 'PDF' : pick('ইমেজ', 'Image')}
+                        {isPdf ? 'PDF' : 'ইমেজ'}
                         {sizeKb ? ` · ${sizeKb}` : ''}
                       </span>
                     </td>
                     <td className="p-3.5 text-sm text-muted-foreground">
-                      <span className="tabular-nums">{formatDateShort(item.createdAt, locale)}</span>
+                      <span className="tabular-nums">{formatDateShort(item.createdAt, 'bn')}</span>
                     </td>
                     <td className="p-3.5">
                       <Switch
@@ -215,7 +208,7 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-sm font-medium text-foreground hover:bg-surface-muted transition-colors"
                           >
                             <Eye className="w-4 h-4" />
-                            {pick('দেখুন', 'View')}
+                            {'দেখুন'}
                           </a>
                         )}
                         <Button
@@ -240,33 +233,30 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
       <Modal
         open={open}
         onClose={resetForm}
-        title={pick('সিলেবাস ফাইল আপলোড', 'Upload Syllabus File')}
-        description={pick(
-          'PDF বা ইমেজ ফাইল আপলোড করুন—পাবলিক সিলেবাস পেজে দেখা যাবে।',
-          'Upload a PDF or image syllabus for students and parents.'
-        )}
+        title={'সিলেবাস ফাইল আপলোড'}
+        description={'PDF বা ইমেজ ফাইল আপলোড করুন—পাবলিক সিলেবাস পেজে দেখা যাবে।'}
       >
         <form onSubmit={handleUpload} className="space-y-4">
-          <FormField label={pick('শ্রেণি', 'Class')} required>
+          <FormField label={'শ্রেণি'} required>
             <Select value={classId} onChange={(e) => setClassId(e.target.value)}>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {locale === 'bn' ? c.nameBn || c.name : c.name}
+                  {c.nameBn || c.name}
                 </option>
               ))}
             </Select>
           </FormField>
 
-          <FormField label={pick('সিলেবাসের শিরোনাম', 'Syllabus Title')} required>
+          <FormField label={'সিলেবাসের শিরোনাম'} required>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={pick('যেমন: ষষ্ঠ শ্রেণির বার্ষিক সিলেবাস ২০২৬', 'e.g. Class 6 Annual Syllabus 2026')}
+              placeholder={'যেমন: ষষ্ঠ শ্রেণির বার্ষিক সিলেবাস ২০২৬'}
               required
             />
           </FormField>
 
-          <FormField label={pick('ফাইল (PDF / JPG / PNG / WebP · সর্বোচ্চ ২৫ MB)', 'File (PDF / Image · Max 25 MB)')} required>
+          <FormField label={'ফাইল (PDF / JPG / PNG / WebP · সর্বোচ্চ ২৫ MB)'} required>
             {file ? (
               <div className="p-3 rounded-lg bg-surface-muted border border-border flex items-center justify-between gap-2">
                 <span className="text-sm font-medium truncate">
@@ -284,7 +274,7 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
               <label className="flex flex-col items-center justify-center gap-1.5 px-4 py-5 border border-dashed border-border hover:border-primary/50 rounded-lg bg-surface-muted/30 cursor-pointer text-center">
                 <Upload className="w-5 h-5 text-primary" />
                 <span className="text-sm font-semibold text-foreground">
-                  {pick('সিলেবাস PDF বা ইমেজ নির্বাচন করুন', 'Select Syllabus PDF or Image')}
+                  {'সিলেবাস PDF বা ইমেজ নির্বাচন করুন'}
                 </span>
                 <input
                   type="file"
@@ -299,16 +289,16 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
           <Switch
             checked={isPublished}
             onChange={setIsPublished}
-            label={pick('সরাসরি প্রকাশ করুন', 'Publish immediately')}
+            label={'সরাসরি প্রকাশ করুন'}
           />
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" disabled={uploading} onClick={resetForm}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button type="submit" variant="primary" disabled={uploading}>
               {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {uploading ? pick('আপলোড হচ্ছে...', 'Uploading...') : pick('আপলোড করুন', 'Upload Syllabus')}
+              {uploading ? 'আপলোড হচ্ছে...' : 'আপলোড করুন'}
             </Button>
             </div>
           </form>
@@ -318,12 +308,9 @@ export function SyllabusPanel({ year }: { year: AcademicYear }) {
         open={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
-        title={pick('সিলেবাস মুছে ফেলুন', 'Delete Syllabus')}
-        description={pick(
-          `আপনি কি নিশ্চিতভাবে "${deleteTarget?.title ?? ''}" সিলেবাস ফাইলটি মুছে ফেলতে চান?`,
-          `Are you sure you want to delete "${deleteTarget?.title ?? ''}"?`,
-        )}
-        confirmLabel={pick('মুছে ফেলুন', 'Delete')}
+        title={'সিলেবাস মুছে ফেলুন'}
+        description={`আপনি কি নিশ্চিতভাবে "${deleteTarget?.title ?? ''}" সিলেবাস ফাইলটি মুছে ফেলতে চান?`}
+        confirmLabel={'মুছে ফেলুন'}
         destructive
         loading={deleting}
       />

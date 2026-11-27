@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import type { LeadershipMessage, Notice } from '@/src/types/entities';
 import { NoticeStatus } from '@/src/types/enums';
-import { useI18n } from '@/src/lib/i18n';
 import { formatNumber } from '@/src/lib/formatters';
 import { getLeadershipPortrait } from '@/src/components/shared/Feedback';
 import { cn } from '@/src/lib/utils/cn';
@@ -43,7 +42,6 @@ export function HomeNoticeSection({
   principalMsg,
   onPreviewNotice,
 }: HomeNoticeSectionProps) {
-  const { locale, pick } = useI18n();
   const [noticeTab, setNoticeTab] = useState<NoticeTab>('all');
   const [noticeQuery, setNoticeQuery] = useState('');
 
@@ -79,17 +77,17 @@ export function HomeNoticeSection({
             <div className="flex items-center gap-2.5">
               <FileText className="w-5 h-5 text-emerald-700 dark:text-emerald-500 shrink-0" />
               <h2 className="text-lg sm:text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                <span>{pick('নোটিশ বোর্ড', 'Notice Board')}</span>
+                <span>{'নোটিশ বোর্ড'}</span>
               </h2>
               <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 px-2.5 py-0.5 rounded-full tabular-nums">
-                {formatNumber(publishedNotices.length, locale)}
+                {formatNumber(publishedNotices.length, 'bn')}
               </span>
             </div>
             <Link
               href="/notices"
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-[#0c5936] dark:hover:text-emerald-400 transition-colors group"
             >
-              <span className="group-hover:underline">{pick('সকল নোটিশ', 'All Notices')}</span>
+              <span className="group-hover:underline">{'সকল নোটিশ'}</span>
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
@@ -111,7 +109,7 @@ export function HomeNoticeSection({
                         : 'text-muted-foreground hover:text-foreground hover:bg-surface'
                     )}
                   >
-                    {locale === 'bn' ? tab.labelBn : tab.labelEn}
+                    {tab.labelBn}
                   </button>
                 );
               })}
@@ -123,7 +121,7 @@ export function HomeNoticeSection({
                 type="text"
                 value={noticeQuery}
                 onChange={(e) => setNoticeQuery(e.target.value)}
-                placeholder={pick('স্মারক বা বিষয় খুঁজুন...', 'Search memo or title...')}
+                placeholder={'স্মারক বা বিষয় খুঁজুন...'}
                 className="w-full h-9 pl-9 pr-2.5 text-sm bg-surface border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
               />
             </div>
@@ -132,12 +130,12 @@ export function HomeNoticeSection({
           <div className="divide-y divide-border">
             {loading || loadFailed ? (
               <div className="flex flex-wrap items-center justify-center gap-3 p-5 text-sm text-muted-foreground" role={loadFailed ? 'alert' : 'status'}>
-                {loading ? pick('বিজ্ঞপ্তি লোড হচ্ছে…', 'Loading notices...') : pick('বিজ্ঞপ্তি লোড করা যায়নি।', 'Could not load notices.')}
-                {loadFailed && <button type="button" onClick={onRetry} className="font-medium text-primary underline">{pick('আবার চেষ্টা', 'Retry')}</button>}
+                {loading ? 'বিজ্ঞপ্তি লোড হচ্ছে…' : 'বিজ্ঞপ্তি লোড করা যায়নি।'}
+                {loadFailed && <button type="button" onClick={onRetry} className="font-medium text-primary underline">{'আবার চেষ্টা'}</button>}
               </div>
             ) : publishedNotices.length === 0 ? (
               <div className="p-10 text-center text-sm text-muted-foreground">
-                {pick('এই বিভাগে কোনো বিজ্ঞপ্তি পাওয়া যায়নি।', 'No notices found in this category.')}
+                {'এই বিভাগে কোনো বিজ্ঞপ্তি পাওয়া যায়নি।'}
               </div>
             ) : (
               publishedNotices.slice(0, 5).map((notice) => {
@@ -148,7 +146,7 @@ export function HomeNoticeSection({
                 const month = String(pubDate.getMonth() + 1).padStart(2, '0');
                 const year = pubDate.getFullYear();
                 const rawDate = `${day}-${month}-${year}`;
-                const formattedDate = locale === 'bn' ? formatNumber(rawDate, 'bn') : rawDate;
+                const formattedDate = formatNumber(rawDate, 'bn');
 
                 return (
                   <Link
@@ -169,17 +167,17 @@ export function HomeNoticeSection({
                         </span>
 
                         {showNewBadge && (
-                          <span className="px-2 py-0.5 rounded-sm bg-[#D32F2F] text-white text-[13px] font-bold leading-none">
-                            {pick('নতুন', 'New')}
+                          <span className="px-2 py-0.5 rounded-sm bg-[#D32F2F] text-white text-sm font-bold leading-none">
+                            {'নতুন'}
                           </span>
                         )}
 
-                        <span className="px-2 py-0.5 rounded-sm bg-surface-muted border border-border text-[13px] font-medium text-foreground">
-                          {notice.isUrgent ? pick('জরুরি', 'Urgent') : pick('সাধারণ', 'General')}
+                        <span className="px-2 py-0.5 rounded-sm bg-surface-muted border border-border text-sm font-medium text-foreground">
+                          {notice.isUrgent ? 'জরুরি' : 'সাধারণ'}
                         </span>
 
                         {notice.memoNo && (
-                          <span className="text-[13px] text-muted-foreground font-mono">
+                          <span className="text-sm text-muted-foreground font-mono">
                             {notice.memoNo}
                           </span>
                         )}
@@ -204,7 +202,7 @@ export function HomeNoticeSection({
                 <Globe className="w-4 h-4" />
               </div>
               <h3 className="text-[18px] font-bold">
-                {pick('শিক্ষা বোর্ড ও সরকারি পোর্টাল', 'Education Boards & Portals')}
+                {'শিক্ষা বোর্ড ও সরকারি পোর্টাল'}
               </h3>
             </div>
             <ul className="space-y-2.5 text-[14px] text-muted-foreground">
@@ -218,10 +216,7 @@ export function HomeNoticeSection({
                   <div className="flex items-center gap-2 truncate">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
                     <span className="truncate">
-                      {pick(
-                        'মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তর (মাউশি)',
-                        'Directorate of Secondary and Higher Education'
-                      )}
+                      {'মাধ্যমিক ও উচ্চশিক্ষা অধিদপ্তর (মাউশি)'}
                     </span>
                   </div>
                   <ExternalLink className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
@@ -237,10 +232,7 @@ export function HomeNoticeSection({
                   <div className="flex items-center gap-2 truncate">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
                     <span className="truncate">
-                      {pick(
-                        'মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড, ঢাকা',
-                        'Dhaka Education Board'
-                      )}
+                      {'মাধ্যমিক ও উচ্চ মাধ্যমিক শিক্ষা বোর্ড, ঢাকা'}
                     </span>
                   </div>
                   <ExternalLink className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
@@ -256,10 +248,7 @@ export function HomeNoticeSection({
                   <div className="flex items-center gap-2 truncate">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
                     <span className="truncate">
-                      {pick(
-                        'জাতীয় শিক্ষাক্রম ও পাঠ্যপুস্তক বোর্ড (NCTB)',
-                        'National Curriculum and Textbook Board'
-                      )}
+                      {'জাতীয় শিক্ষাক্রম ও পাঠ্যপুস্তক বোর্ড (NCTB)'}
                     </span>
                   </div>
                   <ExternalLink className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
@@ -275,10 +264,7 @@ export function HomeNoticeSection({
                   <div className="flex items-center gap-2 truncate">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 shrink-0" />
                     <span className="truncate">
-                      {pick(
-                        'বাংলাদেশ কারিগরি শিক্ষা বোর্ড (BTEB)',
-                        'Bangladesh Technical Education Board'
-                      )}
+                      {'বাংলাদেশ কারিগরি শিক্ষা বোর্ড (BTEB)'}
                     </span>
                   </div>
                   <ExternalLink className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
@@ -293,7 +279,7 @@ export function HomeNoticeSection({
                 <BookOpen className="w-4 h-4" />
               </div>
               <h3 className="text-[18px] font-bold">
-                {pick('একাডেমিক তথ্য ও পাঠ্যক্রম', 'Academic Curriculum & Resources')}
+                {'একাডেমিক তথ্য ও পাঠ্যক্রম'}
               </h3>
             </div>
             <ul className="space-y-2.5 text-[14px] text-muted-foreground">
@@ -305,10 +291,7 @@ export function HomeNoticeSection({
                   <div className="flex items-center gap-2 truncate">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                     <span className="truncate">
-                      {pick(
-                        'বাৎসরিক একাডেমিক ক্যালেন্ডার ও বর্ষপঞ্জি',
-                        'Academic Calendar & Holidays'
-                      )}
+                      {'বাৎসরিক একাডেমিক ক্যালেন্ডার ও বর্ষপঞ্জি'}
                     </span>
                   </div>
                   <ArrowRight className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
@@ -322,10 +305,7 @@ export function HomeNoticeSection({
                   <div className="flex items-center gap-2 truncate">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                     <span className="truncate">
-                      {pick(
-                        'শ্রেণিভিত্তিক পাঠ্যসূচি ও সিলেবাস',
-                        'Class Syllabus & Outline'
-                      )}
+                      {'শ্রেণিভিত্তিক পাঠ্যসূচি ও সিলেবাস'}
                     </span>
                   </div>
                   <ArrowRight className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
@@ -339,10 +319,7 @@ export function HomeNoticeSection({
                   <div className="flex items-center gap-2 truncate">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                     <span className="truncate">
-                      {pick(
-                        'ডিজিটাল পাঠাগার ও পাঠ্যবই কর্নার',
-                        'Digital Library & Reading Corner'
-                      )}
+                      {'ডিজিটাল পাঠাগার ও পাঠ্যবই কর্নার'}
                     </span>
                   </div>
                   <ArrowRight className="w-4 h-4 text-muted-foreground/70 group-hover:text-primary shrink-0" />
@@ -358,7 +335,7 @@ export function HomeNoticeSection({
         {presidentMsg && (
           <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-xs">
             <div className="bg-[#0c5936] text-white px-4 py-2.5 font-bold text-[18px] tracking-wide flex items-center justify-between">
-              <span>{pick('মাননীয় সভাপতি, ম্যানেজিং কমিটি', 'Chairman, Managing Committee')}</span>
+              <span>{'মাননীয় সভাপতি, ম্যানেজিং কমিটি'}</span>
             </div>
             <div className="p-4 text-center space-y-3">
               <div className="relative w-40 h-48 mx-auto rounded-lg overflow-hidden border border-border bg-surface-muted shadow-xs">
@@ -382,7 +359,7 @@ export function HomeNoticeSection({
                   href={`/about/leadership/${presidentMsg.id}`}
                   className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-primary hover:underline"
                 >
-                  <span>{pick('বিস্তারিত পরিচিতি ও বাণী', 'View Details & Message')}</span>
+                  <span>{'বিস্তারিত পরিচিতি ও বাণী'}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
@@ -393,7 +370,7 @@ export function HomeNoticeSection({
         {principalMsg && (
           <div className="bg-surface border border-border rounded-xl overflow-hidden shadow-xs">
             <div className="bg-[#0c5936] text-white px-4 py-2.5 font-bold text-[18px] tracking-wide flex items-center justify-between">
-              <span>{pick('প্রধান শিক্ষক, ভোজেশ্বর উচ্চ বিদ্যালয়', 'Headmaster, Bhojeshwar High School')}</span>
+              <span>{'প্রধান শিক্ষক, ভোজেশ্বর উচ্চ বিদ্যালয়'}</span>
             </div>
             <div className="p-4 text-center space-y-3">
               <div className="relative w-40 h-48 mx-auto rounded-lg overflow-hidden border border-border bg-surface-muted shadow-xs">
@@ -417,7 +394,7 @@ export function HomeNoticeSection({
                   href={`/about/leadership/${principalMsg.id}`}
                   className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-primary hover:underline"
                 >
-                  <span>{pick('বিস্তারিত পরিচিতি ও বাণী', 'View Details & Message')}</span>
+                  <span>{'বিস্তারিত পরিচিতি ও বাণী'}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>

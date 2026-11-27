@@ -23,7 +23,6 @@ import {
 } from '@/src/features/examinations/api/examinations.api';
 import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
 import { useGetEnrollmentsQuery } from '@/src/features/students/api/students.api';
-import { useI18n } from '@/src/lib/i18n';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -46,7 +45,6 @@ function getErrorMessage(err: unknown, fallback: string) {
 }
 
 export function ResultPublicationView() {
-  const { locale, pick } = useI18n();
   const { data: examsRes, isLoading: loadingExams } = useGetExamsQuery({
     limit: 100,
     isDeleted: false,
@@ -195,10 +193,7 @@ export function ResultPublicationView() {
     if (!activeExam) return;
     if (lockState && !canLockExam) {
       toast.info(
-        pick(
-          `নম্বর এন্ট্রির শেষ তারিখ (${formatDateShort(activeExam.marksEntryDeadline!, 'bn')}) পার হওয়ার পর পরীক্ষা লক করা যাবে।`,
-          `Exam can only be locked after the deadline (${formatDateShort(activeExam.marksEntryDeadline!, 'en')}).`
-        )
+        `নম্বর এন্ট্রির শেষ তারিখ (${formatDateShort(activeExam.marksEntryDeadline!, 'bn')}) পার হওয়ার পর পরীক্ষা লক করা যাবে।`
       );
       return;
     }
@@ -206,11 +201,11 @@ export function ResultPublicationView() {
       await updateExam({ id: activeExam.id, isLocked: lockState }).unwrap();
       toast.success(
         lockState
-          ? pick('পরীক্ষার নম্বর লক করা হয়েছে।', 'Exam marks locked.')
-          : pick('পরীক্ষা আনলক করা হয়েছে।', 'Exam unlocked.')
+          ? 'পরীক্ষার নম্বর লক করা হয়েছে।'
+          : 'পরীক্ষা আনলক করা হয়েছে।'
       );
     } catch (err) {
-      toast.error(getErrorMessage(err, pick('অবস্থা পরিবর্তন করা যায়নি।', 'Failed to update lock status.')));
+      toast.error(getErrorMessage(err, 'অবস্থা পরিবর্তন করা যায়নি।'));
     }
   };
 
@@ -224,14 +219,11 @@ export function ResultPublicationView() {
         marksEntryDeadline: newDeadline || undefined,
       }).unwrap();
       toast.success(
-        pick(
-          'পরীক্ষা আনলক ও নম্বর এন্ট্রির সময়সীমা হালনাগাদ হয়েছে।',
-          'Exam unlocked and deadline updated.'
-        )
+        'পরীক্ষা আনলক ও নম্বর এন্ট্রির সময়সীমা হালনাগাদ হয়েছে।'
       );
       setUnlockModalOpen(false);
     } catch (err) {
-      toast.error(getErrorMessage(err, pick('আনলক করা যায়নি।', 'Failed to unlock exam.')));
+      toast.error(getErrorMessage(err, 'আনলক করা যায়নি।'));
     }
   };
 
@@ -245,16 +237,13 @@ export function ResultPublicationView() {
         allowIncomplete,
       }).unwrap();
       toast.success(
-        pick(
-          'এনসিটিবি নীতি অনুযায়ী ফলাফল, জিপিএ ও মেধাক্রম গণনা সম্পন্ন হয়েছে।',
-          'Results, GPA, and merit positions calculated successfully.'
-        )
+        'এনসিটিবি নীতি অনুযায়ী ফলাফল, জিপিএ ও মেধাক্রম গণনা সম্পন্ন হয়েছে।'
       );
     } catch (err) {
       toast.error(
         getErrorMessage(
           err,
-          pick('ফলাফল প্রক্রিয়াকরণ ব্যর্থ হয়েছে।', 'Failed to process exam results.')
+          'ফলাফল প্রক্রিয়াকরণ ব্যর্থ হয়েছে।'
         )
       );
     }
@@ -265,15 +254,12 @@ export function ResultPublicationView() {
     try {
       await publishResults(activeExam.id).unwrap();
       toast.success(
-        pick(
-          'ফলাফল আনুষ্ঠানিকভাবে প্রকাশিত হয়েছে এবং নম্বরগুলো লক করা হয়েছে।',
-          'Results officially published and marks locked.'
-        )
+        'ফলাফল আনুষ্ঠানিকভাবে প্রকাশিত হয়েছে এবং নম্বরগুলো লক করা হয়েছে।'
       );
       setPublishModalOpen(false);
     } catch (err) {
       toast.error(
-        getErrorMessage(err, pick('ফলাফল প্রকাশ ব্যর্থ হয়েছে।', 'Failed to publish results.'))
+        getErrorMessage(err, 'ফলাফল প্রকাশ ব্যর্থ হয়েছে।')
       );
     }
   };
@@ -282,10 +268,10 @@ export function ResultPublicationView() {
     if (!activeExam) return;
     try {
       await withholdResults(activeExam.id).unwrap();
-      toast.success(pick('ফলাফল স্থগিত (Withheld) করা হয়েছে।', 'Exam results withheld.'));
+      toast.success('ফলাফল স্থগিত (Withheld) করা হয়েছে।');
     } catch (err) {
       toast.error(
-        getErrorMessage(err, pick('ফলাফল স্থগিত করা যায়নি।', 'Failed to withhold results.'))
+        getErrorMessage(err, 'ফলাফল স্থগিত করা যায়নি।')
       );
     }
   };
@@ -302,7 +288,7 @@ export function ResultPublicationView() {
         actions={
           <Link href="/admin/results/merit-list">
             <Button variant="outline" className="whitespace-nowrap shrink-0">
-              {pick('মেধাতালিকা ও মার্কশিট দেখুন', 'Open Merit & Marksheets')}
+              {'মেধাতালিকা ও মার্কশিট দেখুন'}
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
@@ -313,8 +299,8 @@ export function ResultPublicationView() {
       <Card className="p-4 flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="w-full sm:w-56">
-            <label className="block text-xs text-muted-foreground mb-1">
-              {pick('পরীক্ষা নির্বাচন করুন', 'Examination')}
+            <label className="block text-sm text-muted-foreground mb-1">
+              {'পরীক্ষা নির্বাচন করুন'}
             </label>
             <Select
               value={resolvedExamName}
@@ -323,7 +309,7 @@ export function ResultPublicationView() {
               className="h-9 text-sm"
             >
               {examNames.length === 0 && (
-                <option value="">{pick('কোনো পরীক্ষা নেই', 'No exams')}</option>
+                <option value="">{'কোনো পরীক্ষা নেই'}</option>
               )}
               {examNames.map((name) => (
                 <option key={name} value={name}>
@@ -334,8 +320,8 @@ export function ResultPublicationView() {
           </div>
 
           <div className="w-full sm:w-40">
-            <label className="block text-xs text-muted-foreground mb-1">
-              {pick('শ্রেণি', 'Class')}
+            <label className="block text-sm text-muted-foreground mb-1">
+              {'শ্রেণি'}
             </label>
             <Select
               value={resolvedClassId}
@@ -345,7 +331,7 @@ export function ResultPublicationView() {
             >
               {activeClasses.map((cls) => (
                 <option key={cls.id} value={cls.id}>
-                  {locale === 'bn' ? cls.nameBn || cls.name : cls.name}
+                  {cls.nameBn || cls.name}
                 </option>
               ))}
             </Select>
@@ -353,14 +339,14 @@ export function ResultPublicationView() {
         </div>
 
         {activeExam && (
-          <div className="flex flex-wrap items-center gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-3 text-sm">
             <span className="text-muted-foreground">
-              {pick('মোট শিক্ষার্থী:', 'Students:')}{' '}
-              <strong className="text-foreground">{formatNumber(totalStudents, locale)}</strong>
+              {'মোট শিক্ষার্থী:'}{' '}
+              <strong className="text-foreground">{formatNumber(totalStudents, 'bn')}</strong>
             </span>
             <span className="text-muted-foreground">
-              {pick('মোট বিষয়:', 'Subjects:')}{' '}
-              <strong className="text-foreground">{formatNumber(examSubjects.length, locale)}</strong>
+              {'মোট বিষয়:'}{' '}
+              <strong className="text-foreground">{formatNumber(examSubjects.length, 'bn')}</strong>
             </span>
             <StatusBadge
               enumName="ResultPublicationStatus"
@@ -372,11 +358,8 @@ export function ResultPublicationView() {
 
       {!activeExam ? (
         <EmptyState
-          title={pick('এই শ্রেণির জন্য পরীক্ষা পাওয়া যায়নি', 'No Examination Found')}
-          description={pick(
-            'নির্বাচিত পরীক্ষা ও শ্রেণির জন্য কোনো পরীক্ষা তৈরি করা হয়নি।',
-            'No examination is configured for the selected exam and class.'
-          )}
+          title={'এই শ্রেণির জন্য পরীক্ষা পাওয়া যায়নি'}
+          description={'নির্বাচিত পরীক্ষা ও শ্রেণির জন্য কোনো পরীক্ষা তৈরি করা হয়নি।'}
         />
       ) : (
         <>
@@ -384,40 +367,31 @@ export function ResultPublicationView() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-4 flex flex-col justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground">{pick('ধাপ ১', 'Step 1')}</p>
+                <p className="text-sm font-semibold text-muted-foreground">{'ধাপ ১'}</p>
                 <h3 className="font-bold text-foreground mt-0.5">
-                  {pick('নম্বর এন্ট্রি যাচাই', 'Verify Marks Entry')}
+                  {'নম্বর এন্ট্রি যাচাই'}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {pick(
-                    `${formatNumber(examSubjects.length, locale)}টি বিষয়ের নম্বর রিভিউ ও লক যাচাই করুন।`,
-                    `Review and verify marks across ${examSubjects.length} subject(s).`
-                  )}
+                <p className="text-sm text-muted-foreground mt-1">
+                  {`${formatNumber(examSubjects.length, 'bn')}টি বিষয়ের নম্বর রিভিউ ও লক যাচাই করুন।`}
                 </p>
               </div>
               <Link href={`/admin/examinations/marks-entry?examId=${activeExam.id}`}>
                 <Button variant="outline" size="sm" className="w-full">
-                  {pick('নম্বর এন্ট্রি শিট খুলুন', 'Open Marks Grid')}
+                  {'নম্বর এন্ট্রি শিট খুলুন'}
                 </Button>
               </Link>
             </Card>
 
             <Card className="p-4 flex flex-col justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground">{pick('ধাপ ২', 'Step 2')}</p>
+                <p className="text-sm font-semibold text-muted-foreground">{'ধাপ ২'}</p>
                 <h3 className="font-bold text-foreground mt-0.5">
-                  {pick('পরীক্ষা লক / আনলক', 'Lock / Unlock Exam')}
+                  {'পরীক্ষা লক / আনলক'}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   {activeExam.isLocked
-                    ? pick(
-                        'বর্তমানে লক করা আছে। আনলক করলে সময়সীমা বাড়ানো যাবে।',
-                        'Marks are locked. Unlock to edit or extend deadline.'
-                      )
-                    : pick(
-                        'ফলাফল গণনার আগে পরীক্ষা লক করা নিরাপদ।',
-                        'Lock exam before final calculation.'
-                      )}
+                    ? 'বর্তমানে লক করা আছে। আনলক করলে সময়সীমা বাড়ানো যাবে।'
+                    : 'ফলাফল গণনার আগে পরীক্ষা লক করা নিরাপদ।'}
                 </p>
               </div>
               {activeExam.isLocked ? (
@@ -429,7 +403,7 @@ export function ResultPublicationView() {
                   onClick={() => setUnlockModalOpen(true)}
                 >
                   <Unlock className="w-3.5 h-3.5" />
-                  {pick('আনলক ও সময়সীমা বাড়ান', 'Unlock & Extend')}
+                  {'আনলক ও সময়সীমা বাড়ান'}
                 </Button>
               ) : (
                 <Button
@@ -440,28 +414,25 @@ export function ResultPublicationView() {
                   onClick={() => handleToggleExamLock(true)}
                   title={
                     !canLockExam && activeExam.marksEntryDeadline
-                      ? pick(
-                          `শেষ তারিখ (${formatDateShort(activeExam.marksEntryDeadline, 'bn')}) পার হলে লক করা যাবে`,
-                          `Available after deadline (${formatDateShort(activeExam.marksEntryDeadline, 'en')})`
-                        )
+                      ? `শেষ তারিখ (${formatDateShort(activeExam.marksEntryDeadline, 'bn')}) পার হলে লক করা যাবে`
                       : undefined
                   }
                 >
                   <Lock className="w-3.5 h-3.5" />
-                  {pick('পরীক্ষা লক করুন', 'Lock Exam')}
+                  {'পরীক্ষা লক করুন'}
                 </Button>
               )}
             </Card>
 
             <Card className="p-4 flex flex-col justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground">{pick('ধাপ ৩', 'Step 3')}</p>
+                <p className="text-sm font-semibold text-muted-foreground">{'ধাপ ৩'}</p>
                 <h3 className="font-bold text-foreground mt-0.5">
-                  {pick('জিপিএ ও মেধাক্রম গণনা', 'Calculate GPA & Merit')}
+                  {'জিপিএ ও মেধাক্রম গণনা'}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {pick('প্রক্রিয়াকৃত ফলাফল:', 'Computed results:')}{' '}
-                  <strong>{formatNumber(tabulationRows.length, locale)}</strong>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {'প্রক্রিয়াকৃত ফলাফল:'}{' '}
+                  <strong>{formatNumber(tabulationRows.length, 'bn')}</strong>
                 </p>
               </div>
               <Button
@@ -473,27 +444,21 @@ export function ResultPublicationView() {
               >
                 <Calculator className="w-3.5 h-3.5" />
                 {processing
-                  ? pick('গণনা হচ্ছে...', 'Calculating...')
-                  : pick('ফলাফল প্রক্রিয়াকরণ', 'Process Results')}
+                  ? 'গণনা হচ্ছে...'
+                  : 'ফলাফল প্রক্রিয়াকরণ'}
               </Button>
             </Card>
 
             <Card className="p-4 flex flex-col justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold text-muted-foreground">{pick('ধাপ ৪', 'Step 4')}</p>
+                <p className="text-sm font-semibold text-muted-foreground">{'ধাপ ৪'}</p>
                 <h3 className="font-bold text-foreground mt-0.5">
-                  {pick('প্রকাশ / স্থগিত', 'Publish / Withhold')}
+                  {'প্রকাশ / স্থগিত'}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   {activeExam.resultStatus === ResultPublicationStatus.PUBLISHED
-                    ? pick(
-                        'শিক্ষার্থী ও অভিভাবক পোর্টালে ফলাফল লাইভ আছে।',
-                        'Results are live on student & parent portals.'
-                      )
-                    : pick(
-                        'যাচাই শেষে শিক্ষার্থী ও অভিভাবকদের জন্য প্রকাশ করুন।',
-                        'Publish to make marksheets live across portals.'
-                      )}
+                    ? 'শিক্ষার্থী ও অভিভাবক পোর্টালে ফলাফল লাইভ আছে।'
+                    : 'যাচাই শেষে শিক্ষার্থী ও অভিভাবকদের জন্য প্রকাশ করুন।'}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -504,7 +469,7 @@ export function ResultPublicationView() {
                   onClick={() => setPublishModalOpen(true)}
                 >
                   <Send className="w-3.5 h-3.5" />
-                  {pick('প্রকাশ করুন', 'Publish')}
+                  {'প্রকাশ করুন'}
                 </Button>
                 {activeExam.resultStatus === ResultPublicationStatus.PUBLISHED && (
                   <Button
@@ -512,7 +477,7 @@ export function ResultPublicationView() {
                     size="sm"
                     disabled={busy}
                     onClick={handleWithhold}
-                    title={pick('ফলাফল স্থগিত করুন', 'Withhold Results')}
+                    title={'ফলাফল স্থগিত করুন'}
                   >
                     <ShieldAlert className="w-3.5 h-3.5 text-destructive" />
                   </Button>
@@ -531,54 +496,49 @@ export function ResultPublicationView() {
                   <div className="flex items-center gap-2">
                     <BarChart3 className="w-4 h-4 text-primary" />
                     <h3 className="font-semibold text-sm text-foreground">
-                      {pick('বিষয়ভিত্তিক ফলাফল বিশ্লেষণ', 'Subject-wise Performance Analytics')}
+                      {'বিষয়ভিত্তিক ফলাফল বিশ্লেষণ'}
                     </h3>
                   </div>
                   {tabulationData?.summary && (
-                    <span className="text-xs text-muted-foreground">
-                      {pick(
-                        `মোট পাস: ${formatNumber(tabulationData.summary.passedCount, 'bn')} / ${formatNumber(tabulationData.summary.totalStudents, 'bn')} (${formatNumber(tabulationData.summary.passPercentage, 'bn')}%)`,
-                        `Passed: ${tabulationData.summary.passedCount}/${tabulationData.summary.totalStudents} (${tabulationData.summary.passPercentage}%)`
-                      )}
+                    <span className="text-sm text-muted-foreground">
+                      {`মোট পাস: ${formatNumber(tabulationData.summary.passedCount, 'bn')} / ${formatNumber(tabulationData.summary.totalStudents, 'bn')} (${formatNumber(tabulationData.summary.passPercentage, 'bn')}%)`}
                     </span>
                   )}
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-xs font-semibold">
+                  <table className="w-full text-base">
+                    <thead className="bg-surface-muted/70 text-muted-foreground border-b border-border text-sm font-semibold">
                       <tr>
-                        <th className="px-3 py-2.5 text-left">{pick('বিষয়', 'Subject')}</th>
-                        <th className="px-2.5 py-2.5 text-center">{pick('উত্তীর্ণ / ফেল', 'Pass / Fail')}</th>
-                        <th className="px-2.5 py-2.5 text-right">{pick('পাসের হার', 'Pass %')}</th>
-                        <th className="px-2.5 py-2.5 text-right">{pick('গড় নম্বর', 'Avg')}</th>
-                        <th className="px-2.5 py-2.5 text-right">{pick('সর্বোচ্চ / সর্বনিম্ন', 'High / Low')}</th>
+                        <th className="px-3 py-2.5 text-left">{'বিষয়'}</th>
+                        <th className="px-2.5 py-2.5 text-center">{'উত্তীর্ণ / ফেল'}</th>
+                        <th className="px-2.5 py-2.5 text-right">{'পাসের হার'}</th>
+                        <th className="px-2.5 py-2.5 text-right">{'গড় নম্বর'}</th>
+                        <th className="px-2.5 py-2.5 text-right">{'সর্বোচ্চ / সর্বনিম্ন'}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {subjectAnalytics.map((row) => (
                         <tr key={row.es.id}>
                           <td className="px-3 py-2 font-medium text-foreground">
-                            {locale === 'bn'
-                              ? row.es.subject?.nameBn || row.es.subject?.name
-                              : row.es.subject?.name}
+                            {row.es.subject?.nameBn || row.es.subject?.name}
                           </td>
                           <td className="px-2.5 py-2 text-center">
                             <span className="text-success font-semibold">
-                              {formatNumber(row.passedCount, locale)}
+                              {formatNumber(row.passedCount, 'bn')}
                             </span>{' '}
                             /{' '}
                             <span className="text-destructive font-semibold">
-                              {formatNumber(row.failedCount, locale)}
+                              {formatNumber(row.failedCount, 'bn')}
                             </span>
                           </td>
                           <td className="px-2.5 py-2 text-right font-semibold">
-                            {formatNumber(row.passRate, locale)}%
+                            {formatNumber(row.passRate, 'bn')}%
                           </td>
                           <td className="px-2.5 py-2 text-right">
-                            {formatNumber(row.avg, locale, 1)}
+                            {formatNumber(row.avg, 'bn', 1)}
                           </td>
                           <td className="px-2.5 py-2 text-right">
-                            {formatNumber(row.highest, locale)} / {formatNumber(row.lowest, locale)}
+                            {formatNumber(row.highest, 'bn')} / {formatNumber(row.lowest, 'bn')}
                           </td>
                         </tr>
                       ))}
@@ -589,12 +549,12 @@ export function ResultPublicationView() {
 
               <Card className="lg:col-span-4 p-4 space-y-3">
                 <h3 className="font-semibold text-sm text-foreground">
-                  {pick('গ্রেড বণ্টন (Grade Distribution)', 'Grade Distribution')}
+                  {'গ্রেড বণ্টন (Grade Distribution)'}
                 </h3>
                 <div className="space-y-2.5">
                   {gradeDistribution.map((g) => (
                     <div key={g.grade} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center justify-between text-sm">
                         <span
                           className={`font-bold ${
                             g.grade === 'F' ? 'text-destructive' : 'text-foreground'
@@ -603,7 +563,7 @@ export function ResultPublicationView() {
                           {g.grade}
                         </span>
                         <span className="text-muted-foreground">
-                          {formatNumber(g.count, locale)} ({formatNumber(g.pct, locale)}%)
+                          {formatNumber(g.count, 'bn')} ({formatNumber(g.pct, 'bn')}%)
                         </span>
                       </div>
                       <div className="w-full h-2 rounded-full bg-surface-muted overflow-hidden">
@@ -621,10 +581,7 @@ export function ResultPublicationView() {
             </div>
           ) : (
             <Card className="p-6 text-center text-sm text-muted-foreground">
-              {pick(
-                'এখনো ফলাফল প্রক্রিয়াকরণ করা হয়নি। ধাপ ৩ থেকে "ফলাফল প্রক্রিয়াকরণ" বাটনে ক্লিক করে GPA ও মেধাক্রম তৈরি করুন।',
-                'Results have not been processed yet. Click "Process Results" in Step 3 to generate GPA and merit rankings.'
-              )}
+              {'এখনো ফলাফল প্রক্রিয়াকরণ করা হয়নি। ধাপ ৩ থেকে "ফলাফল প্রক্রিয়াকরণ" বাটনে ক্লিক করে GPA ও মেধাক্রম তৈরি করুন।'}
             </Card>
           )}
         </>
@@ -634,24 +591,21 @@ export function ResultPublicationView() {
       <Modal
         open={publishModalOpen}
         onClose={() => setPublishModalOpen(false)}
-        title={pick('ফলাফল প্রকাশ নিশ্চিতকরণ', 'Confirm Result Publication')}
+        title={'ফলাফল প্রকাশ নিশ্চিতকরণ'}
       >
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {pick(
-              `আপনি কি নিশ্চিতভাবে "${activeExam?.name ?? ''}" পরীক্ষার ফলাফল আনুষ্ঠানিকভাবে প্রকাশ করতে চান? প্রকাশ করলে সব নম্বর স্থায়ীভাবে লক হয়ে যাবে এবং শিক্ষার্থী-অভিভাবকরা ফলাফল দেখতে পাবেন।`,
-              `Are you sure you want to officially publish "${activeExam?.name ?? ''}" results? All marks will be locked and results will become visible to students and parents.`
-            )}
+            {`আপনি কি নিশ্চিতভাবে "${activeExam?.name ?? ''}" পরীক্ষার ফলাফল আনুষ্ঠানিকভাবে প্রকাশ করতে চান? প্রকাশ করলে সব নম্বর স্থায়ীভাবে লক হয়ে যাবে এবং শিক্ষার্থী-অভিভাবকরা ফলাফল দেখতে পাবেন।`}
           </p>
           <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <Button variant="outline" onClick={() => setPublishModalOpen(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button onClick={handlePublishConfirm} disabled={publishing}>
               <Send className="w-4 h-4 mr-1.5" />
               {publishing
-                ? pick('প্রকাশ হচ্ছে...', 'Publishing...')
-                : pick('নিশ্চিত ও প্রকাশ করুন', 'Confirm & Publish')}
+                ? 'প্রকাশ হচ্ছে...'
+                : 'নিশ্চিত ও প্রকাশ করুন'}
             </Button>
           </div>
         </div>
@@ -661,18 +615,15 @@ export function ResultPublicationView() {
       <Modal
         open={unlockModalOpen}
         onClose={() => setUnlockModalOpen(false)}
-        title={pick('পরীক্ষা আনলক ও সময়সীমা বর্ধিতকরণ', 'Unlock Exam & Extend Deadline')}
+        title={'পরীক্ষা আনলক ও সময়সীমা বর্ধিতকরণ'}
       >
         <form onSubmit={handleUnlockWithDeadline} className="space-y-4">
-          <p className="text-xs text-muted-foreground">
-            {pick(
-              'নম্বর এন্ট্রি পুনরায় চালু করতে পরীক্ষার লক খুলুন এবং নতুন শেষ তারিখ নির্ধারণ করুন।',
-              'Unlock this exam and set a new marks entry deadline.'
-            )}
+          <p className="text-sm text-muted-foreground">
+            {'নম্বর এন্ট্রি পুনরায় চালু করতে পরীক্ষার লক খুলুন এবং নতুন শেষ তারিখ নির্ধারণ করুন।'}
           </p>
           <div>
-            <label className="block text-xs font-medium text-muted-foreground mb-1">
-              {pick('নতুন সময়সীমা (তারিখ)', 'New Deadline Date')}
+            <label className="block text-sm font-medium text-muted-foreground mb-1">
+              {'নতুন সময়সীমা (তারিখ)'}
             </label>
             <Input
               type="date"
@@ -683,13 +634,13 @@ export function ResultPublicationView() {
           </div>
           <div className="flex justify-end gap-2 pt-3 border-t border-border">
             <Button type="button" variant="outline" onClick={() => setUnlockModalOpen(false)}>
-              {pick('বাতিল', 'Cancel')}
+              {'বাতিল'}
             </Button>
             <Button type="submit" disabled={updatingExam}>
               <Unlock className="w-4 h-4 mr-1.5" />
               {updatingExam
-                ? pick('হালনাগাদ হচ্ছে...', 'Updating...')
-                : pick('আনলক করুন', 'Unlock Exam')}
+                ? 'হালনাগাদ হচ্ছে...'
+                : 'আনলক করুন'}
             </Button>
           </div>
         </form>
