@@ -10,4 +10,5 @@ export * from './teacher-assignment.api';
 export * from './class-teacher.api';
 export * from './academic-event.api';
 export * from './syllabus.api';
+export * from './parent.api';
 
