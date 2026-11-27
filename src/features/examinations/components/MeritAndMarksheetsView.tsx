@@ -19,7 +19,7 @@ import {
 } from '@/src/features/examinations/api/examinations.api';
 import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
 import { useGetSectionsQuery } from '@/src/services/academic/section.api';
-import { formatNumber } from '@/src/lib/formatters';
+import { formatNumber, getSubjectCode } from '@/src/lib/formatters';
 import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { ExamType, ResultStatus } from '@/src/types/enums';
 import type { SchoolProfile } from '@/src/types/entities';
@@ -239,7 +239,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           publishedAt: tabulationRes.examination.publishedAt,
         },
         subjects: row.subjects.map((sub) => ({
-          subjectCode: sub.code ?? '—',
+          subjectCode: getSubjectCode(sub.code, activeClass?.numericValue) ?? '—',
           subjectName: sub.subjectName,
           subjectNameBn: sub.subjectName,
           fullMarks: subjectFullMarksMap.get(sub.examSubjectId) ?? 100,
@@ -262,7 +262,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
     if (!tabulationRes) return { subjects: [], rows: [] };
     const subjects = tabulationRes.subjectsList.map((s) => ({
       id: s.id,
-      code: s.code ?? '—',
+      code: getSubjectCode(s.code, activeClass?.numericValue) ?? '—',
       nameBn: s.name,
       nameEn: s.name,
       fullMarks: s.fullMarks,

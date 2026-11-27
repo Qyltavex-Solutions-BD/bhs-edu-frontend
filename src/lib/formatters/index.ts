@@ -345,3 +345,22 @@ export function calculateOverallGpa(
     isPassed: true,
   };
 }
+
+/**
+ * NCTB/SSC official subject codes apply only to Classes 9 and 10 (numericValue >= 9).
+ * Returns null for Classes 6–8 so no subject code is shown alongside their subjects.
+ */
+export function getSubjectCode(
+  officialCode: string | null | undefined,
+  classNumericValue?: number | null
+): string | null {
+  if (!officialCode) return null;
+  if (
+    classNumericValue !== undefined &&
+    classNumericValue !== null &&
+    classNumericValue < 9
+  ) {
+    return null;
+  }
+  return officialCode;
+}
