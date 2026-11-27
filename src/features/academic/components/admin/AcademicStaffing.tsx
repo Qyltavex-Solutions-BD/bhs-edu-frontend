@@ -10,6 +10,7 @@ import {
   useGetClassTeachersQuery,
   useGetSchoolClassesQuery,
   useGetSectionsQuery,
+  useGetSubjectsQuery,
   useGetTeacherAssignmentsQuery,
   useReleaseTeacherAssignmentMutation,
   useRemoveClassTeacherMutation,
@@ -21,8 +22,7 @@ import { useGetStaffQuery } from '@/src/features/staff/api/staff.api';
 import { formatNumber } from '@/src/lib/formatters';
 import { Button, Card, FormField, Input, Modal, SegmentedTabs, Select } from '@/src/components/ui/primitives';
 import { Search, Plus, Trash2, BookOpen, CheckCircle2, RotateCcw, Pencil, Save } from 'lucide-react';
-import type { AcademicYear } from '@/src/types/entities';
-import type { MockDatabase } from '@/src/mocks/seed';
+import type { AcademicYear, SchoolClass, Section, Staff } from '@/src/types/entities';
 import { StaffStatus, StaffType } from '@/src/types/enums';
 
 function errorMessage(err: unknown, fallback: string) {
@@ -34,11 +34,9 @@ function errorMessage(err: unknown, fallback: string) {
 
 export function AcademicStaffing({
   mode,
-  db,
   year,
 }: {
   mode: 'class-teachers' | 'assignments';
-  db: MockDatabase;
   year: AcademicYear;
 }) {
   const { data: realStaff } = useGetStaffQuery({
@@ -90,7 +88,6 @@ export function AcademicStaffing({
 
       {activeTab === 'class-teachers' ? (
         <ClassTeachers
-          db={db}
           year={year}
           teachers={teachers}
           sections={sections}
@@ -99,7 +96,6 @@ export function AcademicStaffing({
         />
       ) : (
         <SubjectTeachers
-          db={db}
           year={year}
           teachers={teachers}
           classes={classes}
@@ -116,17 +112,15 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-
 const isUuid = (val?: string) => Boolean(val && UUID_REGEX.test(val));
 
 function ClassTeachers({
-  db,
   year,
   teachers,
   sections,
   classLabel,
   teacherName,
 }: {
-  db: MockDatabase;
   year: AcademicYear;
-  teachers: MockDatabase['staff'];
-  sections: MockDatabase['sections'];
+  teachers: Staff[];
+  sections: Section[];
   classLabel: (classId: string) => string | undefined;
   teacherName: (staffId: string) => string;
 }) {
@@ -286,7 +280,6 @@ function ClassTeachers({
 }
 
 function SubjectTeachers({
-  db,
   year,
   teachers,
   classes,
@@ -294,11 +287,10 @@ function SubjectTeachers({
   classLabel,
   teacherName,
 }: {
-  db: MockDatabase;
   year: AcademicYear;
-  teachers: MockDatabase['staff'];
-  classes: MockDatabase['classes'];
-  sections: MockDatabase['sections'];
+  teachers: Staff[];
+  classes: SchoolClass[];
+  sections: Section[];
   classLabel: (classId: string) => string | undefined;
   teacherName: (staffId: string) => string;
 }) {
@@ -351,6 +343,7 @@ function SubjectTeachers({
     { skip: !isUuid(year?.id) }
   );
   const { data: realGroups } = useGetAcademicGroupsQuery();
+  const { data: realSubjects = [] } = useGetSubjectsQuery();
   const { data: realAssignments, isLoading: loadingAssignments } = useGetTeacherAssignmentsQuery(
     isUuid(year?.id) ? { academicYearId: year.id, isActive: true, limit: 500 } : undefined,
     { skip: !isUuid(year?.id) }
@@ -396,7 +389,7 @@ function SubjectTeachers({
       return sub.nameBn || sub.name;
     }
     const classSubject = classSubjectsList.find((item) => item.id === classSubjectIdValue);
-    const subject = classSubject?.subject ?? db.subjects.find((item) => item.id === classSubject?.subjectId);
+    const subject = classSubject?.subject ?? realSubjects.find((item) => item.id === classSubject?.subjectId);
     const group = classSubject?.groupId
       ? groupsList.find((item) => item.id === classSubject.groupId)
       : undefined;

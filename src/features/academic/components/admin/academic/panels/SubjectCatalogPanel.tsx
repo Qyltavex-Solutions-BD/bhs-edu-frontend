@@ -17,7 +17,6 @@ import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { formatNumber } from '@/src/lib/formatters';
 import { SubjectCategory } from '@/src/types/enums';
 import type { Subject } from '@/src/types/entities';
-import type { MockDatabase } from '@/src/mocks/seed';
 import { errorMessage } from './shared';
 import { CATEGORY_LABELS } from '../academic.labels';
 import { subjectSchema, type SubjectFormValues } from '../academic.schema';
@@ -31,7 +30,7 @@ const defaultValues: SubjectFormValues = {
   isActive: true,
 };
 
-export function SubjectCatalogPanel({ db: _db }: { db?: MockDatabase }) {
+export function SubjectCatalogPanel() {
 
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');

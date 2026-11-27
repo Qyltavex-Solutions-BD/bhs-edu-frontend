@@ -46,7 +46,6 @@ import { LoadingSkeleton, SchoolEmblem } from '@/src/components/shared/Feedback'
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Card, FormField, Input, Modal, Select } from '@/src/components/ui/primitives';
 import type { AcademicGroup, AcademicYear, SchoolClass, Section } from '@/src/types/entities';
-import type { MockDatabase } from '@/src/mocks/seed';
 import { StaffStatus, StaffType, WeekDay } from '@/src/types/enums';
 
 const DAY_LABEL = {
@@ -60,10 +59,8 @@ const DAY_LABEL = {
 type RoutineViewMode = 'section' | 'teacher';
 
 export function AcademicRoutine({
-  db,
   year,
 }: {
-  db?: MockDatabase;
   year: AcademicYear;
 }) {
   // API Mutations
@@ -193,15 +190,10 @@ export function AcademicRoutine({
   const realClassTeacherEntry = classTeachersList.find(
     (row) => row.sectionId === effectiveSectionId && row.academicYearId === year.id
   );
-  const dbClassTeacherRow = (db?.sectionClassTeachers ?? []).find(
-    (row) => row.sectionId === effectiveSectionId && row.academicYearId === year.id
-  );
   const classTeacher = realClassTeacherEntry?.staff
     ? realClassTeacherEntry.staff
     : realClassTeacherEntry
     ? teachers.find((member) => member.id === realClassTeacherEntry.staffId) ?? null
-    : dbClassTeacherRow
-    ? teachers.find((member) => member.id === dbClassTeacherRow.staffId) ?? null
     : null;
 
   const today = getTodayWeekDay();
@@ -242,8 +234,7 @@ export function AcademicRoutine({
 
   const [composerOpen, setComposerOpen] = useState(false);
 
-  const schoolName =
-    db?.schoolProfile?.name || 'বজ্রেশ্বর উচ্চ বিদ্যালয়';
+  const schoolName = 'ভোজেশ্বর উচ্চ বিদ্যালয়';
 
   // Metrics
   const uniqueTeachersInSection = new Set(

@@ -55,7 +55,6 @@ import {
 import { AcademicShell } from '@/src/views/admin/AcademicShell';
 import { AcademicCalendar } from '@/src/views/admin/AcademicCalendar';
 import { AcademicCurriculum } from '@/src/views/admin/AcademicCurriculum';
-import { AcademicPolicies } from '@/src/views/admin/AcademicPolicies';
 import { AcademicRoutine } from '@/src/views/admin/AcademicRoutine';
 import { AcademicStaffing } from '@/src/views/admin/AcademicStaffing';
 
@@ -71,8 +70,7 @@ type AcademicTab =
   | 'assignments'
   | 'routines'
   | 'events'
-  | 'documents'
-  | 'policies';
+  | 'documents';
 
 // ============================================================================
 // 7.2 INSTITUTION MANAGEMENT

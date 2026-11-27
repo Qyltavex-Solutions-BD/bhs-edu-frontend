@@ -39,13 +39,11 @@ import {
   Select,
 } from '@/src/components/ui/primitives';
 import { ExamType, ResultStatus } from '@/src/types/enums';
-import type { MockDatabase } from '@/src/mocks/seed';
 import { errorMessage, studentInitials } from './studentShared';
 
 export function StudentPromotions({
   yearId,
 }: {
-  db?: MockDatabase;
   yearId?: string;
 }) {
   const [activeTab, setActiveTab] = useState<'bulk' | 'history'>('bulk');

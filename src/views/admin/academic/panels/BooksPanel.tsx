@@ -31,7 +31,6 @@ import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { formatNumber } from '@/src/lib/formatters';
 import { BookType } from '@/src/types/enums';
 import type { AcademicYear, Book, SchoolClass, Subject } from '@/src/types/entities';
-import type { MockDatabase } from '@/src/mocks/seed';
 import { errorMessage } from './shared';
 import { BOOK_TYPE_LABELS } from '../academic.labels';
 import { bookSchema, type BookFormValues } from '../academic.schema';
@@ -50,25 +49,17 @@ const defaultFormValues: BookFormValues = {
 };
 
 export function BooksPanel({
-  db,
   year,
 }: {
-  db?: MockDatabase;
   year?: AcademicYear;
 }) {
 
   // Queries
   const { data: realClasses } = useGetSchoolClassesQuery();
-  const classList: SchoolClass[] =
-    realClasses && realClasses.length > 0
-      ? realClasses
-      : (db?.classes ?? []);
+  const classList: SchoolClass[] = realClasses ?? [];
 
   const { data: realSubjects } = useGetSubjectsQuery();
-  const subjectList: Subject[] =
-    realSubjects && realSubjects.length > 0
-      ? realSubjects
-      : (db?.subjects ?? []);
+  const subjectList: Subject[] = realSubjects ?? [];
 
   // Filter States
   const [selectedClassId, setSelectedClassId] = useState<string>('');

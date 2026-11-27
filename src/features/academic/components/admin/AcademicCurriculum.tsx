@@ -4,17 +4,14 @@ import React, { useState } from 'react';
 import { ListChecks } from 'lucide-react';
 import { Button, Modal, SegmentedTabs } from '@/src/components/ui/primitives';
 import type { AcademicYear } from '@/src/types/entities';
-import type { MockDatabase } from '@/src/mocks/seed';
 import { SubjectCatalogPanel } from './academic/panels/SubjectCatalogPanel';
 import { ClassSubjectsPanel } from './academic/panels/ClassSubjectsPanel';
 import { BooksPanel } from './academic/panels/BooksPanel';
 
 export function AcademicCurriculum({
-  db,
   year,
   section,
 }: {
-  db: MockDatabase;
   year: AcademicYear;
   section: 'curriculum' | 'books' | 'catalog';
 }) {
@@ -48,9 +45,9 @@ export function AcademicCurriculum({
       </div>
 
       {activeView === 'curriculum' ? (
-        <ClassSubjectsPanel db={db} year={year} />
+        <ClassSubjectsPanel year={year} />
       ) : (
-        <BooksPanel db={db} year={year} />
+        <BooksPanel year={year} />
       )}
 
       <Modal
@@ -60,7 +57,7 @@ export function AcademicCurriculum({
         description={'নতুন বা কাস্টম কোনো বিষয় প্রয়োজন হলে এখান থেকে যোগ বা সম্পাদনা করুন।'}
         size="xl"
       >
-        <SubjectCatalogPanel db={db} />
+        <SubjectCatalogPanel />
       </Modal>
     </div>
   );
