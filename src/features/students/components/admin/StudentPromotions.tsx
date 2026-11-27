@@ -2,21 +2,33 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
   ArrowRight,
-  ArrowUpRight,
   CheckCircle2,
+  History,
   RotateCcw,
+  Search,
   Sparkles,
 } from 'lucide-react';
-import { useAppDispatch } from '@/src/store/hooks';
-import { setSelectedAcademicYear } from '@/src/store/slices/uiSlice';
-import { usePromoteStudentsMutation } from '@/src/store/api';
+import {
+  useExecuteBulkPromotionMutation,
+  useGetPromotionHistoryQuery,
+  usePreviewPromotionQuery,
+  useRollbackBatchPromotionMutation,
+} from '@/src/features/students/api/promotions.api';
+import { useGetExamsQuery } from '@/src/features/examinations/api/examinations.api';
+import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
+import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
+import { useGetSectionsQuery } from '@/src/services/academic/section.api';
+import { useGetAcademicGroupsQuery } from '@/src/services/academic/group.api';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import { cn } from '@/src/lib/utils/cn';
+import {
+  EmptyState,
+  LoadingSkeleton,
+} from '@/src/components/shared/Feedback';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import {
   Button,
@@ -26,978 +38,1005 @@ import {
   Modal,
   Select,
 } from '@/src/components/ui/primitives';
-import {
-  EnrollmentStatus,
-  PromotionType,
-  ResultPublicationStatus,
-  ResultStatus,
-  StudentStatus,
-} from '@/src/types/enums';
+import { ExamType, ResultStatus } from '@/src/types/enums';
 import type { MockDatabase } from '@/src/mocks/seed';
-import type { ResultSummary, StudentEnrollment } from '@/src/types/entities';
-import { classLabel, errorMessage, studentInitials } from './studentShared';
+import { errorMessage, studentInitials } from './studentShared';
 
-type DecisionValue = 'SKIP' | PromotionType.PROMOTED | PromotionType.RETAINED | 'GRADUATED';
+export function StudentPromotions({
+  yearId,
+}: {
+  db?: MockDatabase;
+  yearId?: string;
+}) {
+  const [activeTab, setActiveTab] = useState<'bulk' | 'history'>('bulk');
 
-interface RowDecision {
-  decision: DecisionValue;
-  sectionId: string;
-  groupId: string;
-  roll: string;
-}
+  // Master academic data
+  const { data: academicYears = [], isLoading: loadingYears } = useGetAcademicYearsQuery();
+  const { data: allClasses = [], isLoading: loadingClasses } = useGetSchoolClassesQuery();
+  const { data: academicGroups = [] } = useGetAcademicGroupsQuery();
 
-export function StudentPromotions({ db, yearId }: { db: MockDatabase; yearId: string }) {
-  const router = useRouter();
-  const dispatch = useAppDispatch();
-  const [promote, { isLoading }] = usePromoteStudentsMutation();
-
-  const sortedClasses = useMemo(
-    () => [...db.classes].sort((a, b) => a.numericValue - b.numericValue),
-    [db.classes]
+  const sortedYears = useMemo(
+    () =>
+      [...academicYears].sort(
+        (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+      ),
+    [academicYears]
   );
 
-  const sourceYear = db.academicYears.find((y) => y.id === yearId);
-  // Prefer next chronological academic year (e.g. 2027 when source is 2026)
-  const targetYears = useMemo(() => {
-    const others = db.academicYears.filter((y) => y.id !== yearId);
-    const sourceNum = Number(sourceYear?.name ?? 0);
-    return [...others].sort((a, b) => {
-      const an = Number(a.name);
-      const bn = Number(b.name);
-      const aFuture = an > sourceNum ? 1 : 0;
-      const bFuture = bn > sourceNum ? 1 : 0;
-      if (aFuture !== bFuture) return bFuture - aFuture;
-      return an - bn;
-    });
-  }, [db.academicYears, yearId, sourceYear?.name]);
+  const activeClasses = useMemo(
+    () =>
+      [...allClasses]
+        .filter((c) => c.isActive)
+        .sort((a, b) => a.numericValue - b.numericValue),
+    [allClasses]
+  );
 
-  const [classId, setClassId] = useState(sortedClasses[0]?.id ?? '');
-  const [targetYearId, setTargetYearId] = useState(targetYears[0]?.id ?? '');
-  const [selectedExamId, setSelectedExamId] = useState<string>('AUTO');
-  const [choices, setChoices] = useState<Record<string, RowDecision>>({});
+  // Source & target selection state
+  const [sourceYearId, setSourceYearId] = useState<string>('');
+  const [sourceClassId, setSourceClassId] = useState<string>('');
+  const [sourceSectionId, setSourceSectionId] = useState<string>('');
+  const [selectedExamId, setSelectedExamId] = useState<string>('');
+
+  const [targetYearId, setTargetYearId] = useState<string>('');
+  const [targetClassId, setTargetClassId] = useState<string>('');
+  const [targetSectionId, setTargetSectionId] = useState<string>('');
+  const [defaultGroupId, setDefaultGroupId] = useState<string>('');
+  const [groupOverrides, setGroupOverrides] = useState<Record<string, string>>({});
+
+  // Confirm execution modal
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [lastRun, setLastRun] = useState<{
-    promoted: number;
-    retained: number;
-    graduated: number;
-    toYearId: string;
-    toYearName: string;
-  } | null>(null);
+  const [remarksDraft, setRemarksDraft] = useState('');
 
-  // Ensure targetYearId stays valid when yearId changes from top selector
-  const resolvedTargetYearId = targetYears.some((y) => y.id === targetYearId)
-    ? targetYearId
-    : targetYears[0]?.id ?? '';
-  const targetYear = db.academicYears.find((y) => y.id === resolvedTargetYearId);
+  // History & rollback state
+  const [historySearch, setHistorySearch] = useState('');
+  const [historySourceYearId, setHistorySourceYearId] = useState('');
+  const [rollbackOpen, setRollbackOpen] = useState(false);
+  const [rbSourceYearId, setRbSourceYearId] = useState('');
+  const [rbSourceClassId, setRbSourceClassId] = useState('');
+  const [rbSourceSectionId, setRbSourceSectionId] = useState('');
+  const [rbTargetYearId, setRbTargetYearId] = useState('');
+  const [rbReason, setRbReason] = useState('');
 
-  const sourceClass = db.classes.find((item) => item.id === classId);
-  const nextClass =
-    db.classes.find((item) => item.numericValue === (sourceClass?.numericValue ?? 0) + 1) ??
-    sourceClass;
-  const isTopClass = (sourceClass?.numericValue ?? 0) >= 10;
+  const resolvedSourceYearId = useMemo(() => {
+    if (sourceYearId && sortedYears.some((y) => y.id === sourceYearId)) return sourceYearId;
+    if (yearId && sortedYears.some((y) => y.id === yearId)) return yearId;
+    const active = sortedYears.find((y) => y.isActive);
+    return active?.id ?? sortedYears[0]?.id ?? '';
+  }, [sourceYearId, yearId, sortedYears]);
 
-  // Exams available for this source year + class (published first)
-  const classExams = useMemo(() => {
-    return db.exams
-      .filter((e) => !e.isDeleted && e.academicYearId === yearId && e.classId === classId)
-      .sort((a, b) => {
-        const aPub = a.resultStatus === ResultPublicationStatus.PUBLISHED ? 1 : 0;
-        const bPub = b.resultStatus === ResultPublicationStatus.PUBLISHED ? 1 : 0;
-        if (aPub !== bPub) return bPub - aPub;
-        return b.startDate.localeCompare(a.startDate);
-      });
-  }, [db.exams, yearId, classId]);
+  const resolvedSourceClassId = useMemo(() => {
+    if (sourceClassId && activeClasses.some((c) => c.id === sourceClassId)) return sourceClassId;
+    return activeClasses[0]?.id ?? '';
+  }, [sourceClassId, activeClasses]);
 
-  const activeExam = useMemo(() => {
-    if (selectedExamId === 'NONE') return null;
-    if (selectedExamId === 'AUTO') {
-      return (
-        classExams.find((e) => e.resultStatus === ResultPublicationStatus.PUBLISHED) ??
-        classExams[0] ??
-        null
-      );
+  const { data: sourceSections = [] } = useGetSectionsQuery(
+    { classId: resolvedSourceClassId },
+    { skip: !resolvedSourceClassId }
+  );
+
+  const activeSourceSections = useMemo(
+    () =>
+      [...sourceSections]
+        .filter((s) => s.isActive)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [sourceSections]
+  );
+
+  const resolvedSourceSectionId = useMemo(() => {
+    if (sourceSectionId && activeSourceSections.some((s) => s.id === sourceSectionId)) {
+      return sourceSectionId;
     }
-    return classExams.find((e) => e.id === selectedExamId) ?? null;
-  }, [classExams, selectedExamId]);
+    return activeSourceSections[0]?.id ?? '';
+  }, [sourceSectionId, activeSourceSections]);
 
-  // Active eligible students in selected class & year
-  const candidates = useMemo(() => {
-    return db.enrollments
-      .filter((item) => {
-        if (item.academicYearId !== yearId || item.classId !== classId) return false;
-        if (item.status !== EnrollmentStatus.ACTIVE) return false;
-        const st = db.students.find((s) => s.id === item.studentId);
-        return st?.status === StudentStatus.ACTIVE;
-      })
-      .sort((a, b) => {
-        const sa = db.sections.find((s) => s.id === a.sectionId)?.name ?? '';
-        const sb = db.sections.find((s) => s.id === b.sectionId)?.name ?? '';
-        return sa.localeCompare(sb) || a.roll - b.roll;
-      });
-  }, [db.enrollments, db.students, db.sections, yearId, classId]);
+  const { data: examsRes } = useGetExamsQuery(
+    {
+      academicYearId: resolvedSourceYearId,
+      classId: resolvedSourceClassId,
+      limit: 100,
+      isDeleted: false,
+    },
+    { skip: !resolvedSourceYearId || !resolvedSourceClassId }
+  );
 
-  // Map enrollmentId -> ResultSummary for the active reference exam
-  const resultsByEnrollment = useMemo(() => {
-    const map = new Map<string, ResultSummary>();
-    if (!activeExam) return map;
-    for (const r of db.resultSummaries) {
-      if (r.examId === activeExam.id) {
-        map.set(r.studentEnrollmentId, r);
-      }
+  const eligibleExams = useMemo(
+    () =>
+      (examsRes?.items ?? []).filter(
+        (e) =>
+          e.examType === ExamType.ANNUAL ||
+          e.examType === ExamType.CONSOLIDATED ||
+          e.examType === ExamType.HALF_YEARLY
+      ),
+    [examsRes?.items]
+  );
+
+  const sectionBelongsToSourceClass = activeSourceSections.some(
+    (s) => s.id === resolvedSourceSectionId && s.classId === resolvedSourceClassId
+  );
+
+  const {
+    data: previewData,
+    isLoading: loadingPreview,
+    isFetching: fetchingPreview,
+    error: previewError,
+  } = usePreviewPromotionQuery(
+    {
+      academicYearId: resolvedSourceYearId,
+      classId: resolvedSourceClassId,
+      sectionId: sectionBelongsToSourceClass ? resolvedSourceSectionId : undefined,
+      examId: selectedExamId || undefined,
+    },
+    { skip: !resolvedSourceYearId || !resolvedSourceClassId }
+  );
+
+  const resolvedTargetYearId = useMemo(() => {
+    if (targetYearId && sortedYears.some((y) => y.id === targetYearId)) return targetYearId;
+    if (previewData?.target?.nextAcademicYear?.id) {
+      return previewData.target.nextAcademicYear.id;
     }
-    return map;
-  }, [db.resultSummaries, activeExam]);
+    const nextIdx = sortedYears.findIndex((y) => y.id === resolvedSourceYearId) + 1;
+    return sortedYears[nextIdx]?.id ?? '';
+  }, [targetYearId, sortedYears, previewData?.target?.nextAcademicYear?.id, resolvedSourceYearId]);
 
-  const hasResultData = candidates.some((enr) => resultsByEnrollment.has(enr.id));
+  const resolvedTargetClassId = useMemo(() => {
+    if (targetClassId && activeClasses.some((c) => c.id === targetClassId)) return targetClassId;
+    if (previewData?.target?.nextClass?.id) return previewData.target.nextClass.id;
+    const nextIdx = activeClasses.findIndex((c) => c.id === resolvedSourceClassId) + 1;
+    return activeClasses[nextIdx]?.id ?? '';
+  }, [targetClassId, activeClasses, previewData?.target?.nextClass?.id, resolvedSourceClassId]);
 
-  // Existing occupied rolls in target year so we warn about collisions before submitting
-  const occupiedTargetRolls = useMemo(() => {
-    const set = new Set<string>();
-    if (!resolvedTargetYearId) return set;
-    for (const enr of db.enrollments) {
-      if (enr.academicYearId === resolvedTargetYearId) {
-        set.add(`${enr.classId}|${enr.sectionId}|${enr.roll}`);
-      }
+  const { data: targetSections = [] } = useGetSectionsQuery(
+    { classId: resolvedTargetClassId },
+    { skip: !resolvedTargetClassId || !!previewData?.target?.isGraduatingClass }
+  );
+
+  const activeTargetSections = useMemo(
+    () =>
+      [...targetSections]
+        .filter((s) => s.isActive)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [targetSections]
+  );
+
+  const resolvedTargetSectionId = useMemo(() => {
+    if (targetSectionId && activeTargetSections.some((s) => s.id === targetSectionId)) {
+      return targetSectionId;
     }
-    return set;
-  }, [db.enrollments, resolvedTargetYearId]);
+    return activeTargetSections[0]?.id ?? '';
+  }, [targetSectionId, activeTargetSections]);
 
-  const defaultSectionFor = (enrollment: StudentEnrollment, targetClassId: string) => {
-    const currentSection = db.sections.find((item) => item.id === enrollment.sectionId);
-    return (
-      db.sections.find(
-        (item) => item.classId === targetClassId && item.name === currentSection?.name
-      ) || db.sections.find((item) => item.classId === targetClassId)
-    );
-  };
+  // History query
+  const {
+    data: historyRes,
+    isLoading: loadingHistory,
+    isFetching: fetchingHistory,
+  } = useGetPromotionHistoryQuery(
+    {
+      limit: 50,
+      search: historySearch.trim() || undefined,
+      sourceAcademicYearId: historySourceYearId || undefined,
+    },
+    { skip: activeTab !== 'history' }
+  );
 
-  const defaultGroupFor = (enrollment: StudentEnrollment, targetClassId: string) => {
-    const targetCls = db.classes.find((c) => c.id === targetClassId);
-    if ((targetCls?.numericValue ?? 0) < 9) return '';
-    return enrollment.groupId || db.academicGroups[0]?.id || '';
-  };
+  // Rollback modal section lookup
+  const { data: rbSourceSections = [] } = useGetSectionsQuery(
+    { classId: rbSourceClassId },
+    { skip: !rollbackOpen || !rbSourceClassId }
+  );
 
-  const choiceFor = (enrollment: StudentEnrollment): RowDecision => {
-    const existing = choices[enrollment.id];
-    if (existing) return existing;
-    const defaultTargetClassId = isTopClass ? classId : nextClass?.id ?? classId;
-    const targetSection = defaultSectionFor(enrollment, defaultTargetClassId);
-    return {
-      decision: 'SKIP',
-      sectionId: targetSection?.id ?? '',
-      groupId: defaultGroupFor(enrollment, defaultTargetClassId),
-      roll: String(enrollment.roll),
-    };
-  };
+  const [executeBulkPromotion, { isLoading: executing }] = useExecuteBulkPromotionMutation();
+  const [rollbackBatch, { isLoading: rollingBack }] = useRollbackBatchPromotionMutation();
 
-  const setChoice = (
-    enrollment: StudentEnrollment,
-    patch: Partial<RowDecision>
-  ) => {
-    setChoices((current) => {
-      const prev = choiceFor(enrollment);
-      const next = { ...prev, ...patch };
-      // If decision switched between PROMOTED and RETAINED, automatically map section & stream for the new target class
-      if (patch.decision && patch.decision !== prev.decision) {
-        const targetClassId =
-          patch.decision === PromotionType.RETAINED
-            ? classId
-            : isTopClass
-              ? classId
-              : nextClass?.id ?? classId;
-        const sec = defaultSectionFor(enrollment, targetClassId);
-        next.sectionId = sec?.id ?? '';
-        next.groupId = defaultGroupFor(enrollment, targetClassId);
-      }
-      return { ...current, [enrollment.id]: next };
-    });
-  };
+  const isGraduatingClass = previewData?.target?.isGraduatingClass ?? false;
+  const requiresGroupSelection = previewData?.target?.requiresGroupSelection ?? false;
+  const previewStudents = previewData?.students ?? [];
+  const summary = previewData?.summary;
 
-  // One-click Result-Assisted Auto-Suggestion (Pass -> Promoted/Graduated + Merit Roll; Fail -> Retained)
-  const applyResultAutoSuggest = () => {
-    const nextChoices: Record<string, RowDecision> = {};
-    // Track next sequential roll per (targetClassId|targetSectionId) to guarantee zero duplicates
-    const usedRolls = new Set<string>(occupiedTargetRolls);
-
-    // Order candidates by merit position first (for promoted), then roll
-    const ordered = [...candidates].sort((a, b) => {
-      const ra = resultsByEnrollment.get(a.id);
-      const rb = resultsByEnrollment.get(b.id);
-      const ma = ra?.meritPosition ?? 9999;
-      const mb = rb?.meritPosition ?? 9999;
-      if (ma !== mb) return ma - mb;
-      return a.roll - b.roll;
-    });
-
-    const allocateRoll = (targetClassId: string, targetSectionId: string, preferred: number) => {
-      let candidateRoll = Math.max(1, preferred);
-      while (usedRolls.has(`${targetClassId}|${targetSectionId}|${candidateRoll}`)) {
-        candidateRoll += 1;
-      }
-      usedRolls.add(`${targetClassId}|${targetSectionId}|${candidateRoll}`);
-      return String(candidateRoll);
-    };
-
-    for (const enr of ordered) {
-      const res = resultsByEnrollment.get(enr.id);
-      if (!res) {
-        nextChoices[enr.id] = {
-          ...choiceFor(enr),
-          decision: 'SKIP',
-        };
-        continue;
-      }
-
-      if (res.resultStatus === ResultStatus.FAIL) {
-        const sec = defaultSectionFor(enr, classId);
-        const secId = sec?.id ?? '';
-        nextChoices[enr.id] = {
-          decision: PromotionType.RETAINED,
-          sectionId: secId,
-          groupId: defaultGroupFor(enr, classId),
-          roll: allocateRoll(classId, secId, enr.roll),
-        };
-      } else if (isTopClass) {
-        nextChoices[enr.id] = {
-          decision: 'GRADUATED',
-          sectionId: '',
-          groupId: '',
-          roll: String(enr.roll),
-        };
-      } else {
-        const targetClassId = nextClass?.id ?? classId;
-        const sec = defaultSectionFor(enr, targetClassId);
-        const secId = sec?.id ?? '';
-        const preferredRoll = res.sectionMeritPosition ?? res.meritPosition ?? enr.roll;
-        nextChoices[enr.id] = {
-          decision: PromotionType.PROMOTED,
-          sectionId: secId,
-          groupId: defaultGroupFor(enr, targetClassId),
-          roll: allocateRoll(targetClassId, secId, preferredRoll),
-        };
-      }
+  const handleExecutePromotion = async () => {
+    if (!resolvedSourceYearId || !resolvedSourceClassId || !resolvedSourceSectionId) {
+      toast.error('উৎস শিক্ষাবর্ষ, শ্রেণি এবং শাখা নির্বাচন করুন।');
+      return;
     }
-
-    setChoices(nextChoices);
-    toast.success(
-      'পরীক্ষার ফলাফল ও মেধাক্রম অনুযায়ী প্রমোশন প্রস্তাব তৈরি হয়েছে। যাচাই করে প্রয়োগ করুন।'
-    );
-  };
-
-  const selectAllPromote = () => {
-    const nextChoices: Record<string, RowDecision> = {};
-    const usedRolls = new Set<string>(occupiedTargetRolls);
-    const targetClassId = isTopClass ? classId : nextClass?.id ?? classId;
-
-    for (const enr of candidates) {
-      if (isTopClass) {
-        nextChoices[enr.id] = {
-          decision: 'GRADUATED',
-          sectionId: '',
-          groupId: '',
-          roll: String(enr.roll),
-        };
-      } else {
-        const sec = defaultSectionFor(enr, targetClassId);
-        const secId = sec?.id ?? '';
-        let r = Math.max(1, enr.roll);
-        while (usedRolls.has(`${targetClassId}|${secId}|${r}`)) r += 1;
-        usedRolls.add(`${targetClassId}|${secId}|${r}`);
-        nextChoices[enr.id] = {
-          decision: PromotionType.PROMOTED,
-          sectionId: secId,
-          groupId: defaultGroupFor(enr, targetClassId),
-          roll: String(r),
-        };
-      }
-    }
-    setChoices(nextChoices);
-  };
-
-  // Compute live validation & decision counts
-  const summary = useMemo(() => {
-    let promoteCount = 0;
-    let retainCount = 0;
-    let graduateCount = 0;
-    const rollFrequency = new Map<string, number>();
-    const collisionIds = new Set<string>();
-    const missingStreamIds = new Set<string>();
-
-    const evaluated = candidates.map((enr) => {
-      const ch = choiceFor(enr);
-      const moving =
-        ch.decision === PromotionType.PROMOTED || ch.decision === PromotionType.RETAINED;
-      const targetClassId =
-        ch.decision === PromotionType.RETAINED ? classId : nextClass?.id ?? classId;
-      const targetCls = db.classes.find((c) => c.id === targetClassId);
-      const needsStream = moving && (targetCls?.numericValue ?? 0) >= 9;
-
-      if (ch.decision === PromotionType.PROMOTED) promoteCount += 1;
-      if (ch.decision === PromotionType.RETAINED) retainCount += 1;
-      if (ch.decision === 'GRADUATED') graduateCount += 1;
-
-      if (moving) {
-        const rollNum = Number(ch.roll);
-        const key = `${targetClassId}|${ch.sectionId}|${rollNum}`;
-        if (!rollNum || rollNum < 1 || occupiedTargetRolls.has(key)) {
-          collisionIds.add(enr.id);
-        }
-        rollFrequency.set(key, (rollFrequency.get(key) ?? 0) + 1);
-        if (needsStream && !ch.groupId) {
-          missingStreamIds.add(enr.id);
-        }
-      }
-
-      return { enr, ch, moving, targetClassId, needsStream };
-    });
-
-    for (const row of evaluated) {
-      if (!row.moving) continue;
-      const key = `${row.targetClassId}|${row.ch.sectionId}|${Number(row.ch.roll)}`;
-      if ((rollFrequency.get(key) ?? 0) > 1) {
-        collisionIds.add(row.enr.id);
-      }
-    }
-
-    const selectedTotal = promoteCount + retainCount + graduateCount;
-    const skippedCount = candidates.length - selectedTotal;
-    const showStreamColumn =
-      (!isTopClass && (nextClass?.numericValue ?? 0) >= 9) || (sourceClass?.numericValue ?? 0) >= 9;
-
-    return {
-      promoteCount,
-      retainCount,
-      graduateCount,
-      selectedTotal,
-      skippedCount,
-      collisionIds,
-      missingStreamIds,
-      showStreamColumn,
-      hasValidationErrors: collisionIds.size > 0 || missingStreamIds.size > 0,
-    };
-  }, [candidates, choices, classId, nextClass, isTopClass, sourceClass, db.classes, occupiedTargetRolls]);
-
-  const executePromotion = async () => {
-    const items = candidates
-      .map((enrollment) => ({ enrollment, choice: choiceFor(enrollment) }))
-      .filter((row) => row.choice.decision !== 'SKIP')
-      .map((row) => {
-        const targetClassId =
-          row.choice.decision === PromotionType.RETAINED || row.choice.decision === 'GRADUATED'
-            ? classId
-            : nextClass?.id;
-        const targetCls = db.classes.find((c) => c.id === targetClassId);
-        const res = resultsByEnrollment.get(row.enrollment.id);
-        return {
-          studentId: row.enrollment.studentId,
-          fromEnrollmentId: row.enrollment.id,
-          toClassId: targetClassId,
-          toSectionId: row.choice.sectionId,
-          toGroupId: (targetCls?.numericValue ?? 0) >= 9 ? row.choice.groupId || null : null,
-          roll: Number(row.choice.roll),
-          resultSummaryId: res?.id ?? null,
-          promotionType: row.choice.decision as PromotionType | 'GRADUATED',
-        };
-      });
-
-    if (!items.length) {
-      toast.error('অন্তত একজন শিক্ষার্থীর সিদ্ধান্ত নির্বাচন করুন।');
+    if (!isGraduatingClass && (!resolvedTargetYearId || !resolvedTargetClassId || !resolvedTargetSectionId)) {
+      toast.error('লক্ষ্য শিক্ষাবর্ষ, শ্রেণি এবং শাখা নির্বাচন করুন।');
       return;
     }
 
+    const overridesList = Object.entries(groupOverrides)
+      .filter(([, groupId]) => !!groupId)
+      .map(([studentId, groupId]) => ({ studentId, groupId }));
+
     try {
-      const result = await promote({
-        toAcademicYearId: resolvedTargetYearId,
-        items,
+      const res = await executeBulkPromotion({
+        sourceAcademicYearId: resolvedSourceYearId,
+        sourceClassId: resolvedSourceClassId,
+        sourceSectionId: resolvedSourceSectionId,
+        ...(isGraduatingClass
+          ? {}
+          : {
+              targetAcademicYearId: resolvedTargetYearId,
+              targetClassId: resolvedTargetClassId,
+              targetSectionId: resolvedTargetSectionId,
+            }),
+        ...(selectedExamId ? { examId: selectedExamId } : {}),
+        ...(defaultGroupId ? { defaultGroupId } : {}),
+        ...(overridesList.length > 0 ? { groupOverrides: overridesList } : {}),
+        ...(remarksDraft.trim() ? { remarks: remarksDraft.trim() } : {}),
       }).unwrap();
-      setConfirmOpen(false);
-      setChoices({});
-      setLastRun({
-        ...result,
-        toYearId: resolvedTargetYearId,
-        toYearName: targetYear?.name ?? '',
-      });
+
       toast.success(
-        `প্রমোশন সম্পন্ন: উত্তীর্ণ ${formatNumber(result.promoted, 'bn')}, অকৃতকার্য ${formatNumber(result.retained, 'bn')}, সমাপ্ত ${formatNumber(result.graduated, 'bn')}।`
+        res?.message ||
+          (isGraduatingClass
+            ? 'দশম শ্রেণির গ্র্যাজুয়েশন সফলভাবে সম্পন্ন হয়েছে।'
+            : 'শিক্ষার্থীদের প্রমোশন সফলভাবে সম্পন্ন হয়েছে।')
       );
+      setConfirmOpen(false);
+      setRemarksDraft('');
+      setGroupOverrides({});
     } catch (err) {
-      toast.error(errorMessage(err, 'প্রমোশন প্রক্রিয়া সম্পন্ন হয়নি।'));
+      toast.error(errorMessage(err, 'প্রমোশন কার্যকর করা যায়নি।'));
     }
   };
 
-  // Recent promotion audit log for this source academic year
-  const sessionPromotionLogs = useMemo(() => {
-    return db.promotions
-      .map((promo) => {
-        const fromEnr = db.enrollments.find((e) => e.id === promo.fromEnrollmentId);
-        if (!fromEnr || fromEnr.academicYearId !== yearId) return null;
-        const toEnr = db.enrollments.find((e) => e.id === promo.toEnrollmentId);
-        const student = db.students.find((s) => s.id === promo.studentId);
-        const fromSec = db.sections.find((s) => s.id === fromEnr.sectionId);
-        const toSec = toEnr ? db.sections.find((s) => s.id === toEnr.sectionId) : null;
-        const toYear = toEnr ? db.academicYears.find((y) => y.id === toEnr.academicYearId) : null;
-        return {
-          ...promo,
-          studentName: student?.nameBn || student?.nameEn || '—',
-          studentCode: student?.studentId ?? '',
-          fromLabel: `${classLabel(db, fromEnr.classId, 'bn')} (${fromSec?.name ?? '—'}) · #${formatNumber(fromEnr.roll, 'bn')}`,
-          toLabel: toEnr
-            ? `${toYear?.name ?? ''} · ${classLabel(db, toEnr.classId, 'bn')} (${toSec?.name ?? '—'}) · #${formatNumber(toEnr.roll, 'bn')}`
-            : '—',
-        };
-      })
-      .filter((item): item is NonNullable<typeof item> => Boolean(item));
-  }, [db, yearId, 'bn']);
-
-  const openTargetYearEnrollments = (toYearId: string) => {
-    dispatch(setSelectedAcademicYear(toYearId));
-    router.push('/admin/students/enrollments');
+  const handleOpenRollbackModal = () => {
+    setRbSourceYearId(resolvedSourceYearId);
+    setRbSourceClassId(resolvedSourceClassId);
+    setRbSourceSectionId(resolvedSourceSectionId);
+    setRbTargetYearId(resolvedTargetYearId);
+    setRbReason('');
+    setRollbackOpen(true);
   };
 
+  const handleExecuteRollback = async () => {
+    if (!rbSourceYearId || !rbSourceClassId || !rbSourceSectionId || !rbTargetYearId) {
+      toast.error('রোলব্যাকের জন্য উৎস ও লক্ষ্য শিক্ষাবর্ষ, শ্রেণি এবং শাখা নির্বাচন করুন।');
+      return;
+    }
+    try {
+      await rollbackBatch({
+        sourceAcademicYearId: rbSourceYearId,
+        sourceClassId: rbSourceClassId,
+        sourceSectionId: rbSourceSectionId,
+        targetAcademicYearId: rbTargetYearId,
+        ...(rbReason.trim() ? { reason: rbReason.trim() } : {}),
+      }).unwrap();
+      toast.success('ব্যাচ প্রমোশন সফলভাবে রোলব্যাক করা হয়েছে।');
+      setRollbackOpen(false);
+    } catch (err) {
+      toast.error(errorMessage(err, 'প্রমোশন রোলব্যাক করা যায়নি।'));
+    }
+  };
+
+  if (loadingYears || loadingClasses) {
+    return <LoadingSkeleton rows={8} />;
+  }
+
   return (
-    <div className="space-y-5">
-      {/* Post-Promotion Success Callout with Direct Link to New Session Enrollments */}
-      {lastRun && (
-        <Card className="p-4 border-primary/40 bg-primary/[0.04] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-semibold text-foreground">
-                {'শ্রেণি উত্তরণ ও নতুন এনরোলমেন্ট তৈরি হয়েছে'}
-              </p>
-              <p className="text-sm text-muted-foreground mt-0.5 tabular-nums">
-                {`উত্তীর্ণ ${formatNumber(lastRun.promoted, 'bn')} জন · একই শ্রেণিতে ${formatNumber(lastRun.retained, 'bn')} জন · সমাপ্ত ${formatNumber(lastRun.graduated, 'bn')} জন। পূর্বের এনরোলমেন্ট লক করা হয়েছে।`}
-              </p>
+    <div className="space-y-6">
+      {/* Sub-tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="inline-flex rounded-lg border border-border bg-surface p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('bulk')}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-sm font-semibold transition-colors cursor-pointer',
+              activeTab === 'bulk'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <Sparkles className="w-4 h-4" />
+            {'প্রমোশন ও উত্তরণ'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('history')}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-md px-3.5 py-2 text-sm font-semibold transition-colors cursor-pointer',
+              activeTab === 'history'
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <History className="w-4 h-4" />
+            {'প্রমোশন ইতিহাস ও রোলব্যাক'}
+          </button>
+        </div>
+
+        {activeTab === 'history' && (
+          <Button variant="outline" size="sm" onClick={handleOpenRollbackModal}>
+            <RotateCcw className="w-4 h-4" />
+            {'ব্যাচ রোলব্যাক (Undo)'}
+          </Button>
+        )}
+      </div>
+
+      {activeTab === 'bulk' ? (
+        <>
+          {/* Source & Target Configuration Card */}
+          <Card className="p-5 space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <FormField label={'উৎস শিক্ষাবর্ষ'}>
+                <Select
+                  id="promotion-source-year"
+                  name="sourceAcademicYearId"
+                  aria-label="উৎস শিক্ষাবর্ষ"
+                  value={resolvedSourceYearId}
+                  onChange={(e) => {
+                    setSourceYearId(e.target.value);
+                    setSelectedExamId('');
+                    setTargetYearId('');
+                  }}
+                >
+                  {sortedYears.map((y) => (
+                    <option key={y.id} value={y.id}>
+                      {y.name} {y.isActive ? '· চলতি' : ''}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+
+              <FormField label={'উৎস শ্রেণি'}>
+                <Select
+                  id="promotion-source-class"
+                  name="sourceClassId"
+                  aria-label="উৎস শ্রেণি"
+                  value={resolvedSourceClassId}
+                  onChange={(e) => {
+                    setSourceClassId(e.target.value);
+                    setSourceSectionId('');
+                    setSelectedExamId('');
+                    setTargetClassId('');
+                    setTargetSectionId('');
+                    setGroupOverrides({});
+                  }}
+                >
+                  {activeClasses.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.nameBn || cls.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+
+              <FormField label={'উৎস শাখা'}>
+                <Select
+                  id="promotion-source-section"
+                  name="sourceSectionId"
+                  aria-label="উৎস শাখা"
+                  value={resolvedSourceSectionId}
+                  onChange={(e) => setSourceSectionId(e.target.value)}
+                >
+                  {activeSourceSections.length === 0 ? (
+                    <option value="">{'কোনো শাখা নেই'}</option>
+                  ) : (
+                    activeSourceSections.map((sec) => (
+                      <option key={sec.id} value={sec.id}>
+                        {sec.name}
+                      </option>
+                    ))
+                  )}
+                </Select>
+              </FormField>
+
+              <FormField label={'রেফারেন্স পরীক্ষা (ঐচ্ছিক)'}>
+                <Select
+                  id="promotion-reference-exam"
+                  name="examId"
+                  aria-label="রেফারেন্স পরীক্ষা"
+                  value={selectedExamId}
+                  onChange={(e) => setSelectedExamId(e.target.value)}
+                >
+                  <option value="">{'স্বয়ংক্রিয় (সর্বশেষ প্রকাশিত বার্ষিক/সমন্বিত)'}</option>
+                  {eligibleExams.map((ex) => (
+                    <option key={ex.id} value={ex.id}>
+                      {ex.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            </div>
+
+            {/* Target Year / Class / Section Row */}
+            {isGraduatingClass ? (
+              <div className="flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3.5 text-sm text-foreground">
+                <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                <div>
+                  <span className="font-semibold">{'১০ম শ্রেণি সমাপনী (Graduation): '}</span>
+                  {'উত্তীর্ণ শিক্ষার্থীরা এসএসসি সমাপ্ত (GRADUATED) হিসেবে চিহ্নিত হবে; নতুন কোনো শ্রেণিতে ভর্তি তৈরি হবে না।'}
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-border">
+                <FormField label={'লক্ষ্য শিক্ষাবর্ষ (পরবর্তী সেশন)'}>
+                  <Select
+                    id="promotion-target-year"
+                    name="targetAcademicYearId"
+                    aria-label="লক্ষ্য শিক্ষাবর্ষ"
+                    value={resolvedTargetYearId}
+                    onChange={(e) => setTargetYearId(e.target.value)}
+                  >
+                    <option value="">{'লক্ষ্য শিক্ষাবর্ষ নির্বাচন করুন'}</option>
+                    {sortedYears
+                      .filter((y) => y.id !== resolvedSourceYearId)
+                      .map((y) => (
+                        <option key={y.id} value={y.id}>
+                          {y.name}
+                        </option>
+                      ))}
+                  </Select>
+                </FormField>
+
+                <FormField label={'লক্ষ্য শ্রেণি'}>
+                  <Select
+                    id="promotion-target-class"
+                    name="targetClassId"
+                    aria-label="লক্ষ্য শ্রেণি"
+                    value={resolvedTargetClassId}
+                    onChange={(e) => {
+                      setTargetClassId(e.target.value);
+                      setTargetSectionId('');
+                    }}
+                  >
+                    <option value="">{'লক্ষ্য শ্রেণি নির্বাচন করুন'}</option>
+                    {activeClasses.map((cls) => (
+                      <option key={cls.id} value={cls.id}>
+                        {cls.nameBn || cls.name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+
+                <FormField label={'লক্ষ্য শাখা'}>
+                  <Select
+                    id="promotion-target-section"
+                    name="targetSectionId"
+                    aria-label="লক্ষ্য শাখা"
+                    value={resolvedTargetSectionId}
+                    onChange={(e) => setTargetSectionId(e.target.value)}
+                  >
+                    {activeTargetSections.length === 0 ? (
+                      <option value="">{'কোনো শাখা নেই'}</option>
+                    ) : (
+                      activeTargetSections.map((sec) => (
+                        <option key={sec.id} value={sec.id}>
+                          {sec.name}
+                        </option>
+                      ))
+                    )}
+                  </Select>
+                </FormField>
+
+                {requiresGroupSelection && (
+                  <FormField label={'ডিফল্ট বিভাগ (৯ম শ্রেণির জন্য)'}>
+                    <Select
+                      id="promotion-default-group"
+                      name="defaultGroupId"
+                      aria-label="ডিফল্ট বিভাগ"
+                      value={defaultGroupId}
+                      onChange={(e) => setDefaultGroupId(e.target.value)}
+                    >
+                      <option value="">{'বিভাগ নির্বাচন করুন'}</option>
+                      {academicGroups.map((g) => (
+                        <option key={g.id} value={g.id}>
+                          {g.nameBn || g.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </FormField>
+                )}
+              </div>
+            )}
+
+            {/* 4-Column Summary KPI Strip */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
+              <div className="rounded-lg border border-border bg-surface-muted/40 p-3.5">
+                <p className="text-xs font-semibold text-muted-foreground">{'সক্রিয় প্রার্থী'}</p>
+                <p className="mt-1 text-2xl font-extrabold tabular-nums text-foreground">
+                  {formatNumber(summary?.totalStudents ?? 0, 'bn')}{' '}
+                  <span className="text-xs font-medium text-muted-foreground">{'জন'}</span>
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-surface-muted/40 p-3.5">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {isGraduatingClass ? 'সমাপ্তির জন্য প্রস্তুত' : 'উত্তীর্ণের যোগ্য'}
+                </p>
+                <p className="mt-1 text-2xl font-extrabold tabular-nums text-success">
+                  {formatNumber(summary?.eligibleForPromotion ?? 0, 'bn')}{' '}
+                  <span className="text-xs font-medium text-muted-foreground">{'জন'}</span>
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-surface-muted/40 p-3.5">
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {'একই শ্রেণিতে (Retained)'}
+                </p>
+                <p className="mt-1 text-2xl font-extrabold tabular-nums text-destructive">
+                  {formatNumber(summary?.mustRepeat ?? 0, 'bn')}{' '}
+                  <span className="text-xs font-medium text-muted-foreground">{'জন'}</span>
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-surface-muted/40 p-3.5">
+                <p className="text-xs font-semibold text-muted-foreground">{'রেফারেন্স পরীক্ষা'}</p>
+                <p className="mt-1 text-sm font-bold text-foreground truncate">
+                  {previewData?.exam?.name ?? 'প্রকাশিত ফল যুক্ত নেই'}
+                </p>
+                {previewData?.exam && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {`পাস: ${formatNumber(summary?.passedCount ?? 0, 'bn')} · ফেল: ${formatNumber(
+                      summary?.failedCount ?? 0,
+                      'bn'
+                    )}`}
+                  </p>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          {/* Preview Action Bar + Table */}
+          <Card className="overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-border bg-surface-muted/30">
+              <div>
+                <h2 className="text-base font-bold text-foreground">
+                  {'শিক্ষার্থী প্রমোশন তালিকা ও মেধাক্রম প্রিভিউ'}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {'প্রকাশিত পরীক্ষার ফলাফল অনুযায়ী পরবর্তী শ্রেণির প্রস্তাবিত রোল ও সিদ্ধান্ত যাচাই করুন।'}
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={
+                  executing ||
+                  previewStudents.length === 0 ||
+                  !resolvedSourceSectionId ||
+                  (!isGraduatingClass &&
+                    (!resolvedTargetYearId || !resolvedTargetClassId || !resolvedTargetSectionId))
+                }
+                onClick={() => setConfirmOpen(true)}
+              >
+                {isGraduatingClass ? 'গ্র্যাজুয়েশন সম্পন্ন করুন' : 'প্রমোশন কার্যকর করুন'}
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {loadingPreview || fetchingPreview ? (
+              <div className="p-6">
+                <LoadingSkeleton rows={6} />
+              </div>
+            ) : previewError ? (
+              <div className="p-6">
+                <EmptyState
+                  title={'প্রমোশন প্রিভিউ লোড করা যায়নি'}
+                  description={errorMessage(
+                    previewError,
+                    'উৎস শিক্ষাবর্ষ, শ্রেণি ও শাখার তথ্য যাচাই করুন।'
+                  )}
+                />
+              </div>
+            ) : previewStudents.length === 0 ? (
+              <div className="p-6">
+                <EmptyState
+                  title={'এই শ্রেণি/শাখায় কোনো সক্রিয় শিক্ষার্থী নেই'}
+                  description={
+                    'প্রমোশন করার জন্য নির্বাচিত উৎস শিক্ষাবর্ষ, শ্রেণি ও শাখায় সক্রিয় ভর্তি থাকতে হবে।'
+                  }
+                />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[820px] text-base">
+                  <thead>
+                    <tr className="border-b border-border bg-surface-muted/70 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      <th className="px-4 py-3 text-center w-24">{'বর্তমান রোল'}</th>
+                      <th className="px-4 py-3 text-left">{'শিক্ষার্থী'}</th>
+                      <th className="px-4 py-3 text-left">{'পরীক্ষার অবস্থান'}</th>
+                      <th className="px-4 py-3 text-center">{'প্রস্তাবিত সিদ্ধান্ত'}</th>
+                      {requiresGroupSelection && (
+                        <th className="px-4 py-3 text-left">{'পরবর্তী বিভাগ'}</th>
+                      )}
+                      <th className="px-4 py-3 text-center w-28">
+                        {isGraduatingClass ? 'অবস্থা' : 'নতুন রোল'}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border tabular-nums">
+                    {previewStudents.map((stu) => {
+                      const action = stu.promotionEligibility.suggestedAction;
+                      const displayName = stu.studentNameBn || stu.studentName;
+                      return (
+                        <tr
+                          key={stu.enrollmentId}
+                          className="hover:bg-surface-muted/40 transition-colors"
+                        >
+                          <td className="px-4 py-3 text-center">
+                            <div className="font-bold text-foreground">
+                              #{formatNumber(stu.currentRoll, 'bn')}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {`শাখা ${stu.currentSection.name}`}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
+                                {studentInitials(stu.studentName)}
+                              </div>
+                              <div>
+                                <Link
+                                  href={`/admin/students/${stu.studentId}`}
+                                  className="font-semibold text-foreground hover:text-primary transition-colors"
+                                >
+                                  {displayName}
+                                </Link>
+                                <div className="text-xs text-muted-foreground font-mono">
+                                  {stu.studentCustomId}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {stu.examResult ? (
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <StatusBadge
+                                    value={stu.examResult.resultStatus}
+                                    customTone={
+                                      stu.examResult.resultStatus === ResultStatus.PASS
+                                        ? 'success'
+                                        : 'destructive'
+                                    }
+                                    customLabel={
+                                      stu.examResult.resultStatus === ResultStatus.PASS
+                                        ? 'উত্তীর্ণ (PASS)'
+                                        : 'অনুত্তীর্ণ (FAIL)'
+                                    }
+                                  />
+                                  <span className="text-xs font-semibold text-foreground">
+                                    GPA {formatNumber(stu.examResult.gpa ?? 0, 'bn', 2)} (
+                                    {stu.examResult.letterGrade ?? '—'})
+                                  </span>
+                                </div>
+                                {stu.examResult.meritPosition && (
+                                  <div className="text-xs text-muted-foreground">
+                                    {`মেধাক্রম #${formatNumber(stu.examResult.meritPosition, 'bn')}`}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">
+                                {'প্রকাশিত ফল নেই'}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <StatusBadge
+                              value={action}
+                              customTone={
+                                action === 'PROMOTE' || action === 'COMPLETE'
+                                  ? 'success'
+                                  : action === 'REPEAT'
+                                    ? 'destructive'
+                                    : 'warning'
+                              }
+                              customLabel={
+                                action === 'PROMOTE'
+                                  ? 'উত্তীর্ণ (Promoted)'
+                                  : action === 'COMPLETE'
+                                    ? 'এসএসসি সমাপ্ত'
+                                    : action === 'REPEAT'
+                                      ? 'একই শ্রেণিতে'
+                                      : 'ম্যানুয়াল পর্যালোচনা'
+                              }
+                            />
+                            <div className="text-xs text-muted-foreground mt-1">
+                              {stu.promotionEligibility.reason}
+                            </div>
+                          </td>
+                          {requiresGroupSelection && (
+                            <td className="px-4 py-3">
+                              {action === 'PROMOTE' ? (
+                                <Select
+                                  aria-label={`${displayName} বিভাগ`}
+                                  value={groupOverrides[stu.studentId] ?? defaultGroupId}
+                                  onChange={(e) =>
+                                    setGroupOverrides((prev) => ({
+                                      ...prev,
+                                      [stu.studentId]: e.target.value,
+                                    }))
+                                  }
+                                >
+                                  <option value="">{'ডিফল্ট বিভাগ'}</option>
+                                  {academicGroups.map((g) => (
+                                    <option key={g.id} value={g.id}>
+                                      {g.nameBn || g.name}
+                                    </option>
+                                  ))}
+                                </Select>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                          )}
+                          <td className="px-4 py-3 text-center font-bold text-foreground">
+                            {isGraduatingClass ? (
+                              <span className="text-xs text-primary">{'GRADUATED'}</span>
+                            ) : (
+                              `#${formatNumber(stu.promotionEligibility.suggestedRoll, 'bn')}`
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </>
+      ) : (
+        /* Promotion History Tab */
+        <Card className="overflow-hidden">
+          <div className="p-4 border-b border-border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+            <div className="lg:col-span-6">
+              <FormField label={'শিক্ষার্থী খুঁজুন (নাম / আইডি)'}>
+                <div className="relative">
+                  <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Input
+                    id="promotion-history-search"
+                    name="search"
+                    className="pl-9"
+                    placeholder={'নাম বা আইডি লিখুন...'}
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                  />
+                </div>
+              </FormField>
+            </div>
+            <div className="lg:col-span-4">
+              <FormField label={'উৎস শিক্ষাবর্ষ ফিল্টার'}>
+                <Select
+                  id="promotion-history-year"
+                  name="sourceAcademicYearId"
+                  aria-label="উৎস শিক্ষাবর্ষ ফিল্টার"
+                  value={historySourceYearId}
+                  onChange={(e) => setHistorySourceYearId(e.target.value)}
+                >
+                  <option value="">{'সকল শিক্ষাবর্ষ'}</option>
+                  {sortedYears.map((y) => (
+                    <option key={y.id} value={y.id}>
+                      {y.name}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
             </div>
           </div>
-          {lastRun.toYearId && (lastRun.promoted > 0 || lastRun.retained > 0) && (
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={() => openTargetYearEnrollments(lastRun.toYearId)}
-            >
-              <span>
-                {`${lastRun.toYearName} এনরোলমেন্ট দেখুন`}
-              </span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </Button>
+
+          {loadingHistory || fetchingHistory ? (
+            <div className="p-6">
+              <LoadingSkeleton rows={6} />
+            </div>
+          ) : (historyRes?.items ?? []).length === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                title={'কোনো প্রমোশন ইতিহাস পাওয়া যায়নি'}
+                description={'এখনো কোনো শিক্ষার্থীর প্রমোশন রেকর্ড সংরক্ষিত হয়নি।'}
+              />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[780px] text-base">
+                <thead>
+                  <tr className="border-b border-border bg-surface-muted/70 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left">{'তারিখ'}</th>
+                    <th className="px-4 py-3 text-left">{'শিক্ষার্থী'}</th>
+                    <th className="px-4 py-3 text-left">{'পূর্বের শ্রেণি'}</th>
+                    <th className="px-4 py-3 text-left">{'নতুন শ্রেণি'}</th>
+                    <th className="px-4 py-3 text-left">{'পরীক্ষার ফলাফল'}</th>
+                    <th className="px-4 py-3 text-left">{'মন্তব্য'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border tabular-nums">
+                  {(historyRes?.items ?? []).map((item) => (
+                    <tr key={item.id} className="hover:bg-surface-muted/40 transition-colors">
+                      <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
+                        {formatDateShort(item.promotionDate, 'bn')}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-foreground">
+                          {item.student.nameBn || item.student.nameEn}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {item.student.studentId}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="font-medium text-foreground">
+                          {item.from.class} ({item.from.section})
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {`${item.from.academicYear} · রোল #${formatNumber(item.from.roll, 'bn')}`}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="font-semibold text-primary">
+                          {item.to.class} ({item.to.section})
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {`${item.to.academicYear} · রোল #${formatNumber(item.to.roll, 'bn')}`}
+                          {item.to.isRepeater ? ' · একই শ্রেণিতে' : ''}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        {item.result ? (
+                          <div>
+                            <div className="font-medium text-foreground">
+                              {item.result.examName}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {`GPA ${formatNumber(item.result.gpa ?? 0, 'bn', 2)} (${
+                                item.result.letterGrade ?? '—'
+                              })`}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-muted-foreground">
+                        {item.remarks || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
       )}
 
-      {/* 1. Promotion Configuration Bar */}
-      <Card className="p-5 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormField label={'উৎস শ্রেণি'}>
-            <Select
-              value={classId}
-              onChange={(event) => {
-                setClassId(event.target.value);
-                setSelectedExamId('AUTO');
-                setChoices({});
-              }}
-            >
-              {sortedClasses.map((item) => {
-                const cnt = db.enrollments.filter(
-                  (e) =>
-                    e.academicYearId === yearId &&
-                    e.classId === item.id &&
-                    e.status === EnrollmentStatus.ACTIVE
-                ).length;
-                return (
-                  <option key={item.id} value={item.id}>
-                    {item.nameBn || item.name} (
-                    {formatNumber(cnt, 'bn')})
-                  </option>
-                );
-              })}
-            </Select>
-          </FormField>
-
-          <FormField
-            label={'লক্ষ্য শিক্ষাবর্ষ (পরবর্তী সেশন)'}
-            hint={
-              isTopClass
-                ? '১০ম শ্রেণির উত্তীর্ণ শিক্ষার্থীরা এসএসসি সমাপ্ত হিসেবে চিহ্নিত হবে।'
-                : `নতুন এনরোলমেন্ট তৈরি হবে → ${classLabel(db, nextClass?.id ?? '', 'bn')}`
-            }
-          >
-            <Select
-              value={resolvedTargetYearId}
-              onChange={(event) => setTargetYearId(event.target.value)}
-            >
-              {targetYears.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                  {Number(item.name) > Number(sourceYear?.name ?? 0)
-                    ? ' · পরবর্তী সেশন'
-                    : ''}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-
-          <FormField
-            label={'রেফারেন্স পরীক্ষা (ফলাফলভিত্তিক সাজেশন)'}
-            hint={
-              activeExam
-                ? activeExam.resultStatus === ResultPublicationStatus.PUBLISHED
-                  ? 'প্রকাশিত ফলাফল ও মেধাক্রম যুক্ত আছে।'
-                  : 'এই পরীক্ষার ফলাফল এখনো খসড়া পর্যায়ে।'
-                : 'এই শ্রেণির প্রকাশিত ফলাফল নেই — ম্যানুয়াল সিদ্ধান্ত নিন।'
-            }
-          >
-            <Select
-              value={selectedExamId}
-              onChange={(event) => setSelectedExamId(event.target.value)}
-            >
-              {classExams.length > 0 && (
-                <option value="AUTO">
-                  {'সর্বশেষ প্রকাশিত পরীক্ষা (স্বয়ংক্রিয়)'}
-                </option>
-              )}
-              {classExams.map((ex) => (
-                <option key={ex.id} value={ex.id}>
-                  {ex.name}
-                </option>
-              ))}
-              <option value="NONE">{'পরীক্ষা ছাড়া (ম্যানুয়াল)'}</option>
-            </Select>
-          </FormField>
-        </div>
-
-        {/* Decision Summary Strip inside Configuration */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 border border-border rounded-2xl divide-y lg:divide-y-0 divide-x divide-border bg-surface-muted/30">
-          <div className="p-4">
-            <span className="text-sm font-semibold text-muted-foreground">
-              {'সক্রিয় প্রার্থী'}
-            </span>
-            <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-foreground mt-1">
-              {formatNumber(candidates.length, 'bn')}
-            </p>
-          </div>
-          <div className="p-4">
-            <span className="text-sm font-semibold text-muted-foreground">
-              {isTopClass ? 'সমাপ্ত নির্বাচিত' : 'উত্তীর্ণ নির্বাচিত'}
-            </span>
-            <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-primary mt-1">
-              {formatNumber(isTopClass ? summary.graduateCount : summary.promoteCount, 'bn')}
-            </p>
-          </div>
-          <div className="p-4">
-            <span className="text-sm font-semibold text-muted-foreground">
-              {'একই শ্রেণিতে (Retained)'}
-            </span>
-            <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-secondary mt-1">
-              {formatNumber(summary.retainCount, 'bn')}
-            </p>
-          </div>
-          <div className="p-4">
-            <span className="text-sm font-semibold text-muted-foreground">
-              {'অনির্বাচিত / স্থগিত'}
-            </span>
-            <p className="text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-muted-foreground mt-1">
-              {formatNumber(summary.skippedCount, 'bn')}
-            </p>
-          </div>
-        </div>
-      </Card>
-
-      {/* 2. Promotion Decision Workspace Table */}
-      <Card className="overflow-hidden">
-        {/* Bulk Actions Toolbar */}
-        <div className="p-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {hasResultData && (
-              <Button size="sm" variant="secondary" onClick={applyResultAutoSuggest}>
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{'ফলাফল অনুযায়ী অটো-সাজেশন'}</span>
-              </Button>
-            )}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={selectAllPromote}
-              disabled={candidates.length === 0}
-            >
-              {isTopClass
-                ? 'সবাইকে সমাপ্ত নির্বাচন'
-                : 'সবাইকে উত্তীর্ণ নির্বাচন'}
-            </Button>
-            {summary.selectedTotal > 0 && (
-              <Button size="sm" variant="ghost" onClick={() => setChoices({})}>
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>{'রিসেট'}</span>
-              </Button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            {summary.hasValidationErrors && (
-              <span className="inline-flex items-center gap-1 text-sm font-medium text-destructive">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                {summary.collisionIds.size > 0
-                  ? 'ডুপ্লিকেট বা অবৈধ রোল ঠিক করুন'
-                  : 'নবম-দশম শ্রেণির বিভাগ নির্বাচন করুন'}
-              </span>
-            )}
-            <Button
-              size="sm"
-              variant="primary"
-              disabled={
-                isLoading || summary.selectedTotal === 0 || summary.hasValidationErrors
-              }
-              onClick={() => setConfirmOpen(true)}
-            >
-              <span>
-                {`সিদ্ধান্ত প্রয়োগ (${formatNumber(summary.selectedTotal, 'bn')})`}
-              </span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Table */}
-        {candidates.length === 0 ? (
-          <div className="p-10 text-center space-y-2">
-            <p className="text-sm font-medium text-foreground">
-              {'এই শ্রেণিতে উত্তরণের জন্য কোনো সক্রিয় এনরোলমেন্ট অবশিষ্ট নেই।'}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {'অন্য শ্রেণি নির্বাচন করুন অথবা নিচের প্রমোশন ইতিহাস দেখুন।'}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-base text-left border-collapse">
-              <thead className="bg-surface-muted/70 border-b border-border text-sm font-semibold text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 whitespace-nowrap">{'বর্তমান রোল'}</th>
-                  <th className="px-4 py-3 whitespace-nowrap">{'শিক্ষার্থী'}</th>
-                  <th className="px-4 py-3 whitespace-nowrap">{'পরীক্ষার অবস্থান'}</th>
-                  <th className="px-4 py-3 whitespace-nowrap">{'সিদ্ধান্ত'}</th>
-                  <th className="px-4 py-3 whitespace-nowrap">{'লক্ষ্য শ্রেণি ও শাখা'}</th>
-                  {summary.showStreamColumn && (
-                    <th className="px-4 py-3 whitespace-nowrap">{'পরবর্তী বিভাগ'}</th>
-                  )}
-                  <th className="px-4 py-3 whitespace-nowrap">{'নতুন রোল'}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {candidates.map((enrollment) => {
-                  const student = db.students.find((item) => item.id === enrollment.studentId);
-                  const currentSection = db.sections.find((s) => s.id === enrollment.sectionId);
-                  const res = resultsByEnrollment.get(enrollment.id);
-                  const choice = choiceFor(enrollment);
-                  const moving =
-                    choice.decision === PromotionType.PROMOTED ||
-                    choice.decision === PromotionType.RETAINED;
-                  const targetClassId =
-                    choice.decision === PromotionType.RETAINED
-                      ? classId
-                      : nextClass?.id ?? classId;
-                  const targetCls = db.classes.find((c) => c.id === targetClassId);
-                  const needsStream = moving && (targetCls?.numericValue ?? 0) >= 9;
-                  const hasRollConflict = summary.collisionIds.has(enrollment.id);
-                  const missingStream = summary.missingStreamIds.has(enrollment.id);
-
-                  return (
-                    <tr
-                      key={enrollment.id}
-                      className={cn(
-                        'transition-colors',
-                        choice.decision !== 'SKIP' ? 'bg-primary/[0.02]' : 'hover:bg-surface-muted/40'
-                      )}
-                    >
-                      <td className="px-4 py-3 whitespace-nowrap tabular-nums">
-                        <span className="font-mono font-semibold text-foreground">
-                          #{String(enrollment.roll).padStart(2, '0')}
-                        </span>
-                        <span className="block text-sm text-muted-foreground">
-                          {'শাখা'} {currentSection?.name ?? '—'}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3 min-w-[190px]">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-[var(--radius)] bg-surface-muted border border-border flex items-center justify-center text-sm font-semibold text-foreground shrink-0">
-                            {studentInitials(student?.nameEn)}
-                          </div>
-                          <div className="min-w-0">
-                            <Link
-                              href={`/admin/students/${enrollment.studentId}`}
-                              className="font-semibold text-foreground hover:text-primary hover:underline block truncate"
-                            >
-                              {student?.nameBn || student?.nameEn || '—'}
-                            </Link>
-                            <span className="block text-sm font-mono text-muted-foreground">
-                              {student?.studentId}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        {res ? (
-                          <div className="space-y-0.5 tabular-nums">
-                            <div className="flex items-center gap-2">
-                              <StatusBadge enumName="ResultStatus" value={res.resultStatus} />
-                              <span className="font-mono text-sm font-semibold text-foreground">
-                                GPA {res.gpa != null ? res.gpa.toFixed(2) : '—'}
-                              </span>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {res.letterGrade || '—'}
-                              {res.meritPosition
-                                ? ` · ${'মেধাক্রম'} #${formatNumber(res.meritPosition, 'bn')}`
-                                : ''}
-                            </p>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            {'প্রকাশিত ফল নেই'}
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        <Select
-                          value={choice.decision}
-                          onChange={(event) =>
-                            setChoice(enrollment, {
-                              decision: event.target.value as DecisionValue,
-                            })
-                          }
-                          className="h-9 min-w-[140px] text-sm"
-                        >
-                          <option value="SKIP">{'এখন নয় (Skip)'}</option>
-                          {!isTopClass && (
-                            <option value={PromotionType.PROMOTED}>
-                              {'উত্তীর্ণ (Promoted)'}
-                            </option>
-                          )}
-                          <option value={PromotionType.RETAINED}>
-                            {'একই শ্রেণিতে (Retained)'}
-                          </option>
-                          {isTopClass && (
-                            <option value="GRADUATED">
-                              {'এসএসসি সমাপ্ত (Graduated)'}
-                            </option>
-                          )}
-                        </Select>
-                      </td>
-
-                      <td className="px-4 py-3">
-                        {moving ? (
-                          <div className="flex items-center gap-2 whitespace-nowrap">
-                            <span className="text-sm font-semibold text-muted-foreground">
-                              {classLabel(db, targetClassId, 'bn')}
-                            </span>
-                            <Select
-                              value={choice.sectionId}
-                              onChange={(event) =>
-                                setChoice(enrollment, { sectionId: event.target.value })
-                              }
-                              className="h-9 w-24 text-sm"
-                            >
-                              {db.sections
-                                .filter((item) => item.classId === targetClassId)
-                                .map((item) => (
-                                  <option key={item.id} value={item.id}>
-                                    {item.name}
-                                  </option>
-                                ))}
-                            </Select>
-                          </div>
-                        ) : choice.decision === 'GRADUATED' ? (
-                          <span className="text-sm font-medium text-primary">
-                            {'বিদ্যালয় সমাপ্ত (Alumni)'}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
-                        )}
-                      </td>
-
-                      {summary.showStreamColumn && (
-                        <td className="px-4 py-3">
-                          {needsStream ? (
-                            <Select
-                              value={choice.groupId}
-                              onChange={(event) =>
-                                setChoice(enrollment, { groupId: event.target.value })
-                              }
-                              className={cn(
-                                'h-9 min-w-[132px] text-sm',
-                                missingStream && 'border-destructive'
-                              )}
-                            >
-                              <option value="">{'বিভাগ বাছুন'}</option>
-                              {db.academicGroups.map((g) => (
-                                <option key={g.id} value={g.id}>
-                                  {g.nameBn || g.name}
-                                </option>
-                              ))}
-                            </Select>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">—</span>
-                          )}
-                        </td>
-                      )}
-
-                      <td className="px-4 py-3">
-                        {moving ? (
-                          <Input placeholder="সংখ্যা লিখুন"
-                            type="number"
-                            min={1}
-                            value={choice.roll}
-                            onChange={(event) =>
-                              setChoice(enrollment, { roll: event.target.value })
-                            }
-                            className={cn(
-                              'h-9 w-24 font-mono tabular-nums text-sm',
-                              hasRollConflict && 'border-destructive text-destructive'
-                            )}
-                          />
-                        ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
-
-      {/* 3. Completed Promotion Audit Log for This Session */}
-      {sessionPromotionLogs.length > 0 && (
-        <Card className="overflow-hidden">
-          <div className="px-5 py-4 border-b border-border flex items-center justify-between gap-2">
-            <div>
-              <h3 className="text-base font-semibold text-foreground">
-                {'সম্পন্ন প্রমোশন ইতিহাস'}
-              </h3>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {`${sourceYear?.name ?? ''} সেশন থেকে পরবর্তী শিক্ষাবর্ষে স্থানান্তরিত শিক্ষার্থীদের অডিট রেকর্ড।`}
-              </p>
-            </div>
-            <span className="text-sm text-muted-foreground tabular-nums">
-              {formatNumber(sessionPromotionLogs.length, 'bn')} {'টি রেকর্ড'}
-            </span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-base text-left border-collapse">
-              <thead className="bg-surface-muted/70 border-b border-border text-sm font-semibold text-muted-foreground">
-                <tr>
-                  <th className="px-5 py-3">{'শিক্ষার্থী'}</th>
-                  <th className="px-5 py-3">{'পূর্বের এনরোলমেন্ট'}</th>
-                  <th className="px-5 py-3">{'নতুন এনরোলমেন্ট'}</th>
-                  <th className="px-5 py-3">{'ধরন'}</th>
-                  <th className="px-5 py-3">{'তারিখ'}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {sessionPromotionLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-surface-muted/40 transition-colors">
-                    <td className="px-5 py-3">
-                      <Link
-                        href={`/admin/students/${log.studentId}`}
-                        className="font-medium text-foreground hover:text-primary hover:underline"
-                      >
-                        {log.studentName}
-                      </Link>
-                      <span className="block text-sm font-mono text-muted-foreground">
-                        {log.studentCode}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-muted-foreground whitespace-nowrap tabular-nums">
-                      {log.fromLabel}
-                    </td>
-                    <td className="px-5 py-3 font-medium text-foreground whitespace-nowrap tabular-nums">
-                      {log.toLabel}
-                    </td>
-                    <td className="px-5 py-3">
-                      <StatusBadge enumName="PromotionType" value={log.promotionType} />
-                    </td>
-                    <td className="px-5 py-3 text-sm text-muted-foreground tabular-nums whitespace-nowrap">
-                      {formatDateShort(log.promotionDate, 'bn')}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-
-      {/* 4. Confirmation Modal */}
+      {/* Confirm Bulk Promotion Modal */}
       <Modal
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
-        title={'প্রমোশন নিশ্চিত করুন'}
-        maxWidth="max-w-lg"
+        title={isGraduatingClass ? 'গ্র্যাজুয়েশন নিশ্চিত করুন' : 'বাল্ক প্রমোশন নিশ্চিত করুন'}
+        maxWidth="max-w-md"
       >
-        <div className="space-y-4 text-sm">
-          <p className="text-muted-foreground leading-relaxed">
-            {`আপনি ${sourceYear?.name ?? ''} সেশনের ${classLabel(db, classId, 'bn')} থেকে মোট ${formatNumber(summary.selectedTotal, 'bn')} জন শিক্ষার্থীর সিদ্ধান্ত প্রয়োগ করতে যাচ্ছেন:`}
-          </p>
-
-          <div className="p-4 rounded-[var(--radius)] border border-border bg-surface-muted/40 space-y-2 text-sm tabular-nums">
-            {summary.promoteCount > 0 && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">
-                  {'উত্তীর্ণ (Promoted)'} →{' '}
-                  {classLabel(db, nextClass?.id ?? '', 'bn')} ({targetYear?.name})
-                </span>
-                <strong className="text-primary">{formatNumber(summary.promoteCount, 'bn')}</strong>
-              </div>
-            )}
-            {summary.retainCount > 0 && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">
-                  {'একই শ্রেণিতে (Retained)'} →{' '}
-                  {classLabel(db, classId, 'bn')} ({targetYear?.name})
-                </span>
-                <strong className="text-secondary">{formatNumber(summary.retainCount, 'bn')}</strong>
-              </div>
-            )}
-            {summary.graduateCount > 0 && (
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">
-                  {'এসএসসি সমাপ্ত (Graduated)'}
-                </span>
-                <strong className="text-foreground">
-                  {formatNumber(summary.graduateCount, 'bn')}
-                </strong>
-              </div>
-            )}
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
+            <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+            <div>
+              {isGraduatingClass
+                ? `এই শাখার ${formatNumber(
+                    previewStudents.length,
+                    'bn'
+                  )} জন শিক্ষার্থীর ১০ম শ্রেণি সমাপ্তি (GRADUATED) কার্যকর করা হবে।`
+                : `এই শাখার ${formatNumber(
+                    previewStudents.length,
+                    'bn'
+                  )} জন শিক্ষার্থীর প্রমোশন কার্যকর করা হবে (প্রয়োজনে ইতিহাস ট্যাব থেকে রোলব্যাক করা যাবে)।`}
+            </div>
           </div>
 
-          <p className="text-sm text-muted-foreground">
-            {'নিশ্চিত করলে পূর্বের সেশনের এনরোলমেন্টগুলো ইতিহাস হিসেবে লক হয়ে যাবে এবং নতুন সেশনের সক্রিয় এনরোলমেন্ট তৈরি হবে।'}
-          </p>
+          <FormField label={'মন্তব্য (ঐচ্ছিক)'}>
+            <Input
+              id="promotion-remarks"
+              name="remarks"
+              placeholder={'যেমন: বার্ষিক পরীক্ষা ২০২৬ অনুযায়ী প্রমোশন'}
+              value={remarksDraft}
+              onChange={(e) => setRemarksDraft(e.target.value)}
+            />
+          </FormField>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setConfirmOpen(false)}
-              disabled={isLoading}
-            >
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
               {'বাতিল'}
             </Button>
-            <Button
-              type="button"
-              variant="primary"
-              onClick={executePromotion}
-              disabled={isLoading}
+            <Button variant="primary" disabled={executing} onClick={handleExecutePromotion}>
+              {executing ? 'সংরক্ষণ হচ্ছে...' : 'নিশ্চিত ও কার্যকর করুন'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Batch Rollback Modal */}
+      <Modal
+        open={rollbackOpen}
+        onClose={() => setRollbackOpen(false)}
+        title={'ব্যাচ প্রমোশন রোলব্যাক (Undo)'}
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4">
+          <FormField label={'উৎস শিক্ষাবর্ষ (যেখান থেকে প্রমোশন হয়েছিল)'} required>
+            <Select
+              id="rb-source-year"
+              name="rbSourceYearId"
+              aria-label="রোলব্যাক উৎস শিক্ষাবর্ষ"
+              value={rbSourceYearId}
+              onChange={(e) => setRbSourceYearId(e.target.value)}
             >
-              {isLoading
-                ? 'প্রক্রিয়া চলছে...'
-                : 'নিশ্চিত ও প্রয়োগ করুন'}
+              {sortedYears.map((y) => (
+                <option key={y.id} value={y.id}>
+                  {y.name}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+
+          <FormField label={'উৎস শ্রেণি'} required>
+            <Select
+              id="rb-source-class"
+              name="rbSourceClassId"
+              aria-label="রোলব্যাক উৎস শ্রেণি"
+              value={rbSourceClassId}
+              onChange={(e) => {
+                setRbSourceClassId(e.target.value);
+                setRbSourceSectionId('');
+              }}
+            >
+              {activeClasses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nameBn || c.name}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+
+          <FormField label={'উৎস শাখা'} required>
+            <Select
+              id="rb-source-section"
+              name="rbSourceSectionId"
+              aria-label="রোলব্যাক উৎস শাখা"
+              value={rbSourceSectionId}
+              onChange={(e) => setRbSourceSectionId(e.target.value)}
+            >
+              <option value="">{'শাখা নির্বাচন করুন'}</option>
+              {rbSourceSections
+                .filter((s) => s.isActive)
+                .map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+            </Select>
+          </FormField>
+
+          <FormField label={'লক্ষ্য শিক্ষাবর্ষ (যেখানে প্রমোশন হয়েছিল)'} required>
+            <Select
+              id="rb-target-year"
+              name="rbTargetYearId"
+              aria-label="রোলব্যাক লক্ষ্য শিক্ষাবর্ষ"
+              value={rbTargetYearId}
+              onChange={(e) => setRbTargetYearId(e.target.value)}
+            >
+              <option value="">{'লক্ষ্য শিক্ষাবর্ষ নির্বাচন করুন'}</option>
+              {sortedYears.map((y) => (
+                <option key={y.id} value={y.id}>
+                  {y.name}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+
+          <FormField label={'রোলব্যাকের কারণ (ঐচ্ছিক)'}>
+            <Input
+              id="rb-reason"
+              name="reason"
+              placeholder={'যেমন: ভুলবশত প্রমোশন দেওয়া হয়েছিল'}
+              value={rbReason}
+              onChange={(e) => setRbReason(e.target.value)}
+            />
+          </FormField>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
+            <Button variant="outline" onClick={() => setRollbackOpen(false)}>
+              {'বাতিল'}
+            </Button>
+            <Button variant="primary" disabled={rollingBack} onClick={handleExecuteRollback}>
+              {rollingBack ? 'রোলব্যাক হচ্ছে...' : 'রোলব্যাক সম্পন্ন করুন'}
             </Button>
           </div>
         </div>

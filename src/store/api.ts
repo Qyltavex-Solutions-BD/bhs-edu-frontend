@@ -13,7 +13,12 @@ export { useUpdateSchoolProfileMutation } from '@/src/features/institution/api/i
 export { useMarkNotificationReadMutation } from '@/src/features/notifications/api/notifications.api';
 export { useToggleRolePermissionMutation } from '@/src/features/access-control/api/access-control.api';
 export { useToggleArchiveMutation } from '@/src/features/admin-operations/api/admin-operations.api';
-export { usePromoteStudentsMutation } from '@/src/features/students/api/promotions.api';
+export {
+  usePreviewPromotionQuery,
+  useExecuteBulkPromotionMutation,
+  useGetPromotionHistoryQuery,
+  useRollbackBatchPromotionMutation,
+} from '@/src/features/students/api/promotions.api';
 export { useCreateExamMutation } from '@/src/features/examinations/api/exam-creation.api';
 
 export {

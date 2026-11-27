@@ -226,6 +226,59 @@ export interface TabulationSheetResponse {
   tabulation: TabulationRow[];
 }
 
+export interface ConsolidatedResultRow {
+  enrollmentId: string;
+  sectionId: string;
+  roll: number;
+  studentId: string;
+  studentName: string;
+  studentNameEn: string;
+  sectionName: string;
+  groupName: string | null;
+  sourceScores: Record<string, { marks: number | null; gpa: number | null; status: string }>;
+  weightedMarks: number;
+  weightedGpa: number;
+  letterGrade: string;
+  isPassed: boolean;
+  isIncomplete: boolean;
+  merit: number | null;
+}
+
+export interface ConsolidatedResultResponse {
+  examination: {
+    id: string;
+    name: string;
+    classId: string;
+    className: string;
+    academicYearId: string;
+    academicYear: string;
+    maxGpa: number;
+  };
+  configs: Array<{
+    id: string;
+    sourceExamId: string;
+    sourceExamName: string;
+    weightagePercentage: number;
+    displayOrder: number;
+    processedCount: number;
+  }>;
+  eligibleSourceExams: Array<{
+    id: string;
+    name: string;
+    examType: string;
+    resultStatus: string;
+    processedCount: number;
+  }>;
+  summary: {
+    total: number;
+    passed: number;
+    gpa5: number;
+    incomplete: number;
+    passRate: number;
+  };
+  rows: ConsolidatedResultRow[];
+}
+
 export const examinationsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getExams: builder.query<
@@ -628,14 +681,32 @@ export const examinationsApi = baseApi.injectEndpoints({
       invalidatesTags: ['Exams', 'Results', 'Audit'],
     }),
     saveConsolidatedConfig: builder.mutation<
-      ConsolidatedExamConfig[],
+      ConsolidatedResultResponse,
       {
         consolidatedExamId: string;
         items: Array<{ sourceExamId: string; weightagePercentage: number }>;
       }
     >({
-      query: (body) => ({ url: '/exams/consolidated/save', method: 'POST', body }),
-      invalidatesTags: ['Exams', 'Results', 'Audit'],
+      query: ({ consolidatedExamId, items }) => ({
+        url: `/examination/results/consolidated/${consolidatedExamId}/config`,
+        method: 'PUT',
+        body: { items },
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      invalidatesTags: (_result, _error, { consolidatedExamId }) => [
+        { type: 'Results', id: consolidatedExamId },
+        'Results',
+        'Exams',
+        'Audit',
+      ],
+    }),
+    getConsolidatedResult: builder.query<ConsolidatedResultResponse, string>({
+      query: (examId) => ({
+        url: `/examination/results/consolidated/${examId}`,
+        method: 'GET',
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      providesTags: (_result, _error, examId) => [{ type: 'Results', id: examId }],
     }),
     upsertExamHallRoom: builder.mutation<
       ExamHallRoom,
@@ -700,6 +771,7 @@ export const {
   useUpsertGradeRangeMutation,
   useDeleteGradeRangeMutation,
   useSaveConsolidatedConfigMutation,
+  useGetConsolidatedResultQuery,
   useUpsertExamHallRoomMutation,
   useDeleteExamHallRoomMutation,
   useUpsertResultScrutinyMutation,
