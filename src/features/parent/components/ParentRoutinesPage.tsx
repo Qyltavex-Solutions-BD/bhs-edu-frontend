@@ -144,6 +144,7 @@ export function ParentRoutinesPage() {
   }, [children, selectedStudentId]);
 
   const sectionId = activeChild?.sectionId ?? '';
+  const childGroupId = activeChild?.groupId ?? null;
   const academicYearId = activeChild?.academicYearId ?? undefined;
 
   const {
@@ -167,14 +168,24 @@ export function ParentRoutinesPage() {
 
     return ordered.map((day) => {
       const found = rawTimetable.find((d) => d.day === day);
+      const filteredPeriods = [...(found?.periods ?? [])]
+        .sort((a, b) => a.periodNumber - b.periodNumber)
+        .map((period) => ({
+          ...period,
+          slots: period.slots.filter(
+            (slot) =>
+              slot.isBreak ||
+              !slot.group ||
+              !childGroupId ||
+              slot.group.id === childGroupId
+          ),
+        }));
       return {
         day,
-        periods: [...(found?.periods ?? [])].sort(
-          (a, b) => a.periodNumber - b.periodNumber
-        ),
+        periods: filteredPeriods,
       };
     });
-  }, [routineData?.timetable]);
+  }, [routineData?.timetable, childGroupId]);
 
   const periodColumns = useMemo(() => {
     const periodMeta = new Map<
@@ -237,6 +248,7 @@ export function ParentRoutinesPage() {
   const activeChildName = activeChild
     ? activeChild.studentNameBn || activeChild.studentNameEn
     : '';
+  const activeGroupLabel = activeChild?.groupName ? ` · ${activeChild.groupName}` : '';
 
   return (
     <div className="space-y-6">
@@ -244,7 +256,7 @@ export function ParentRoutinesPage() {
         title={'সাপ্তাহিক ক্লাস রুটিন'}
         description={
           activeChild
-            ? `${activeChildName} · ${activeClassLabel}${activeChild.currentSection ? ` (${activeChild.currentSection})` : ''}${activeChild.academicYear ? ` · শিক্ষাবর্ষ ${activeChild.academicYear}` : ''}`
+            ? `${activeChildName} · ${activeClassLabel}${activeChild.currentSection ? ` (${activeChild.currentSection})` : ''}${activeGroupLabel}${activeChild.academicYear ? ` · শিক্ষাবর্ষ ${activeChild.academicYear}` : ''}`
             : 'দিন ও পিরিয়ড অনুযায়ী শ্রেণির সাপ্তাহিক ক্লাস রুটিন'
         }
         actions={
@@ -526,7 +538,7 @@ export function ParentRoutinesPage() {
                 school={schoolProfile}
                 titleBn={'শ্রেণির সাপ্তাহিক ক্লাস রুটিন'}
                 titleEn={'Class Weekly Routine'}
-                subtitleBn={`${activeChildName} · ${activeClassLabel}${activeChild.currentSection ? ` (${activeChild.currentSection})` : ''}${activeChild.academicYear ? ` · শিক্ষাবর্ষ ${activeChild.academicYear}` : ''}`}
+                subtitleBn={`${activeChildName} · ${activeClassLabel}${activeChild.currentSection ? ` (${activeChild.currentSection})` : ''}${activeGroupLabel}${activeChild.academicYear ? ` · শিক্ষাবর্ষ ${activeChild.academicYear}` : ''}`}
                 orientation="landscape"
               >
                 <table className="w-full text-[11px] border border-[#18181B] border-collapse">

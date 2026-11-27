@@ -20,6 +20,8 @@ export interface ParentChildItem {
   enrollmentId?: string | null;
   classId?: string | null;
   sectionId?: string | null;
+  groupId?: string | null;
+  groupName?: string | null;
   academicYearId?: string | null;
 }
 
