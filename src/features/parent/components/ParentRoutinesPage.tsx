@@ -2,7 +2,6 @@
 
 import React, { useMemo, useState } from 'react';
 import { Calendar, Clock, Coffee, DoorOpen, Layers, Printer, Users } from 'lucide-react';
-import { useGetBootstrapQuery } from '@/src/store/api';
 import { useGetAuthProfileQuery } from '@/src/features/auth/api/auth.api';
 import {
   useGetParentByIdQuery,
@@ -117,7 +116,6 @@ function ChildSwitcherBar({
 
 export function ParentRoutinesPage() {
   const auth = useAppSelector((s) => s.auth);
-  const { data: db } = useGetBootstrapQuery();
   const { data: meData, isLoading: loadingMe } = useGetAuthProfileQuery();
   const { data: allClasses = [] } = useGetSchoolClassesQuery();
 
@@ -133,7 +131,7 @@ export function ParentRoutinesPage() {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const todayDay = getTodayWeekDay();
 
-  const schoolProfile: SchoolProfile = db?.schoolProfile ?? FALLBACK_SCHOOL_PROFILE;
+  const schoolProfile: SchoolProfile = FALLBACK_SCHOOL_PROFILE;
 
   const classNameMap = useMemo(() => {
     const map = new Map<string, string>();

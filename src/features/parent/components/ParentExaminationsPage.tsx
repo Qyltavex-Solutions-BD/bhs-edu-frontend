@@ -12,7 +12,6 @@ import {
   Printer,
   Users,
 } from 'lucide-react';
-import { useGetBootstrapQuery } from '@/src/store/api';
 import { useGetAuthProfileQuery } from '@/src/features/auth/api/auth.api';
 import {
   useGetAcademicYearsQuery,
@@ -138,7 +137,6 @@ function ChildSwitcherBar({
 
 export function ParentExaminationsPage() {
   const auth = useAppSelector((s) => s.auth);
-  const { data: db } = useGetBootstrapQuery();
   const { data: meData, isLoading: loadingMe } = useGetAuthProfileQuery();
   const { data: allClasses = [] } = useGetSchoolClassesQuery();
   const { data: academicYears = [], isLoading: loadingYears } = useGetAcademicYearsQuery();
@@ -158,7 +156,7 @@ export function ParentExaminationsPage() {
   const [selectedExamId, setSelectedExamId] = useState<string>('');
   const [showPrintModal, setShowPrintModal] = useState(false);
 
-  const schoolProfile: SchoolProfile = db?.schoolProfile ?? FALLBACK_SCHOOL_PROFILE;
+  const schoolProfile: SchoolProfile = FALLBACK_SCHOOL_PROFILE;
 
   const classNameMap = useMemo(() => {
     const map = new Map<string, string>();
