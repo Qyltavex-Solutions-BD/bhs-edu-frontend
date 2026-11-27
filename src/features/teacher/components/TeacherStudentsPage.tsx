@@ -398,7 +398,7 @@ export function TeacherStudentsPage() {
                       className="hover:bg-surface-muted/40 transition-colors"
                     >
                       <td className="px-4 py-3 text-center">
-                        <span className="inline-flex items-center justify-center min-w-[2.2rem] px-2 py-0.5 rounded-md bg-surface-muted font-bold text-sm text-foreground">
+                        <span className="inline-flex items-center justify-center min-w-[2.5rem] px-2.5 py-1 rounded-md bg-surface-muted font-extrabold text-base text-foreground">
                           {formatNumber(row.roll, 'bn')}
                         </span>
                       </td>
