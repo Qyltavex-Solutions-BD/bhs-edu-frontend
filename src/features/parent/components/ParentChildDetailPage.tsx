@@ -1,169 +1,224 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
+import { ArrowLeft, Phone, User } from 'lucide-react';
 import { useParams } from '@/src/lib/navigation';
-import { MonitorPlay, Printer, Users } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from 'recharts';
-import { toast } from 'sonner';
-import { useGetBootstrapQuery, useMarkNotificationReadMutation } from '@/src/store/api';
-import { useAppSelector } from '@/src/store/hooks';
+import { useGetStudentByIdQuery } from '@/src/features/students/api/students.api';
 import {
   EmptyState,
   LoadingSkeleton,
   PageHeader,
-  StatCard,
 } from '@/src/components/shared/Feedback';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
-import { CommonProfilePanel } from '@/src/components/shared/CommonProfilePanel';
-import { PrintableMarksheet } from '@/src/components/print/PrintDocuments';
-import { Button, Card, Select } from '@/src/components/ui/primitives';
-import {
-  formatDateLong,
-  formatDateShort,
-  formatNumber,
-  formatTime12h,
-} from '@/src/lib/formatters';
+import { Button, Card } from '@/src/components/ui/primitives';
+import { formatDateLong, formatNumber } from '@/src/lib/formatters';
 import { ENUM_LABELS } from '@/src/lib/constants/enums';
-import { triggerPrint } from '@/src/lib/utils/cn';
-import { AttendanceStatus, ResultPublicationStatus, WeekDay } from '@/src/types/enums';
-import type { MockDatabase } from '@/src/mocks/seed';
 
-const DAYS_ORDER: WeekDay[] = [
-  WeekDay.SUNDAY,
-  WeekDay.MONDAY,
-  WeekDay.TUESDAY,
-  WeekDay.WEDNESDAY,
-  WeekDay.THURSDAY,
-];
+import type { Student } from '@/src/types/entities';
 
-function useParentChildren(db: MockDatabase | undefined) {
-  const auth = useAppSelector((s) => s.auth);
-  return useMemo(() => {
-    if (!db) return { parent: null, children: [] };
-    const parent =
-      (auth.user?.parentId ? db.parents.find((p) => p.id === auth.user?.parentId) : null) ??
-      db.parents[0] ??
-      null;
-    if (!parent) return { parent: null, children: [] };
-    const links = db.parentStudents.filter((l) => l.parentId === parent.id);
-    const children = links
-      .map((l) => {
-        const student = db.students.find((s) => s.id === l.studentId);
-        const enrollment = db.enrollments.find((e) => e.studentId === l.studentId);
-        const cls = db.classes.find((c) => c.id === enrollment?.classId);
-        const sec = db.sections.find((s) => s.id === enrollment?.sectionId);
-        const grp = db.academicGroups.find((g) => g.id === enrollment?.groupId);
-        const yr = db.academicYears.find((y) => y.id === enrollment?.academicYearId);
-        if (!student || !enrollment) return null;
-        return { link: l, student, enrollment, cls, sec, grp, yr };
-      })
-      .filter((x): x is NonNullable<typeof x> => Boolean(x));
-    return { parent, children };
-  }, [db, auth.user?.parentId]);
-}
-
-function ChildSwitcherBar({
-  childrenList,
-  selectedStudentId,
-  onChange,
-}: {
-  childrenList: ReturnType<typeof useParentChildren>['children'];
-  selectedStudentId: string;
-  onChange: (id: string) => void;
-}) {
-  if (childrenList.length <= 1) return null;
-  return (
-    <Card className="p-3.5 flex flex-wrap items-center justify-between gap-3 bg-surface-muted/40">
-      <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-        <Users className="w-4 h-4 text-primary" />
-        <span>{'সন্তান নির্বাচন করুন:'}</span>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {childrenList.map((c) => {
-          const active = c.student.id === selectedStudentId;
-          return (
-            <button
-              key={c.student.id}
-              type="button"
-              onClick={() => onChange(c.student.id)}
-              className={`px-3 py-1.5 rounded-[var(--radius)] text-sm font-semibold border transition-colors cursor-pointer ${
-                active
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-surface text-foreground border-border hover:bg-surface-muted'
-              }`}
-            >
-              {c.student.nameBn || c.student.nameEn} ·{' '}
-              {c.cls?.nameBn || c.cls?.name} ({c.sec?.name})
-            </button>
-          );
-        })}
-      </div>
-    </Card>
-  );
+interface StudentDetailWithRelations extends Student {
+  enrollments?: Array<{
+    id: string;
+    roll: number;
+    status: string;
+    schoolClass?: { id: string; name: string; nameBn?: string | null };
+    section?: { id: string; name: string };
+    group?: { id: string; name: string; nameBn?: string | null } | null;
+    academicYear?: { id: string; name: string };
+  }>;
+  rfidcards?: Array<{
+    id: string;
+    cardNumber: string;
+    status: string;
+  }>;
+  parents?: Array<{
+    id: string;
+    relationship: string;
+    isPrimary: boolean;
+    parent: {
+      id: string;
+      name: string;
+      nameBn?: string | null;
+      phone?: string | null;
+    };
+  }>;
 }
 
 export function ParentChildDetailPage() {
   const { id } = useParams();
-  const { data: db, isLoading } = useGetBootstrapQuery();
-  const { children } = useParentChildren(db);
-  if (isLoading || !db) return <LoadingSkeleton />;
+  const studentId = typeof id === 'string' ? id : Array.isArray(id) ? id[0] ?? '' : '';
 
-  const child = children.find((c) => c.student.id === id) ?? children[0];
-  if (!child) return <EmptyState title={'শিক্ষার্থী পাওয়া যায়নি'} />;
+  const { data: rawStudent, isLoading } = useGetStudentByIdQuery(studentId, {
+    skip: !studentId,
+  });
+  const student = rawStudent as StudentDetailWithRelations | undefined;
 
-  const rfid = db.rfidCards.find((r) => r.studentId === child.student.id);
+  if (isLoading) return <LoadingSkeleton />;
 
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title={child.student.nameBn || child.student.nameEn}
-        description={`${child.cls?.nameBn || child.cls?.name} (${child.sec?.name}) · ID: ${child.student.studentId}`}
-        actions={
+  if (!student) {
+    return (
+      <EmptyState
+        title={'শিক্ষার্থীর তথ্য পাওয়া যায়নি'}
+        description={'অনুগ্রহ করে আমার সন্তান তালিকা থেকে আবার নির্বাচন করুন।'}
+        action={
           <Link href="/parent/children">
-            <Button variant="outline" size="sm">
+            <Button variant="primary" size="sm">
               {'সকল সন্তান'}
             </Button>
           </Link>
         }
       />
-      <Card className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-base">
-        <div>
-          <p className="text-sm text-muted-foreground">{'রোল নম্বর'}</p>
-          <p className="font-semibold tabular-nums mt-0.5">
-            {formatNumber(child.enrollment.roll, 'bn')}
-          </p>
+    );
+  }
+
+  const activeEnrollment =
+    student.enrollments?.find((e) => e.status === 'ACTIVE') ?? student.enrollments?.[0];
+  const className =
+    activeEnrollment?.schoolClass?.nameBn || activeEnrollment?.schoolClass?.name || '—';
+  const sectionName = activeEnrollment?.section?.name;
+  const groupName = activeEnrollment?.group?.nameBn || activeEnrollment?.group?.name;
+  const yearName = activeEnrollment?.academicYear?.name || '—';
+  const activeRfid = student.rfidcards?.find((r) => r.status === 'ACTIVE') ?? student.rfidcards?.[0];
+
+  const genderLabel =
+    (ENUM_LABELS.Gender as Record<string, { bn: string }> | undefined)?.[student.gender]?.bn ??
+    student.gender;
+  const religionLabel = student.religion
+    ? ((ENUM_LABELS.Religion as Record<string, { bn: string }> | undefined)?.[student.religion]
+        ?.bn ?? student.religion)
+    : '—';
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title={student.nameBn || student.nameEn}
+        description={`${className}${sectionName ? ` (${sectionName})` : ''} · ID: ${student.studentId}`}
+        actions={
+          <div className="flex items-center gap-2">
+            <StatusBadge enumName="StudentStatus" value={student.status} />
+            <Link href="/parent/children">
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="w-4 h-4" />
+                {'সকল সন্তান'}
+              </Button>
+            </Link>
+          </div>
+        }
+      />
+
+      <Card className="p-6 space-y-6">
+        <div className="flex items-center gap-4 pb-4 border-b border-border">
+          {student.photo ? (
+            <img
+              src={student.photo}
+              alt={student.nameBn || student.nameEn}
+              className="w-16 h-16 rounded-full object-cover border border-border shrink-0"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <User className="w-8 h-8" />
+            </div>
+          )}
+          <div>
+            <h2 className="text-xl font-bold text-foreground">
+              {student.nameBn || student.nameEn}
+            </h2>
+            <p className="text-sm text-muted-foreground">{student.nameEn}</p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm text-muted-foreground">{'জন্ম তারিখ'}</p>
-          <p className="tabular-nums mt-0.5">{formatDateLong(child.student.dateOfBirth, 'bn')}</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-base">
+          <div>
+            <p className="text-sm text-muted-foreground">{'রোল নম্বর'}</p>
+            <p className="font-bold tabular-nums mt-0.5 text-lg">
+              {activeEnrollment?.roll != null ? formatNumber(activeEnrollment.roll, 'bn') : '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{'শ্রেণি ও শাখা'}</p>
+            <p className="font-semibold mt-0.5">
+              {className}
+              {sectionName ? ` (${sectionName})` : ''}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{'বিভাগ'}</p>
+            <p className="font-semibold mt-0.5">{groupName || 'সাধারণ'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{'শিক্ষাবর্ষ'}</p>
+            <p className="tabular-nums font-semibold mt-0.5">{yearName}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{'জন্ম তারিখ'}</p>
+            <p className="tabular-nums mt-0.5">
+              {student.dateOfBirth ? formatDateLong(student.dateOfBirth, 'bn') : '—'}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{'রক্তের গ্রুপ'}</p>
+            <p className="font-semibold mt-0.5">{student.bloodGroup ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{'লিঙ্গ ও ধর্ম'}</p>
+            <p className="mt-0.5">
+              {genderLabel} · {religionLabel}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{'RFID কার্ড নম্বর'}</p>
+            <p className="font-mono mt-0.5">{activeRfid?.cardNumber ?? 'ইস্যু করা হয়নি'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{'বর্তমান ঠিকানা'}</p>
+            <p className="mt-0.5">
+              {student.presentAddress ?? student.permanentAddress ?? '—'}
+            </p>
+          </div>
         </div>
-        <div>
-          <p className="text-sm text-muted-foreground">{'রক্তের গ্রুপ'}</p>
-          <p className="font-semibold mt-0.5">{child.student.bloodGroup ?? '—'}</p>
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">{'RFID কার্ড নম্বর'}</p>
-          <p className="font-mono mt-0.5">{rfid?.cardNumber ?? 'ইস্যু করা হয়নি'}</p>
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">{'শিক্ষাবর্ষ'}</p>
-          <p className="tabular-nums mt-0.5">{formatNumber(child.yr?.name ?? '2026', 'bn')}</p>
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground">{'বর্তমান ঠিকানা'}</p>
-          <p className="mt-0.5">{child.student.presentAddress ?? child.student.permanentAddress ?? '—'}</p>
-        </div>
+
+        {student.parents && student.parents.length > 0 && (
+          <div className="pt-4 border-t border-border space-y-3">
+            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wide">
+              {'অভিভাবকদের তথ্য'}
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {student.parents.map((link) => {
+                const relLabel =
+                  (ENUM_LABELS.RelationshipType as Record<string, { bn: string }> | undefined)?.[
+                    link.relationship
+                  ]?.bn ?? link.relationship;
+                return (
+                  <div
+                    key={link.id}
+                    className="p-3.5 rounded-lg border border-border bg-muted/20 flex items-center justify-between gap-3"
+                  >
+                    <div>
+                      <div className="font-semibold text-sm text-foreground">
+                        {link.parent.nameBn || link.parent.name}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {relLabel}
+                        {link.isPrimary ? ' · প্রাথমিক অভিভাবক' : ''}
+                      </div>
+                    </div>
+                    {link.parent.phone && (
+                      <a
+                        href={`tel:${link.parent.phone}`}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        {link.parent.phone}
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );
 }
-
