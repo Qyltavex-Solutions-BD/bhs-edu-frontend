@@ -390,3 +390,32 @@
 .react-photo-album--masonry { justify-content: space-between; }
 .react-photo-album--masonry .react-photo-album--track { justify-content: flex-start; row-gap: calc(var(--react-photo-album--spacing) * 1px); width: calc((100% - var(--react-photo-album--spacing) * 1px * (var(--react-photo-album--columns) - 1)) / var(--react-photo-album--columns)); flex-direction: column; }
 .react-photo-album--masonry .react-photo-album--photo { width: 100%; }
+
+/* Theme-matched vertical scrollbar for the Forest Green Portal Sidebar */
+.portal-sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150, 208, 171, 0.35) transparent;
+}
+
+.portal-sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.portal-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 6px;
+}
+
+.portal-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(150, 208, 171, 0.28);
+  border-radius: 9999px;
+  transition: background-color 150ms ease;
+}
+
+.portal-sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(150, 208, 171, 0.45);
+}
+
+.portal-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 208, 171, 0.7);
+}

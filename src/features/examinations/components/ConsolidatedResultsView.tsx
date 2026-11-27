@@ -1,23 +1,27 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   Download,
-  Plus,
   Printer,
   Scale,
   Search,
   Settings2,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useGetBootstrapQuery } from '@/src/store/api';
 import {
-  useCreateExamMutation,
-  useGetBootstrapQuery,
+  useGetConsolidatedResultQuery,
+  useGetExamsQuery,
   useSaveConsolidatedConfigMutation,
-} from '@/src/store/api';
+} from '@/src/features/examinations/api/examinations.api';
+import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
+import { useGetSectionsQuery } from '@/src/services/academic/section.api';
 import { formatNumber } from '@/src/lib/formatters';
 import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { ExamType, ResultStatus } from '@/src/types/enums';
+import type { SchoolProfile } from '@/src/types/entities';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -33,184 +37,140 @@ import {
   Select,
 } from '@/src/components/ui/primitives';
 import { PrintableConsolidatedResultSheet } from '@/src/components/print/ExamPrintDocuments';
-import { getExamEnrolledStudents } from './ExamShared';
 
-function resolveLetterFromGpa(gpa: number, isPassed: boolean): string {
-  if (!isPassed) return 'F';
-  if (gpa >= 5.0) return 'A+';
-  if (gpa >= 4.0) return 'A';
-  if (gpa >= 3.5) return 'A-';
-  if (gpa >= 3.0) return 'B';
-  if (gpa >= 2.0) return 'C';
-  if (gpa >= 1.0) return 'D';
-  return 'F';
+const FALLBACK_SCHOOL_PROFILE: SchoolProfile = {
+  id: 'school-default',
+  name: 'ভোজেশ্বর উচ্চ বিদ্যালয়',
+  nameEn: 'Vojesshor High School',
+  eiin: '112233',
+  establishedYear: 1965,
+  address: 'ভোজেশ্বর, নড়িয়া, শরীয়তপুর',
+  phone: '',
+  email: '',
+  createdAt: '',
+  updatedAt: '',
+};
+
+function getErrorMessage(err: unknown, fallback: string) {
+  if (err && typeof err === 'object') {
+    const data = (err as { data?: { message?: unknown } }).data;
+    if (data && typeof data.message === 'string') return data.message;
+    if ('message' in err && typeof (err as { message?: unknown }).message === 'string') {
+      return (err as { message: string }).message;
+    }
+  }
+  return fallback;
 }
 
 export function ConsolidatedResultsView() {
-  const { data: db, isLoading } = useGetBootstrapQuery();
-  const [saveConsolidatedConfig, { isLoading: savingConfig }] = useSaveConsolidatedConfigMutation();
-  const [createExam, { isLoading: creatingExam }] = useCreateExamMutation();
+  const { data: db } = useGetBootstrapQuery();
+  const { data: examsRes, isLoading: loadingExams } = useGetExamsQuery({
+    examType: ExamType.CONSOLIDATED,
+    limit: 100,
+    isDeleted: false,
+  });
+  const { data: allClasses = [] } = useGetSchoolClassesQuery();
+
+  const [saveConsolidatedConfig, { isLoading: savingConfig }] =
+    useSaveConsolidatedConfigMutation();
 
   const consolidatedExams = useMemo(
-    () => (db?.exams ?? []).filter((e) => e.examType === ExamType.CONSOLIDATED),
-    [db]
+    () =>
+      [...(examsRes?.items ?? [])].sort(
+        (a, b) =>
+          (a.schoolClass?.numericValue ?? 99) - (b.schoolClass?.numericValue ?? 99)
+      ),
+    [examsRes?.items]
   );
 
-  const [selectedId, setSelectedId] = useState<string>('');
+  const activeClasses = useMemo(
+    () =>
+      [...allClasses]
+        .filter((c) => c.isActive)
+        .sort((a, b) => a.numericValue - b.numericValue),
+    [allClasses]
+  );
+
+  const [selectedExamName, setSelectedExamName] = useState<string>('');
+  const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [sectionFilter, setSectionFilter] = useState<string>('ALL');
   const [search, setSearch] = useState('');
   const [showPrintModal, setShowPrintModal] = useState(false);
 
   // Config weightage modal state
   const [showConfigModal, setShowConfigModal] = useState(false);
-  const [weightDraft, setWeightDraft] = useState<Record<string, { enabled: boolean; weight: number }>>({});
+  const [weightDraft, setWeightDraft] = useState<
+    Record<string, { enabled: boolean; weight: number }>
+  >({});
 
-  // New Consolidated Exam modal state
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newClassId, setNewClassId] = useState('');
-  const [newYearId, setNewYearId] = useState('');
+  const examNames = useMemo(
+    () => Array.from(new Set(consolidatedExams.map((e) => e.name))),
+    [consolidatedExams]
+  );
 
-  const activeExamId = useMemo(() => {
-    if (selectedId && consolidatedExams.some((e) => e.id === selectedId)) return selectedId;
-    return consolidatedExams[0]?.id ?? '';
-  }, [selectedId, consolidatedExams]);
+  const resolvedExamName =
+    selectedExamName && examNames.includes(selectedExamName)
+      ? selectedExamName
+      : examNames[0] ?? '';
+
+  const classesForExam = useMemo(() => {
+    if (!resolvedExamName) return activeClasses;
+    const classIdsWithExam = new Set(
+      consolidatedExams
+        .filter((e) => e.name === resolvedExamName)
+        .map((e) => e.classId)
+    );
+    const matched = activeClasses.filter((c) => classIdsWithExam.has(c.id));
+    return matched.length > 0 ? matched : activeClasses;
+  }, [consolidatedExams, resolvedExamName, activeClasses]);
+
+  const resolvedClassId =
+    selectedClassId && classesForExam.some((c) => c.id === selectedClassId)
+      ? selectedClassId
+      : classesForExam[0]?.id ?? '';
 
   const selectedExam = useMemo(
-    () => consolidatedExams.find((e) => e.id === activeExamId) ?? null,
-    [consolidatedExams, activeExamId]
-  );
-
-  const selectedClass = useMemo(
-    () => (db && selectedExam ? db.classes.find((c) => c.id === selectedExam.classId) ?? null : null),
-    [db, selectedExam]
-  );
-
-  const selectedYear = useMemo(
-    () => (db && selectedExam ? db.academicYears.find((y) => y.id === selectedExam.academicYearId) ?? null : null),
-    [db, selectedExam]
-  );
-
-  const classSections = useMemo(
     () =>
-      db && selectedExam
-        ? db.sections
-            .filter((s) => s.classId === selectedExam.classId && s.isActive)
-            .sort((a, b) => a.name.localeCompare(b.name))
-        : [],
-    [db, selectedExam]
+      consolidatedExams.find(
+        (e) => e.name === resolvedExamName && e.classId === resolvedClassId
+      ) ?? null,
+    [consolidatedExams, resolvedExamName, resolvedClassId]
   );
 
-  const eligibleSourceExams = useMemo(() => {
-    if (!db || !selectedExam) return [];
-    return db.exams.filter(
-      (e) =>
-        e.examType !== ExamType.CONSOLIDATED &&
-        e.classId === selectedExam.classId &&
-        e.academicYearId === selectedExam.academicYearId
-    );
-  }, [db, selectedExam]);
+  const activeExamId = selectedExam?.id ?? '';
 
-  const activeConfigs = useMemo(() => {
-    if (!db || !selectedExam) return [];
-    return db.consolidatedConfigs
-      .filter((c) => c.consolidatedExamId === selectedExam.id)
-      .map((cfg) => {
-        const src = db.exams.find((e) => e.id === cfg.sourceExamId);
-        return {
-          ...cfg,
-          sourceExamName: src?.name ?? cfg.sourceExamId,
-          sourceExam: src ?? null,
-        };
-      });
-  }, [db, selectedExam]);
+  const {
+    data: consolidatedData,
+    isLoading: loadingConsolidated,
+    isFetching: fetchingConsolidated,
+  } = useGetConsolidatedResultQuery(activeExamId, {
+    skip: !activeExamId,
+  });
+
+  const { data: classSections = [] } = useGetSectionsQuery(
+    { classId: selectedExam?.classId },
+    { skip: !selectedExam?.classId }
+  );
+
+  const activeConfigs = useMemo(
+    () => consolidatedData?.configs ?? [],
+    [consolidatedData?.configs]
+  );
+
+  const eligibleSourceExams = useMemo(
+    () => consolidatedData?.eligibleSourceExams ?? [],
+    [consolidatedData?.eligibleSourceExams]
+  );
 
   const configWeightSum = useMemo(
     () => activeConfigs.reduce((s, c) => s + c.weightagePercentage, 0),
     [activeConfigs]
   );
 
-  // Accurate NCTB Consolidated Calculation across ALL enrolled students (no slice cap, no fake scores)
-  const consolidatedRows = useMemo(() => {
-    if (!db || !selectedExam || activeConfigs.length === 0) return [];
-    const enrollments = getExamEnrolledStudents(db, selectedExam);
-
-    const rawRows = enrollments.map((enr) => {
-      const stu = db.students.find((s) => s.id === enr.studentId);
-      const sec = db.sections.find((s) => s.id === enr.sectionId);
-      const grp = enr.groupId ? db.academicGroups.find((g) => g.id === enr.groupId) : null;
-
-      const sourceScores: Record<string, { marks: number | null; gpa: number | null; status: string }> = {};
-      let weightedMarks = 0;
-      let weightedGpa = 0;
-      let allSourcesAvailable = true;
-      let allSourcesPassed = true;
-
-      activeConfigs.forEach((cfg) => {
-        const summary = db.resultSummaries.find(
-          (r) => r.examId === cfg.sourceExamId && r.studentEnrollmentId === enr.id
-        );
-        if (!summary) {
-          allSourcesAvailable = false;
-          allSourcesPassed = false;
-          sourceScores[cfg.sourceExamId] = { marks: null, gpa: null, status: 'MISSING' };
-        } else {
-          const factor = cfg.weightagePercentage / 100;
-          weightedMarks += summary.totalMarks * factor;
-          weightedGpa += (summary.gpa ?? 0) * factor;
-          if (summary.resultStatus !== ResultStatus.PASS) {
-            allSourcesPassed = false;
-          }
-          sourceScores[cfg.sourceExamId] = {
-            marks: summary.totalMarks,
-            gpa: summary.gpa ?? 0,
-            status: summary.resultStatus,
-          };
-        }
-      });
-
-      const isPassed = allSourcesAvailable && allSourcesPassed;
-      const finalMarks = Math.round(weightedMarks * 10) / 10;
-      const finalGpa = isPassed ? Math.min(5.0, Math.round(weightedGpa * 100) / 100) : 0;
-      const letterGrade = resolveLetterFromGpa(finalGpa, isPassed);
-
-      return {
-        enrollmentId: enr.id,
-        sectionId: enr.sectionId,
-        roll: enr.roll,
-        studentId: stu?.studentId ?? enr.studentId,
-        studentName: stu?.nameBn || stu?.nameEn || '—',
-        studentNameEn: stu?.nameEn ?? '',
-        sectionName: sec?.name ?? '—',
-        groupName: grp ? (grp.nameBn) : null,
-        sourceScores,
-        weightedMarks: finalMarks,
-        weightedGpa: finalGpa,
-        letterGrade,
-        isPassed,
-        isIncomplete: !allSourcesAvailable,
-        merit: null as number | null,
-      };
-    });
-
-    const passed = rawRows
-      .filter((r) => r.isPassed)
-      .sort(
-        (a, b) =>
-          b.weightedGpa - a.weightedGpa ||
-          b.weightedMarks - a.weightedMarks ||
-          a.roll - b.roll
-      );
-    passed.forEach((r, idx) => {
-      r.merit = idx + 1;
-    });
-
-    return rawRows.sort((a, b) => {
-      if (a.isPassed !== b.isPassed) return a.isPassed ? -1 : 1;
-      if (a.merit !== null && b.merit !== null) return a.merit - b.merit;
-      return b.weightedMarks - a.weightedMarks || a.roll - b.roll;
-    });
-  }, [db, selectedExam, activeConfigs, 'bn']);
+  const consolidatedRows = useMemo(
+    () => consolidatedData?.rows ?? [],
+    [consolidatedData?.rows]
+  );
 
   const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -227,11 +187,14 @@ export function ConsolidatedResultsView() {
   const stats = useMemo(() => {
     const total = filteredRows.length;
     const passed = filteredRows.filter((r) => r.isPassed).length;
-    const gpa5 = filteredRows.filter((r) => r.isPassed && r.weightedGpa >= 5.0).length;
+    const maxGpa = consolidatedData?.examination?.maxGpa ?? 5.0;
+    const gpa5 = filteredRows.filter((r) => r.isPassed && r.weightedGpa >= maxGpa).length;
     const incomplete = filteredRows.filter((r) => r.isIncomplete).length;
     const passRate = total > 0 ? Math.round((passed / total) * 100) : 0;
     return { total, passed, gpa5, incomplete, passRate };
-  }, [filteredRows]);
+  }, [filteredRows, consolidatedData?.examination?.maxGpa]);
+
+  const schoolProfile: SchoolProfile = db?.schoolProfile ?? FALLBACK_SCHOOL_PROFILE;
 
   const openConfigModal = () => {
     if (!selectedExam) return;
@@ -251,7 +214,10 @@ export function ConsolidatedResultsView() {
     () =>
       Object.entries(weightDraft)
         .filter(([, v]) => v.enabled)
-        .map(([sourceExamId, v]) => ({ sourceExamId, weightagePercentage: Number(v.weight) || 0 })),
+        .map(([sourceExamId, v]) => ({
+          sourceExamId,
+          weightagePercentage: Number(v.weight) || 0,
+        })),
     [weightDraft]
   );
 
@@ -263,11 +229,11 @@ export function ConsolidatedResultsView() {
   const handleSaveConfig = async () => {
     if (!selectedExam) return;
     if (draftSelectedItems.length < 2) {
-      toast.warning('সমন্বিত ফলাফলের জন্য অন্তত ২টি উৎস পরীক্ষা নির্বাচন করুন।');
+      toast.error('কমপক্ষে ২টি উৎস পরীক্ষা নির্বাচন করুন।');
       return;
     }
-    if (draftWeightTotal !== 100) {
-      toast.error('ওয়েটেজের মোট যোগফল ঠিক ১০০% হতে হবে।');
+    if (Math.abs(draftWeightTotal - 100) > 0.01) {
+      toast.error(`মোট ওয়েটেজ অবশ্যই ১০০% হতে হবে (বর্তমান মোট: ${draftWeightTotal}%)।`);
       return;
     }
     try {
@@ -277,93 +243,56 @@ export function ConsolidatedResultsView() {
       }).unwrap();
       toast.success('সমন্বিত ফলাফলের ওয়েটেজ কনফিগারেশন সংরক্ষিত হয়েছে।');
       setShowConfigModal(false);
-    } catch {
-      toast.error('ওয়েটেজ সংরক্ষণ করা যায়নি।');
-    }
-  };
-
-  const handleCreateConsolidated = async () => {
-    if (!db || !newName.trim() || !newClassId || !newYearId) {
-      toast.warning('সকল প্রয়োজনীয় তথ্য পূরণ করুন।');
-      return;
-    }
-    const defaultScale = db.gradingScales.find((g) => g.isDefault) ?? db.gradingScales[0];
-    try {
-      const created = await createExam({
-        name: newName.trim(),
-        examType: ExamType.CONSOLIDATED,
-        academicYearId: newYearId,
-        classId: newClassId,
-        gradingScaleId: defaultScale?.id ?? 'gs-nctb',
-        startDate: new Date().toISOString().slice(0, 10),
-        endDate: new Date().toISOString().slice(0, 10),
-      }).unwrap();
-      setSelectedId(created.id);
-      setShowCreateModal(false);
-      setNewName('');
-      toast.success(
-        'নতুন সমন্বিত পরীক্ষা তৈরি হয়েছে। এখন উৎস পরীক্ষার ওয়েটেজ নির্ধারণ করুন।'
-      );
-    } catch {
-      toast.error('সমন্বিত পরীক্ষা তৈরি করা যায়নি।');
+    } catch (err) {
+      toast.error(getErrorMessage(err, 'ওয়েটেজ সংরক্ষণ করা যায়নি।'));
     }
   };
 
   const handleExportCsv = () => {
     if (!selectedExam || filteredRows.length === 0) return;
-    const rows = filteredRows.map((r) => {
-      const rowObj: Record<string, string | number> = {
+    const csvRows = filteredRows.map((r) => {
+      const rowObj: Record<string, unknown> = {
         Merit: r.merit ?? '—',
         Roll: r.roll,
         StudentID: r.studentId,
-        StudentName: r.studentNameEn,
+        StudentName: r.studentName,
         Section: r.sectionName,
+        Group: r.groupName ?? '',
       };
       activeConfigs.forEach((cfg) => {
         const sc = r.sourceScores[cfg.sourceExamId];
-        rowObj[`${cfg.sourceExamName} (${cfg.weightagePercentage}%)`] =
-          sc && sc.marks !== null ? `${sc.marks} (GPA ${sc.gpa?.toFixed(2) ?? '0.00'})` : 'MISSING';
+        rowObj[`${cfg.sourceExamName} (${cfg.weightagePercentage}%) Marks`] =
+          sc?.marks ?? 'N/A';
+        rowObj[`${cfg.sourceExamName} (${cfg.weightagePercentage}%) GPA`] =
+          sc?.gpa !== null && sc?.gpa !== undefined ? sc.gpa.toFixed(2) : 'N/A';
       });
-      rowObj.WeightedMarks = r.weightedMarks;
+      rowObj.ConsolidatedMarks = r.weightedMarks;
       rowObj.FinalGPA = r.weightedGpa.toFixed(2);
       rowObj.Grade = r.letterGrade;
       rowObj.Status = r.isPassed ? 'PASS' : r.isIncomplete ? 'INCOMPLETE' : 'FAIL';
       return rowObj;
     });
-    exportToCsv(rows, `consolidated-result-${selectedExam.id}.csv`);
+    exportToCsv(csvRows, `consolidated-result-${selectedExam.id}.csv`);
     toast.success('সমন্বিত ফলাফল CSV ডাউনলোড হয়েছে।');
   };
 
-  if (isLoading || !db) return <LoadingSkeleton rows={8} />;
+  if (loadingExams) return <LoadingSkeleton rows={8} />;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={'সমন্বিত চূড়ান্ত ফলাফল (Consolidated Result)'}
-        description={'একাধিক টার্ম পরীক্ষার শতকরা ওয়েটেজ (মোট ১০০%) নির্ধারণ করে বাৎসরিক চূড়ান্ত মেধাতালিকা ও প্রিন্টযোগ্য রেজিস্টার তৈরি করুন।'}
+        description={
+          'একাধিক টার্ম পরীক্ষার শতকরা ওয়েটেজ (মোট ১০০%) নির্ধারণ করে বাৎসরিক চূড়ান্ত মেধাতালিকা ও প্রিন্টযোগ্য রেজিস্টার তৈরি করুন।'
+        }
         actions={
           <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setNewClassId(db.classes[0]?.id ?? '');
-                setNewYearId(db.academicYears.find((y) => y.isActive)?.id ?? db.academicYears[0]?.id ?? '');
-                setShowCreateModal(true);
-              }}
-            >
-              <Plus className="w-4 h-4" />
-              {'নতুন সমন্বিত পরীক্ষা'}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!selectedExam}
-              onClick={openConfigModal}
-            >
-              <Settings2 className="w-4 h-4" />
-              {'ওয়েটেজ কনফিগার'}
-            </Button>
+            {selectedExam && (
+              <Button variant="outline" size="sm" onClick={openConfigModal}>
+                <Settings2 className="w-4 h-4" />
+                {'ওয়েটেজ কনফিগার'}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -386,50 +315,81 @@ export function ConsolidatedResultsView() {
         }
       />
 
-      {/* Selector & Filter Bar */}
-      <Card className="p-4">
+      {/* Always-Visible Filter Toolbar */}
+      <Card className="p-4 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
-          <div className="sm:col-span-2 lg:col-span-5">
+          <div className="sm:col-span-2 lg:col-span-4">
             <FormField label={'সমন্বিত পরীক্ষা নির্বাচন করুন'}>
               <Select
-                value={activeExamId}
+                id="consolidated-exam-select"
+                name="consolidatedExamName"
+                value={resolvedExamName}
                 onChange={(e) => {
-                  setSelectedId(e.target.value);
+                  setSelectedExamName(e.target.value);
                   setSectionFilter('ALL');
                 }}
               >
-                {consolidatedExams.length > 0 ? (
-                  consolidatedExams.map((ex) => {
-                    const cls = db.classes.find((c) => c.id === ex.classId);
-                    return (
-                      <option key={ex.id} value={ex.id}>
-                        {ex.name} — {cls?.nameBn || cls?.name}
-                      </option>
-                    );
-                  })
-                ) : (
+                {examNames.length === 0 ? (
                   <option value="">{'কোনো সমন্বিত পরীক্ষা নেই'}</option>
+                ) : (
+                  examNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))
                 )}
               </Select>
             </FormField>
           </div>
-          <div className="sm:col-span-1 lg:col-span-3">
-            <FormField label={'শাখা ফিল্টার'}>
-              <Select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)}>
-                <option value="ALL">{'সকল শাখা'}</option>
-                {classSections.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
+
+          <div className="sm:col-span-1 lg:col-span-2">
+            <FormField label={'শ্রেণি'}>
+              <Select
+                id="consolidated-class-select"
+                name="classId"
+                value={resolvedClassId}
+                onChange={(e) => {
+                  setSelectedClassId(e.target.value);
+                  setSectionFilter('ALL');
+                }}
+              >
+                {classesForExam.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.nameBn || cls.name}
                   </option>
                 ))}
               </Select>
             </FormField>
           </div>
-          <div className="sm:col-span-1 lg:col-span-4">
+
+          <div className="sm:col-span-1 lg:col-span-3">
+            <FormField label={'শাখা ফিল্টার'}>
+              <Select
+                id="consolidated-section-select"
+                name="sectionId"
+                value={sectionFilter}
+                onChange={(e) => setSectionFilter(e.target.value)}
+              >
+                <option value="ALL">{'সকল শাখা'}</option>
+                {classSections
+                  .filter((s) => s.isActive)
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+              </Select>
+            </FormField>
+          </div>
+
+          <div className="sm:col-span-1 lg:col-span-3">
             <FormField label={'শিক্ষার্থী খুঁজুন'}>
               <div className="relative">
                 <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <Input
+                  id="consolidated-student-search"
+                  name="search"
                   className="pl-9"
                   placeholder={'নাম, আইডি বা রোল...'}
                   value={search}
@@ -442,254 +402,301 @@ export function ConsolidatedResultsView() {
 
         {/* Active Weightage Formula Banner */}
         {selectedExam && (
-          <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="font-semibold text-muted-foreground inline-flex items-center gap-1.5">
-                <Scale className="w-4 h-4 text-primary" />
-                {'সক্রিয় ওয়েটেজ সূত্র:'}
-              </span>
-              {activeConfigs.length === 0 ? (
-                <StatusBadge
-                  value="UNCONFIGURED"
-                  customTone="warning"
-                  customLabel={'কোনো উৎস পরীক্ষা যুক্ত করা হয়নি'}
-                />
-              ) : (
-                activeConfigs.map((cfg) => (
-                  <span
-                    key={cfg.id}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface-muted border border-border text-foreground font-medium tabular-nums"
-                  >
-                    <span>{cfg.sourceExamName}</span>
-                    <span className="font-bold text-primary">
-                      {formatNumber(cfg.weightagePercentage, 'bn')}%
-                    </span>
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-border">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
+                  <Scale className="w-3.5 h-3.5 text-primary" />
+                  {'সক্রিয় ওয়েটেজ সূত্র:'}
+                </span>
+                {activeConfigs.length === 0 ? (
+                  <span className="text-sm text-warning font-medium">
+                    {'কোনো উৎস পরীক্ষা ও ওয়েটেজ নির্ধারণ করা হয়নি'}
                   </span>
-                ))
-              )}
+                ) : (
+                  activeConfigs.map((cfg) => (
+                    <span
+                      key={cfg.id}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-surface-muted border border-border text-foreground"
+                    >
+                      <span>{cfg.sourceExamName}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold tabular-nums">
+                        {formatNumber(cfg.weightagePercentage, 'bn')}%
+                      </span>
+                    </span>
+                  ))
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    'text-xs font-semibold px-2 py-0.5 rounded border tabular-nums',
+                    configWeightSum === 100
+                      ? 'bg-success/10 text-success border-success/25'
+                      : 'bg-warning/10 text-warning border-warning/25'
+                  )}
+                >
+                  {`মোট ওয়েটেজ: ${formatNumber(configWeightSum, 'bn')}%`}
+                </span>
+              </div>
             </div>
-            {activeConfigs.length > 0 && (
-              <StatusBadge
-                value="WEIGHT_TOTAL"
-                customTone={configWeightSum === 100 ? 'success' : 'destructive'}
-                customLabel={`${'মোট ওয়েটেজ:'} ${formatNumber(configWeightSum, 'bn')}%`}
-              />
-            )}
-          </div>
         )}
       </Card>
 
-      {/* 4-Column Hairline-Divided KPI Strip */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5">
-          <p className="text-base font-bold text-foreground">
-            {'মোট তালিকাভুক্ত শিক্ষার্থী'}
-          </p>
-          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-foreground">
-            {formatNumber(stats.total, 'bn')}{' '}
-            <span className="text-sm font-medium text-muted-foreground">{'জন'}</span>
-          </p>
-          <p className="mt-1.5 text-sm text-muted-foreground tabular-nums truncate">
-            {selectedExam ? selectedExam.name : 'কনফিগারেশন নির্বাচন করুন'}
-          </p>
-        </Card>
-
-        <Card className="p-5">
-          <p className="text-base font-bold text-foreground">
-            {'সমন্বিত উত্তীর্ণ ও পাসের হার'}
-          </p>
-          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-success">
-            {formatNumber(stats.passed, 'bn')}{' '}
-            <span className="text-sm font-medium text-muted-foreground">({formatNumber(stats.passRate, 'bn')}%)</span>
-          </p>
-          <p className="mt-1.5 text-sm text-muted-foreground tabular-nums">
-            {`উত্তীর্ণ ${formatNumber(stats.passed, 'bn')} · অনুত্তীর্ণ ${formatNumber(stats.total - stats.passed, 'bn')}`}
-          </p>
-        </Card>
-
-        <Card className="p-5">
-          <p className="text-base font-bold text-foreground">
-            {'চূড়ান্ত জিপিএ ৫.০০'}
-          </p>
-          <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight text-primary">
-            {formatNumber(stats.gpa5, 'bn')}{' '}
-            <span className="text-sm font-medium text-muted-foreground">{'জন'}</span>
-          </p>
-          <p className="mt-1.5 text-sm text-muted-foreground tabular-nums">
-            {stats.total > 0
-              ? `মোট শিক্ষার্থীর ${formatNumber(Math.round((stats.gpa5 / stats.total) * 100), 'bn')}%`
-              : 'কোনো ফলাফল নেই'}
-          </p>
-        </Card>
-
-        <Card className="p-5">
-          <p className="text-base font-bold text-foreground">
-            {'অসম্পূর্ণ / অনুত্তীর্ণ'}
-          </p>
-          <p
-            className={cn(
-              'mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums tracking-tight',
-              stats.total - stats.passed > 0 ? 'text-destructive' : 'text-foreground'
-            )}
-          >
-            {formatNumber(stats.total - stats.passed, 'bn')}{' '}
-            <span className="text-sm font-medium text-muted-foreground">{'জন'}</span>
-          </p>
-          <p className="mt-1.5 text-sm text-muted-foreground tabular-nums truncate">
-            {stats.incomplete > 0
-              ? `${formatNumber(stats.incomplete, 'bn')} জনের উৎস পরীক্ষার ফল অসম্পূর্ণ`
-              : stats.total - stats.passed > 0
-                ? 'সমন্বিত মূল্যায়নে অনুত্তীর্ণ'
-                : 'সকল শিক্ষার্থী উত্তীর্ণ'}
-          </p>
-        </Card>
-      </div>
-
-      {/* Main Consolidated Table */}
-      <Card className="overflow-hidden">
-        {!selectedExam ? (
-          <div className="p-6">
-            <EmptyState
-              title={'কোনো সমন্বিত পরীক্ষা পাওয়া যায়নি'}
-              description={'একাধিক টার্ম পরীক্ষা একত্রিত করে চূড়ান্ত বাৎসরিক ফলাফল তৈরি করতে একটি নতুন সমন্বিত পরীক্ষা তৈরি করুন।'}
-              action={
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={() => {
-                    setNewClassId(db.classes[0]?.id ?? '');
-                    setNewYearId(db.academicYears.find((y) => y.isActive)?.id ?? db.academicYears[0]?.id ?? '');
-                    setShowCreateModal(true);
-                  }}
-                >
-                  {'নতুন সমন্বিত পরীক্ষা তৈরি করুন'}
+      {!selectedExam ? (
+        <Card className="p-8">
+          <EmptyState
+            title={'কোনো সমন্বিত পরীক্ষা পাওয়া যায়নি'}
+            description={
+              'প্রথমে পরীক্ষা ও বিষয়সমূহ পাতা থেকে একটি সমন্বিত (Consolidated) পরীক্ষা তৈরি করুন, তারপর এখানে অর্ধবার্ষিক ও বার্ষিক পরীক্ষার ওয়েটেজ মিলিয়ে চূড়ান্ত ফলাফল দেখুন।'
+            }
+            action={
+              <Link href="/admin/examinations">
+                <Button variant="primary" size="sm">
+                  {'পরীক্ষা ও বিষয়সমূহ পাতায় যান'}
                 </Button>
-              }
-            />
+              </Link>
+            }
+          />
+        </Card>
+      ) : (
+        <>
+          {/* 4-Column KPI Strip */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="p-5 flex flex-col justify-between gap-2">
+              <p className="text-base font-bold text-foreground">
+                {'মোট তালিকাভুক্ত শিক্ষার্থী'}
+              </p>
+              <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
+                {formatNumber(stats.total, 'bn')}{' '}
+                <span className="text-sm font-semibold text-muted-foreground">{'জন'}</span>
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground truncate">
+                {consolidatedData?.examination?.className ?? ''} · {selectedExam?.name ?? ''}
+              </p>
+            </Card>
+
+            <Card className="p-5 flex flex-col justify-between gap-2">
+              <p className="text-base font-bold text-foreground">
+                {'সমন্বিত উত্তীর্ণ ও পাসের হার'}
+              </p>
+              <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-success">
+                {formatNumber(stats.passed, 'bn')}{' '}
+                <span className="text-sm font-semibold text-muted-foreground">
+                  ({formatNumber(stats.passRate, 'bn')}%)
+                </span>
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground tabular-nums">
+                {`উত্তীর্ণ ${formatNumber(stats.passed, 'bn')} · অনুত্তীর্ণ ${formatNumber(
+                  stats.total - stats.passed,
+                  'bn'
+                )}`}
+              </p>
+            </Card>
+
+            <Card className="p-5 flex flex-col justify-between gap-2">
+              <p className="text-base font-bold text-foreground">
+                {'চূড়ান্ত জিপিএ ৫.০০'}
+              </p>
+              <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
+                {formatNumber(stats.gpa5, 'bn')}{' '}
+                <span className="text-sm font-semibold text-muted-foreground">{'জন'}</span>
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground tabular-nums">
+                {stats.total > 0
+                  ? `মোট শিক্ষার্থীর ${formatNumber(
+                      Math.round((stats.gpa5 / stats.total) * 100),
+                      'bn'
+                    )}%`
+                  : 'কোনো ফলাফল নেই'}
+              </p>
+            </Card>
+
+            <Card className="p-5 flex flex-col justify-between gap-2">
+              <p className="text-base font-bold text-foreground">
+                {'অসম্পূর্ণ / অনুত্তীর্ণ'}
+              </p>
+              <p
+                className={cn(
+                  'mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums',
+                  stats.total - stats.passed > 0 ? 'text-warning' : 'text-foreground'
+                )}
+              >
+                {formatNumber(stats.total - stats.passed, 'bn')}{' '}
+                <span className="text-sm font-semibold text-muted-foreground">{'জন'}</span>
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground tabular-nums">
+                {stats.incomplete > 0
+                  ? `${formatNumber(stats.incomplete, 'bn')} জনের উৎস পরীক্ষার ফল অসম্পূর্ণ`
+                  : 'সব উৎস পরীক্ষার ফলাফল সম্পূর্ণ'}
+              </p>
+            </Card>
           </div>
-        ) : activeConfigs.length === 0 ? (
-          <div className="p-6">
-            <EmptyState
-              title={'উৎস পরীক্ষার ওয়েটেজ নির্ধারণ করা হয়নি'}
-              description={'সমন্বিত ফলাফল গণনা করতে এই শ্রেণির অন্তত ২টি টার্ম পরীক্ষা নির্বাচন করে মোট ১০০% ওয়েটেজ দিন।'}
-              action={
-                <Button size="sm" variant="primary" onClick={openConfigModal}>
-                  <Settings2 className="w-4 h-4" />
-                  {'ওয়েটেজ কনফিগার করুন'}
-                </Button>
-              }
-            />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-base">
-              <thead>
-                <tr className="border-b border-border bg-surface-muted/70 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  <th className="px-4 py-3 text-center w-16">{'মেধা'}</th>
-                  <th className="px-3 py-3 text-center w-16">{'রোল'}</th>
-                  <th className="px-4 py-3 text-left">{'শিক্ষার্থী ও শাখা'}</th>
-                  {activeConfigs.map((cfg) => (
-                    <th key={cfg.id} className="px-3 py-3 text-center">
-                      <div>{cfg.sourceExamName}</div>
-                      <div className="text-sm font-semibold text-primary normal-case">
-                        ({formatNumber(cfg.weightagePercentage, 'bn')}%)
-                      </div>
-                    </th>
-                  ))}
-                  <th className="px-3 py-3 text-right">{'সমন্বিত নম্বর'}</th>
-                  <th className="px-3 py-3 text-right">{'চূড়ান্ত GPA'}</th>
-                  <th className="px-3 py-3 text-center">{'গ্রেড'}</th>
-                  <th className="px-4 py-3 text-center">{'অবস্থা'}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border tabular-nums">
-                {filteredRows.map((row) => (
-                  <tr key={row.enrollmentId} className="hover:bg-surface-muted/40 transition-colors">
-                    <td className="px-4 py-3 text-center">
-                      {row.merit ? (
-                        <span
-                          className={`inline-flex items-center justify-center min-w-[2.1rem] px-2.5 py-0.5 rounded-lg text-sm font-semibold ${
-                            row.merit <= 3
-                              ? 'bg-warning/15 text-warning border border-warning/30'
-                              : 'bg-surface-muted text-foreground'
-                          }`}
-                        >
-                          #{formatNumber(row.merit, 'bn')}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground font-medium">—</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 text-center font-medium text-foreground">
-                      {formatNumber(row.roll, 'bn')}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-foreground">{row.studentName}</div>
-                      <div className="text-sm text-muted-foreground font-medium">
-                        <span className="font-mono">{row.studentId}</span> · {'শাখা'}: {row.sectionName}
-                        {row.groupName ? ` · ${row.groupName}` : ''}
-                      </div>
-                    </td>
-                    {activeConfigs.map((cfg) => {
-                      const sc = row.sourceScores[cfg.sourceExamId];
-                      return (
-                        <td key={cfg.id} className="px-3 py-3 text-center">
-                          {!sc || sc.marks === null ? (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-warning/10 text-warning border border-warning/25">
-                              {'ফলাফল নেই'}
+
+          {/* Main Consolidated Matrix Table */}
+          <Card className="overflow-hidden">
+            {loadingConsolidated || fetchingConsolidated ? (
+              <div className="p-6">
+                <LoadingSkeleton rows={6} />
+              </div>
+            ) : activeConfigs.length === 0 ? (
+              <div className="p-6">
+                <EmptyState
+                  title={'উৎস পরীক্ষার ওয়েটেজ কনফিগার করা হয়নি'}
+                  description={
+                    'সমন্বিত চূড়ান্ত ফলাফল হিসাব করতে অন্তত ২টি পরীক্ষার শতকরা ওয়েটেজ (মোট ১০০%) নির্ধারণ করুন।'
+                  }
+                  action={
+                    <Button variant="primary" size="sm" onClick={openConfigModal}>
+                      <Settings2 className="w-4 h-4" />
+                      {'এখনই ওয়েটেজ কনফিগার করুন'}
+                    </Button>
+                  }
+                />
+              </div>
+            ) : filteredRows.length === 0 ? (
+              <div className="p-6">
+                <EmptyState
+                  title={'কোনো শিক্ষার্থী পাওয়া যায়নি'}
+                  description={'নির্বাচিত শ্রেণি/শাখা বা অনুসন্ধানের সাথে কোনো শিক্ষার্থী মেলেনি।'}
+                />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[820px] text-base">
+                  <thead>
+                    <tr className="border-b border-border bg-surface-muted/70 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                      <th className="px-4 py-3 text-center w-16">{'মেধা'}</th>
+                      <th className="px-3 py-3 text-center w-16">{'রোল'}</th>
+                      <th className="px-4 py-3 text-left">{'শিক্ষার্থী ও শাখা'}</th>
+                      {activeConfigs.map((cfg) => (
+                        <th key={cfg.id} className="px-3 py-3 text-right">
+                          <div className="truncate max-w-[170px] ml-auto">
+                            {cfg.sourceExamName}
+                          </div>
+                          <div className="text-xs font-bold text-primary normal-case">
+                            ({formatNumber(cfg.weightagePercentage, 'bn')}%)
+                          </div>
+                        </th>
+                      ))}
+                      <th className="px-3 py-3 text-right">{'সমন্বিত নম্বর'}</th>
+                      <th className="px-3 py-3 text-right">{'চূড়ান্ত GPA'}</th>
+                      <th className="px-3 py-3 text-center">{'গ্রেড'}</th>
+                      <th className="px-4 py-3 text-center">{'অবস্থা'}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border tabular-nums">
+                    {filteredRows.map((row) => (
+                      <tr
+                        key={row.enrollmentId}
+                        className="hover:bg-surface-muted/40 transition-colors"
+                      >
+                        <td className="px-4 py-3 text-center">
+                          {row.merit ? (
+                            <span
+                              className={`inline-flex items-center justify-center min-w-[2.2rem] px-2 py-0.5 rounded text-xs font-semibold ${
+                                row.merit <= 3
+                                  ? 'bg-warning/15 text-warning border border-warning/30'
+                                  : 'bg-surface-muted text-foreground'
+                              }`}
+                            >
+                              #{formatNumber(row.merit, 'bn')}
                             </span>
                           ) : (
-                            <div>
-                              <span className="font-medium text-foreground">
-                                {formatNumber(sc.marks, 'bn')}
-                              </span>
-                              <div
-                                className={`text-sm ${
-                                  sc.status === ResultStatus.PASS ? 'text-muted-foreground font-medium' : 'text-destructive font-semibold'
-                                }`}
-                              >
-                                GPA {formatNumber(sc.gpa ?? 0, 'bn', 2)}
-                              </div>
-                            </div>
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </td>
-                      );
-                    })}
-                    <td className="px-3 py-3 text-right font-medium text-foreground">
-                      {formatNumber(row.weightedMarks, 'bn', 1)}
-                    </td>
-                    <td className="px-3 py-3 text-right font-semibold text-foreground">
-                      {formatNumber(row.weightedGpa, 'bn', 2)}
-                    </td>
-                    <td className="px-3 py-3 text-center">
-                      <span
-                        className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-semibold border ${
-                          row.isPassed
-                            ? row.letterGrade === 'A+'
-                              ? 'bg-success/10 text-success border-success/25'
-                              : 'bg-primary/10 text-primary border-primary/25'
-                            : 'bg-destructive/10 text-destructive border-destructive/25'
-                        }`}
-                      >
-                        {row.letterGrade}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {row.isPassed ? (
-                        <StatusBadge value="PASS" customTone="success" customLabel={'উত্তীর্ণ'} />
-                      ) : row.isIncomplete ? (
-                        <StatusBadge value="INCOMPLETE" customTone="warning" customLabel={'অসম্পূর্ণ'} />
-                      ) : (
-                        <StatusBadge value="FAIL" customTone="destructive" customLabel={'অনুত্তীর্ণ'} />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+                        <td className="px-3 py-3 text-center font-medium text-foreground">
+                          {formatNumber(row.roll, 'bn')}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-foreground">{row.studentName}</div>
+                          <div className="text-sm text-muted-foreground flex flex-wrap items-center gap-1.5 mt-0.5">
+                            <span className="font-mono">{row.studentId}</span>
+                            <span>·</span>
+                            <span>{`শাখা: ${row.sectionName}`}</span>
+                            {row.groupName && (
+                              <>
+                                <span>·</span>
+                                <span className="text-primary font-medium">{row.groupName}</span>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        {activeConfigs.map((cfg) => {
+                          const sc = row.sourceScores[cfg.sourceExamId];
+                          return (
+                            <td key={cfg.id} className="px-3 py-3 text-right">
+                              {!sc || sc.marks === null ? (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-warning/10 text-warning border border-warning/25">
+                                  {'ফলাফল নেই'}
+                                </span>
+                              ) : (
+                                <div>
+                                  <div className="font-medium text-foreground">
+                                    {formatNumber(sc.marks, 'bn')}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    GPA {formatNumber(sc.gpa ?? 0, 'bn', 2)}
+                                    {sc.status !== ResultStatus.PASS && (
+                                      <span className="ml-1 text-destructive font-semibold">
+                                        ({sc.status === ResultStatus.INCOMPLETE ? 'INC' : 'F'})
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td className="px-3 py-3 text-right font-semibold text-foreground">
+                          {formatNumber(row.weightedMarks, 'bn', 1)}
+                        </td>
+                        <td className="px-3 py-3 text-right font-bold text-primary">
+                          {formatNumber(row.weightedGpa, 'bn', 2)}
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <span
+                            className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-bold border ${
+                              row.isPassed
+                                ? 'bg-success/10 text-success border-success/25'
+                                : row.isIncomplete
+                                  ? 'bg-warning/10 text-warning border-warning/25'
+                                  : 'bg-destructive/10 text-destructive border-destructive/25'
+                            }`}
+                          >
+                            {row.letterGrade}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <StatusBadge
+                            value={
+                              row.isPassed
+                                ? 'PASS'
+                                : row.isIncomplete
+                                  ? 'INCOMPLETE'
+                                  : 'FAIL'
+                            }
+                            customTone={
+                              row.isPassed ? 'success' : row.isIncomplete ? 'warning' : 'destructive'
+                            }
+                            customLabel={
+                              row.isPassed
+                                ? 'উত্তীর্ণ'
+                                : row.isIncomplete
+                                  ? 'অসম্পূর্ণ'
+                                  : 'অনুত্তীর্ণ'
+                            }
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </>
+      )}
 
       {/* Weightage Configuration Modal */}
       <Modal
@@ -698,40 +705,50 @@ export function ConsolidatedResultsView() {
         title={'উৎস পরীক্ষা ও ওয়েটেজ কনফিগারেশন'}
         description={
           selectedExam
-            ? `${selectedExam.name} — ${selectedClass?.nameBn}`
+            ? `${selectedExam.name} — ${consolidatedData?.examination?.className ?? ''}`
             : undefined
         }
-        maxWidth="max-w-2xl"
+        maxWidth="max-w-xl"
       >
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-md bg-surface-muted border border-border text-sm">
-            <span className="text-foreground font-medium">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-surface-muted/60 border border-border">
+            <span className="text-sm text-muted-foreground">
               {'অন্তত ২টি পরীক্ষা নির্বাচন করুন এবং মোট ওয়েটেজ ঠিক ১০০% নির্ধারণ করুন।'}
             </span>
-            <StatusBadge
-              value="DRAFT_TOTAL"
-              customTone={draftWeightTotal === 100 ? 'success' : 'destructive'}
-              customLabel={`${'বর্তমান মোট:'} ${formatNumber(draftWeightTotal, 'bn')}%`}
-            />
+            <span
+              className={cn(
+                'text-xs font-bold px-2.5 py-1 rounded border tabular-nums shrink-0',
+                Math.abs(draftWeightTotal - 100) <= 0.01
+                  ? 'bg-success/10 text-success border-success/25'
+                  : 'bg-destructive/10 text-destructive border-destructive/25'
+              )}
+            >
+              {`বর্তমান মোট: ${formatNumber(draftWeightTotal, 'bn')}%`}
+            </span>
           </div>
 
-          {eligibleSourceExams.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground border border-dashed border-border rounded-md">
-              {'এই শ্রেণি ও শিক্ষাবর্ষে কোনো সাধারণ পরীক্ষা পাওয়া যায়নি। আগে অন্তত ২টি পরীক্ষা তৈরি করুন।'}
-            </div>
+          {eligibleSourceExams.length < 2 ? (
+            <EmptyState
+              title={'পর্যাপ্ত উৎস পরীক্ষা নেই'}
+              description={
+                'একই শ্রেণি ও শিক্ষাবর্ষে অন্তত ২টি সাধারণ পরীক্ষা (যেমন: অর্ধবার্ষিক ও বার্ষিক) থাকতে হবে।'
+              }
+            />
           ) : (
             <div className="space-y-2.5">
               {eligibleSourceExams.map((ex) => {
                 const entry = weightDraft[ex.id] ?? { enabled: false, weight: 0 };
-                const resCount = db.resultSummaries.filter((r) => r.examId === ex.id).length;
                 return (
                   <div
                     key={ex.id}
-                    className={`flex flex-wrap items-center justify-between gap-3 p-3 rounded-md border transition-colors ${
-                      entry.enabled ? 'border-primary/40 bg-primary/5' : 'border-border bg-surface'
-                    }`}
+                    className={cn(
+                      'flex items-center justify-between gap-3 p-3 rounded-lg border transition-colors',
+                      entry.enabled
+                        ? 'border-primary/40 bg-primary/5'
+                        : 'border-border bg-surface'
+                    )}
                   >
-                    <label className="flex items-center gap-3 cursor-pointer flex-1 min-w-[200px]">
+                    <label className="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
                       <input
                         type="checkbox"
                         checked={entry.enabled}
@@ -741,26 +758,28 @@ export function ConsolidatedResultsView() {
                             ...prev,
                             [ex.id]: {
                               enabled: checked,
-                              weight: checked ? (prev[ex.id]?.weight || 50) : 0,
+                              weight: checked ? prev[ex.id]?.weight || 50 : 0,
                             },
                           }));
                         }}
-                        className="w-4 h-4 rounded border-border accent-primary"
+                        className="rounded border-border text-primary focus:ring-primary"
                       />
-                      <div>
-                        <div className="font-semibold text-sm text-foreground">{ex.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {'প্রক্রিয়াকৃত ফলাফল:'}{' '}
-                          {formatNumber(resCount, 'bn')}
+                      <div className="min-w-0">
+                        <div className="font-semibold text-base text-foreground truncate">
+                          {ex.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {`প্রক্রিয়াকৃত ফলাফল: ${formatNumber(ex.processedCount, 'bn')} জন`}
                         </div>
                       </div>
                     </label>
-                    <div className="flex items-center gap-2">
-                      <input placeholder="সংখ্যা লিখুন"
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Input
                         type="number"
                         min={0}
                         max={100}
                         disabled={!entry.enabled}
+                        className="w-20 text-right tabular-nums"
                         value={entry.weight}
                         onChange={(e) => {
                           const val = Math.max(0, Math.min(100, Number(e.target.value) || 0));
@@ -769,9 +788,8 @@ export function ConsolidatedResultsView() {
                             [ex.id]: { ...entry, weight: val },
                           }));
                         }}
-                        className="w-20 h-9 px-2.5 text-sm font-semibold text-right tabular-nums rounded-md border border-border bg-surface disabled:bg-surface-muted disabled:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
                       />
-                      <span className="text-sm font-bold text-muted-foreground">%</span>
+                      <span className="text-sm font-semibold text-muted-foreground">%</span>
                     </div>
                   </div>
                 );
@@ -833,54 +851,14 @@ export function ConsolidatedResultsView() {
             </Button>
             <Button
               variant="primary"
-              disabled={savingConfig || draftSelectedItems.length < 2 || draftWeightTotal !== 100}
+              disabled={
+                savingConfig ||
+                draftSelectedItems.length < 2 ||
+                Math.abs(draftWeightTotal - 100) > 0.01
+              }
               onClick={handleSaveConfig}
             >
               {'ওয়েটেজ সংরক্ষণ করুন'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Create New Consolidated Exam Modal */}
-      <Modal
-        open={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        title={'নতুন সমন্বিত ফলাফল পরীক্ষা তৈরি করুন'}
-        maxWidth="max-w-md"
-      >
-        <div className="space-y-4">
-          <FormField label={'সমন্বিত পরীক্ষার নাম'} required>
-            <Input
-              placeholder={'যেমন: বার্ষিক সমন্বিত চূড়ান্ত ফলাফল ২০২৬'}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-            />
-          </FormField>
-          <FormField label={'শ্রেণি'} required>
-            <Select value={newClassId} onChange={(e) => setNewClassId(e.target.value)}>
-              {db.classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nameBn}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-          <FormField label={'শিক্ষাবর্ষ'} required>
-            <Select value={newYearId} onChange={(e) => setNewYearId(e.target.value)}>
-              {db.academicYears.map((y) => (
-                <option key={y.id} value={y.id}>
-                  {y.name}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-          <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
-            <Button variant="outline" onClick={() => setShowCreateModal(false)}>
-              {'বাতিল'}
-            </Button>
-            <Button variant="primary" disabled={creatingExam} onClick={handleCreateConsolidated}>
-              {'তৈরি করুন'}
             </Button>
           </div>
         </div>
@@ -893,7 +871,7 @@ export function ConsolidatedResultsView() {
         title={'সমন্বিত চূড়ান্ত ফলাফল শিট (ল্যান্ডস্কেপ A4)'}
         maxWidth="max-w-6xl"
       >
-        {selectedExam && (
+        {selectedExam && consolidatedData && (
           <div className="space-y-4">
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => setShowPrintModal(false)}>
@@ -906,10 +884,10 @@ export function ConsolidatedResultsView() {
             </div>
             <div className="overflow-x-auto pb-2">
               <PrintableConsolidatedResultSheet
-                school={db.schoolProfile}
-                title={selectedExam.name}
-                className={selectedClass?.nameBn || selectedClass?.name || ''}
-                academicYear={selectedYear?.name ?? '2026'}
+                school={schoolProfile}
+                title={consolidatedData.examination.name}
+                className={consolidatedData.examination.className}
+                academicYear={consolidatedData.examination.academicYear}
                 sources={activeConfigs.map((c) => ({
                   examId: c.sourceExamId,
                   name: c.sourceExamName,

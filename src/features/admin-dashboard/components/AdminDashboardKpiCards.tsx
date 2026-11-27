@@ -14,6 +14,7 @@ const TINT_CORAL = '#F4DAD5';
 interface AdminDashboardKpiCardsProps {
   activeStudentsCount: number;
   activeYearName?: string;
+  classesCount: number;
   presentToday: number;
   todayAttTotal: number;
   presentRate: number;
@@ -29,6 +30,7 @@ interface AdminDashboardKpiCardsProps {
 export function AdminDashboardKpiCards({
   activeStudentsCount,
   activeYearName,
+  classesCount,
   presentToday,
   todayAttTotal,
   presentRate,
@@ -39,12 +41,10 @@ export function AdminDashboardKpiCards({
   unpublishedExams,
   smsSent,
   smsFailed,
-  
-  
 }: AdminDashboardKpiCardsProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* Card 1: Active Students (Green) */}
+      {/* Card 1: Active Students */}
       <div className="bg-surface border border-border rounded-3xl p-5 sm:p-6 shadow-[0_2px_12px_-4px_rgba(28,100,64,0.06)] hover:shadow-md transition-all duration-200 flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <div
@@ -57,37 +57,24 @@ export function AdminDashboardKpiCards({
             className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
             style={{ backgroundColor: TINT_GREEN, color: COLOR_PRIMARY }}
           >
-            ↑ ৮.২%
+            {`${formatNumber(classesCount, 'bn')} শ্রেণি`}
           </span>
         </div>
 
-        <div className="mt-4 flex items-end justify-between">
-          <div>
-            <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
-              {formatNumber(activeStudentsCount, 'bn')}
-            </p>
-            <p className="text-base text-foreground font-semibold mt-1">
-              {'মোট সক্রিয় শিক্ষার্থী'}
-            </p>
-            <p className="text-sm font-normal text-muted-foreground mt-0.5">
-              {`৫টি শ্রেণি (৬ষ্ঠ–১০ম) · শিক্ষাবর্ষ ${activeYearName ?? formatNumber(2026, 'bn')}`}
-            </p>
-          </div>
-          <div className="w-20 h-9">
-            <svg viewBox="0 0 80 36" className="w-full h-full overflow-visible">
-              <path
-                d="M2,30 Q20,25 35,28 T65,8 T78,4"
-                fill="none"
-                stroke={COLOR_PRIMARY}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
+        <div className="mt-4">
+          <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
+            {formatNumber(activeStudentsCount, 'bn')}
+          </p>
+          <p className="text-base text-foreground font-semibold mt-1">
+            {'মোট সক্রিয় শিক্ষার্থী'}
+          </p>
+          <p className="text-sm font-normal text-muted-foreground mt-0.5">
+            {`শিক্ষাবর্ষ ${activeYearName ?? '—'}`}
+          </p>
         </div>
       </div>
 
-      {/* Card 2: Today's Attendance (Harmonized Deep Academic Blue) */}
+      {/* Card 2: Today's Attendance */}
       <div className="bg-surface border border-border rounded-3xl p-5 sm:p-6 shadow-[0_2px_12px_-4px_rgba(28,100,64,0.06)] hover:shadow-md transition-all duration-200 flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <div
@@ -104,33 +91,20 @@ export function AdminDashboardKpiCards({
           </span>
         </div>
 
-        <div className="mt-4 flex items-end justify-between">
-          <div>
-            <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
-              {formatNumber(presentToday, 'bn')} / {formatNumber(todayAttTotal, 'bn')}
-            </p>
-            <p className="text-base text-foreground font-semibold mt-1">
-              {'আজকের উপস্থিতি'}
-            </p>
-            <p className="text-sm font-normal text-muted-foreground mt-0.5">
-              {`বিলম্ব: ${formatNumber(lateToday, 'bn')} · অনুপস্থিত: ${formatNumber(absentToday, 'bn')}`}
-            </p>
-          </div>
-          <div className="w-20 h-9">
-            <svg viewBox="0 0 80 36" className="w-full h-full overflow-visible">
-              <path
-                d="M2,26 Q18,32 36,20 T62,12 T78,6"
-                fill="none"
-                stroke={COLOR_BLUE}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
+        <div className="mt-4">
+          <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
+            {formatNumber(presentToday, 'bn')} / {formatNumber(todayAttTotal, 'bn')}
+          </p>
+          <p className="text-base text-foreground font-semibold mt-1">
+            {'আজকের উপস্থিতি'}
+          </p>
+          <p className="text-sm font-normal text-muted-foreground mt-0.5">
+            {`বিলম্ব: ${formatNumber(lateToday, 'bn')} · অনুপস্থিত: ${formatNumber(absentToday, 'bn')}`}
+          </p>
         </div>
       </div>
 
-      {/* Card 3: Teachers & Staff (Primary Green Harmony) */}
+      {/* Card 3: Teachers & Staff */}
       <div className="bg-surface border border-border rounded-3xl p-5 sm:p-6 shadow-[0_2px_12px_-4px_rgba(28,100,64,0.06)] hover:shadow-md transition-all duration-200 flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <div
@@ -143,37 +117,24 @@ export function AdminDashboardKpiCards({
             className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
             style={{ backgroundColor: TINT_GREEN, color: COLOR_PRIMARY }}
           >
-            ১০০% {'সক্রিয়'}
+            {`মোট ${formatNumber(teachersCount + otherStaffCount, 'bn')} জন`}
           </span>
         </div>
 
-        <div className="mt-4 flex items-end justify-between">
-          <div>
-            <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
-              {formatNumber(teachersCount, 'bn')} / {formatNumber(otherStaffCount, 'bn')}
-            </p>
-            <p className="text-base text-foreground font-semibold mt-1">
-              {'শিক্ষক ও কর্মচারী'}
-            </p>
-            <p className="text-sm font-normal text-muted-foreground mt-0.5">
-              {'শিক্ষক / কর্মকর্তা-কর্মচারী'}
-            </p>
-          </div>
-          <div className="w-20 h-9">
-            <svg viewBox="0 0 80 36" className="w-full h-full overflow-visible">
-              <path
-                d="M2,28 Q22,28 38,18 T64,15 T78,8"
-                fill="none"
-                stroke={COLOR_PRIMARY}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
+        <div className="mt-4">
+          <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
+            {formatNumber(teachersCount, 'bn')} / {formatNumber(otherStaffCount, 'bn')}
+          </p>
+          <p className="text-base text-foreground font-semibold mt-1">
+            {'শিক্ষক ও কর্মচারী'}
+          </p>
+          <p className="text-sm font-normal text-muted-foreground mt-0.5">
+            {'শিক্ষক / কর্মকর্তা-কর্মচারী'}
+          </p>
         </div>
       </div>
 
-      {/* Card 4: Unpublished Exams & SMS (Coral) */}
+      {/* Card 4: Unpublished Exams & SMS */}
       <div className="bg-surface border border-border rounded-3xl p-5 sm:p-6 shadow-[0_2px_12px_-4px_rgba(28,100,64,0.06)] hover:shadow-md transition-all duration-200 flex flex-col justify-between">
         <div className="flex items-center justify-between">
           <div
@@ -190,29 +151,16 @@ export function AdminDashboardKpiCards({
           </span>
         </div>
 
-        <div className="mt-4 flex items-end justify-between">
-          <div>
-            <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
-              {formatNumber(unpublishedExams, 'bn')}
-            </p>
-            <p className="text-base text-foreground font-semibold mt-1">
-              {'অপ্রকাশিত পরীক্ষা ও SMS'}
-            </p>
-            <p className="text-sm font-normal text-muted-foreground mt-0.5">
-              {`SMS প্রেরিত: ${formatNumber(smsSent, 'bn')} · ব্যর্থ: ${formatNumber(smsFailed, 'bn')}`}
-            </p>
-          </div>
-          <div className="w-20 h-9">
-            <svg viewBox="0 0 80 36" className="w-full h-full overflow-visible">
-              <path
-                d="M2,12 Q20,10 38,18 T62,26 T78,28"
-                fill="none"
-                stroke={COLOR_CORAL}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
+        <div className="mt-4">
+          <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
+            {formatNumber(unpublishedExams, 'bn')}
+          </p>
+          <p className="text-base text-foreground font-semibold mt-1">
+            {'অপ্রকাশিত পরীক্ষা ও SMS'}
+          </p>
+          <p className="text-sm font-normal text-muted-foreground mt-0.5">
+            {`SMS প্রেরিত: ${formatNumber(smsSent, 'bn')} · ব্যর্থ: ${formatNumber(smsFailed, 'bn')}`}
+          </p>
         </div>
       </div>
     </div>

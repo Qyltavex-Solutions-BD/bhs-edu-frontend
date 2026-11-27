@@ -19,7 +19,7 @@ import {
 } from '@/src/features/examinations/api/examinations.api';
 import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
 import { useGetSectionsQuery } from '@/src/services/academic/section.api';
-import { formatNumber } from '@/src/lib/formatters';
+import { formatNumber, getSubjectCode } from '@/src/lib/formatters';
 import { cn, exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
 import { ExamType, ResultStatus } from '@/src/types/enums';
 import type { SchoolProfile } from '@/src/types/entities';
@@ -110,10 +110,20 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
       ? selectedExamName
       : initialExam?.name ?? examNames[0] ?? '';
 
+  const classesForExam = useMemo(() => {
+    const classIdsWithExam = new Set(
+      standardExams.filter((e) => e.name === resolvedExamName).map((e) => e.classId)
+    );
+    const matched = activeClasses.filter((c) => classIdsWithExam.has(c.id));
+    return matched.length > 0 ? matched : activeClasses;
+  }, [standardExams, resolvedExamName, activeClasses]);
+
   const resolvedClassId =
-    selectedClassId && activeClasses.some((c) => c.id === selectedClassId)
+    selectedClassId && classesForExam.some((c) => c.id === selectedClassId)
       ? selectedClassId
-      : initialExam?.classId ?? activeClasses[0]?.id ?? '';
+      : initialExam?.classId && classesForExam.some((c) => c.id === initialExam.classId)
+        ? initialExam.classId
+        : classesForExam[0]?.id ?? '';
 
   const activeExam = useMemo(
     () =>
@@ -229,7 +239,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
           publishedAt: tabulationRes.examination.publishedAt,
         },
         subjects: row.subjects.map((sub) => ({
-          subjectCode: sub.code ?? '—',
+          subjectCode: getSubjectCode(sub.code, activeClass?.numericValue) ?? '—',
           subjectName: sub.subjectName,
           subjectNameBn: sub.subjectName,
           fullMarks: subjectFullMarksMap.get(sub.examSubjectId) ?? 100,
@@ -252,7 +262,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
     if (!tabulationRes) return { subjects: [], rows: [] };
     const subjects = tabulationRes.subjectsList.map((s) => ({
       id: s.id,
-      code: s.code ?? '—',
+      code: getSubjectCode(s.code, activeClass?.numericValue) ?? '—',
       nameBn: s.name,
       nameEn: s.name,
       fullMarks: s.fullMarks,
@@ -399,7 +409,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                   setSectionFilter('ALL');
                 }}
               >
-                {activeClasses.map((cls) => (
+                {classesForExam.map((cls) => (
                   <option key={cls.id} value={cls.id}>
                     {cls.nameBn || cls.name}
                   </option>

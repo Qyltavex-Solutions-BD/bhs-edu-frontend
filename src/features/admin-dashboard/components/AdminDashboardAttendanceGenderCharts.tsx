@@ -52,10 +52,14 @@ export function AdminDashboardAttendanceGenderCharts({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
           <div>
             <h3 className="text-lg sm:text-xl font-bold text-foreground">
-              {'দৈনিক হাজিরা প্রবণতা (সাম্প্রতিক ১০ কর্মদিবস)'}
+              {timeRange === 'day'
+                ? 'আজকের সময়ভিত্তিক হাজিরা প্রবণতা'
+                : timeRange === 'month'
+                  ? 'মাসিক হাজিরা প্রবণতা (সাম্প্রতিক ৩০ দিন)'
+                  : 'দৈনিক হাজিরা প্রবণতা (সাম্প্রতিক ৭ দিন)'}
             </h3>
             <p className="text-sm text-muted-foreground mt-1">
-              {'উপস্থিত, বিলম্বিত ও অনুপস্থিত শিক্ষার্থীর সংখ্যা'}
+              {'ডাটাবেজে সংরক্ষিত উপস্থিত, বিলম্বিত ও অনুপস্থিত শিক্ষার্থীর সংখ্যা'}
             </p>
           </div>
 
@@ -82,28 +86,18 @@ export function AdminDashboardAttendanceGenderCharts({
         {/* Metric Highlight */}
         <div className="flex items-center gap-3 my-3">
           <span className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">
-            {formatNumber(presentRate, 'bn')}% {'গড় উপস্থিতি'}
+            {formatNumber(presentRate, 'bn')}% {'আজকের উপস্থিতি'}
           </span>
           <span
-            className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+            className="px-3 py-0.5 rounded-full text-xs font-semibold tabular-nums"
             style={{ backgroundColor: TINT_GREEN, color: COLOR_PRIMARY }}
           >
-            ↑ ৪.৮% {'বিগত মাসের তুলনায়'}
+            {`${formatNumber(presentToday, 'bn')} জন উপস্থিত`}
           </span>
         </div>
 
         {/* Area Chart with Gradient & Tooltip */}
         <div className="h-64 sm:h-72 w-full mt-2 relative">
-          <div className="absolute right-[8%] top-[20%] z-10 hidden sm:flex flex-col items-center pointer-events-none">
-            <div className="bg-[#1C6440] text-white text-sm font-bold px-3.5 py-2 rounded-xl shadow-md border border-white/20 text-center leading-tight">
-              <span className="text-sm text-white/90 block font-normal mb-0.5">
-                {'আজকের উপস্থিতি'}
-              </span>
-              {formatNumber(presentToday, 'bn')} {'জন উপস্থিত'}
-            </div>
-            <div className="w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-[#1C6440]" />
-            <div className="w-2.5 h-2.5 rounded-full bg-[#1C6440] border-2 border-white mt-1 shadow-xs" />
-          </div>
 
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={attTrendData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>

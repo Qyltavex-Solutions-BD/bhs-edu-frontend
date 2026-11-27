@@ -173,7 +173,8 @@ export const ADMIN_NAV_GROUPS: NavGroup[] = [
     labelBn: 'প্রশাসন ও সিস্টেম',
     labelEn: 'SYSTEM',
     items: [
-      { to: '/admin/users', labelBn: 'ব্যবহারকারী ও রোল', labelEn: 'Users & Roles', icon: ShieldCheck },
+      { to: '/admin/users', labelBn: 'ব্যবহারকারী ও অ্যাক্সেস', labelEn: 'Users & Access', icon: ShieldCheck },
+      { to: '/admin/audit-logs', labelBn: 'অডিট লগ', labelEn: 'Audit Logs', icon: FileBarChart2 },
       { to: '/admin/reports', labelBn: 'রিপোর্ট ও অডিট', labelEn: 'Reports & Audit', icon: FileBarChart2 },
       { to: '/admin/settings', labelBn: 'সেটিংস ও প্রোফাইল', labelEn: 'Settings & Profile', icon: Settings },
     ],

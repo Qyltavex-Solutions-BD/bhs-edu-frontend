@@ -11,9 +11,22 @@ export { useSearchPublicResultMutation } from '@/src/features/results/api/public
 export { useCreateNoticeMutation } from '@/src/features/notices/api/notices.api';
 export { useUpdateSchoolProfileMutation } from '@/src/features/institution/api/institution.api';
 export { useMarkNotificationReadMutation } from '@/src/features/notifications/api/notifications.api';
-export { useToggleRolePermissionMutation } from '@/src/features/access-control/api/access-control.api';
+export {
+  useGetUsersQuery,
+  useGetUserByIdQuery,
+  useCreateUserMutation,
+  useUpdateUserStatusMutation,
+  useResetUserPasswordMutation,
+  useGetAuditLogsQuery,
+  useGetAuditModulesQuery,
+} from '@/src/features/access-control/api/access-control.api';
 export { useToggleArchiveMutation } from '@/src/features/admin-operations/api/admin-operations.api';
-export { usePromoteStudentsMutation } from '@/src/features/students/api/promotions.api';
+export {
+  usePreviewPromotionQuery,
+  useExecuteBulkPromotionMutation,
+  useGetPromotionHistoryQuery,
+  useRollbackBatchPromotionMutation,
+} from '@/src/features/students/api/promotions.api';
 export { useCreateExamMutation } from '@/src/features/examinations/api/exam-creation.api';
 
 export {

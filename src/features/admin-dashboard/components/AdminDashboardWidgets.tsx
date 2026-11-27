@@ -6,8 +6,6 @@ import {
   GraduationCap,
   Bell,
   ShieldCheck,
-  Check,
-  X,
   Plus,
   ArrowRight,
   ExternalLink,
@@ -86,22 +84,13 @@ export function AdminDashboardWidgets({
                 </Link>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => onDismissAction(item.id)}
-                    title={'বাতিল'}
-                    className="w-8 h-8 rounded-full border border-border text-muted-foreground hover:text-[#DF6153] hover:bg-[#F4DAD5]/40 flex items-center justify-center transition cursor-pointer"
+                  <Link
+                    href={item.link}
+                    title={'বিস্তারিত দেখুন'}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-surface-muted hover:bg-[#1C6440] text-muted-foreground hover:text-white text-sm font-medium transition cursor-pointer"
                   >
-                    <X className="w-4 h-4" />
-                  </button>
-                  <Link href={item.link}>
-                    <button
-                      type="button"
-                      title={'দেখুন'}
-                      className="w-8 h-8 rounded-full bg-[#1C6440] hover:bg-[#154E31] text-white flex items-center justify-center shadow-xs transition cursor-pointer"
-                    >
-                      <Check className="w-4 h-4" />
-                    </button>
+                    <span>{'যান'}</span>
+                    <ArrowRight className="w-4 h-4" />
                   </Link>
                 </div>
               </div>
@@ -195,17 +184,23 @@ export function AdminDashboardWidgets({
           </div>
 
           <div className="divide-y divide-border/60">
-            {auditLogs.slice(0, 4).map((log) => (
-              <div key={log.id} className="py-3 text-base">
-                <p className="font-medium text-foreground truncate text-base">
-                  {log.action} · <span className="text-[#1C6440]">{log.module}</span>
-                </p>
-                <p className="text-muted-foreground line-clamp-1 text-sm mt-0.5">{log.details}</p>
-                <p className="text-sm text-muted-foreground tabular-nums mt-0.5">
-                  {formatDateShort(log.createdAt, ('bn'))}
-                </p>
+            {auditLogs.length === 0 ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                {'এখনো কোনো অডিট লগ রেকর্ড হয়নি।'}
               </div>
-            ))}
+            ) : (
+              auditLogs.slice(0, 4).map((log) => (
+                <div key={log.id} className="py-3 text-base">
+                  <p className="font-medium text-foreground truncate text-base">
+                    {log.action} · <span className="text-[#1C6440]">{log.module}</span>
+                  </p>
+                  <p className="text-muted-foreground line-clamp-1 text-sm mt-0.5">{log.details}</p>
+                  <p className="text-sm text-muted-foreground tabular-nums mt-0.5">
+                    {formatDateShort(log.createdAt, ('bn'))}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

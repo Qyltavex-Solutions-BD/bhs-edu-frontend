@@ -7,6 +7,7 @@ import { formatNumber } from '@/src/lib/formatters';
 
 interface AdminDashboardHeroProps {
   activeYearName?: string;
+  schoolName?: string;
   eiin?: string;
   activeStudentsCount: number;
   presentRate: number;
@@ -19,6 +20,7 @@ interface AdminDashboardHeroProps {
 
 export function AdminDashboardHero({
   activeYearName,
+  schoolName,
   eiin,
   activeStudentsCount,
   presentRate,
@@ -27,12 +29,10 @@ export function AdminDashboardHero({
   teachersCount,
   otherStaffCount,
   classesCount,
-  
-  
 }: AdminDashboardHeroProps) {
   return (
     <div className="relative rounded-3xl p-6 lg:p-8 bg-gradient-to-r from-[#175234] via-[#1C6440] to-[#123E27] text-white overflow-hidden shadow-lg border border-[#236b47]/40">
-      {/* Background decorative concentric watermark rings & organic bubbles */}
+      {/* Background decorative concentric watermark rings */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/2 left-[48%] -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-gradient-to-tr from-[#2D8B59]/25 via-white/[0.04] to-transparent blur-2xl" />
         <div className="absolute top-[-20px] left-[52%] w-48 h-48 rounded-full border border-white/[0.08] bg-white/[0.02]" />
@@ -52,18 +52,17 @@ export function AdminDashboardHero({
       </div>
 
       <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        {/* Left Text & CTA */}
         <div className="space-y-4 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-md text-sm font-medium text-white/95">
             <span className="w-2 h-2 rounded-full bg-[#96D0AB]" />
             <span>
-              {`সক্রিয় শিক্ষাবর্ষ: ${activeYearName ?? formatNumber(2026, 'bn')} · ভোজেশ্বর উচ্চ বিদ্যালয় (EIIN: ${eiin ?? '১১৩৫৮৭'})`}
+              {`সক্রিয় শিক্ষাবর্ষ: ${activeYearName ?? '—'} · ${schoolName ?? 'প্রশাসনিক পোর্টাল'}${eiin && eiin !== '—' ? ` (EIIN: ${eiin})` : ''}`}
             </span>
           </div>
 
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-white leading-tight">
-              {'উপস্থিতি ও একাডেমিক অগ্রগতি ১২% বৃদ্ধি পেয়েছে'}
+              {'প্রশাসনিক ও একাডেমিক সারসংক্ষেপ'}
             </h2>
             <p className="mt-2 text-base text-white/90 font-normal leading-relaxed">
               {`${formatNumber(activeStudentsCount, 'bn')} শিক্ষার্থী সক্রিয় · আজকের উপস্থিতি ${formatNumber(presentRate, 'bn')}% (${formatNumber(presentToday, 'bn')} জন) · ${formatNumber(pendingActionsCount, 'bn')}টি প্রশাসনিক কাজ অপেক্ষমাণ`}
@@ -112,7 +111,9 @@ export function AdminDashboardHero({
                 {formatNumber(activeStudentsCount, 'bn')}
               </p>
             </div>
-            <p className="text-sm font-medium text-[#96D0AB]">+৪.২%</p>
+            <p className="text-sm font-medium text-[#96D0AB]">
+              {`শিক্ষাবর্ষ ${activeYearName ?? '—'}`}
+            </p>
           </div>
 
           <div className="p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md min-w-[105px] sm:min-w-[130px] flex flex-col justify-between">
@@ -125,13 +126,13 @@ export function AdminDashboardHero({
               </p>
             </div>
             <p className="text-sm font-medium text-white/90">
-              {'সবাই সক্রিয়'}
+              {`মোট ${formatNumber(teachersCount + otherStaffCount, 'bn')} জন`}
             </p>
           </div>
 
           <div className="p-4 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md min-w-[105px] sm:min-w-[130px] flex flex-col justify-between">
             <p className="text-sm sm:text-base font-medium text-white/90 truncate">
-              {'অনুমোদিত শ্রেণি'}
+              {'সক্রিয় শ্রেণি'}
             </p>
             <div className="my-1.5">
               <p className="text-2xl sm:text-3xl font-bold text-white tracking-tight tabular-nums">
@@ -139,7 +140,7 @@ export function AdminDashboardHero({
               </p>
             </div>
             <p className="text-sm font-medium text-[#96D0AB]">
-              {'৬ষ্ঠ–১০ম শ্রেণি'}
+              {'অনুমোদিত শ্রেণি'}
             </p>
           </div>
         </div>
