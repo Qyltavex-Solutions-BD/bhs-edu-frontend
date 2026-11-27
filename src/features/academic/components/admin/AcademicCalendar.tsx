@@ -13,7 +13,6 @@ import { formatDateShort } from '@/src/lib/formatters';
 import { Button, Card, FormField, Input, Modal, Select, Textarea } from '@/src/components/ui/primitives';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import type { AcademicEvent, AcademicYear } from '@/src/types/entities';
-import type { MockDatabase } from '@/src/mocks/seed';
 import { AcademicEventType } from '@/src/types/enums';
 
 function errorMessage(err: unknown, fallback: string) {
@@ -35,7 +34,7 @@ const EMPTY = {
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const isUuid = (val?: string) => Boolean(val && UUID_REGEX.test(val));
 
-export function AcademicCalendar({ db, year }: { db?: MockDatabase; year: AcademicYear }) {
+export function AcademicCalendar({ year }: { year: AcademicYear }) {
   const { data: realEvents } = useGetAcademicEventsQuery(
     isUuid(year?.id) ? { academicYearId: year.id } : undefined,
     { skip: !isUuid(year?.id) }
@@ -48,18 +47,14 @@ export function AcademicCalendar({ db, year }: { db?: MockDatabase; year: Academ
   const [open, setOpen] = useState(false);
 
   const events = useMemo(() => {
-    const source =
-      realEvents !== undefined
-        ? realEvents
-        : (db?.academicEvents ?? []).filter((item) => item.academicYearId === year.id);
-    return source
+    return (realEvents ?? [])
       .slice()
       .sort(
         (a, b) =>
           String(a.startDate).localeCompare(String(b.startDate)) ||
           a.title.localeCompare(b.title)
       );
-  }, [realEvents, db?.academicEvents, year.id]);
+  }, [realEvents]);
 
   const fill = (event: AcademicEvent) => {
     setForm({

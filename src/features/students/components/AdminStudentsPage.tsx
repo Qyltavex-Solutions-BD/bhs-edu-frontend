@@ -4,7 +4,6 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useParams } from '@/src/lib/navigation';
-import { useGetBootstrapQuery } from '@/src/store/api';
 import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
 import { useAcademicYearSelection } from '@/src/views/admin/AcademicFoundation';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
@@ -54,25 +53,11 @@ export function AdminStudentsPage({
   const { id } = useParams<{ id?: string }>();
   const pathname = usePathname();
   const section: SectionKey = id ? 'profile' : TAB_SECTION[defaultTab] ?? 'directory';
-  const usesLiveApi =
-    section === 'create' ||
-    section === 'directory' ||
-    section === 'profile' ||
-    section === 'enrollments' ||
-    section === 'admissions' ||
-    section === 'transfers' ||
-    section === 'testimonials' ||
-    section === 'cards';
-  const { data: db, isLoading } = useGetBootstrapQuery(undefined, {
-    skip: usesLiveApi,
-  });
-  const { data: liveYears = [], isLoading: loadingYears } =
-    useGetAcademicYearsQuery(undefined, { skip: !usesLiveApi });
-  const academicYears = usesLiveApi ? liveYears : db?.academicYears;
+  const { data: academicYears = [], isLoading: loadingYears } =
+    useGetAcademicYearsQuery();
   const year = useAcademicYearSelection(academicYears);
 
-  if (usesLiveApi && loadingYears) return <LoadingSkeleton />;
-  if (!usesLiveApi && (isLoading || !db || !year)) return <LoadingSkeleton />;
+  if (loadingYears) return <LoadingSkeleton />;
 
   const copy: Record<SectionKey, { title: string; description: string; year: boolean }> = {
     directory: {
@@ -167,12 +152,8 @@ export function AdminStudentsPage({
       {section === 'transfers' && <StudentTransfers />}
       {section === 'testimonials' && <StudentTestimonials />}
       {section === 'cards' && <StudentRfidCards />}
-      {db && year && (
-        <>
-          {section === 'promotions' && <StudentPromotions db={db} yearId={year.id} />}
-          {section === 'import' && <StudentImporter db={db} yearId={year.id} />}
-        </>
-      )}
+      {section === 'promotions' && <StudentPromotions yearId={year?.id ?? ''} />}
+      {section === 'import' && <StudentImporter yearId={year?.id ?? ''} />}
     </StudentsShell>
   );
 }

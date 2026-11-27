@@ -36,7 +36,6 @@ import { Button, Card, FormField, Input, Modal, Select, Switch } from '@/src/com
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { formatNumber } from '@/src/lib/formatters';
 import type { AcademicGroup, AcademicYear, ClassSubject, SchoolClass, Subject } from '@/src/types/entities';
-import type { MockDatabase } from '@/src/mocks/seed';
 import { errorMessage } from './shared';
 import { CATEGORY_LABELS } from '../academic.labels';
 import {
@@ -48,37 +47,23 @@ const isUuid = (val?: string) =>
   Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
 
 export function ClassSubjectsPanel({
-  db,
   year,
 }: {
-  db?: MockDatabase;
   year: AcademicYear;
 }) {
 
   // Queries
   const { data: realClasses, isLoading: loadingClasses } = useGetSchoolClassesQuery();
-  const classList: SchoolClass[] =
-    realClasses && realClasses.length > 0
-      ? realClasses
-      : (db?.classes ?? []);
+  const classList: SchoolClass[] = realClasses ?? [];
 
   const { data: realGroups } = useGetAcademicGroupsQuery();
-  const groupList: AcademicGroup[] =
-    realGroups && realGroups.length > 0
-      ? realGroups
-      : (db?.academicGroups ?? []);
+  const groupList: AcademicGroup[] = realGroups ?? [];
 
   const { data: realSubjects } = useGetSubjectsQuery();
-  const subjectList: Subject[] =
-    realSubjects && realSubjects.length > 0
-      ? realSubjects
-      : (db?.subjects ?? []);
+  const subjectList: Subject[] = realSubjects ?? [];
 
   const { data: realYears } = useGetAcademicYearsQuery();
-  const yearList: AcademicYear[] =
-    realYears && realYears.length > 0
-      ? realYears
-      : (db?.academicYears ?? []);
+  const yearList: AcademicYear[] = realYears ?? [];
 
   // Filter States
   const [selectedYearId, setSelectedYearId] = useState<string>('');
@@ -271,9 +256,8 @@ export function ClassSubjectsPanel({
   );
 
   const booksForSelectedClass = useMemo(() => {
-    if (realBooks !== undefined) return realBooks;
-    return (db?.books ?? []).filter((b) => b.classId === selectedClassId);
-  }, [realBooks, db?.books, selectedClassId]);
+    return realBooks ?? [];
+  }, [realBooks]);
 
   // Subject IDs that are actually prescribed for this class in the Books catalog
   const classPrescribedSubjectIds = useMemo(() => {

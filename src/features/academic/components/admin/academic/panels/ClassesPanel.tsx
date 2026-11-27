@@ -17,7 +17,6 @@ import { useAppSelector } from '@/src/store/hooks';
 import { Button, Card, FormField, Input, Modal, Switch } from '@/src/components/ui';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import type { SchoolClass, Section } from '@/src/types/entities';
-import type { MockDatabase } from '@/src/mocks/seed';
 import { errorMessage } from './shared';
 import { sectionSchema, type SectionFormValues } from '../academic.schema';
 
@@ -30,7 +29,7 @@ const defaultSectionValues: SectionFormValues = {
   isActive: true,
 };
 
-export function ClassesPanel({ db }: { db?: MockDatabase }) {
+export function ClassesPanel() {
   const selectedYearId = useAppSelector((state) => state.ui.selectedAcademicYearId);
 
   const { data: realClasses, isLoading: loadingClasses } = useGetSchoolClassesQuery();
@@ -42,16 +41,15 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
   );
 
   const classList = useMemo(() => {
-    const raw = realClasses && realClasses.length > 0 ? realClasses : (db?.classes ?? []);
+    const raw = realClasses ?? [];
     const secondary = raw.filter((c) => c.numericValue >= 6 && c.numericValue <= 10);
     const list = secondary.length > 0 ? secondary : raw;
     return [...list].sort((a, b) => a.numericValue - b.numericValue);
-  }, [realClasses, db?.classes]);
+  }, [realClasses]);
 
   const groupList = useMemo(() => {
-    const raw = realGroups && realGroups.length > 0 ? realGroups : (db?.academicGroups ?? []);
-    return raw.filter((g) => g.isActive);
-  }, [realGroups, db?.academicGroups]);
+    return (realGroups ?? []).filter((g) => g.isActive);
+  }, [realGroups]);
 
   const [createSection, { isLoading: creatingSection }] = useCreateSectionMutation();
   const [updateSection, { isLoading: updatingSection }] = useUpdateSectionMutation();
@@ -145,9 +143,7 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
             const sections =
               schoolClass.sections && schoolClass.sections.length > 0
                 ? schoolClass.sections
-                : realSections && realSections.length > 0
-                  ? realSections.filter((section) => section.classId === schoolClass.id)
-                  : (db?.sections?.filter((section) => section.classId === schoolClass.id) ?? []);
+                : (realSections ?? []).filter((section) => section.classId === schoolClass.id);
 
             const displayName = schoolClass.nameBn || schoolClass.name;
             const secondaryName =
@@ -225,15 +221,7 @@ export function ClassesPanel({ db }: { db?: MockDatabase }) {
                         const realCt = realClassTeachers?.find(
                           (ct) => ct.sectionId === section.id,
                         );
-                        const mockCt = db?.sectionClassTeachers?.find(
-                          (assignment) =>
-                            assignment.sectionId === section.id &&
-                            assignment.academicYearId === selectedYearId,
-                        );
-                        const mockTeacher = mockCt
-                          ? db?.staff?.find((member) => member.id === mockCt.staffId)
-                          : null;
-                        const teacherName = realCt?.staff?.name ?? mockTeacher?.name ?? '—';
+                        const teacherName = realCt?.staff?.name ?? '—';
 
                         return (
                           <div

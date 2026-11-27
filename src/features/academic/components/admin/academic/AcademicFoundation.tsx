@@ -5,7 +5,6 @@ import { useAppDispatch, useAppSelector } from '@/src/store/hooks';
 import { setSelectedAcademicYear } from '@/src/store/slices/uiSlice';
 import { Card, FormField, Select } from '@/src/components/ui';
 import type { AcademicYear } from '@/src/types/entities';
-import type { MockDatabase } from '@/src/mocks/seed';
 
 import { YearsPanel } from './panels/YearsPanel';
 import { GroupsPanel } from './panels/GroupsPanel';
@@ -75,11 +74,9 @@ export function AcademicYearBar({
 
 export function AcademicFoundation({
   tab,
-  db,
 }: {
   tab: FoundationTab;
-  db?: MockDatabase;
 }) {
-  if (tab === 'years') return <YearsPanel years={db?.academicYears} />;
-  return <ClassesPanel db={db} />;
+  if (tab === 'years') return <YearsPanel />;
+  return <ClassesPanel />;
 }

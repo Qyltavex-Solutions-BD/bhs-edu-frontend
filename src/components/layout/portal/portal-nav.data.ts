@@ -270,7 +270,7 @@ export function studentChildActive(pathname: string, to: string): boolean {
     return ['/admin/academic/teacher-assignments', '/admin/academic/class-teachers'].includes(pathname);
   }
   if (to === '/admin/academic/documents') {
-    return ['/admin/academic/documents', '/admin/academic/policies'].includes(pathname);
+    return ['/admin/academic/documents', '/admin/academic/events'].includes(pathname);
   }
   if (to === '/admin/examinations') {
     if (

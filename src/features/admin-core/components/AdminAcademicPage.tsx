@@ -1,53 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
-import { useParams } from '@/src/lib/navigation';
-import { toast } from 'sonner';
-import {
-  ArrowDown,
-  ArrowUp,
-  Download,
-  FileText,
-  GripVertical,
-  Plus,
-  ShieldCheck,
-  Trash2,
-  Upload,
-} from 'lucide-react';
-import {
-  useAddSyllabusEntryMutation,
-  useGetBootstrapQuery,
-  useRemoveSyllabusEntryMutation,
-  useRemoveSyllabusFileMutation,
-  useReorderCmsItemsMutation,
-  useSaveSyllabusFileMutation,
-  useToggleCmsItemMutation,
-  useUpdateSchoolProfileMutation,
-} from '@/src/store/api';
-import { PrintableIdCardSheet } from '@/src/components/print/PrintDocuments';
-import { formatDateShort, formatNumber } from '@/src/lib/formatters';
-import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
-import {
-  getCommitteePortrait,
-  LoadingSkeleton,
-  PageHeader,
-  SchoolEmblem,
-} from '@/src/components/shared/Feedback';
-import {
-  Button,
-  Card,
-  FormField,
-  Input,
-  Modal,
-  SegmentedTabs,
-  Select,
-  Switch,
-  Textarea,
-} from '@/src/components/ui/primitives';
-import { StatusBadge } from '@/src/components/shared/StatusBadge';
-import { DataTable } from '@/src/components/shared/DataTable';
-import type { SyllabusExamTerm } from '@/src/types/entities';
+import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import {
   AcademicFoundation,
   useAcademicYearSelection,
@@ -56,7 +10,6 @@ import { useGetAcademicYearsQuery } from '@/src/services/academic';
 import { AcademicShell } from '@/src/views/admin/AcademicShell';
 import { AcademicCalendar } from '@/src/views/admin/AcademicCalendar';
 import { AcademicCurriculum } from '@/src/views/admin/AcademicCurriculum';
-import { AcademicPolicies } from '@/src/views/admin/AcademicPolicies';
 import { AcademicRoutine } from '@/src/views/admin/AcademicRoutine';
 import { SyllabusPanel } from '@/src/features/academic/components/admin/SyllabusPanel';
 import { AcademicStaffing } from '@/src/views/admin/AcademicStaffing';
@@ -73,8 +26,7 @@ type AcademicTab =
   | 'assignments'
   | 'routines'
   | 'events'
-  | 'documents'
-  | 'policies';
+  | 'documents';
 
 const PAGE_COPY: Record<
   AcademicTab,
@@ -164,13 +116,6 @@ const PAGE_COPY: Record<
     descEn: 'Chapter lists and official files. Subjects come from this year’s curriculum.',
     year: true,
   },
-  policies: {
-    titleBn: 'নীতিমালা',
-    titleEn: 'School policies',
-    descBn: 'শিক্ষার্থী বিধি, অভিভাবক নির্দেশনা ও পোশাকবিধি। প্রকাশিত হলে পাবলিক পাতায় যায়।',
-    descEn: 'Student rules, parent guidelines, and dress code. Published items appear on the public page.',
-    year: false,
-  },
 };
 
 export function AdminAcademicPage({
@@ -178,236 +123,44 @@ export function AdminAcademicPage({
 }: {
   defaultTab?: AcademicTab;
 }) {
-  const { data: db, isLoading } = useGetBootstrapQuery();
-  const { data: realAcademicYears, isLoading: loadingYears } = useGetAcademicYearsQuery();
-  const yearList = realAcademicYears && realAcademicYears.length > 0 ? realAcademicYears : db?.academicYears;
+  const { data: yearList = [], isLoading: loadingYears } = useGetAcademicYearsQuery();
   const selectedYear = useAcademicYearSelection(yearList);
-  const [saveSyllabusFile, { isLoading: savingSyllabusFile }] = useSaveSyllabusFileMutation();
-  const [addSyllabusEntry, { isLoading: addingSyllabusEntry }] = useAddSyllabusEntryMutation();
-  const [removeSyllabusEntry] = useRemoveSyllabusEntryMutation();
-  const [removeSyllabusFile] = useRemoveSyllabusFileMutation();
-  const [tab, setTab] = useState(defaultTab);
-  const [syllabusFileForm, setSyllabusFileForm] = useState<{
-    classId: string;
-    examTerm: SyllabusExamTerm;
-    groupId: string;
-    title: string;
-    fileName: string;
-    fileSize: string;
-    fileType: 'PDF' | 'IMAGE';
-    fileUrl: string;
-  }>({
-    classId: 'cls-10',
-    examTerm: 'HALF_YEARLY',
-    groupId: '',
-    title: '',
-    fileName: '',
-    fileSize: '',
-    fileType: 'PDF',
-    fileUrl: '',
-  });
-  const [syllabusEntryForm, setSyllabusEntryForm] = useState<{
-    classId: string;
-    examTerm: SyllabusExamTerm;
-    groupId: string;
-    subjectId: string;
-    chaptersBn: string;
-    marksBreakdownBn: string;
-  }>({
-    classId: 'cls-10',
-    examTerm: 'HALF_YEARLY',
-    groupId: '',
-    subjectId: 'sub-101',
-    chaptersBn: '',
-    marksBreakdownBn: 'সৃজনশীল ৭০ + বহুনির্বাচনি ৩০ = ১০০',
-  });
-  const [syllabusModal, setSyllabusModal] = useState<null | 'file' | 'entry'>(null);
+  const [tab] = useState(defaultTab);
 
-  if (isLoading || loadingYears || !db) return <LoadingSkeleton />;
-
-  const curriculumSubjectsFor = (classId: string, groupId: string) => {
-    const schoolClass = db.classes.find((item) => item.id === classId);
-    const stream = (schoolClass?.numericValue ?? 0) >= 9 ? groupId : '';
-    const seen = new Set<string>();
-    return db.classSubjects.flatMap((row) => {
-      if (!row.isActive || row.academicYearId !== selectedYear?.id || row.classId !== classId) return [];
-      if (stream) {
-        if (row.groupId !== stream && row.groupId != null) return [];
-      } else if (row.groupId != null) {
-        return [];
-      }
-      if (seen.has(row.subjectId)) return [];
-      seen.add(row.subjectId);
-      const subject = db.subjects.find((item) => item.id === row.subjectId);
-      return subject ? [subject] : [];
-    });
-  };
-
-  const groupsOnCurriculum = (classId: string) =>
-    db.academicGroups.filter((group) =>
-      db.classSubjects.some(
-        (row) =>
-          row.isActive &&
-          row.academicYearId === selectedYear?.id &&
-          row.classId === classId &&
-          row.groupId === group.id
-      )
-    );
-
-  const handleSyllabusFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    const sizeKb = Math.max(1, Math.round(file.size / 1024));
-    const formattedSize = sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setSyllabusFileForm((prev) => ({
-        ...prev,
-        fileName: file.name,
-        fileSize: formattedSize,
-        fileType: isPdf ? 'PDF' : 'IMAGE',
-        fileUrl: typeof reader.result === 'string' ? reader.result : '',
-        title: prev.title.trim() ? prev.title : file.name.replace(/\.[^.]+$/, ''),
-      }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleUploadSyllabusFile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedYear) {
-      toast.error('আগে একটি শিক্ষাবর্ষ নির্বাচন করুন।');
-      return;
-    }
-    if (!syllabusFileForm.title.trim() || !syllabusFileForm.fileName) {
-      toast.error('অনুগ্রহ করে শিরোনাম ও সিলেবাস ফাইল নির্বাচন করুন।');
-      return;
-    }
-    try {
-      await saveSyllabusFile({
-        academicYearId: selectedYear?.id ?? '',
-        classId: syllabusFileForm.classId,
-        groupId: syllabusFileForm.groupId || null,
-        examTerm: syllabusFileForm.examTerm,
-        title: syllabusFileForm.title.trim(),
-        fileName: syllabusFileForm.fileName,
-        fileSize: syllabusFileForm.fileSize || '250 KB',
-        fileType: syllabusFileForm.fileType,
-        fileUrl: syllabusFileForm.fileUrl || null,
-        publishedAt: new Date().toISOString().slice(0, 10),
-        isPublished: true,
-      }).unwrap();
-      toast.success('সিলেবাস ফাইল সফলভাবে প্রকাশিত হয়েছে।');
-      setSyllabusModal(null);
-      setSyllabusFileForm((prev) => ({
-        ...prev,
-        title: '',
-        fileName: '',
-        fileSize: '',
-        fileUrl: '',
-      }));
-    } catch (err) {
-      toast.error(
-        (err as { message?: string })?.message ??
-          'সিলেবাস ফাইল সংরক্ষণে সমস্যা হয়েছে।'
-      );
-    }
-  };
-
-  const handleAddSyllabusEntry = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedYear) {
-      toast.error('আগে একটি শিক্ষাবর্ষ নির্বাচন করুন।');
-      return;
-    }
-    if (!syllabusEntryForm.chaptersBn.trim()) {
-      toast.error('নির্ধারিত অধ্যায়ের বিবরণ লিখুন।');
-      return;
-    }
-    const allowedSubjects = curriculumSubjectsFor(syllabusEntryForm.classId, syllabusEntryForm.groupId);
-    if (!allowedSubjects.some((subject) => subject.id === syllabusEntryForm.subjectId)) {
-      toast.error(
-        'এই বিষয়টি ওই শ্রেণির এই শিক্ষাবর্ষের পাঠ্যতালিকায় নেই।'
-      );
-      return;
-    }
-    try {
-      await addSyllabusEntry({
-        academicYearId: selectedYear?.id ?? '',
-        classId: syllabusEntryForm.classId,
-        groupId: syllabusEntryForm.groupId || null,
-        examTerm: syllabusEntryForm.examTerm,
-        subjectId: syllabusEntryForm.subjectId,
-        chaptersBn: syllabusEntryForm.chaptersBn.trim(),
-        chaptersEn: syllabusEntryForm.chaptersBn.trim(),
-        marksBreakdownBn: syllabusEntryForm.marksBreakdownBn.trim() || 'মোট নম্বর: ১০০',
-        marksBreakdownEn: syllabusEntryForm.marksBreakdownBn.trim() || 'Total Marks: 100',
-        displayOrder: db.syllabusEntries.length + 1,
-      }).unwrap();
-      toast.success('অধ্যায়ভিত্তিক সিলেবাস যুক্ত হয়েছে।');
-      setSyllabusModal(null);
-      setSyllabusEntryForm((prev) => ({ ...prev, chaptersBn: '' }));
-    } catch (err) {
-      toast.error(
-        (err as { message?: string })?.message ??
-          'সিলেবাস এন্ট্রি যুক্ত করতে ব্যর্থ হয়েছে।'
-      );
-    }
-  };
-
-  const handleRemoveSyllabusFile = async (id: string) => {
-    try {
-      await removeSyllabusFile({ id }).unwrap();
-      toast.success('সিলেবাস ফাইল মুছে ফেলা হয়েছে।');
-    } catch (err) {
-      toast.error((err as { message?: string })?.message ?? 'ফাইল মোছা যায়নি।');
-    }
-  };
-
-  const handleRemoveSyllabusEntry = async (id: string) => {
-    try {
-      await removeSyllabusEntry({ id }).unwrap();
-      toast.success('অধ্যায়ের সারি মুছে ফেলা হয়েছে।');
-    } catch (err) {
-      toast.error((err as { message?: string })?.message ?? 'সারি মোছা যায়নি।');
-    }
-  };
+  if (loadingYears) return <LoadingSkeleton />;
 
   return (
     <AcademicShell
       title={PAGE_COPY[tab].titleBn}
       description={PAGE_COPY[tab].descBn}
-      years={yearList ?? db.academicYears}
+      years={yearList}
       selectedYear={selectedYear}
       showYear={PAGE_COPY[tab].year}
     >
 
       {(tab === 'years' || tab === 'groups' || tab === 'classes' || tab === 'sections') && (
-        <AcademicFoundation tab={tab} db={db} />
+        <AcademicFoundation tab={tab} />
       )}
 
-      {tab === 'subjects' && selectedYear && <AcademicCurriculum db={db} year={selectedYear} section="curriculum" />}
+      {tab === 'subjects' && selectedYear && <AcademicCurriculum year={selectedYear} section="curriculum" />}
 
-      {tab === 'catalog' && <AcademicCurriculum db={db} year={selectedYear ?? db.academicYears[0]} section="catalog" />}
+      {tab === 'catalog' && selectedYear && <AcademicCurriculum year={selectedYear} section="catalog" />}
 
-      {tab === 'books' && selectedYear && <AcademicCurriculum db={db} year={selectedYear} section="books" />}
+      {tab === 'books' && selectedYear && <AcademicCurriculum year={selectedYear} section="books" />}
 
       {tab === 'class-teachers' && selectedYear && (
-        <AcademicStaffing mode="class-teachers" db={db} year={selectedYear} />
+        <AcademicStaffing mode="class-teachers" year={selectedYear} />
       )}
 
       {tab === 'assignments' && selectedYear && (
-        <AcademicStaffing mode="assignments" db={db} year={selectedYear} />
+        <AcademicStaffing mode="assignments" year={selectedYear} />
       )}
 
-      {tab === 'events' && selectedYear && <AcademicCalendar db={db} year={selectedYear} />}
+      {tab === 'events' && selectedYear && <AcademicCalendar year={selectedYear} />}
 
-      {tab === 'routines' && selectedYear && <AcademicRoutine db={db} year={selectedYear} />}
+      {tab === 'routines' && selectedYear && <AcademicRoutine year={selectedYear} />}
 
       {tab === 'documents' && selectedYear && <SyllabusPanel year={selectedYear} />}
-
-      {tab === 'policies' && <AcademicPolicies db={db} />}
     </AcademicShell>
   );
 }

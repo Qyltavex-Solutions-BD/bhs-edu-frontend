@@ -165,10 +165,20 @@ export const studentsApi = baseApi.injectEndpoints({
       invalidatesTags: ['Students', 'Audit'],
     }),
     importStudents: builder.mutation<
-      { created: number; errors: { row: number; message: string }[] },
-      { academicYearId: string; rows: Array<Record<string, string>> }
+      {
+        created: number;
+        failed: number;
+        total: number;
+        errors: { row: number; studentName?: string; message: string }[];
+      },
+      { academicYearId: string; rows: Array<Record<string, unknown>> }
     >({
-      query: (body) => ({ url: '/students/import', method: 'POST', body }),
+      query: (body) => ({
+        url: '/academic/students/import',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (response: any) => response?.data ?? response,
       invalidatesTags: ['Students', 'Audit'],
     }),
     getRfidCards: builder.query<
