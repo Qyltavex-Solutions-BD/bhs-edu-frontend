@@ -38,7 +38,7 @@ export function AdminAuditLogsPage() {
   function handleExport() {
     downloadCsv(
       `audit-logs-page-${page}.csv`,
-      ['তারিখ', 'ব্যবহারকারী', 'ফোন', 'মডিউল', 'অ্যাকশন', 'IP ঠিকানা'],
+      ['তারিখ ও সময়', 'ব্যবহারকারী', 'ফোন', 'মডিউল', 'অ্যাকশন', 'IP ঠিকানা', 'ডিভাইস'],
       items.map((l) => [
         l.createdAt,
         l.user?.name ?? 'System',
@@ -46,6 +46,7 @@ export function AdminAuditLogsPage() {
         l.module,
         l.action,
         l.ipAddress ?? '—',
+        l.deviceName ?? l.userAgent ?? '—',
       ])
     );
   }
@@ -78,7 +79,7 @@ export function AdminAuditLogsPage() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              placeholder="অ্যাকশন, মডিউল বা ব্যবহারকারী..."
+              placeholder="অ্যাকশন, মডিউল, IP বা ব্যবহারকারী..."
               className="pl-9"
             />
           </div>
@@ -131,13 +132,20 @@ export function AdminAuditLogsPage() {
                   <th className="px-4 py-3">{'মডিউল'}</th>
                   <th className="px-4 py-3">{'অ্যাকশন'}</th>
                   <th className="px-4 py-3">{'IP ঠিকানা'}</th>
+                  <th className="px-4 py-3">{'ডিভাইস'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
                 {items.map((log) => (
                   <tr key={log.id} className="hover:bg-muted/20">
                     <td className="px-4 py-3 text-sm tabular-nums whitespace-nowrap text-muted-foreground">
-                      {formatDateShort(log.createdAt, 'bn')}
+                      <div>{formatDateShort(log.createdAt, 'bn')}</div>
+                      <div className="text-xs opacity-80">
+                        {new Date(log.createdAt).toLocaleTimeString('bn-BD', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-semibold text-foreground">
@@ -158,8 +166,14 @@ export function AdminAuditLogsPage() {
                     <td className="px-4 py-3 font-mono text-sm font-medium text-foreground">
                       {log.action}
                     </td>
-                    <td className="px-4 py-3 font-mono text-sm text-muted-foreground">
+                    <td className="px-4 py-3 font-mono text-sm whitespace-nowrap text-muted-foreground">
                       {log.ipAddress ?? '—'}
+                    </td>
+                    <td
+                      className="px-4 py-3 text-sm text-muted-foreground"
+                      title={log.userAgent ?? undefined}
+                    >
+                      {log.deviceName ?? 'Unknown Device'}
                     </td>
                   </tr>
                 ))}
