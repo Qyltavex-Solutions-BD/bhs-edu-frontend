@@ -136,6 +136,54 @@ export interface SectionWeeklyRoutineResponse {
   timetable: SectionTimetableDay[];
 }
 
+export interface TeacherWeeklyRoutineClass {
+  routineId: string;
+  periodNumber: number;
+  periodName?: string | null;
+  time: {
+    startTime: string;
+    endTime: string;
+    displayTime: string;
+  };
+  class: {
+    id: string;
+    name: string;
+    numericValue: number;
+  };
+  section: {
+    id: string;
+    name: string;
+  };
+  group: {
+    id: string;
+    name: string;
+  } | null;
+  subject: {
+    id: string;
+    name: string;
+    code?: string | null;
+  } | null;
+  room: string | null;
+}
+
+export interface TeacherWeeklyRoutineResponse {
+  teacher: {
+    id: string;
+    name: string;
+    employeeId?: string | null;
+    designation?: string | null;
+  };
+  academicYear: {
+    id?: string;
+    name?: string;
+  };
+  weeklySchedule: Array<{
+    day: WeekDay;
+    totalClasses: number;
+    classes: TeacherWeeklyRoutineClass[];
+  }>;
+}
+
 export const classRoutineApi = schoolApi.injectEndpoints({
   endpoints: (builder) => ({
     getClassRoutines: builder.query<ClassRoutineSlot[], QueryClassRoutineParams | void>({
@@ -168,7 +216,7 @@ export const classRoutineApi = schoolApi.injectEndpoints({
     }),
 
     getTeacherWeeklyRoutine: builder.query<
-      any,
+      TeacherWeeklyRoutineResponse,
       { staffId: string; academicYearId?: string }
     >({
       query: ({ staffId, academicYearId }) => ({
