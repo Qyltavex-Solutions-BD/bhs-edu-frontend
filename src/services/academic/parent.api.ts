@@ -17,6 +17,10 @@ export interface ParentChildItem {
   currentSection: string | null;
   currentRoll: number | null;
   academicYear: string | null;
+  enrollmentId?: string | null;
+  classId?: string | null;
+  sectionId?: string | null;
+  academicYearId?: string | null;
 }
 
 export interface ParentDetailResponse {

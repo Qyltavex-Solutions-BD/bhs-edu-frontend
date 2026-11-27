@@ -279,6 +279,62 @@ export interface ConsolidatedResultResponse {
   rows: ConsolidatedResultRow[];
 }
 
+export interface StudentTranscriptResponse {
+  student: {
+    enrollmentId: string;
+    studentId: string;
+    name: string;
+    nameBn: string | null;
+    roll: number;
+    class: string;
+    section: string;
+    academicYear: string;
+  };
+  examination: {
+    id: string;
+    name: string;
+    examType: string;
+    resultStatus: string;
+    publishedAt: string | null;
+  };
+  subjects: Array<{
+    subjectName: string;
+    officialCode: string | null;
+    fullMarks: number;
+    passMarks: number;
+    obtainedMarks: number;
+    letterGrade: string;
+    gradePoint: number;
+    isPassed: boolean;
+    isOptional: boolean;
+    bonusGradePoint: number;
+    isAbsent: boolean;
+  }>;
+  resultSummary: {
+    totalMarks: number;
+    totalFullMarks: number;
+    gpa: number;
+    gpaWithoutOptional: number;
+    letterGrade: string;
+    meritPosition: number | null;
+    sectionMeritPosition: number | null;
+    failedSubjectCount: number;
+    resultStatus: string;
+    publishedAt: string | null;
+  };
+  gradingScale: {
+    name: string;
+    maxGpa: number;
+    ranges: Array<{
+      minPercentage: number;
+      maxPercentage: number;
+      letterGrade: string;
+      gradePoint: number;
+      remarks?: string | null;
+    }>;
+  };
+}
+
 export const examinationsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getExams: builder.query<
@@ -607,6 +663,19 @@ export const examinationsApi = baseApi.injectEndpoints({
       transformResponse: (res: any) => res?.data ?? res,
       providesTags: (_result, _error, { examId }) => [{ type: 'Results', id: examId }],
     }),
+    getStudentTranscript: builder.query<
+      StudentTranscriptResponse,
+      { enrollmentId: string; examId: string }
+    >({
+      query: ({ enrollmentId, examId }) => ({
+        url: `/examination/results/student/${enrollmentId}/exam/${examId}`,
+        method: 'GET',
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      providesTags: (_result, _error, { enrollmentId, examId }) => [
+        { type: 'Results', id: `${enrollmentId}-${examId}` },
+      ],
+    }),
     publishExamResults: builder.mutation<any, string>({
       query: (examId) => ({
         url: `/examination/results/publish/${examId}`,
@@ -761,6 +830,7 @@ export const {
   useBulkToggleMarkLockMutation,
   useProcessExamResultsLiveMutation,
   useGetTabulationSheetQuery,
+  useGetStudentTranscriptQuery,
   usePublishExamResultsMutation,
   useWithholdExamResultsMutation,
   useSaveMarksBatchMutation,
