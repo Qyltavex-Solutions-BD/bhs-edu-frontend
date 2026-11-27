@@ -110,10 +110,20 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
       ? selectedExamName
       : initialExam?.name ?? examNames[0] ?? '';
 
+  const classesForExam = useMemo(() => {
+    const classIdsWithExam = new Set(
+      standardExams.filter((e) => e.name === resolvedExamName).map((e) => e.classId)
+    );
+    const matched = activeClasses.filter((c) => classIdsWithExam.has(c.id));
+    return matched.length > 0 ? matched : activeClasses;
+  }, [standardExams, resolvedExamName, activeClasses]);
+
   const resolvedClassId =
-    selectedClassId && activeClasses.some((c) => c.id === selectedClassId)
+    selectedClassId && classesForExam.some((c) => c.id === selectedClassId)
       ? selectedClassId
-      : initialExam?.classId ?? activeClasses[0]?.id ?? '';
+      : initialExam?.classId && classesForExam.some((c) => c.id === initialExam.classId)
+        ? initialExam.classId
+        : classesForExam[0]?.id ?? '';
 
   const activeExam = useMemo(
     () =>
@@ -399,7 +409,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
                   setSectionFilter('ALL');
                 }}
               >
-                {activeClasses.map((cls) => (
+                {classesForExam.map((cls) => (
                   <option key={cls.id} value={cls.id}>
                     {cls.nameBn || cls.name}
                   </option>
