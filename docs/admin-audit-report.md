@@ -8,8 +8,8 @@
 
 1. **`requireLiveApi` গার্ড ([hybrid-base-query.ts](file:///c:/Users/Md.%20Masud%20Rana/Desktop/Workspace/bhs/bhs-frontend/src/lib/api/hybrid-base-query.ts#L167)):**
    - বর্তমানে যেসব রুট মক ফলব্যাক থেকে সম্পূর্ণ ব্লক করা আছে:
-     `/^\/(?:notices|auth|academic|staff|attendance|admin)(?:[/?]|$)/`
-   - এখনো প্রোটেক্টেড **নয়**: `/examination`, `/class-routines`, `/users`, `/roles`, `/permissions`, `/audit-logs`, `/quick-links`, `/notifications` (এগুলোতে ৪0৪ বা নেটওয়ার্ক এরর হলে ফ্রন্টএন্ড নীরবে মক অ্যাডাপ্টারে ফলব্যাক করতে পারে)।
+     `/^\/(?:notices|auth|academic|staff|attendance|admin|users|audit-logs)(?:[/?]|$)/`
+   - এখনো প্রোটেক্টেড **নয়**: `/examination`, `/class-routines`, `/roles`, `/permissions`, `/quick-links`, `/notifications` (এগুলোতে ৪০৪ বা নেটওয়ার্ক এরর হলে ফ্রন্টএন্ড নীরবে মক অ্যাডাপ্টারে ফলব্যাক করতে পারে)।
 2. **`useGetBootstrapQuery()`:**
    - ব্যাকএন্ডে `GET /bootstrap` নেই; তাই যেসব কম্পোনেন্ট এখনো `useGetBootstrapQuery()` কল করে, সেগুলো ইন-মেমরি মক ডাটা (`src/mocks/seed.ts`) ব্যবহার করে।
 
@@ -27,7 +27,7 @@
 | ৬ | **একাডেমিক ও রুটিন** (`/admin/academic/*`) | **সাব-প্যানেল লাইভ, শেল মক-আটকা** | ভেতরের লাইভ প্যানেলগুলো (`/years`, `/groups`, `/classes`, `/sections`, `/subjects`, `/class-subjects`, `/books`, `/class-teachers`, `/teacher-assignments`, `/class-routines`, `/events`, `/documents`) লাইভ API ব্যবহার করে; কিন্তু প্যারেন্ট [AdminAcademicPage.tsx](file:///c:/Users/Md.%20Masud%20Rana/Desktop/Workspace/bhs/bhs-frontend/src/features/admin-core/components/AdminAcademicPage.tsx) এখনো শীর্ষে `useGetBootstrapQuery()`-তে আটকে আছে, আর **`policies`** ট্যাব সম্পূর্ণ মক। |
 | ৭ | **পরীক্ষা ও ফলাফল** (`/admin/examinations/*`, `/admin/results/*`) | **আংশিক লাইভ (৪/৯ + ১ হাইব্রিড)** | ৪টি লাইভ (`exams`, `routines`, `marks-entry`, `publication`); ১টি হাইব্রিড (`merit-list` — শুধু `SchoolProfile` মক); ৪টি সম্পূর্ণ মক (`admit-cards`, `seat-plan`, `grading-scales`, `consolidated`)। |
 | ৮ | **নোটিশ, নিউজ, ইভেন্ট, ক্যারিয়ার** (`/admin/notices`, `/news`, `/events`, `/careers`) | **আংশিক লাইভ (১/৪)** | **নোটিশ** ১০০% লাইভ (`/notices`); **নিউজ, ইভেন্ট, ক্যারিয়ার** এখনো মক (ব্যাকএন্ড API নেই)। |
-| ৯ | **ব্যবহারকারী, রোল, পারমিশন ও অডিট** (`/admin/users`, `/roles`, `/permissions`, `/audit-logs`) | **ফ্রন্টএন্ড মক** | ব্যাকএন্ডে `/users`, `/roles`, `/permissions`, `/audit-logs` আছে, কিন্তু [AdminUsersPage.tsx](file:///c:/Users/Md.%20Masud%20Rana/Desktop/Workspace/bhs/bhs-frontend/src/features/admin-core/components/AdminUsersPage.tsx) এখনো `useGetBootstrapQuery()` চালায়। |
+| ৯ | **ব্যবহারকারী ও অডিট লগ** (`/admin/users`, `/admin/audit-logs`) | **১০০% লাইভ (সম্পন্ন)** | [AdminUsersPage.tsx](file:///c:/Users/Md.%20Masud%20Rana/Desktop/Workspace/bhs/bhs-frontend/src/features/access-control/components/AdminUsersPage.tsx) (`ADMIN`/`ACCOUNTANT` তৈরি, ৪ রোল ফিল্টার, ব্লক/সক্রিয়, পাসওয়ার্ড রিসেট, প্যাজিনেশন) এবং আলাদা [AdminAuditLogsPage.tsx](file:///c:/Users/Md.%20Masud%20Rana/Desktop/Workspace/bhs/bhs-frontend/src/features/access-control/components/AdminAuditLogsPage.tsx) (`AuditLogInterceptor` দ্বারা সব মিউটেশনের IP ও ডিভাইস নেমসহ লগিং, ফিল্টার, CSV এক্সপোর্ট)। কোনো মক নেই। |
 | ১০ | **প্রতিষ্ঠান ও ওয়েবসাইট CMS** (`/admin/institution/*`, `/admin/website/*`) | **ফ্রন্টএন্ড মক** | ব্যাকএন্ডে শুধু `QuickLinkModule` (`/quick-links`) আছে; বাকি সব (`SchoolProfile`, `Administrator`, `Committee`, `Banner`, `Gallery`, `LeadershipMessage`, `AdmissionContent`, `Contact`, `Publication`, `Achievement`) ব্যাকএন্ড API-বিহীন ও মক। |
 | ১১ | **গ্রন্থাগার** (`/admin/library`) | **১০০% মক** | Prisma-এ মডেল থাকলেও ব্যাকএন্ডে `LibraryModule` নেই। |
 | ১২ | **ডিজিটাল শিক্ষা** (`/admin/digital-education/*`) | **১০০% মক** | Prisma-এ মডেল থাকলেও ব্যাকএন্ডে `DigitalEducationModule` নেই। |
@@ -39,8 +39,7 @@
 ## ৩. স্টেপ-বাই-স্টেপ পরবর্তী কাজের রোডম্যাপ (অগ্রাধিকার অনুযায়ী)
 
 ### ধাপ ১: ব্যাকএন্ড আগে থেকেই রেডি — শুধু ফ্রন্টএন্ড কানেক্ট করলেই হবে
-1. **ব্যবহারকারী, রোল ও অডিট লগ (`/admin/users`, `/roles`, `/permissions`, `/audit-logs`):**
-   - ড্যাশবোর্ডের `সম্পূর্ণ লগ` লিংকটিও এখানে আসে; ব্যাকএন্ডের `/users`, `/roles`, `/permissions`, `/audit-logs`-এর সাথে [AdminUsersPage.tsx](file:///c:/Users/Md.%20Masud%20Rana/Desktop/Workspace/bhs/bhs-frontend/src/features/admin-core/components/AdminUsersPage.tsx) কানেক্ট করা।
+1. ~~**ব্যবহারকারী ও অডিট লগ (`/admin/users`, `/admin/audit-logs`)**~~ — **সম্পন্ন (১০০% লাইভ ও ব্রাউজার-ভেরিফাইড)**।
 2. **একাডেমিক প্যারেন্ট শেল পরিষ্কার করা (`/admin/academic/*`):**
    - [AdminAcademicPage.tsx](file:///c:/Users/Md.%20Masud%20Rana/Desktop/Workspace/bhs/bhs-frontend/src/features/admin-core/components/AdminAcademicPage.tsx) থেকে `useGetBootstrapQuery()` ও পুরোনো মক সিলেবাস কোড সরিয়ে ফেলা।
 3. **শিক্ষার্থী প্রমোশন (`/admin/students/promotions`):**
@@ -49,7 +48,7 @@
    - [GradingScalesView.tsx](file:///c:/Users/Md.%20Masud%20Rana/Desktop/Workspace/bhs/bhs-frontend/src/features/examinations/components/GradingScalesView.tsx)-কে `/examination/grading-scales`-এ কানেক্ট করা।
    - [MeritAndMarksheetsView.tsx](file:///c:/Users/Md.%20Masud%20Rana/Desktop/Workspace/bhs/bhs-frontend/src/features/examinations/components/MeritAndMarksheetsView.tsx) থেকে `useGetBootstrapQuery()` সরানো।
 5. **`requireLiveApi` গার্ড আপডেট:**
-   - [hybrid-base-query.ts](file:///c:/Users/Md.%20Masud%20Rana/Desktop/Workspace/bhs/bhs-frontend/src/lib/api/hybrid-base-query.ts#L167)-এ `examination|class-routines|users|roles|permissions|audit-logs|quick-links` যুক্ত করা।
+   - [hybrid-base-query.ts](file:///c:/Users/Md.%20Masud%20Rana/Desktop/Workspace/bhs/bhs-frontend/src/lib/api/hybrid-base-query.ts#L167)-এ `examination|class-routines|quick-links` যুক্ত করা (`users|audit-logs` ইতিমধ্যে যুক্ত হয়েছে)।
 
 ### ধাপ ২: ব্যাকএন্ড API + ফ্রন্টএন্ড উভয়ই বানাতে হবে
 1. **শিক্ষার্থী CSV বাল্ক ইম্পোর্ট** (`/admin/students/import`)
