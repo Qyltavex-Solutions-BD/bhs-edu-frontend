@@ -12,11 +12,11 @@ import {
 } from '@/src/store/slices/authSlice';
 import { env } from '@/src/lib/env';
 
-const PROTECTED_PREFIXES = ['/admin', '/teacher', '/parent', '/student'];
+const PROTECTED_PREFIXES = ['/admin', '/accountant', '/teacher', '/parent', '/student'];
 
 function mapRolesToAppRole(roles: string[] = []): AppRole | undefined {
   if (roles.includes('ADMIN')) return 'SUPER_ADMIN';
-  return (['SCHOOL_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT', 'STUDENT'] as const).find(
+  return (['ACCOUNTANT', 'SCHOOL_ADMIN', 'PRINCIPAL', 'TEACHER', 'PARENT', 'STUDENT'] as const).find(
     (candidate) => roles.includes(candidate)
   );
 }

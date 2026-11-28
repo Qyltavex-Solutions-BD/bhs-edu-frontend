@@ -44,6 +44,7 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
 
   const expectedRoles: Record<PortalKind, AppRole[]> = {
     admin: ['SUPER_ADMIN', 'SCHOOL_ADMIN', 'PRINCIPAL'],
+    accountant: ['ACCOUNTANT', 'SUPER_ADMIN', 'SCHOOL_ADMIN', 'PRINCIPAL'],
     teacher: ['TEACHER'],
     parent: ['PARENT'],
     student: ['STUDENT'],
@@ -65,6 +66,8 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
   const isDashboardRoot = useMemo(() => {
     return (
       pathname === '/admin' ||
+      pathname === '/accountant' ||
+      pathname === '/accountant/dashboard' ||
       pathname === '/teacher' ||
       pathname === '/teacher/dashboard' ||
       pathname === '/parent' ||
@@ -87,7 +90,7 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
     if (portal === 'student' && !enableStudentPortal) return;
 
     if (!auth.isAuthenticated || !auth.role) {
-      router.replace('/login');
+      router.replace(portal === 'accountant' ? '/accountant/login' : '/login');
       return;
     }
 
@@ -116,7 +119,7 @@ export function PortalLayout({ portal, children }: { portal: PortalKind; childre
       // Clear local session even if backend is unreachable
     }
     dispatch(logout());
-    router.replace('/login');
+    router.replace(portal === 'accountant' ? '/accountant/login' : '/login');
   };
 
   const handleToggleMenu = (to: string) => {

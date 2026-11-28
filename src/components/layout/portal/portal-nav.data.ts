@@ -1,7 +1,9 @@
 import React from 'react';
 import {
+  Banknote,
   Bell,
   BookOpen,
+  Calculator,
   Calendar,
   ClipboardCheck,
   FileBarChart2,
@@ -11,14 +13,16 @@ import {
   LayoutDashboard,
   MessageSquare,
   MonitorPlay,
+  Receipt,
   Settings,
   ShieldCheck,
   Sparkles,
   Users,
   UsersRound,
+  Wallet,
 } from 'lucide-react';
 
-export type PortalKind = 'admin' | 'teacher' | 'parent' | 'student';
+export type PortalKind = 'admin' | 'accountant' | 'teacher' | 'parent' | 'student';
 
 export interface NavChild {
   to: string;
@@ -181,6 +185,57 @@ export const ADMIN_NAV_GROUPS: NavGroup[] = [
   },
 ];
 
+export const ACCOUNTANT_NAV_GROUPS: NavGroup[] = [
+  {
+    id: 'acc-overview',
+    labelBn: 'ওভারভিউ',
+    labelEn: 'OVERVIEW',
+    items: [
+      { to: '/accountant/dashboard', labelBn: 'ড্যাশবোর্ড', labelEn: 'Dashboard', icon: LayoutDashboard, end: true },
+    ],
+  },
+  {
+    id: 'acc-fees',
+    labelBn: 'শিক্ষার্থী ফি ও আদায়',
+    labelEn: 'STUDENT FEES',
+    items: [
+      { to: '/accountant/collect-fee', labelBn: 'ফি কালেকশন ডেস্ক', labelEn: 'Collect Fee', icon: Banknote },
+      { to: '/accountant/transactions', labelBn: 'রসিদ ও লেনদেন', labelEn: 'Receipts & Transactions', icon: Receipt },
+      { to: '/accountant/dues', labelBn: 'বকেয়া তালিকা', labelEn: 'Dues & Defaulters', icon: ClipboardCheck },
+      { to: '/accountant/waivers', labelBn: 'ছাড় ও বৃত্তি', labelEn: 'Waivers & Discounts', icon: GraduationCap },
+      { to: '/accountant/fee-setup', labelBn: 'ফি কাঠামো সেটআপ', labelEn: 'Fee Structure', icon: Calculator },
+    ],
+  },
+  {
+    id: 'acc-ledger',
+    labelBn: 'আয়, ব্যয় ও বেতন',
+    labelEn: 'INCOME & EXPENSE',
+    items: [
+      { to: '/accountant/other-income', labelBn: 'অন্যান্য আয়', labelEn: 'Other Income', icon: Wallet },
+      { to: '/accountant/expenses', labelBn: 'ব্যয় ভাউচার', labelEn: 'Expenses', icon: FileSpreadsheet },
+      { to: '/accountant/payroll', labelBn: 'বেতন-ভাতা রেজিস্টার', labelEn: 'Staff Payroll', icon: Users },
+    ],
+  },
+  {
+    id: 'acc-reports',
+    labelBn: 'হিসাব ও রিপোর্ট',
+    labelEn: 'REPORTS',
+    items: [
+      { to: '/accountant/cashbook', labelBn: 'দৈনিক ক্যাশবুক', labelEn: 'Daily Cashbook', icon: BookOpen },
+      { to: '/accountant/reports', labelBn: 'আয়-ব্যয় রিপোর্ট', labelEn: 'Financial Reports', icon: FileBarChart2 },
+    ],
+  },
+  {
+    id: 'acc-general',
+    labelBn: 'সাধারণ',
+    labelEn: 'GENERAL',
+    items: [
+      { to: '/accountant/notices', labelBn: 'নোটিশ', labelEn: 'Notices', icon: MessageSquare },
+      { to: '/accountant/profile', labelBn: 'আমার প্রোফাইল', labelEn: 'My Profile', icon: Settings },
+    ],
+  },
+];
+
 export const TEACHER_NAV: NavEntry[] = [
   { to: '/teacher/dashboard', labelBn: 'ড্যাশবোর্ড', labelEn: 'Dashboard', icon: LayoutDashboard },
   { to: '/teacher/classes', labelBn: 'নির্ধারিত শ্রেণি', labelEn: 'My Classes', icon: Users },
@@ -307,6 +362,9 @@ export function studentChildActive(pathname: string, to: string): boolean {
 }
 
 export function getPortalNavGroups(portal: PortalKind, enableFutureModules?: boolean): NavGroup[] {
+  if (portal === 'accountant') {
+    return ACCOUNTANT_NAV_GROUPS;
+  }
   if (portal === 'admin') {
     const groups = ADMIN_NAV_GROUPS.map((g) => ({ ...g, items: [...g.items] }));
     if (enableFutureModules) {
