@@ -1,15 +1,28 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Ban, Printer, Receipt, Search } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
+import {
+  AlertTriangle,
+  Ban,
+  Banknote,
+  CheckCircle2,
+  Plus,
+  Printer,
+  Receipt,
+  RefreshCw,
+  Search,
+  XCircle,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import {
   EmptyState,
   LoadingSkeleton,
   PageHeader,
+  StatCard,
 } from '@/src/components/shared/Feedback';
 import { StatusBadge } from '@/src/components/shared/StatusBadge';
-import { Button, Card, Input, Modal, Select } from '@/src/components/ui/primitives';
+import { Button, Card, FormField, Input, Modal, Select } from '@/src/components/ui/primitives';
 import { formatDateShort, formatNumber } from '@/src/lib/formatters';
 import {
   useGetFinanceContextQuery,
@@ -31,7 +44,13 @@ export function TransactionsPage() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useGetTransactionsQuery({
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+  } = useGetTransactionsQuery({
     academicYearId: ctx?.activeAcademicYear?.id,
     search: search.trim() || undefined,
     paymentMethod: paymentMethod || undefined,
@@ -52,6 +71,18 @@ export function TransactionsPage() {
   const items = data?.items ?? [];
   const meta = data?.meta;
 
+  const pageStats = useMemo(() => {
+    const activeItems = items.filter((i) => i.status === 'ACTIVE');
+    const voidItems = items.filter((i) => i.status === 'VOID');
+    const totalCollected = activeItems.reduce((s, i) => s + i.totalPaid, 0);
+    return {
+      totalCount: meta?.total ?? items.length,
+      activeCount: activeItems.length,
+      voidCount: voidItems.length,
+      totalCollected,
+    };
+  }, [items, meta?.total]);
+
   async function handleVoidSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!voidTarget) return;
@@ -65,7 +96,8 @@ export function TransactionsPage() {
       setVoidTarget(null);
       setVoidReason('');
     } catch (err: any) {
-      toast.error(err?.message || 'রসিদ বাতিল করা যায়নি।');
+      const msg = err?.data?.message || err?.message;
+      toast.error(Array.isArray(msg) ? msg.join(', ') : msg || 'রসিদ বাতিল করা যায়নি।');
     }
   }
 
@@ -74,109 +106,174 @@ export function TransactionsPage() {
       <PageHeader
         title={'রসিদ ও লেনদেনের ইতিহাস'}
         description={'সকল আদায়কৃত ফি রসিদ খুঁজুন, পুনঃমুদ্রণ করুন বা ভুল হলে কারণসহ বাতিল করুন'}
+        actions={
+          <Link href="/accountant/collect-fee">
+            <Button variant="primary" size="sm">
+              <Plus className="w-4 h-4" />
+              {'নতুন ফি গ্রহণ'}
+            </Button>
+          </Link>
+        }
       />
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label={'মোট রসিদ'}
+          value={formatNumber(pageStats.totalCount, 'bn')}
+          icon={<Receipt className="w-5 h-5" />}
+        />
+        <StatCard
+          label={'সক্রিয় রসিদ (এই পৃষ্ঠায়)'}
+          value={formatNumber(pageStats.activeCount, 'bn')}
+          icon={<CheckCircle2 className="w-5 h-5" />}
+          accent="success"
+        />
+        <StatCard
+          label={'আদায়কৃত পরিমাণ (এই পৃষ্ঠায়)'}
+          value={formatTaka(pageStats.totalCollected)}
+          icon={<Banknote className="w-5 h-5" />}
+          accent="primary"
+        />
+        <StatCard
+          label={'বাতিলকৃত (VOID)'}
+          value={formatNumber(pageStats.voidCount, 'bn')}
+          icon={<XCircle className="w-5 h-5" />}
+          accent="destructive"
+        />
+      </div>
+
       <Card className="p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-          <div className="sm:col-span-2 relative">
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-            <Input
-              value={search}
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+          <div className="sm:col-span-2">
+            <FormField label={'খুঁজুন'}>
+              <div className="relative">
+                <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Input
+                  id="transactions-search"
+                  name="search"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="রসিদ নং বা শিক্ষার্থীর নাম..."
+                  className="pl-9"
+                />
+              </div>
+            </FormField>
+          </div>
+          <FormField label={'পেমেন্ট মাধ্যম'}>
+            <Select
+              id="transactions-method"
+              name="paymentMethod"
+              aria-label="পেমেন্ট মাধ্যম"
+              value={paymentMethod}
               onChange={(e) => {
-                setSearch(e.target.value);
+                setPaymentMethod(e.target.value);
                 setPage(1);
               }}
-              placeholder="রসিদ নং, শিক্ষার্থীর নাম বা আইডি..."
-              className="pl-9"
-            />
-          </div>
-          <Select
-            value={paymentMethod}
-            onChange={(e) => {
-              setPaymentMethod(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">{'সকল পেমেন্ট মাধ্যম'}</option>
-            <option value="CASH">{'নগদ (ক্যাশ)'}</option>
-            <option value="BKASH">{'বিকাশ (bKash)'}</option>
-            <option value="NAGAD">{'নগদ (Nagad)'}</option>
-            <option value="ROCKET">{'রকেট (Rocket)'}</option>
-            <option value="BANK">{'ব্যাংক জমা'}</option>
-          </Select>
-          <Select
-            value={status}
-            onChange={(e) => {
-              setStatus(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">{'সকল অবস্থা'}</option>
-            <option value="ACTIVE">{'সক্রিয় রসিদ'}</option>
-            <option value="VOID">{'বাতিলকৃত (VOID)'}</option>
-          </Select>
+            >
+              <option value="">{'সকল পেমেন্ট মাধ্যম'}</option>
+              <option value="CASH">{'নগদ (ক্যাশ)'}</option>
+              <option value="BKASH">{'বিকাশ (bKash)'}</option>
+              <option value="NAGAD">{'নগদ (Nagad)'}</option>
+              <option value="ROCKET">{'রকেট (Rocket)'}</option>
+              <option value="BANK">{'ব্যাংক জমা'}</option>
+            </Select>
+          </FormField>
+          <FormField label={'অবস্থা'}>
+            <Select
+              id="transactions-status"
+              name="status"
+              aria-label="অবস্থা"
+              value={status}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">{'সকল অবস্থা'}</option>
+              <option value="ACTIVE">{'সক্রিয় রসিদ'}</option>
+              <option value="VOID">{'বাতিলকৃত (VOID)'}</option>
+            </Select>
+          </FormField>
         </div>
       </Card>
 
       <Card className="p-5">
-        {isLoading ? (
+        {isLoading || isFetching ? (
           <LoadingSkeleton rows={6} />
+        ) : isError ? (
+          <div className="p-4 rounded-lg border border-destructive/40 bg-destructive/5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 text-sm text-destructive font-medium">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{'লেনদেনের ইতিহাস লোড করা যায়নি।'}</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="w-4 h-4" />
+              {'পুনরায় চেষ্টা করুন'}
+            </Button>
+          </div>
         ) : items.length === 0 ? (
           <EmptyState
             title={'কোনো লেনদেন পাওয়া যায়নি'}
-            description={'অনুসন্ধানের শর্ত পরিবর্তন করে আবার চেষ্টা করুন।'}
+            description={'এখনও কোনো ফি রসিদ ইস্যু করা হয়নি অথবা অনুসন্ধানের শর্তে কোনো রসিদ মেলেনি।'}
           />
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full text-base">
+              <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="border-b border-border text-left text-sm text-muted-foreground">
-                    <th className="py-2.5 pr-4">{'রসিদ নং'}</th>
-                    <th className="py-2.5 pr-4">{'শিক্ষার্থী'}</th>
-                    <th className="py-2.5 pr-4">{'শ্রেণি'}</th>
-                    <th className="py-2.5 pr-4">{'মাধ্যম'}</th>
-                    <th className="py-2.5 pr-4">{'তারিখ'}</th>
-                    <th className="py-2.5 pr-4 text-right">{'নিট জমা'}</th>
-                    <th className="py-2.5 pr-4">{'অবস্থা'}</th>
-                    <th className="py-2.5 text-right">{'অ্যাকশন'}</th>
+                  <tr className="border-b border-border bg-muted/40 text-left text-xs font-semibold text-muted-foreground">
+                    <th className="py-3 px-4">{'রসিদ নং'}</th>
+                    <th className="py-3 px-4">{'শিক্ষার্থী'}</th>
+                    <th className="py-3 px-4">{'শ্রেণি ও রোল'}</th>
+                    <th className="py-3 px-4">{'মাধ্যম'}</th>
+                    <th className="py-3 px-4">{'তারিখ'}</th>
+                    <th className="py-3 px-4 text-right">{'নিট জমা'}</th>
+                    <th className="py-3 px-4">{'অবস্থা'}</th>
+                    <th className="py-3 px-4 text-right">{'অ্যাকশন'}</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {items.map((tx) => (
-                    <tr key={tx.id} className="border-b border-border/60 last:border-0">
-                      <td className="py-3 pr-4 font-mono font-semibold">
+                <tbody className="divide-y divide-border">
+                  {items.map((tx) => {
+                    const rawClass =
+                      tx.enrollment?.schoolClass.nameBn ||
+                      tx.enrollment?.schoolClass.name ||
+                      '—';
+                    const shortClass = rawClass.replace(/\s*শ্রেণি\s*/g, '').trim();
+                    const rollText =
+                      tx.enrollment?.roll != null
+                        ? formatNumber(tx.enrollment.roll, 'bn')
+                        : '—';
+                    return (
+                    <tr key={tx.id} className="hover:bg-muted/20">
+                      <td className="py-3 px-4 font-mono font-semibold whitespace-nowrap">
                         {tx.receiptNo}
                       </td>
-                      <td className="py-3 pr-4">
-                        <p className="font-medium">
-                          {tx.enrollment?.student.nameBn || tx.enrollment?.student.nameEn || '—'}
-                        </p>
-                        <p className="text-sm text-muted-foreground font-mono">
-                          {tx.enrollment?.student.studentId ?? ''}
-                        </p>
+                      <td className="py-3 px-4 font-medium">
+                        {tx.enrollment?.student.nameBn || tx.enrollment?.student.nameEn || '—'}
                       </td>
-                      <td className="py-3 pr-4 text-sm text-muted-foreground">
-                        {tx.enrollment?.schoolClass.nameBn} · {'রোল'}{' '}
-                        {tx.enrollment?.roll ?? '—'}
+                      <td className="py-3 px-4 text-muted-foreground whitespace-nowrap tabular-nums">
+                        {`${shortClass} - ${rollText}`}
                       </td>
-                      <td className="py-3 pr-4 text-sm">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         {PAYMENT_METHOD_LABELS[tx.paymentMethod]}
                       </td>
-                      <td className="py-3 pr-4 text-sm tabular-nums">
+                      <td className="py-3 px-4 tabular-nums whitespace-nowrap">
                         {formatDateShort(tx.paidAt, 'bn')}
                       </td>
-                      <td className="py-3 pr-4 text-right font-semibold tabular-nums">
+                      <td className="py-3 px-4 text-right font-semibold tabular-nums whitespace-nowrap">
                         {formatTaka(tx.totalPaid)}
                       </td>
-                      <td className="py-3 pr-4">
+                      <td className="py-3 px-4 whitespace-nowrap">
                         <StatusBadge
                           value={tx.status}
                           customTone={tx.status === 'ACTIVE' ? 'success' : 'destructive'}
                           customLabel={RECEIPT_STATUS_LABELS[tx.status]}
                         />
                       </td>
-                      <td className="py-3 text-right">
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-2">
                           <Button
                             variant="outline"
@@ -199,7 +296,8 @@ export function TransactionsPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -252,16 +350,15 @@ export function TransactionsPage() {
           <p className="text-sm text-muted-foreground">
             {'রসিদ বাতিল করলে সংশ্লিষ্ট বকেয়া চালানগুলোর পরিশোধিত হিসাব পুনরায় পূর্বের অবস্থায় ফিরে যাবে।'}
           </p>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              {'বাতিলের কারণ'}
-            </label>
+          <FormField label={'বাতিলের কারণ'}>
             <Input
+              id="void-reason"
+              name="reason"
               value={voidReason}
               onChange={(e) => setVoidReason(e.target.value)}
               placeholder="যেমন: ভুল শিক্ষার্থীর নামে এন্ট্রি হয়েছে"
             />
-          </div>
+          </FormField>
           <div className="flex justify-end gap-2">
             <Button
               type="button"
