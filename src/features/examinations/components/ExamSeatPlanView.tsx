@@ -14,10 +14,19 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
+  useCreateExamHallRoomMutation,
   useDeleteExamHallRoomMutation,
-  useGetBootstrapQuery,
-  useUpsertExamHallRoomMutation,
-} from '@/src/store/api';
+  useGetExamHallRoomsByExamQuery,
+  useGetExamRoutinesByExamQuery,
+  useGetExamSubjectsQuery,
+  useGetExamsQuery,
+  useUpdateExamHallRoomMutation,
+} from '@/src/features/examinations/api/examinations.api';
+import { useGetEnrollmentsQuery } from '@/src/features/students/api/students.api';
+import { useGetStaffPageQuery } from '@/src/features/staff/api/staff.api';
+import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
+import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
+import { useGetAcademicGroupsQuery } from '@/src/services/academic/group.api';
 import {
   ConfirmDialog,
   EmptyState,
@@ -28,19 +37,70 @@ import {
   PrintableExamAttendanceSheet,
   PrintableExamSeatPlan,
 } from '@/src/components/print/PrintDocuments';
+import type { SeatPlanRoomBlock } from '@/src/components/print/ExamPrintDocuments';
 import { Button, Card, Input, Modal, Select } from '@/src/components/ui/primitives';
 import { formatDateShort, formatNumber, formatTime } from '@/src/lib/formatters';
 import { cn, triggerPrint } from '@/src/lib/utils/cn';
-import { StaffType } from '@/src/types/enums';
-import type { ExamHallRoom } from '@/src/types/entities';
-import { buildSeatPlanRooms, getExamEnrolledStudents } from './ExamShared';
+import { EnrollmentStatus, ExamType, StaffType } from '@/src/types/enums';
+import type { ExamHallRoom, SchoolProfile } from '@/src/types/entities';
+
+const DEFAULT_SCHOOL_PROFILE: SchoolProfile = {
+  id: 'school-default',
+  name: 'ভোজেশ্বর উচ্চ বিদ্যালয়',
+  nameEn: 'Vojesshor High School',
+  eiin: '113587',
+  establishedYear: 1965,
+  address: 'ভোজেশ্বর, নড়িয়া, শরীয়তপুর',
+  phone: '',
+  email: '',
+  createdAt: '',
+  updatedAt: '',
+};
+
+function apiErrorMessage(err: unknown, fallback: string): string {
+  const e = err as { data?: { message?: string | string[] }; message?: string };
+  const msg = e?.data?.message ?? e?.message;
+  if (Array.isArray(msg)) return msg.join(' · ');
+  return msg || fallback;
+}
+
+interface EnrollmentWithRelations {
+  id: string;
+  studentId: string;
+  academicYearId: string;
+  classId: string;
+  sectionId: string;
+  groupId?: string | null;
+  roll: number;
+  status: string;
+  student?: {
+    id: string;
+    studentId: string;
+    nameEn: string;
+    nameBn?: string | null;
+  };
+  section?: { id: string; name: string };
+  group?: { id: string; name: string; nameBn?: string | null } | null;
+}
 
 export function ExamSeatPlanView() {
-  const { data: db, isLoading } = useGetBootstrapQuery();
-  const [upsertRoom, { isLoading: saving }] = useUpsertExamHallRoomMutation();
+  const { data: examsRes, isLoading: loadingExams } = useGetExamsQuery({
+    limit: 100,
+    isDeleted: false,
+  });
+  const { data: academicYears = [] } = useGetAcademicYearsQuery();
+  const { data: allClasses = [] } = useGetSchoolClassesQuery();
+  const { data: academicGroups = [] } = useGetAcademicGroupsQuery();
+  const { data: staffRes } = useGetStaffPageQuery({
+    limit: 100,
+    staffType: StaffType.TEACHER,
+  });
+
+  const [createRoom, { isLoading: creatingRoom }] = useCreateExamHallRoomMutation();
+  const [updateRoom, { isLoading: updatingRoom }] = useUpdateExamHallRoomMutation();
   const [deleteRoom] = useDeleteExamHallRoomMutation();
 
-  const [selectedExamId, setSelectedExamId] = useState('exam-ann-10');
+  const [selectedExamId, setSelectedExamId] = useState('');
   const [roomModalOpen, setRoomModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<ExamHallRoom | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ExamHallRoom | null>(null);
@@ -62,8 +122,14 @@ export function ExamSeatPlanView() {
   });
 
   const activeExams = useMemo(
-    () => (db ? db.exams.filter((e) => !e.isDeleted) : []),
-    [db]
+    () =>
+      (examsRes?.items ?? [])
+        .filter((e) => !e.isDeleted && e.examType !== ExamType.CONSOLIDATED)
+        .sort(
+          (a, b) =>
+            (a.schoolClass?.numericValue ?? 99) - (b.schoolClass?.numericValue ?? 99)
+        ),
+    [examsRes?.items]
   );
 
   const resolvedExamId =
@@ -73,57 +139,132 @@ export function ExamSeatPlanView() {
 
   const activeExam = activeExams.find((e) => e.id === resolvedExamId) ?? null;
 
+  const { data: configuredRooms = [], isLoading: loadingRooms } =
+    useGetExamHallRoomsByExamQuery(activeExam?.id ?? '', {
+      skip: !activeExam?.id,
+    });
+
+  const { data: examSubjects = [] } = useGetExamSubjectsQuery(activeExam?.id ?? '', {
+    skip: !activeExam?.id,
+  });
+
+  const { data: routinesRes } = useGetExamRoutinesByExamQuery(
+    { examId: activeExam?.id ?? '' },
+    { skip: !activeExam?.id }
+  );
+
+  const { data: enrollmentsData = [] } = useGetEnrollmentsQuery(
+    { academicYearId: activeExam?.academicYearId },
+    { skip: !activeExam?.academicYearId }
+  );
+
   const activeExamClass = useMemo(
-    () => (db && activeExam ? db.classes.find((c) => c.id === activeExam.classId) : null),
-    [db, activeExam]
+    () =>
+      activeExam
+        ? allClasses.find((c) => c.id === activeExam.classId) ?? null
+        : null,
+    [allClasses, activeExam]
+  );
+
+  const activeYear = useMemo(
+    () =>
+      activeExam
+        ? academicYears.find((y) => y.id === activeExam.academicYearId) ?? null
+        : null,
+    [academicYears, activeExam]
   );
 
   const teachers = useMemo(
-    () => (db ? db.staff.filter((s) => s.staffType === StaffType.TEACHER) : []),
-    [db]
+    () =>
+      (staffRes?.items ?? []).filter((s) => s.staffType === StaffType.TEACHER),
+    [staffRes?.items]
   );
 
-  const configuredRooms = useMemo(() => {
-    if (!db || !activeExam) return [];
-    return db.examHallRooms
-      .filter((r) => r.examId === activeExam.id)
-      .sort((a, b) => a.displayOrder - b.displayOrder);
-  }, [db, activeExam]);
-
-  const examSubjects = useMemo(() => {
-    if (!db || !activeExam) return [];
-    return db.examSubjects
-      .filter((es) => es.examId === activeExam.id)
-      .sort((a, b) => a.displayOrder - b.displayOrder);
-  }, [db, activeExam]);
-
-  const enrolledCount = useMemo(
-    () => (db && activeExam ? getExamEnrolledStudents(db, activeExam).length : 0),
-    [db, activeExam]
-  );
+  const classEnrollments = useMemo(() => {
+    if (!activeExam) return [];
+    return (enrollmentsData as EnrollmentWithRelations[])
+      .filter(
+        (e) =>
+          e.classId === activeExam.classId &&
+          e.status === EnrollmentStatus.ACTIVE
+      )
+      .sort((a, b) => {
+        const secA = a.section?.name ?? '';
+        const secB = b.section?.name ?? '';
+        return secA.localeCompare(secB) || a.roll - b.roll;
+      });
+  }, [enrollmentsData, activeExam]);
 
   const allocation = useMemo(() => {
-    if (!db || !activeExam) {
-      return { rooms: [], seatLookup: new Map(), unallocatedCount: 0, totalCapacity: 0 };
+    if (!activeExam) {
+      return { rooms: [] as SeatPlanRoomBlock[], unallocatedCount: 0, totalCapacity: 0 };
     }
-    return buildSeatPlanRooms(db, activeExam, 'bn');
-  }, [db, activeExam, 'bn']);
+
+    const toSeatEntry = (enr: EnrollmentWithRelations, seatNo: number) => {
+      const grp =
+        enr.group ??
+        (enr.groupId
+          ? academicGroups.find((g) => g.id === enr.groupId) ?? null
+          : null);
+      return {
+        seatNo,
+        roll: enr.roll,
+        studentId: enr.student?.studentId ?? enr.studentId,
+        studentName: enr.student?.nameBn || enr.student?.nameEn || '—',
+        className: activeExamClass?.nameBn || activeExamClass?.name || '',
+        sectionName: enr.section?.name ?? '',
+        groupName: grp ? grp.nameBn || grp.name : null,
+      };
+    };
+
+    if (configuredRooms.length === 0) {
+      return { rooms: [] as SeatPlanRoomBlock[], unallocatedCount: classEnrollments.length, totalCapacity: 0 };
+    }
+
+    let cursor = 0;
+    const rooms: SeatPlanRoomBlock[] = configuredRooms.map((room) => {
+      const slice = classEnrollments.slice(cursor, cursor + room.capacity);
+      cursor += slice.length;
+      const inv = room.invigilatorStaffId
+        ? teachers.find((t) => t.id === room.invigilatorStaffId)
+        : null;
+      const asst = room.assistantInvigilatorStaffId
+        ? teachers.find((t) => t.id === room.assistantInvigilatorStaffId)
+        : null;
+
+      return {
+        roomNo: room.roomNo,
+        buildingName: room.buildingName,
+        capacity: room.capacity,
+        invigilatorName: inv?.name ?? null,
+        assistantInvigilatorName: asst?.name ?? null,
+        seats: slice.map((enr, idx) => toSeatEntry(enr, idx + 1)),
+      };
+    });
+
+    const totalCapacity = configuredRooms.reduce((sum, r) => sum + r.capacity, 0);
+    const unallocatedCount = Math.max(0, classEnrollments.length - cursor);
+
+    return { rooms, unallocatedCount, totalCapacity };
+  }, [activeExam, configuredRooms, classEnrollments, academicGroups, activeExamClass, teachers]);
 
   const assignedInvigilatorsCount = useMemo(
     () => configuredRooms.filter((r) => Boolean(r.invigilatorStaffId)).length,
     [configuredRooms]
   );
 
-  if (isLoading || !db) return <LoadingSkeleton rows={6} />;
+  if (loadingExams) return <LoadingSkeleton rows={6} />;
 
-  const activeYear = activeExam ? db.academicYears.find((y) => y.id === activeExam.academicYearId) : null;
+  const routineList = routinesRes?.schedule ?? [];
+  const enrolledCount = classEnrollments.length;
+  const saving = creatingRoom || updatingRoom;
 
   const openAddRoom = () => {
     setEditingRoom(null);
     setForm({
       roomNo: '',
       buildingName: 'মূল একাডেমিক ভবন (২য় তলা)',
-      capacity: 24,
+      capacity: 30,
       invigilatorStaffId: teachers[0]?.id ?? '',
       assistantInvigilatorStaffId: '',
       notes: '',
@@ -151,45 +292,67 @@ export function ExamSeatPlanView() {
       toast.error('কক্ষ নম্বর ও সঠিক আসন সংখ্যা দিন।');
       return;
     }
-    const res = await upsertRoom({
-      id: editingRoom?.id,
-      examId: activeExam.id,
-      roomNo: form.roomNo.trim(),
-      buildingName: form.buildingName.trim() || null,
-      capacity: Number(form.capacity),
-      invigilatorStaffId: form.invigilatorStaffId || null,
-      assistantInvigilatorStaffId: form.assistantInvigilatorStaffId || null,
-      notes: form.notes.trim() || null,
-    });
-    if ('error' in res) {
-      toast.error('কক্ষ সংরক্ষণ ব্যর্থ হয়েছে।');
-      return;
+    try {
+      if (editingRoom) {
+        await updateRoom({
+          id: editingRoom.id,
+          examId: activeExam.id,
+          roomNo: form.roomNo.trim(),
+          buildingName: form.buildingName.trim() || null,
+          capacity: Number(form.capacity),
+          invigilatorStaffId: form.invigilatorStaffId || null,
+          assistantInvigilatorStaffId: form.assistantInvigilatorStaffId || null,
+          notes: form.notes.trim() || null,
+        }).unwrap();
+        toast.success('পরীক্ষার কক্ষ হালনাগাদ হয়েছে।');
+      } else {
+        await createRoom({
+          examId: activeExam.id,
+          roomNo: form.roomNo.trim(),
+          buildingName: form.buildingName.trim() || null,
+          capacity: Number(form.capacity),
+          invigilatorStaffId: form.invigilatorStaffId || null,
+          assistantInvigilatorStaffId: form.assistantInvigilatorStaffId || null,
+          notes: form.notes.trim() || null,
+        }).unwrap();
+        toast.success('নতুন পরীক্ষার কক্ষ ও পরিদর্শক সংরক্ষিত হয়েছে।');
+      }
+      setRoomModalOpen(false);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'কক্ষ সংরক্ষণ ব্যর্থ হয়েছে।'));
     }
-    toast.success('পরীক্ষার কক্ষ ও পরিদর্শক সংরক্ষিত হয়েছে।');
-    setRoomModalOpen(false);
   };
 
   const handleDeleteRoom = async () => {
-    if (!deleteTarget) return;
-    await deleteRoom({ id: deleteTarget.id });
-    toast.success('কক্ষটি অপসারণ করা হয়েছে।');
-    setDeleteTarget(null);
+    if (!deleteTarget || !activeExam) return;
+    try {
+      await deleteRoom({ id: deleteTarget.id, examId: activeExam.id }).unwrap();
+      toast.success('কক্ষটি অপসারণ করা হয়েছে।');
+      setDeleteTarget(null);
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'কক্ষ অপসারণ ব্যর্থ হয়েছে।'));
+    }
   };
 
   const openAttendancePrint = () => {
-    const firstSubId = examSubjects[0]?.id ?? '';
+    const firstEs = examSubjects[0];
+    const firstSubId = firstEs?.id ?? '';
     setAttendanceSubjectId(firstSubId);
-    const matchingRoutine = db.examRoutines.find(
-      (r) => !r.isDeleted && r.examId === activeExam?.id && r.examSubjectId === firstSubId
+    const matchingRoutine = firstEs
+      ? routineList.find((r) => r.subject?.id === firstEs.subjectId)
+      : undefined;
+    setAttendanceDate(
+      matchingRoutine
+        ? String(matchingRoutine.examDate).slice(0, 10)
+        : activeExam?.startDate.slice(0, 10) ?? '2026-11-22'
     );
-    setAttendanceDate(matchingRoutine?.examDate ?? activeExam?.startDate.slice(0, 10) ?? '2026-11-22');
     setAttendanceModalOpen(true);
   };
 
   const selectedEs = examSubjects.find((es) => es.id === attendanceSubjectId) ?? examSubjects[0];
-  const selectedSub = selectedEs ? db.subjects.find((s) => s.id === selectedEs.subjectId) : null;
+  const selectedSub = selectedEs?.subject;
   const matchingRoutine = selectedEs
-    ? db.examRoutines.find((r) => !r.isDeleted && r.examId === activeExam?.id && r.examSubjectId === selectedEs.id)
+    ? routineList.find((r) => r.subject?.id === selectedEs.subjectId)
     : null;
 
   const roomsForPrint =
@@ -200,10 +363,8 @@ export function ExamSeatPlanView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        titleBn="আসন বিন্যাস, পরিদর্শক ও হল হাজিরা শিট"
-        titleEn="Multi-Room Seat Plan, Invigilators & Hall Attendance"
-        subtitleBn="পরীক্ষা কেন্দ্রের কক্ষ, আসন ধারণক্ষমতা ও কক্ষ পরিদর্শক নির্ধারণ করে প্রাতিষ্ঠানিক আসন বিন্যাস এবং উত্তরপত্র স্বাক্ষর শিট প্রিন্ট করুন।"
-        subtitleEn="Configure exam rooms, capacities, and invigilators to generate formal multi-room seat plans and hall attendance sheets."
+        title="আসন বিন্যাস, পরিদর্শক ও হল হাজিরা শিট"
+        description="পরীক্ষা কেন্দ্রের কক্ষ, আসন ধারণক্ষমতা ও কক্ষ পরিদর্শক নির্ধারণ করে প্রাতিষ্ঠানিক আসন বিন্যাস এবং উত্তরপত্র স্বাক্ষর শিট প্রিন্ট করুন।"
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -245,17 +406,26 @@ export function ExamSeatPlanView() {
             {activeExams.map((ex) => (
               <option key={ex.id} value={ex.id}>
                 {ex.name}
+                {ex.schoolClass?.nameBn || ex.schoolClass?.name
+                  ? ` — ${ex.schoolClass?.nameBn || ex.schoolClass?.name}`
+                  : ''}
               </option>
             ))}
           </Select>
         </div>
         <div className="flex items-center gap-3 text-sm tabular-nums text-muted-foreground">
           <span>
-            {'শ্রেণি:'} <strong className="text-foreground font-semibold">{activeExamClass?.nameBn || activeExamClass?.name || '—'}</strong>
+            {'শ্রেণি:'}{' '}
+            <strong className="text-foreground font-semibold">
+              {activeExamClass?.nameBn || activeExamClass?.name || '—'}
+            </strong>
           </span>
           <span>·</span>
           <span>
-            {'শিক্ষাবর্ষ:'} <strong className="text-foreground font-semibold">{formatNumber('2026', 'bn')}</strong>
+            {'শিক্ষাবর্ষ:'}{' '}
+            <strong className="text-foreground font-semibold">
+              {activeYear?.name ?? formatNumber(2026, 'bn')}
+            </strong>
           </span>
         </div>
       </Card>
@@ -263,9 +433,7 @@ export function ExamSeatPlanView() {
       {/* 4-Column KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {'মোট আসন ধারণক্ষমতা'}
-          </p>
+          <p className="text-base font-bold text-foreground">{'মোট আসন ধারণক্ষমতা'}</p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(allocation.totalCapacity, 'bn')}
           </p>
@@ -275,34 +443,39 @@ export function ExamSeatPlanView() {
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {'কনফিগারকৃত হল ও কক্ষ'}
-          </p>
+          <p className="text-base font-bold text-foreground">{'কনফিগারকৃত হল ও কক্ষ'}</p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
             {formatNumber(configuredRooms.length, 'bn')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {`সক্রিয় পরীক্ষা কক্ষ · ভবনভিত্তিক বিন্যাস`}
+            {'সক্রিয় পরীক্ষা কক্ষ · ভবনভিত্তিক বিন্যাস'}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {'হল পরিদর্শক শিক্ষক'}
-          </p>
+          <p className="text-base font-bold text-foreground">{'হল পরিদর্শক শিক্ষক'}</p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
-            {formatNumber(assignedInvigilatorsCount, 'bn')} / {formatNumber(configuredRooms.length, 'bn')}
+            {formatNumber(assignedInvigilatorsCount, 'bn')} /{' '}
+            {formatNumber(configuredRooms.length, 'bn')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {`নিযুক্ত শিক্ষক · কক্ষের অনুপাত ${formatNumber(configuredRooms.length > 0 ? Math.round((assignedInvigilatorsCount / configuredRooms.length) * 100) : 0, 'bn')}%`}
+            {`নিযুক্ত শিক্ষক · কক্ষের অনুপাত ${formatNumber(
+              configuredRooms.length > 0
+                ? Math.round((assignedInvigilatorsCount / configuredRooms.length) * 100)
+                : 0,
+              'bn'
+            )}%`}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {'আসন বরাদ্দের স্থিতি'}
-          </p>
-          <p className={cn('mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums', allocation.unallocatedCount > 0 ? 'text-destructive' : 'text-success')}>
+          <p className="text-base font-bold text-foreground">{'আসন বরাদ্দের স্থিতি'}</p>
+          <p
+            className={cn(
+              'mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums',
+              allocation.unallocatedCount > 0 ? 'text-destructive' : 'text-success'
+            )}
+          >
             {allocation.unallocatedCount > 0
               ? `ঘাটতি ${formatNumber(allocation.unallocatedCount, 'bn')}`
               : '১০০% সম্পন্ন'}
@@ -310,13 +483,16 @@ export function ExamSeatPlanView() {
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
             {allocation.unallocatedCount > 0
               ? 'অতিরিক্ত আসন প্রয়োজন'
-              : `উদ্বৃত্ত আসন ${formatNumber(Math.max(0, allocation.totalCapacity - enrolledCount), 'bn')}টি`}
+              : `উদ্বৃত্ত আসন ${formatNumber(
+                  Math.max(0, allocation.totalCapacity - enrolledCount),
+                  'bn'
+                )}টি`}
           </p>
         </Card>
       </div>
 
       {/* Insufficient Capacity Warning */}
-      {allocation.unallocatedCount > 0 && (
+      {configuredRooms.length > 0 && allocation.unallocatedCount > 0 && (
         <div className="p-4 rounded-[var(--radius)] border border-warning/50 bg-warning/10 flex items-start gap-3 text-sm">
           <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
           <div>
@@ -331,7 +507,9 @@ export function ExamSeatPlanView() {
       )}
 
       {/* Room Cards & Live Allocation Breakdown */}
-      {configuredRooms.length === 0 ? (
+      {loadingRooms ? (
+        <LoadingSkeleton rows={4} />
+      ) : configuredRooms.length === 0 ? (
         <EmptyState
           title={'কোনো পরীক্ষা কক্ষ নির্ধারণ করা হয়নি'}
           description={'পরীক্ষা কেন্দ্রের কক্ষ, আসন সংখ্যা এবং কক্ষ পরিদর্শক যুক্ত করুন।'}
@@ -385,53 +563,41 @@ export function ExamSeatPlanView() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-sm border-y border-border py-2.5 tabular-nums">
+                <div className="grid grid-cols-2 gap-2 text-sm bg-surface-muted/40 rounded-lg p-3 border border-border/60">
                   <div>
-                    <span className="text-muted-foreground block">{'আসন বরাদ্দ'}</span>
-                    <strong className="text-foreground text-sm">
-                      {formatNumber(seated.length, 'bn')} / {formatNumber(room.capacity, 'bn')}
+                    <span className="text-muted-foreground block">{'বরাদ্দকৃত পরীক্ষার্থী'}</span>
+                    <strong className="text-foreground tabular-nums">
+                      {formatNumber(seated.length, 'bn')} / {formatNumber(room.capacity, 'bn')}{' '}
+                      {'জন'}
                     </strong>
-                    {rolls.length > 0 && (
-                      <span className="block text-muted-foreground">
-                        {'রোল:'} {formatNumber(Math.min(...rolls), 'bn')} –{' '}
-                        {formatNumber(Math.max(...rolls), 'bn')}
-                      </span>
-                    )}
                   </div>
                   <div>
-                    <span className="text-muted-foreground block">{'কক্ষ পরিদর্শক (Invigilator)'}</span>
-                    <strong className="text-foreground">
-                      {inv ? (inv.nameBn || inv.name) : 'নির্ধারিত নয়'}
+                    <span className="text-muted-foreground block">{'রোল সীমা'}</span>
+                    <strong className="text-foreground tabular-nums">
+                      {rolls.length > 0
+                        ? `${formatNumber(Math.min(...rolls), 'bn')} – ${formatNumber(Math.max(...rolls), 'bn')}`
+                        : '—'}
                     </strong>
-                    {asst && (
-                      <span className="block text-muted-foreground">
-                        {'সহকারী:'} {asst.nameBn || asst.name}
-                      </span>
-                    )}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block">{'মূল পরিদর্শক'}</span>
+                    <span className="font-medium text-foreground">{inv?.name ?? 'নির্ধারিত নয়'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block">{'সহকারী পরিদর্শক'}</span>
+                    <span className="font-medium text-foreground">{asst?.name ?? '—'}</span>
                   </div>
                 </div>
 
-                {/* Seated Students Compact List */}
-                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 text-sm tabular-nums">
-                  {seated.length === 0 ? (
-                    <p className="text-muted-foreground italic">
-                      {'এই কক্ষে কোনো পরীক্ষার্থী অবশিষ্ট নেই।'}
-                    </p>
-                  ) : (
-                    seated.map((seat) => (
-                      <div
-                        key={seat.studentId}
-                        className="flex items-center justify-between py-1 px-2 rounded bg-surface-muted/50"
-                      >
-                        <span className="font-medium text-foreground truncate">
-                          #{formatNumber(seat.seatNo, 'bn')} · {seat.studentName}
-                        </span>
-                        <span className="text-muted-foreground shrink-0 ml-2">
-                          {'রোল'} {formatNumber(seat.roll, 'bn')} ({seat.sectionName})
-                        </span>
-                      </div>
-                    ))
-                  )}
+                <div className="flex items-center justify-between text-sm text-muted-foreground">
+                  <span className="inline-flex items-center gap-1">
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    {`আসন নং ১ – ${formatNumber(Math.max(seated.length, 1), 'bn')}`}
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5" />
+                    {`${formatNumber(seated.length, 'bn')} জন পরীক্ষার্থী`}
+                  </span>
                 </div>
               </Card>
             );
@@ -439,49 +605,46 @@ export function ExamSeatPlanView() {
         </div>
       )}
 
-      {/* Add / Edit Hall Room Modal */}
+      {/* Room Add / Edit Modal */}
       <Modal
         open={roomModalOpen}
         onClose={() => setRoomModalOpen(false)}
-        title={
-          editingRoom
-            ? 'কক্ষ ও পরিদর্শক সম্পাদনা'
-            : 'নতুন পরীক্ষা কক্ষ যুক্ত করুন'
-        }
+        title={editingRoom ? 'পরীক্ষা কক্ষ সম্পাদনা' : 'নতুন পরীক্ষা কক্ষ যুক্ত করুন'}
         size="md"
       >
         <form onSubmit={handleSaveRoom} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-1">{'কক্ষ নম্বর / নাম *'}</label>
+              <label className="block text-sm font-medium mb-1">{'কক্ষ নম্বর *'}</label>
               <Input
                 required
                 value={form.roomNo}
                 onChange={(e) => setForm({ ...form, roomNo: e.target.value })}
-                placeholder={'যেমন: হল রুম ১০১'}
+                placeholder={'যেমন: কক্ষ ১০১'}
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">{'আসন ধারণক্ষমতা *'}</label>
-              <Input placeholder="আসন ধারণক্ষমতা লিখুন"
+              <Input
+                placeholder="আসন ধারণক্ষমতা লিখুন"
                 type="number"
                 min={1}
-                max={200}
+                max={500}
                 required
                 value={form.capacity}
-                onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) || 0 })}
+                onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) || 1 })}
               />
             </div>
-            <div className="sm:col-span-2">
+            <div className="col-span-2">
               <label className="block text-sm font-medium mb-1">{'ভবন ও তলা'}</label>
               <Input
                 value={form.buildingName}
                 onChange={(e) => setForm({ ...form, buildingName: e.target.value })}
-                placeholder={'যেমন: মূল একাডেমিক ভবন (২য় তলা)'}
+                placeholder={'মূল একাডেমিক ভবন (২য় তলা)'}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">{'প্রধান পরিদর্শক'}</label>
+              <label className="block text-sm font-medium mb-1">{'মূল কক্ষ পরিদর্শক'}</label>
               <Select
                 value={form.invigilatorStaffId}
                 onChange={(e) => setForm({ ...form, invigilatorStaffId: e.target.value })}
@@ -489,7 +652,7 @@ export function ExamSeatPlanView() {
                 <option value="">{'নির্বাচন করুন'}</option>
                 {teachers.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.nameBn || t.name}
+                    {t.name}
                   </option>
                 ))}
               </Select>
@@ -498,22 +661,24 @@ export function ExamSeatPlanView() {
               <label className="block text-sm font-medium mb-1">{'সহকারী পরিদর্শক'}</label>
               <Select
                 value={form.assistantInvigilatorStaffId}
-                onChange={(e) => setForm({ ...form, assistantInvigilatorStaffId: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, assistantInvigilatorStaffId: e.target.value })
+                }
               >
-                <option value="">{'কোনোটি নয়'}</option>
+                <option value="">{'প্রযোজ্য নয়'}</option>
                 {teachers.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.nameBn || t.name}
+                    {t.name}
                   </option>
                 ))}
               </Select>
             </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-medium mb-1">{'নোট / মন্তব্য'}</label>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium mb-1">{'মন্তব্য'}</label>
               <Input
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder={'যেমন: বিজ্ঞান ও মানবিক বিভাগ'}
+                placeholder={'অতিরিক্ত নির্দেশনা (যদি থাকে)'}
               />
             </div>
           </div>
@@ -529,28 +694,26 @@ export function ExamSeatPlanView() {
         </form>
       </Modal>
 
-      {/* Formal Multi-Room Seat Plan Print Modal */}
+      {/* Printable Multi-Room Seat Plan Modal */}
       <Modal
         open={seatPlanPrintOpen}
         onClose={() => setSeatPlanPrintOpen(false)}
-        title={'প্রাতিষ্ঠানিক আসন বিন্যাস প্রিভিউ'}
+        title={'প্রাতিষ্ঠানিক আসন বিন্যাস (Seat Plan)'}
         size="xl"
       >
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 no-print">
+          <div className="flex flex-wrap items-center justify-between gap-3 no-print border-b border-border pb-3">
             <div className="flex items-center gap-2">
-              <LayoutGrid className="w-4 h-4 text-muted-foreground" />
+              <label className="text-sm text-muted-foreground">{'কক্ষ ফিল্টার:'}</label>
               <Select
                 value={selectedPrintRoomNo}
                 onChange={(e) => setSelectedPrintRoomNo(e.target.value)}
-                className="w-56"
+                className="w-52"
               >
-                <option value="ALL">
-                  {`সকল কক্ষ (${formatNumber(allocation.rooms.length, 'bn')}টি)`}
-                </option>
+                <option value="ALL">{'সকল পরীক্ষা কক্ষ'}</option>
                 {allocation.rooms.map((r) => (
                   <option key={r.roomNo} value={r.roomNo}>
-                    {r.roomNo} ({formatNumber(r.seats.length, 'bn')})
+                    {r.roomNo}
                   </option>
                 ))}
               </Select>
@@ -563,16 +726,16 @@ export function ExamSeatPlanView() {
 
           {activeExam && (
             <PrintableExamSeatPlan
-              school={db.schoolProfile}
+              school={DEFAULT_SCHOOL_PROFILE}
               examName={activeExam.name}
-              academicYear={activeYear?.name ?? '2026'}
+              academicYear={activeYear?.name ?? formatNumber(2026, 'bn')}
               rooms={roomsForPrint}
             />
           )}
         </div>
       </Modal>
 
-      {/* Formal Room-Wise Hall Attendance & Answer Script Register Print Modal */}
+      {/* Formal Room-Wise Hall Attendance Print Modal */}
       <Modal
         open={attendanceModalOpen}
         onClose={() => setAttendanceModalOpen(false)}
@@ -583,30 +746,33 @@ export function ExamSeatPlanView() {
           <div className="flex flex-wrap items-end justify-between gap-3 no-print border-b border-border pb-3">
             <div className="flex flex-wrap items-end gap-3">
               <div className="w-56">
-                <label className="block text-sm text-muted-foreground mb-1">{'বিষয় নির্বাচন করুন'}</label>
+                <label className="block text-sm text-muted-foreground mb-1">
+                  {'বিষয় নির্বাচন করুন'}
+                </label>
                 <Select
                   value={attendanceSubjectId}
                   onChange={(e) => {
                     const nextId = e.target.value;
                     setAttendanceSubjectId(nextId);
-                    const rt = db.examRoutines.find(
-                      (r) => !r.isDeleted && r.examId === activeExam?.id && r.examSubjectId === nextId
-                    );
-                    if (rt) setAttendanceDate(rt.examDate);
+                    const es = examSubjects.find((x) => x.id === nextId);
+                    const rt = es
+                      ? routineList.find((r) => r.subject?.id === es.subjectId)
+                      : undefined;
+                    if (rt) setAttendanceDate(String(rt.examDate).slice(0, 10));
                   }}
                 >
-                  {examSubjects.map((es) => {
-                    const sub = db.subjects.find((s) => s.id === es.subjectId);
-                    return (
-                      <option key={es.id} value={es.id}>
-                        {sub?.nameBn || sub?.name} ({sub?.officialCode})
-                      </option>
-                    );
-                  })}
+                  {examSubjects.map((es) => (
+                    <option key={es.id} value={es.id}>
+                      {es.subject?.nameBn || es.subject?.name}{' '}
+                      {es.subject?.officialCode ? `(${es.subject.officialCode})` : ''}
+                    </option>
+                  ))}
                 </Select>
               </div>
               <div className="w-44">
-                <label className="block text-sm text-muted-foreground mb-1">{'পরীক্ষার তারিখ'}</label>
+                <label className="block text-sm text-muted-foreground mb-1">
+                  {'পরীক্ষার তারিখ'}
+                </label>
                 <Input
                   type="date"
                   value={attendanceDate}
@@ -622,19 +788,19 @@ export function ExamSeatPlanView() {
 
           {activeExam && (
             <PrintableExamAttendanceSheet
-              school={db.schoolProfile}
+              school={DEFAULT_SCHOOL_PROFILE}
               examName={activeExam.name}
-              academicYear={activeYear?.name ?? '2026'}
+              academicYear={activeYear?.name ?? formatNumber(2026, 'bn')}
               subjectLabel={
                 selectedSub
-                  ? `${selectedSub.nameBn} (${selectedSub.officialCode ?? ''})`
+                  ? `${selectedSub.nameBn || selectedSub.name} (${selectedSub.officialCode ?? ''})`
                   : 'সাধারণ পরীক্ষা'
               }
               examDate={attendanceDate}
               examTime={
                 matchingRoutine
                   ? `${formatTime(matchingRoutine.startTime, 'bn')} – ${formatTime(matchingRoutine.endTime, 'bn')}`
-                  : null
+                  : 'সকাল ১০:০০ – দুপুর ০১:০০'
               }
               rooms={allocation.rooms}
             />
@@ -647,7 +813,7 @@ export function ExamSeatPlanView() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteRoom}
         title={'পরীক্ষা কক্ষ অপসারণ'}
-        description={'এই কক্ষটি মুছে ফেললে পরীক্ষার্থীরা অবশিষ্ট কক্ষগুলোতে পুনর্বণ্টিত হবে।'}
+        description={`আপনি কি "${deleteTarget?.roomNo}" কক্ষটি আসন বিন্যাস থেকে মুছে ফেলতে চান?`}
         confirmLabel={'মুছে ফেলুন'}
         destructive
       />

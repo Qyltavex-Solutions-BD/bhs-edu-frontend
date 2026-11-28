@@ -427,13 +427,49 @@ export const examinationsApi = baseApi.injectEndpoints({
         params: { limit: 100 },
       }),
       transformResponse: (res: any) => {
-        if (res && res.data && Array.isArray(res.data)) {
-          return { items: res.data, meta: res.meta };
-        }
-        if (Array.isArray(res)) return { items: res };
-        return { items: [] };
+        const raw = res && res.data && Array.isArray(res.data)
+          ? res.data
+          : Array.isArray(res)
+            ? res
+            : [];
+        return {
+          items: raw.map((gs: any) => ({
+            ...gs,
+            maxGpa: Number(gs.maxGpa ?? 5.0),
+          })),
+          meta: res?.meta,
+        };
       },
       providesTags: ['Exams'],
+    }),
+
+    getGradingScaleById: builder.query<
+      GradingScale & {
+        gradeRanges: GradeRange[];
+        _count?: { gradeRanges?: number; exams?: number };
+      },
+      string
+    >({
+      query: (id) => ({
+        url: `/examination/grading-scales/${id}`,
+        method: 'GET',
+      }),
+      transformResponse: (res: any) => {
+        const d = res?.data ?? res;
+        return {
+          ...d,
+          maxGpa: Number(d?.maxGpa ?? 5.0),
+          gradeRanges: Array.isArray(d?.gradeRanges)
+            ? d.gradeRanges.map((r: any) => ({
+                ...r,
+                minPercentage: Number(r.minPercentage ?? 0),
+                maxPercentage: Number(r.maxPercentage ?? 0),
+                gradePoint: Number(r.gradePoint ?? 0),
+              }))
+            : [],
+        };
+      },
+      providesTags: (_result, _error, id) => [{ type: 'Exams', id }, 'Exams'],
     }),
 
     getExamSubjects: builder.query<ExamSubject[], string>({
@@ -734,20 +770,106 @@ export const examinationsApi = baseApi.injectEndpoints({
       query: (body) => ({ url: '/exams/subjects/delete', method: 'POST', body }),
       invalidatesTags: ['Exams', 'Results', 'Audit'],
     }),
-    upsertGradingScale: builder.mutation<GradingScale, Partial<GradingScale>>({
-      query: (body) => ({ url: '/exams/grading-scales/upsert', method: 'POST', body }),
-      invalidatesTags: ['Exams', 'Results', 'Audit'],
-    }),
-    upsertGradeRange: builder.mutation<
-      GradeRange,
-      Partial<GradeRange> & { gradingScaleId: string }
+    createGradingScale: builder.mutation<
+      GradingScale,
+      { name: string; description?: string; maxGpa?: number; isDefault?: boolean }
     >({
-      query: (body) => ({ url: '/exams/grade-ranges/upsert', method: 'POST', body }),
+      query: (body) => ({
+        url: '/examination/grading-scales',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (res: any) => {
+        const d = res?.data ?? res;
+        return { ...d, maxGpa: Number(d?.maxGpa ?? 5.0) };
+      },
       invalidatesTags: ['Exams', 'Results', 'Audit'],
     }),
-    deleteGradeRange: builder.mutation<{ deletedId: string }, { id: string }>({
-      query: (body) => ({ url: '/exams/grade-ranges/delete', method: 'POST', body }),
+    updateGradingScale: builder.mutation<
+      GradingScale,
+      { id: string; name?: string; description?: string; maxGpa?: number; isDefault?: boolean; isActive?: boolean }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/examination/grading-scales/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (res: any) => {
+        const d = res?.data ?? res;
+        return { ...d, maxGpa: Number(d?.maxGpa ?? 5.0) };
+      },
+      invalidatesTags: (_res, _err, { id }) => [{ type: 'Exams', id }, 'Exams', 'Results', 'Audit'],
+    }),
+    deleteGradingScale: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/examination/grading-scales/${id}`,
+        method: 'DELETE',
+      }),
       invalidatesTags: ['Exams', 'Results', 'Audit'],
+    }),
+    createGradeRange: builder.mutation<
+      GradeRange,
+      {
+        scaleId: string;
+        minPercentage: number;
+        maxPercentage: number;
+        letterGrade: string;
+        gradePoint: number;
+        remarks?: string;
+        isFailGrade?: boolean;
+      }
+    >({
+      query: ({ scaleId, ...body }) => ({
+        url: `/examination/grading-scales/${scaleId}/ranges`,
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (res: any) => {
+        const d = res?.data ?? res;
+        return {
+          ...d,
+          minPercentage: Number(d?.minPercentage ?? 0),
+          maxPercentage: Number(d?.maxPercentage ?? 0),
+          gradePoint: Number(d?.gradePoint ?? 0),
+        };
+      },
+      invalidatesTags: (_res, _err, { scaleId }) => [{ type: 'Exams', id: scaleId }, 'Exams', 'Results', 'Audit'],
+    }),
+    updateGradeRange: builder.mutation<
+      GradeRange,
+      {
+        scaleId: string;
+        rangeId: string;
+        minPercentage?: number;
+        maxPercentage?: number;
+        letterGrade?: string;
+        gradePoint?: number;
+        remarks?: string;
+        isFailGrade?: boolean;
+      }
+    >({
+      query: ({ scaleId, rangeId, ...body }) => ({
+        url: `/examination/grading-scales/${scaleId}/ranges/${rangeId}`,
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (res: any) => {
+        const d = res?.data ?? res;
+        return {
+          ...d,
+          minPercentage: Number(d?.minPercentage ?? 0),
+          maxPercentage: Number(d?.maxPercentage ?? 0),
+          gradePoint: Number(d?.gradePoint ?? 0),
+        };
+      },
+      invalidatesTags: (_res, _err, { scaleId }) => [{ type: 'Exams', id: scaleId }, 'Exams', 'Results', 'Audit'],
+    }),
+    deleteGradeRange: builder.mutation<void, { scaleId: string; rangeId: string }>({
+      query: ({ scaleId, rangeId }) => ({
+        url: `/examination/grading-scales/${scaleId}/ranges/${rangeId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_res, _err, { scaleId }) => [{ type: 'Exams', id: scaleId }, 'Exams', 'Results', 'Audit'],
     }),
     saveConsolidatedConfig: builder.mutation<
       ConsolidatedResultResponse,
@@ -777,16 +899,80 @@ export const examinationsApi = baseApi.injectEndpoints({
       transformResponse: (res: any) => res?.data ?? res,
       providesTags: (_result, _error, examId) => [{ type: 'Results', id: examId }],
     }),
-    upsertExamHallRoom: builder.mutation<
-      ExamHallRoom,
-      Partial<ExamHallRoom> & { examId: string; roomNo: string; capacity: number }
-    >({
-      query: (body) => ({ url: '/exams/hall-rooms/upsert', method: 'POST', body }),
-      invalidatesTags: ['Exams', 'Audit'],
+    getExamHallRoomsByExam: builder.query<ExamHallRoom[], string>({
+      query: (examId) => ({
+        url: `/examination/hall-rooms/exam/${examId}`,
+        method: 'GET',
+      }),
+      transformResponse: (res: any) => {
+        const raw = res?.data ?? res;
+        return Array.isArray(raw) ? raw : [];
+      },
+      providesTags: (_res, _err, examId) => [
+        { type: 'Exams', id: `HALL-ROOMS-${examId}` },
+        'Exams',
+      ],
     }),
-    deleteExamHallRoom: builder.mutation<{ deletedId: string }, { id: string }>({
-      query: (body) => ({ url: '/exams/hall-rooms/delete', method: 'POST', body }),
-      invalidatesTags: ['Exams', 'Audit'],
+    createExamHallRoom: builder.mutation<
+      ExamHallRoom,
+      {
+        examId: string;
+        roomNo: string;
+        buildingName?: string | null;
+        capacity: number;
+        invigilatorStaffId?: string | null;
+        assistantInvigilatorStaffId?: string | null;
+        notes?: string | null;
+      }
+    >({
+      query: (body) => ({
+        url: '/examination/hall-rooms',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      invalidatesTags: (_res, _err, { examId }) => [
+        { type: 'Exams', id: `HALL-ROOMS-${examId}` },
+        'Exams',
+        'Audit',
+      ],
+    }),
+    updateExamHallRoom: builder.mutation<
+      ExamHallRoom,
+      {
+        id: string;
+        examId: string;
+        roomNo?: string;
+        buildingName?: string | null;
+        capacity?: number;
+        invigilatorStaffId?: string | null;
+        assistantInvigilatorStaffId?: string | null;
+        notes?: string | null;
+      }
+    >({
+      query: ({ id, examId: _examId, ...body }) => ({
+        url: `/examination/hall-rooms/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      invalidatesTags: (_res, _err, { examId }) => [
+        { type: 'Exams', id: `HALL-ROOMS-${examId}` },
+        'Exams',
+        'Audit',
+      ],
+    }),
+    deleteExamHallRoom: builder.mutation<{ deletedId: string }, { id: string; examId: string }>({
+      query: ({ id }) => ({
+        url: `/examination/hall-rooms/${id}`,
+        method: 'DELETE',
+      }),
+      transformResponse: (res: any) => res?.data ?? res,
+      invalidatesTags: (_res, _err, { examId }) => [
+        { type: 'Exams', id: `HALL-ROOMS-${examId}` },
+        'Exams',
+        'Audit',
+      ],
     }),
     upsertResultScrutiny: builder.mutation<
       ResultScrutinyRequest,
@@ -815,6 +1001,7 @@ export const {
   useUpdateExamMutation,
   useDeleteExamMutation,
   useGetGradingScalesQuery,
+  useGetGradingScaleByIdQuery,
   useGetExamSubjectsQuery,
   useCreateExamSubjectMutation,
   useUpdateExamSubjectMutation,
@@ -837,12 +1024,17 @@ export const {
   useProcessExamResultsMutation,
   useUpsertExamSubjectMutation,
   useDeleteExamSubjectMutation,
-  useUpsertGradingScaleMutation,
-  useUpsertGradeRangeMutation,
+  useCreateGradingScaleMutation,
+  useUpdateGradingScaleMutation,
+  useDeleteGradingScaleMutation,
+  useCreateGradeRangeMutation,
+  useUpdateGradeRangeMutation,
   useDeleteGradeRangeMutation,
   useSaveConsolidatedConfigMutation,
   useGetConsolidatedResultQuery,
-  useUpsertExamHallRoomMutation,
+  useGetExamHallRoomsByExamQuery,
+  useCreateExamHallRoomMutation,
+  useUpdateExamHallRoomMutation,
   useDeleteExamHallRoomMutation,
   useUpsertResultScrutinyMutation,
   useSaveResultRemarkMutation,

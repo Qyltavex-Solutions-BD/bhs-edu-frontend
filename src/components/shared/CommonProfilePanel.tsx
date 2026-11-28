@@ -133,10 +133,6 @@ export function CommonProfilePanel({
   });
   const [pwError, setPwError] = useState<string | null>(null);
 
-  const [notifySms, setNotifySms] = useState(true);
-  const [notifyEmail, setNotifyEmail] = useState(true);
-  const [notifyInApp, setNotifyInApp] = useState(true);
-
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsed = profileUpdateSchema.safeParse({
@@ -498,35 +494,12 @@ export function CommonProfilePanel({
       <div className="lg:col-span-5 space-y-6">
         <Card className="p-6 space-y-4">
           <h3 className="text-base font-bold text-foreground">
-            {'থিম ও নোটিফিকেশন পছন্দ'}
+            {'থিম পছন্দ'}
           </h3>
           <div className="space-y-3.5 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-foreground">{'ডার্ক মোড'}</span>
               <Switch checked={theme === 'dark'} onChange={() => dispatch(toggleTheme())} />
-            </div>
-            <div className="pt-3 border-t border-border space-y-3">
-              <p className="text-sm font-semibold text-muted-foreground">
-                {'নোটিফিকেশন চ্যানেল'}
-              </p>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-foreground">
-                  {'ইন-অ্যাপ নোটিফিকেশন'}
-                </span>
-                <Switch checked={notifyInApp} onChange={setNotifyInApp} />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-foreground">
-                  {'হাজিরা ও জরুরি SMS'}
-                </span>
-                <Switch checked={notifySms} onChange={setNotifySms} />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-foreground">
-                  {'ইমেইল বিজ্ঞপ্তি'}
-                </span>
-                <Switch checked={notifyEmail} onChange={setNotifyEmail} />
-              </div>
             </div>
           </div>
         </Card>
