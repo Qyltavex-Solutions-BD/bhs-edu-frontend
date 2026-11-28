@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useGetAdminNoticesQuery } from '@/src/features/notices/api/notices.api';
+import { useGetFinanceOverviewQuery } from '@/src/features/accountant/api/finance.api';
 import { formatNumber } from '@/src/lib/formatters';
 import { LoadingSkeleton } from '@/src/components/shared/Feedback';
 import {
@@ -16,6 +17,7 @@ import { AdminDashboardKpiCards } from './AdminDashboardKpiCards';
 import { AdminDashboardAttendanceGenderCharts } from './AdminDashboardAttendanceGenderCharts';
 import { AdminDashboardAcademicCharts } from './AdminDashboardAcademicCharts';
 import { AdminDashboardAttendanceInsights } from './AdminDashboardAttendanceInsights';
+import { AdminDashboardFinanceOverview } from './AdminDashboardFinanceOverview';
 import { AdminDashboardWidgets, type DashboardPendingAction } from './AdminDashboardWidgets';
 
 const COLOR_PRIMARY = '#1C6440';
@@ -34,6 +36,7 @@ export function AdminDashboardPage() {
   const { data: insightsData } = useGetDashboardAttendanceInsightsQuery();
   const { data: examPerf } = useGetDashboardExamPerformanceQuery(selectedExamId || undefined);
   const { data: opsData } = useGetDashboardOperationsQuery();
+  const { data: financeOverview } = useGetFinanceOverviewQuery();
   const { data: recentNoticePage, isLoading: loadingRecentNotices } = useGetAdminNoticesQuery({
     limit: 5,
   });
@@ -153,7 +156,10 @@ export function AdminDashboardPage() {
         examOptions={examPerf?.examOptions ?? []}
       />
 
-      {/* 5. Class-wise Today Attendance, <75% At-Risk Students & Upcoming Schedule */}
+      {/* 5. Finance Oversight Summary & 6-Month Chart */}
+      <AdminDashboardFinanceOverview overview={financeOverview} />
+
+      {/* 6. Class-wise Today Attendance, <75% At-Risk Students & Upcoming Schedule */}
       <AdminDashboardAttendanceInsights
         classAttendance={insightsData?.classAttendance ?? []}
         atRiskStudents={insightsData?.atRiskStudents ?? []}
