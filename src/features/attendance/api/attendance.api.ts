@@ -217,7 +217,6 @@ export const attendanceApi = baseApi.injectEndpoints({
       {
         date: string;
         academicYearId: string;
-        markedBy?: string;
         entries: Array<{
           studentEnrollmentId: string;
           status: AttendanceStatus;
