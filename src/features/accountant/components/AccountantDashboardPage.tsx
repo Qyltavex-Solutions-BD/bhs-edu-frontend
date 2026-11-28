@@ -5,10 +5,7 @@ import Link from 'next/link';
 import {
   AlertTriangle,
   ArrowDownCircle,
-  ArrowUpCircle,
   Banknote,
-  BookOpen,
-  CreditCard,
   PlusCircle,
   Receipt,
   TrendingUp,
@@ -156,46 +153,6 @@ export function AccountantDashboardPage() {
           accent={overview.netBalance >= 0 ? 'success' : 'destructive'}
           icon={<Wallet className="w-5 h-5" />}
         />
-      </div>
-
-      {/* Quick Shortcuts */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Link href="/accountant/collect-fee">
-          <Card className="p-4 hover:border-primary/50 transition-colors cursor-pointer flex items-center gap-3">
-            <CreditCard className="w-5 h-5 text-primary shrink-0" />
-            <div className="min-w-0">
-              <p className="text-base font-semibold text-foreground truncate">{'ফি গ্রহণ'}</p>
-              <p className="text-sm text-muted-foreground truncate">{'রসিদ ইস্যু করুন'}</p>
-            </div>
-          </Card>
-        </Link>
-        <Link href="/accountant/dues">
-          <Card className="p-4 hover:border-primary/50 transition-colors cursor-pointer flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
-            <div className="min-w-0">
-              <p className="text-base font-semibold text-foreground truncate">{'বকেয়া তালিকা'}</p>
-              <p className="text-sm text-muted-foreground truncate">{'শ্রেণিভিত্তিক বকেয়া'}</p>
-            </div>
-          </Card>
-        </Link>
-        <Link href="/accountant/expenses">
-          <Card className="p-4 hover:border-primary/50 transition-colors cursor-pointer flex items-center gap-3">
-            <ArrowUpCircle className="w-5 h-5 text-destructive shrink-0" />
-            <div className="min-w-0">
-              <p className="text-base font-semibold text-foreground truncate">{'ব্যয় ভাউচার'}</p>
-              <p className="text-sm text-muted-foreground truncate">{'খরচ এন্ট্রি করুন'}</p>
-            </div>
-          </Card>
-        </Link>
-        <Link href="/accountant/cashbook">
-          <Card className="p-4 hover:border-primary/50 transition-colors cursor-pointer flex items-center gap-3">
-            <BookOpen className="w-5 h-5 text-primary shrink-0" />
-            <div className="min-w-0">
-              <p className="text-base font-semibold text-foreground truncate">{'দৈনিক ক্যাশবই'}</p>
-              <p className="text-sm text-muted-foreground truncate">{'আয়-ব্যয় হিসাব'}</p>
-            </div>
-          </Card>
-        </Link>
       </div>
 
       {/* Chart + Monthly Summary */}

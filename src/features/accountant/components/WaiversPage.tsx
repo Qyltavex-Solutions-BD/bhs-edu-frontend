@@ -19,21 +19,36 @@ import {
   useSaveWaiverMutation,
   type WaiverType,
 } from '../api/finance.api';
-import { formatTaka, WAIVER_TYPE_LABELS } from './finance-ui';
+import { FinancePaginationBar, formatTaka, WAIVER_TYPE_LABELS } from './finance-ui';
+
+const PAGE_SIZE = 20;
 
 export function WaiversPage() {
   const { data: ctx } = useGetFinanceContextQuery();
   const activeYearId = ctx?.activeAcademicYear?.id;
+  const [waiverSearch, setWaiverSearch] = useState('');
+  const [waiverTypeFilter, setWaiverTypeFilter] = useState<'' | WaiverType>('');
+  const [page, setPage] = useState(1);
 
   const {
-    data: waivers = [],
+    data: waiversData,
     isLoading,
     isFetching,
     isError,
     refetch,
   } = useGetWaiversQuery(
-    activeYearId ? { academicYearId: activeYearId } : undefined
+    activeYearId
+      ? {
+          academicYearId: activeYearId,
+          search: waiverSearch.trim() || undefined,
+          waiverType: waiverTypeFilter || undefined,
+          page,
+          limit: PAGE_SIZE,
+        }
+      : undefined
   );
+  const waivers = waiversData?.items ?? [];
+  const waiversMeta = waiversData?.meta;
   const { data: enrollments = [] } = useGetEnrollmentsQuery(
     activeYearId ? { academicYearId: activeYearId } : undefined
   );
@@ -318,13 +333,38 @@ export function WaiversPage() {
         </Card>
 
         <Card className="p-5 lg:col-span-2">
-          <div className="flex items-center justify-between gap-2 mb-4">
-            <h2 className="text-base font-bold text-foreground">
-              {'সক্রিয় বৃত্তি ও ছাড় তালিকা'}
-            </h2>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground tabular-nums">
-              {`${formatNumber(waivers.length, 'bn')}টি`}
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-foreground">
+                {'সক্রিয় বৃত্তি ও ছাড় তালিকা'}
+              </h2>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground tabular-nums">
+                {`${formatNumber(waiversMeta?.total ?? waivers.length, 'bn')}টি`}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Input
+                value={waiverSearch}
+                onChange={(e) => {
+                  setWaiverSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="শিক্ষার্থী বা কারণ খুঁজুন..."
+                className="w-44"
+              />
+              <Select
+                value={waiverTypeFilter}
+                onChange={(e) => {
+                  setWaiverTypeFilter(e.target.value as '' | WaiverType);
+                  setPage(1);
+                }}
+                className="w-36"
+              >
+                <option value="">{'সকল ধরন'}</option>
+                <option value="PERCENTAGE">{WAIVER_TYPE_LABELS.PERCENTAGE}</option>
+                <option value="FIXED">{WAIVER_TYPE_LABELS.FIXED}</option>
+              </Select>
+            </div>
           </div>
 
           {isLoading || isFetching ? (
@@ -409,6 +449,7 @@ export function WaiversPage() {
               </table>
             </div>
           )}
+          <FinancePaginationBar meta={waiversMeta} onPageChange={setPage} />
         </Card>
       </div>
     </div>

@@ -12,25 +12,43 @@ import { StatusBadge } from '@/src/components/shared/StatusBadge';
 import { Button, Card, Input } from '@/src/components/ui/primitives';
 import { formatDateShort } from '@/src/lib/formatters';
 import { exportToCsv, triggerPrint } from '@/src/lib/utils/cn';
+import { Select } from '@/src/components/ui/primitives';
 import {
   useGetCashbookQuery,
   useGetFinanceContextQuery,
   useGetFinanceOverviewQuery,
+  type FeePaymentMethod,
 } from '../api/finance.api';
-import { formatTaka, PAYMENT_METHOD_LABELS } from './finance-ui';
+import {
+  FinancePaginationBar,
+  formatTaka,
+  PAYMENT_METHOD_LABELS,
+} from './finance-ui';
+
+const PAGE_SIZE = 30;
 
 export function CashbookPage() {
   const { data: ctx } = useGetFinanceContextQuery();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [typeFilter, setTypeFilter] = useState<'' | 'INCOME' | 'EXPENSE'>('');
+  const [methodFilter, setMethodFilter] = useState<'' | FeePaymentMethod>('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   const { data, isLoading } = useGetCashbookQuery({
     academicYearId: ctx?.activeAcademicYear?.id,
     from: from || undefined,
     to: to || undefined,
+    type: typeFilter || undefined,
+    method: methodFilter || undefined,
+    search: search.trim() || undefined,
+    page,
+    limit: PAGE_SIZE,
   });
 
-  const entries = data?.entries ?? [];
+  const entries = data?.items ?? [];
+  const meta = data?.meta;
 
   function handleExportCsv() {
     exportToCsv(
@@ -91,13 +109,58 @@ export function CashbookPage() {
       </div>
 
       <Card className="p-4 no-print">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+          <div>
+            <label className="block text-sm font-medium mb-1">{'খুঁজুন'}</label>
+            <Input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="ভাউচার বা বিবরণ..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">{'ধরন'}</label>
+            <Select
+              value={typeFilter}
+              onChange={(e) => {
+                setTypeFilter(e.target.value as '' | 'INCOME' | 'EXPENSE');
+                setPage(1);
+              }}
+            >
+              <option value="">{'সকল'}</option>
+              <option value="INCOME">{'জমা (আয়)'}</option>
+              <option value="EXPENSE">{'খরচ (ব্যয়)'}</option>
+            </Select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">{'মাধ্যম'}</label>
+            <Select
+              value={methodFilter}
+              onChange={(e) => {
+                setMethodFilter(e.target.value as '' | FeePaymentMethod);
+                setPage(1);
+              }}
+            >
+              <option value="">{'সকল মাধ্যম'}</option>
+              {(Object.keys(PAYMENT_METHOD_LABELS) as FeePaymentMethod[]).map((m) => (
+                <option key={m} value={m}>
+                  {PAYMENT_METHOD_LABELS[m]}
+                </option>
+              ))}
+            </Select>
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1">{'শুরুর তারিখ'}</label>
             <Input
               type="date"
               value={from}
-              onChange={(e) => setFrom(e.target.value)}
+              onChange={(e) => {
+                setFrom(e.target.value);
+                setPage(1);
+              }}
               placeholder="শুরুর তারিখ"
             />
           </div>
@@ -106,7 +169,10 @@ export function CashbookPage() {
             <Input
               type="date"
               value={to}
-              onChange={(e) => setTo(e.target.value)}
+              onChange={(e) => {
+                setTo(e.target.value);
+                setPage(1);
+              }}
               placeholder="শেষ তারিখ"
             />
           </div>
@@ -115,9 +181,13 @@ export function CashbookPage() {
             onClick={() => {
               setFrom('');
               setTo('');
+              setTypeFilter('');
+              setMethodFilter('');
+              setSearch('');
+              setPage(1);
             }}
           >
-            {'ফিল্টার রিসেট করুন'}
+            {'রিসেট'}
           </Button>
         </div>
       </Card>
@@ -179,6 +249,7 @@ export function CashbookPage() {
             </table>
           </div>
         )}
+        <FinancePaginationBar meta={meta} onPageChange={setPage} />
       </Card>
     </div>
   );

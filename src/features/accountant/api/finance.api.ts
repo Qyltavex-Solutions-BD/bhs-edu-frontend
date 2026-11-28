@@ -52,6 +52,11 @@ export interface FinanceContextResponse {
     designation: string;
     employeeId?: string | null;
   }>;
+  exams?: Array<{
+    id: string;
+    name: string;
+    academicYearId: string;
+  }>;
 }
 
 export interface FeeStructureItem {
@@ -59,11 +64,13 @@ export interface FeeStructureItem {
   academicYearId: string;
   classId: string;
   feeHeadId: string;
+  examId?: string | null;
   amount: number;
   dueDay?: number | null;
   isActive: boolean;
   schoolClass?: { id: string; name: string; nameBn: string; numericValue?: number };
   feeHead?: FeeHeadItem;
+  exam?: { id: string; name: string } | null;
 }
 
 export interface StudentWaiverItem {
@@ -254,10 +261,25 @@ export interface CashbookEntryItem {
 }
 
 export interface CashbookResponse {
-  entries: CashbookEntryItem[];
+  items: CashbookEntryItem[];
+  meta: PaginationMeta;
   totalIn: number;
   totalOut: number;
   net: number;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  meta: PaginationMeta;
+}
+
+export interface DuesPageResponse {
+  items: DuesRowItem[];
+  meta: PaginationMeta;
+  summary: {
+    totalStudents: number;
+    totalDueSum: number;
+  };
 }
 
 export const financeApi = baseApi.injectEndpoints({
@@ -304,15 +326,15 @@ export const financeApi = baseApi.injectEndpoints({
     }),
 
     getFeeStructures: builder.query<
-      FeeStructureItem[],
-      { academicYearId?: string; classId?: string } | void
+      PaginatedResponse<FeeStructureItem>,
+      { academicYearId?: string; classId?: string; search?: string; page?: number; limit?: number } | void
     >({
       query: (params) => ({
         url: '/finance/fee-structures',
         method: 'GET',
         params: params || undefined,
       }),
-      transformResponse: (res: Envelope<FeeStructureItem[]>) => res.data,
+      transformResponse: (res: Envelope<PaginatedResponse<FeeStructureItem>>) => res.data,
       providesTags: ['Finance'],
     }),
 
@@ -322,6 +344,7 @@ export const financeApi = baseApi.injectEndpoints({
         academicYearId?: string;
         classId: string;
         feeHeadId: string;
+        examId?: string;
         amount: number;
         dueDay?: number;
         isActive?: boolean;
@@ -352,15 +375,15 @@ export const financeApi = baseApi.injectEndpoints({
     }),
 
     getWaivers: builder.query<
-      StudentWaiverItem[],
-      { academicYearId?: string } | void
+      PaginatedResponse<StudentWaiverItem>,
+      { academicYearId?: string; search?: string; waiverType?: WaiverType; page?: number; limit?: number } | void
     >({
       query: (params) => ({
         url: '/finance/waivers',
         method: 'GET',
         params: params || undefined,
       }),
-      transformResponse: (res: Envelope<StudentWaiverItem[]>) => res.data,
+      transformResponse: (res: Envelope<PaginatedResponse<StudentWaiverItem>>) => res.data,
       providesTags: ['Finance'],
     }),
 
@@ -476,28 +499,28 @@ export const financeApi = baseApi.injectEndpoints({
     }),
 
     getDues: builder.query<
-      DuesRowItem[],
-      { academicYearId?: string; classId?: string } | void
+      DuesPageResponse,
+      { academicYearId?: string; classId?: string; search?: string; page?: number; limit?: number } | void
     >({
       query: (params) => ({
         url: '/finance/dues',
         method: 'GET',
         params: params || undefined,
       }),
-      transformResponse: (res: Envelope<DuesRowItem[]>) => res.data,
+      transformResponse: (res: Envelope<DuesPageResponse>) => res.data,
       providesTags: ['Finance'],
     }),
 
     getMiscIncomes: builder.query<
-      MiscIncomeItem[],
-      { academicYearId?: string } | void
+      PaginatedResponse<MiscIncomeItem> & { totalAmount: number },
+      { academicYearId?: string; search?: string; category?: string; paymentMethod?: FeePaymentMethod; page?: number; limit?: number } | void
     >({
       query: (params) => ({
         url: '/finance/misc-incomes',
         method: 'GET',
         params: params || undefined,
       }),
-      transformResponse: (res: Envelope<MiscIncomeItem[]>) => res.data,
+      transformResponse: (res: Envelope<PaginatedResponse<MiscIncomeItem> & { totalAmount: number }>) => res.data,
       providesTags: ['Finance'],
     }),
 
@@ -527,15 +550,15 @@ export const financeApi = baseApi.injectEndpoints({
     }),
 
     getExpenses: builder.query<
-      ExpenseVoucherItem[],
-      { academicYearId?: string } | void
+      PaginatedResponse<ExpenseVoucherItem> & { totalAmount: number },
+      { academicYearId?: string; search?: string; category?: string; paymentMethod?: FeePaymentMethod; page?: number; limit?: number } | void
     >({
       query: (params) => ({
         url: '/finance/expenses',
         method: 'GET',
         params: params || undefined,
       }),
-      transformResponse: (res: Envelope<ExpenseVoucherItem[]>) => res.data,
+      transformResponse: (res: Envelope<PaginatedResponse<ExpenseVoucherItem> & { totalAmount: number }>) => res.data,
       providesTags: ['Finance'],
     }),
 
@@ -565,15 +588,15 @@ export const financeApi = baseApi.injectEndpoints({
     }),
 
     getSalaries: builder.query<
-      StaffSalaryPaymentItem[],
-      { academicYearId?: string } | void
+      PaginatedResponse<StaffSalaryPaymentItem> & { totalNetPaid: number },
+      { academicYearId?: string; search?: string; month?: number; paymentMethod?: FeePaymentMethod; page?: number; limit?: number } | void
     >({
       query: (params) => ({
         url: '/finance/salaries',
         method: 'GET',
         params: params || undefined,
       }),
-      transformResponse: (res: Envelope<StaffSalaryPaymentItem[]>) => res.data,
+      transformResponse: (res: Envelope<PaginatedResponse<StaffSalaryPaymentItem> & { totalNetPaid: number }>) => res.data,
       providesTags: ['Finance'],
     }),
 
@@ -606,7 +629,16 @@ export const financeApi = baseApi.injectEndpoints({
 
     getCashbook: builder.query<
       CashbookResponse,
-      { academicYearId?: string; from?: string; to?: string } | void
+      {
+        academicYearId?: string;
+        from?: string;
+        to?: string;
+        type?: 'INCOME' | 'EXPENSE';
+        method?: FeePaymentMethod;
+        search?: string;
+        page?: number;
+        limit?: number;
+      } | void
     >({
       query: (params) => ({
         url: '/finance/cashbook',
