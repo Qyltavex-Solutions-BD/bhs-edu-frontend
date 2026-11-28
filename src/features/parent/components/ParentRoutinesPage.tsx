@@ -21,7 +21,7 @@ import { FormalExamDocumentShell } from '@/src/components/print/ExamPrintDocumen
 import { formatNumber } from '@/src/lib/formatters';
 import { cn, triggerPrint } from '@/src/lib/utils/cn';
 import { ENUM_LABELS } from '@/src/lib/constants/enums';
-import type { SchoolProfile } from '@/src/types/entities';
+import { useLiveSchoolProfile } from '@/src/features/institution/hooks/useSchoolProfile';
 import { WeekDay } from '@/src/types/enums';
 
 const SCHOOL_DAYS_ORDER: WeekDay[] = [
@@ -32,18 +32,7 @@ const SCHOOL_DAYS_ORDER: WeekDay[] = [
   WeekDay.THURSDAY,
 ];
 
-const FALLBACK_SCHOOL_PROFILE: SchoolProfile = {
-  id: 'school-default',
-  name: 'ভোজেশ্বর উচ্চ বিদ্যালয়',
-  nameEn: 'Vojesshor High School',
-  eiin: '112233',
-  establishedYear: 1965,
-  address: 'ভোজেশ্বর, নড়িয়া, শরীয়তপুর',
-  phone: '',
-  email: '',
-  createdAt: '',
-  updatedAt: '',
-};
+
 
 function to12hDisplay(hhmm: string): string {
   const [hStr, mStr] = hhmm.split(':');
@@ -131,7 +120,7 @@ export function ParentRoutinesPage() {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const todayDay = getTodayWeekDay();
 
-  const schoolProfile: SchoolProfile = FALLBACK_SCHOOL_PROFILE;
+  const schoolProfile = useLiveSchoolProfile();
 
   const classNameMap = useMemo(() => {
     const map = new Map<string, string>();
