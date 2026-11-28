@@ -2,14 +2,14 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, CreditCard, Download, Search } from 'lucide-react';
+import { AlertTriangle, CreditCard, Download, RefreshCw, Search } from 'lucide-react';
 import {
   EmptyState,
   LoadingSkeleton,
   PageHeader,
   StatCard,
 } from '@/src/components/shared/Feedback';
-import { Button, Card, Input, Select } from '@/src/components/ui/primitives';
+import { Button, Card, FormField, Input, Select } from '@/src/components/ui/primitives';
 import { formatNumber } from '@/src/lib/formatters';
 import { exportToCsv } from '@/src/lib/utils/cn';
 import {
@@ -23,7 +23,13 @@ export function DuesPage() {
   const [classId, setClassId] = useState('');
   const [search, setSearch] = useState('');
 
-  const { data: dues = [], isLoading } = useGetDuesQuery({
+  const {
+    data: dues = [],
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+  } = useGetDuesQuery({
     academicYearId: ctx?.activeAcademicYear?.id,
     classId: classId || undefined,
   });
@@ -94,30 +100,55 @@ export function DuesPage() {
       </div>
 
       <Card className="p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="sm:col-span-2 relative">
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="নাম, শিক্ষার্থী আইডি বা রোল দিয়ে খুঁজুন..."
-              className="pl-9"
-            />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+          <div className="sm:col-span-2">
+            <FormField label={'খুঁজুন'}>
+              <div className="relative">
+                <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Input
+                  id="dues-search"
+                  name="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="নাম বা রোল দিয়ে খুঁজুন..."
+                  className="pl-9"
+                />
+              </div>
+            </FormField>
           </div>
-          <Select value={classId} onChange={(e) => setClassId(e.target.value)}>
-            <option value="">{'সকল শ্রেণি'}</option>
-            {(ctx?.classes ?? []).map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nameBn || c.name}
-              </option>
-            ))}
-          </Select>
+          <FormField label={'শ্রেণি'}>
+            <Select
+              id="dues-class-filter"
+              name="classId"
+              aria-label="শ্রেণি"
+              value={classId}
+              onChange={(e) => setClassId(e.target.value)}
+            >
+              <option value="">{'সকল শ্রেণি'}</option>
+              {(ctx?.classes ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nameBn || c.name}
+                </option>
+              ))}
+            </Select>
+          </FormField>
         </div>
       </Card>
 
       <Card className="p-5">
-        {isLoading ? (
+        {isLoading || isFetching ? (
           <LoadingSkeleton rows={6} />
+        ) : isError ? (
+          <div className="p-4 rounded-lg border border-destructive/40 bg-destructive/5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 text-sm text-destructive font-medium">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{'বকেয়া তালিকা লোড করা যায়নি।'}</span>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              <RefreshCw className="w-4 h-4" />
+              {'পুনরায় চেষ্টা করুন'}
+            </Button>
+          </div>
         ) : filtered.length === 0 ? (
           <EmptyState
             title={'কোনো বকেয়া পাওয়া যায়নি'}
@@ -125,54 +156,55 @@ export function DuesPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-base">
+            <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="border-b border-border text-left text-sm text-muted-foreground">
-                  <th className="py-2.5 pr-4">{'শিক্ষার্থী'}</th>
-                  <th className="py-2.5 pr-4">{'শ্রেণি ও রোল'}</th>
-                  <th className="py-2.5 pr-4">{'অভিভাবকের ফোন'}</th>
-                  <th className="py-2.5 pr-4 text-center">{'বকেয়া চালান'}</th>
-                  <th className="py-2.5 pr-4 text-right">{'বকেয়া (৳)'}</th>
-                  <th className="py-2.5 text-right">{'অ্যাকশন'}</th>
+                <tr className="border-b border-border bg-muted/40 text-left text-xs font-semibold text-muted-foreground">
+                  <th className="py-3 px-4">{'শিক্ষার্থী'}</th>
+                  <th className="py-3 px-4">{'শ্রেণি ও রোল'}</th>
+                  <th className="py-3 px-4">{'অভিভাবকের ফোন'}</th>
+                  <th className="py-3 px-4 text-center">{'বকেয়া চালান'}</th>
+                  <th className="py-3 px-4 text-right">{'বকেয়া (৳)'}</th>
+                  <th className="py-3 px-4 text-right">{'অ্যাকশন'}</th>
                 </tr>
               </thead>
-              <tbody>
-                {filtered.map((row) => (
-                  <tr
-                    key={row.enrollmentId}
-                    className="border-b border-border/60 last:border-0"
-                  >
-                    <td className="py-3 pr-4">
-                      <p className="font-medium text-foreground">{row.studentName}</p>
-                      <p className="text-sm text-muted-foreground font-mono">
-                        {row.studentIdCode}
-                      </p>
-                    </td>
-                    <td className="py-3 pr-4 text-sm text-muted-foreground">
-                      {row.className} {row.sectionName ? `(${row.sectionName})` : ''} ·{' '}
-                      {'রোল'} {row.rollNumber}
-                    </td>
-                    <td className="py-3 pr-4 text-sm tabular-nums">
-                      {row.guardianPhone || '—'}
-                    </td>
-                    <td className="py-3 pr-4 text-center tabular-nums">
-                      {formatNumber(row.invoiceCount, 'bn')}টি
-                    </td>
-                    <td className="py-3 pr-4 text-right font-bold text-warning tabular-nums">
-                      {formatTaka(row.totalDue)}
-                    </td>
-                    <td className="py-3 text-right">
-                      <Link
-                        href={`/accountant/collect-fee?enrollmentId=${row.enrollmentId}`}
-                      >
-                        <Button variant="primary" size="sm">
-                          <CreditCard className="w-4 h-4" />
-                          {'ফি গ্রহণ'}
-                        </Button>
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-border">
+                {filtered.map((row) => {
+                  const shortClass = (row.className || '—').replace(/\s*শ্রেণি\s*/g, '').trim();
+                  const rollNum = Number(row.rollNumber);
+                  const rollText = !Number.isNaN(rollNum)
+                    ? formatNumber(rollNum, 'bn')
+                    : row.rollNumber || '—';
+                  return (
+                    <tr key={row.enrollmentId} className="hover:bg-muted/20">
+                      <td className="py-3 px-4 font-medium text-foreground">
+                        {row.studentName}
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground whitespace-nowrap tabular-nums">
+                        {shortClass}
+                        {row.sectionName ? ` (${row.sectionName})` : ''} - {rollText}
+                      </td>
+                      <td className="py-3 px-4 tabular-nums whitespace-nowrap">
+                        {row.guardianPhone || '—'}
+                      </td>
+                      <td className="py-3 px-4 text-center tabular-nums whitespace-nowrap">
+                        {formatNumber(row.invoiceCount, 'bn')}টি
+                      </td>
+                      <td className="py-3 px-4 text-right font-bold text-warning tabular-nums whitespace-nowrap">
+                        {formatTaka(row.totalDue)}
+                      </td>
+                      <td className="py-3 px-4 text-right whitespace-nowrap">
+                        <Link
+                          href={`/accountant/collect-fee?enrollmentId=${row.enrollmentId}`}
+                        >
+                          <Button variant="primary" size="sm">
+                            <CreditCard className="w-4 h-4" />
+                            {'ফি গ্রহণ'}
+                          </Button>
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
