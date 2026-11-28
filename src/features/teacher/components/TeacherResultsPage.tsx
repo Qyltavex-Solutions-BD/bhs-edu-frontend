@@ -11,7 +11,7 @@ import {
   Users,
   XCircle,
 } from 'lucide-react';
-import { useGetBootstrapQuery } from '@/src/store/api';
+import { useLiveSchoolProfile } from '@/src/features/institution/hooks/useSchoolProfile';
 import {
   useGetAcademicYearsQuery,
   useGetCurrentAcademicYearQuery,
@@ -40,24 +40,11 @@ import { Button, Card, FormField, Input, Modal, Select } from '@/src/components/
 import { formatDateLong, formatNumber } from '@/src/lib/formatters';
 import { ENUM_LABELS } from '@/src/lib/constants/enums';
 import { cn, triggerPrint } from '@/src/lib/utils/cn';
-import type { Exam, SchoolProfile } from '@/src/types/entities';
+import type { Exam } from '@/src/types/entities';
 import { ExamStatus } from '@/src/types/enums';
 
-const FALLBACK_SCHOOL_PROFILE: SchoolProfile = {
-  id: 'school-default',
-  name: 'ভোজেশ্বর উচ্চ বিদ্যালয়',
-  nameEn: 'Vojesshor High School',
-  eiin: '112233',
-  establishedYear: 1965,
-  address: 'ভোজেশ্বর, নড়িয়া, শরীয়তপুর',
-  phone: '',
-  email: '',
-  createdAt: '',
-  updatedAt: '',
-};
-
 export function TeacherResultsPage() {
-  const { data: db } = useGetBootstrapQuery();
+  const schoolProfile = useLiveSchoolProfile();
   const { data: myAssignments = [], isLoading: loadingAssignments } =
     useGetMyTeacherAssignmentsQuery();
   const { data: allClasses = [], isLoading: loadingClasses } = useGetSchoolClassesQuery();
@@ -74,8 +61,6 @@ export function TeacherResultsPage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [previewRow, setPreviewRow] = useState<TabulationRow | null>(null);
   const [showMeritPrintModal, setShowMeritPrintModal] = useState(false);
-
-  const schoolProfile: SchoolProfile = db?.schoolProfile ?? FALLBACK_SCHOOL_PROFILE;
 
   const myClassIds = useMemo(
     () => Array.from(new Set(myAssignments.map((a) => a.classId).filter(Boolean))),

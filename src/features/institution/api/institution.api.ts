@@ -3,6 +3,14 @@ import type { SchoolProfile } from '@/src/types/entities';
 
 export const institutionApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
+    getInstitutionProfile: builder.query<SchoolProfile | null, void>({
+      query: () => ({
+        url: '/institution/profile',
+        method: 'GET',
+      }),
+      transformResponse: (res: { data: SchoolProfile | null }) => res.data,
+      providesTags: ['Institution'],
+    }),
     updateSchoolProfile: builder.mutation<SchoolProfile, Partial<SchoolProfile>>({
       query: (body) => ({
         url: '/admin/institution/profile',
@@ -14,5 +22,8 @@ export const institutionApi = baseApi.injectEndpoints({
   }),
 });
 
-export const { useUpdateSchoolProfileMutation } = institutionApi;
+export const {
+  useGetInstitutionProfileQuery,
+  useUpdateSchoolProfileMutation,
+} = institutionApi;
 

@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Calendar, Clock, DoorOpen, Layers, Printer } from 'lucide-react';
-import { useGetBootstrapQuery } from '@/src/store/api';
+import { useLiveSchoolProfile } from '@/src/features/institution/hooks/useSchoolProfile';
 import {
   useGetMyTeacherAssignmentsQuery,
   useGetSchoolClassesQuery,
@@ -20,7 +20,6 @@ import { FormalExamDocumentShell } from '@/src/components/print/ExamPrintDocumen
 import { formatNumber } from '@/src/lib/formatters';
 import { cn, triggerPrint } from '@/src/lib/utils/cn';
 import { ENUM_LABELS } from '@/src/lib/constants/enums';
-import type { SchoolProfile } from '@/src/types/entities';
 import { WeekDay } from '@/src/types/enums';
 
 const SCHOOL_DAYS_ORDER: WeekDay[] = [
@@ -30,19 +29,6 @@ const SCHOOL_DAYS_ORDER: WeekDay[] = [
   WeekDay.WEDNESDAY,
   WeekDay.THURSDAY,
 ];
-
-const FALLBACK_SCHOOL_PROFILE: SchoolProfile = {
-  id: 'school-default',
-  name: 'ভোজেশ্বর উচ্চ বিদ্যালয়',
-  nameEn: 'Vojesshor High School',
-  eiin: '112233',
-  establishedYear: 1965,
-  address: 'ভোজেশ্বর, নড়িয়া, শরীয়তপুর',
-  phone: '',
-  email: '',
-  createdAt: '',
-  updatedAt: '',
-};
 
 function getTodayWeekDay(): WeekDay {
   const map: WeekDay[] = [
@@ -59,7 +45,7 @@ function getTodayWeekDay(): WeekDay {
 
 export function TeacherRoutinesPage() {
   const auth = useAppSelector((s) => s.auth);
-  const { data: db } = useGetBootstrapQuery();
+  const schoolProfile = useLiveSchoolProfile();
   const { data: myAssignments = [], isLoading: loadingAssignments } =
     useGetMyTeacherAssignmentsQuery();
   const { data: allClasses = [] } = useGetSchoolClassesQuery();
@@ -75,8 +61,6 @@ export function TeacherRoutinesPage() {
   const [dayFilter, setDayFilter] = useState<'ALL' | WeekDay>('ALL');
   const [showPrintModal, setShowPrintModal] = useState(false);
   const todayDay = getTodayWeekDay();
-
-  const schoolProfile: SchoolProfile = db?.schoolProfile ?? FALLBACK_SCHOOL_PROFILE;
 
   const scheduleByDay = useMemo(() => {
     const rawSchedule = routineData?.weeklySchedule ?? [];
