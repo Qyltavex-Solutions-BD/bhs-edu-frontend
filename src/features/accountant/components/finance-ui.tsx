@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Printer, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Printer, X } from 'lucide-react';
 import { Button, Modal } from '@/src/components/ui/primitives';
 import { formatDateLong, formatNumber } from '@/src/lib/formatters';
 import { triggerPrint } from '@/src/lib/utils/cn';
@@ -11,6 +11,7 @@ import type {
   FeePaymentTransactionItem,
   FinanceContextResponse,
   InvoiceStatus,
+  PaginationMeta,
   ReceiptStatus,
   WaiverType,
 } from '../api/finance.api';
@@ -263,5 +264,42 @@ export function MoneyReceiptModal({
         </div>
       </div>
     </Modal>
+  );
+}
+
+export function FinancePaginationBar({
+  meta,
+  onPageChange,
+}: {
+  meta?: PaginationMeta;
+  onPageChange: (page: number) => void;
+}) {
+  if (!meta || meta.total === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 pt-4 mt-4 border-t border-border text-sm text-muted-foreground no-print">
+      <span>
+        {`পৃষ্ঠা ${formatNumber(meta.page, 'bn')} / ${formatNumber(meta.totalPages, 'bn')} (মোট ${formatNumber(meta.total, 'bn')}টি)`}
+      </span>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!meta.hasPreviousPage}
+          onClick={() => onPageChange(Math.max(1, meta.page - 1))}
+        >
+          <ChevronLeft className="w-4 h-4" />
+          {'পূর্ববর্তী'}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!meta.hasNextPage}
+          onClick={() => onPageChange(meta.page + 1)}
+        >
+          {'পরবর্তী'}
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
   );
 }

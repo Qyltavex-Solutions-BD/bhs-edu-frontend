@@ -27,17 +27,38 @@ import {
 import {
   BN_MONTHS_LIST,
   EXPENSE_CATEGORIES,
+  FinancePaginationBar,
   formatTaka,
   MISC_INCOME_CATEGORIES,
   PAYMENT_METHOD_LABELS,
 } from './finance-ui';
 
+const PAGE_SIZE = 20;
+
 export function OtherIncomePage() {
   const { data: ctx } = useGetFinanceContextQuery();
   const activeYearId = ctx?.activeAcademicYear?.id;
-  const { data: items = [], isLoading } = useGetMiscIncomesQuery(
-    activeYearId ? { academicYearId: activeYearId } : undefined
+  const [search, setSearch] = useState('');
+  const [filterCat, setFilterCat] = useState('');
+  const [filterMethod, setFilterMethod] = useState<'' | FeePaymentMethod>('');
+  const [page, setPage] = useState(1);
+
+  const { data: incomeData, isLoading } = useGetMiscIncomesQuery(
+    activeYearId
+      ? {
+          academicYearId: activeYearId,
+          search: search.trim() || undefined,
+          category: filterCat || undefined,
+          paymentMethod: filterMethod || undefined,
+          page,
+          limit: PAGE_SIZE,
+        }
+      : undefined
   );
+  const items = incomeData?.items ?? [];
+  const meta = incomeData?.meta;
+  const totalIncome = incomeData?.totalAmount ?? 0;
+
   const [createIncome, { isLoading: saving }] = useCreateMiscIncomeMutation();
   const [deleteIncome] = useDeleteMiscIncomeMutation();
 
@@ -47,11 +68,6 @@ export function OtherIncomePage() {
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<FeePaymentMethod>('CASH');
   const [remarks, setRemarks] = useState('');
-
-  const totalIncome = useMemo(
-    () => items.reduce((sum, i) => sum + i.amount, 0),
-    [items]
-  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -168,7 +184,35 @@ export function OtherIncomePage() {
         </Card>
 
         <Card className="p-5 lg:col-span-2">
-          <h2 className="text-base font-semibold mb-4">{'অন্যান্য আয়ের তালিকা'}</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <h2 className="text-base font-semibold">{'অন্যান্য আয়ের তালিকা'}</h2>
+            <div className="flex flex-wrap gap-2">
+              <Input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="ভাউচার বা বিবরণ..."
+                className="w-40"
+              />
+              <Select
+                value={filterCat}
+                onChange={(e) => {
+                  setFilterCat(e.target.value);
+                  setPage(1);
+                }}
+                className="w-40"
+              >
+                <option value="">{'সকল খাত'}</option>
+                {MISC_INCOME_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
           {isLoading ? (
             <LoadingSkeleton rows={5} />
           ) : items.length === 0 ? (
@@ -226,6 +270,7 @@ export function OtherIncomePage() {
               </table>
             </div>
           )}
+          <FinancePaginationBar meta={meta} onPageChange={setPage} />
         </Card>
       </div>
     </div>
@@ -235,9 +280,25 @@ export function OtherIncomePage() {
 export function ExpensesPage() {
   const { data: ctx } = useGetFinanceContextQuery();
   const activeYearId = ctx?.activeAcademicYear?.id;
-  const { data: items = [], isLoading } = useGetExpensesQuery(
-    activeYearId ? { academicYearId: activeYearId } : undefined
+  const [search, setSearch] = useState('');
+  const [filterCat, setFilterCat] = useState('');
+  const [page, setPage] = useState(1);
+
+  const { data: expenseData, isLoading } = useGetExpensesQuery(
+    activeYearId
+      ? {
+          academicYearId: activeYearId,
+          search: search.trim() || undefined,
+          category: filterCat || undefined,
+          page,
+          limit: PAGE_SIZE,
+        }
+      : undefined
   );
+  const items = expenseData?.items ?? [];
+  const meta = expenseData?.meta;
+  const totalExpense = expenseData?.totalAmount ?? 0;
+
   const [createExpense, { isLoading: saving }] = useCreateExpenseMutation();
   const [deleteExpense] = useDeleteExpenseMutation();
 
@@ -247,11 +308,6 @@ export function ExpensesPage() {
   const [amount, setAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<FeePaymentMethod>('CASH');
   const [remarks, setRemarks] = useState('');
-
-  const totalExpense = useMemo(
-    () => items.reduce((sum, i) => sum + i.amount, 0),
-    [items]
-  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -368,7 +424,35 @@ export function ExpensesPage() {
         </Card>
 
         <Card className="p-5 lg:col-span-2">
-          <h2 className="text-base font-semibold mb-4">{'ব্যয় ভাউচার তালিকা'}</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <h2 className="text-base font-semibold">{'ব্যয় ভাউচার তালিকা'}</h2>
+            <div className="flex flex-wrap gap-2">
+              <Input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="ভাউচার বা বিবরণ..."
+                className="w-40"
+              />
+              <Select
+                value={filterCat}
+                onChange={(e) => {
+                  setFilterCat(e.target.value);
+                  setPage(1);
+                }}
+                className="w-40"
+              >
+                <option value="">{'সকল খাত'}</option>
+                {EXPENSE_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
           {isLoading ? (
             <LoadingSkeleton rows={5} />
           ) : items.length === 0 ? (
@@ -426,6 +510,7 @@ export function ExpensesPage() {
               </table>
             </div>
           )}
+          <FinancePaginationBar meta={meta} onPageChange={setPage} />
         </Card>
       </div>
     </div>
@@ -436,10 +521,24 @@ export function PayrollPage() {
   const { data: ctx } = useGetFinanceContextQuery();
   const activeYearId = ctx?.activeAcademicYear?.id;
   const yearName = ctx?.activeAcademicYear?.name ?? String(new Date().getFullYear());
+  const [search, setSearch] = useState('');
+  const [filterMonth, setFilterMonth] = useState('');
+  const [page, setPage] = useState(1);
 
-  const { data: salaries = [], isLoading } = useGetSalariesQuery(
-    activeYearId ? { academicYearId: activeYearId } : undefined
+  const { data: salaryData, isLoading } = useGetSalariesQuery(
+    activeYearId
+      ? {
+          academicYearId: activeYearId,
+          search: search.trim() || undefined,
+          month: filterMonth ? Number(filterMonth) : undefined,
+          page,
+          limit: PAGE_SIZE,
+        }
+      : undefined
   );
+  const salaries = salaryData?.items ?? [];
+  const meta = salaryData?.meta;
+  const totalSalaryPaid = salaryData?.totalNetPaid ?? 0;
   const staffList = ctx?.staffList ?? [];
 
   const [createSalary, { isLoading: saving }] = useCreateSalaryMutation();
@@ -452,11 +551,6 @@ export function PayrollPage() {
   const [deduction, setDeduction] = useState('0');
   const [paymentMethod, setPaymentMethod] = useState<FeePaymentMethod>('BANK');
   const [remarks, setRemarks] = useState('');
-
-  const totalSalaryPaid = useMemo(
-    () => salaries.reduce((sum, s) => sum + s.netPaid, 0),
-    [salaries]
-  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -593,7 +687,35 @@ export function PayrollPage() {
         </Card>
 
         <Card className="p-5 lg:col-span-2">
-          <h2 className="text-base font-semibold mb-4">{'বেতন প্রদানের তালিকা'}</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <h2 className="text-base font-semibold">{'বেতন প্রদানের তালিকা'}</h2>
+            <div className="flex flex-wrap gap-2">
+              <Input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="শিক্ষক বা ভাউচার..."
+                className="w-40"
+              />
+              <Select
+                value={filterMonth}
+                onChange={(e) => {
+                  setFilterMonth(e.target.value);
+                  setPage(1);
+                }}
+                className="w-36"
+              >
+                <option value="">{'সকল মাস'}</option>
+                {BN_MONTHS_LIST.map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
           {isLoading ? (
             <LoadingSkeleton rows={5} />
           ) : salaries.length === 0 ? (
@@ -650,6 +772,7 @@ export function PayrollPage() {
               </table>
             </div>
           )}
+          <FinancePaginationBar meta={meta} onPageChange={setPage} />
         </Card>
       </div>
     </div>

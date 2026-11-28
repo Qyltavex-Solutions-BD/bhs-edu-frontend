@@ -16,15 +16,18 @@ import {
   useGetDuesQuery,
   useGetFinanceContextQuery,
 } from '../api/finance.api';
-import { formatTaka } from './finance-ui';
+import { formatTaka, FinancePaginationBar } from './finance-ui';
+
+const PAGE_SIZE = 20;
 
 export function DuesPage() {
   const { data: ctx } = useGetFinanceContextQuery();
   const [classId, setClassId] = useState('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   const {
-    data: dues = [],
+    data,
     isLoading,
     isFetching,
     isError,
@@ -32,23 +35,15 @@ export function DuesPage() {
   } = useGetDuesQuery({
     academicYearId: ctx?.activeAcademicYear?.id,
     classId: classId || undefined,
+    search: search.trim() || undefined,
+    page,
+    limit: PAGE_SIZE,
   });
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return dues;
-    return dues.filter(
-      (d) =>
-        d.studentName.toLowerCase().includes(q) ||
-        d.studentIdCode.toLowerCase().includes(q) ||
-        d.rollNumber.toLowerCase().includes(q)
-    );
-  }, [dues, search]);
-
-  const totalDueSum = useMemo(
-    () => filtered.reduce((sum, r) => sum + r.totalDue, 0),
-    [filtered]
-  );
+  const filtered = data?.items ?? [];
+  const meta = data?.meta;
+  const totalDueSum = data?.summary?.totalDueSum ?? 0;
+  const totalStudents = data?.summary?.totalStudents ?? filtered.length;
 
   function handleExportCsv() {
     exportToCsv(
@@ -86,7 +81,7 @@ export function DuesPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <StatCard
           label={'বকেয়া থাকা শিক্ষার্থী'}
-          value={formatNumber(filtered.length, 'bn')}
+          value={formatNumber(totalStudents, 'bn')}
           meta={'নির্বাচিত শ্রেণি/ফিল্টার অনুযায়ী'}
           accent="primary"
         />
@@ -109,7 +104,10 @@ export function DuesPage() {
                   id="dues-search"
                   name="search"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                   placeholder="নাম বা রোল দিয়ে খুঁজুন..."
                   className="pl-9"
                 />
@@ -122,7 +120,10 @@ export function DuesPage() {
               name="classId"
               aria-label="শ্রেণি"
               value={classId}
-              onChange={(e) => setClassId(e.target.value)}
+              onChange={(e) => {
+                setClassId(e.target.value);
+                setPage(1);
+              }}
             >
               <option value="">{'সকল শ্রেণি'}</option>
               {(ctx?.classes ?? []).map((c) => (
@@ -209,6 +210,7 @@ export function DuesPage() {
             </table>
           </div>
         )}
+        <FinancePaginationBar meta={meta} onPageChange={setPage} />
       </Card>
     </div>
   );

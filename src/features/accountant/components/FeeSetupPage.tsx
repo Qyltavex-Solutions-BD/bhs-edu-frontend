@@ -21,18 +21,34 @@ import {
   useSaveFeeStructureMutation,
   type FeeFrequency,
 } from '../api/finance.api';
-import { BN_MONTHS_LIST, FEE_FREQUENCY_LABELS, formatTaka } from './finance-ui';
+import {
+  BN_MONTHS_LIST,
+  FEE_FREQUENCY_LABELS,
+  FinancePaginationBar,
+  formatTaka,
+} from './finance-ui';
+
+const PAGE_SIZE = 20;
 
 export function FeeSetupPage() {
   const { data: ctx } = useGetFinanceContextQuery();
   const [selectedYearId, setSelectedYearId] = useState('');
+  const [filterClassId, setFilterClassId] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const activeYearId = selectedYearId || ctx?.activeAcademicYear?.id || undefined;
 
   const { data: feeHeads = [], isLoading: headsLoading } = useGetFeeHeadsQuery();
-  const { data: feeStructures = [], isLoading: structsLoading } =
-    useGetFeeStructuresQuery(
-      activeYearId ? { academicYearId: activeYearId } : undefined
-    );
+  const { data: structuresData, isLoading: structsLoading } =
+    useGetFeeStructuresQuery({
+      academicYearId: activeYearId,
+      classId: filterClassId || undefined,
+      search: search.trim() || undefined,
+      page,
+      limit: PAGE_SIZE,
+    });
+  const feeStructures = structuresData?.items ?? [];
+  const structMeta = structuresData?.meta;
 
   const [saveFeeHead, { isLoading: savingHead }] = useSaveFeeHeadMutation();
   const [saveFeeStructure, { isLoading: savingStruct }] =
@@ -50,8 +66,22 @@ export function FeeSetupPage() {
   // New Fee Structure form
   const [structClassId, setStructClassId] = useState('');
   const [structHeadId, setStructHeadId] = useState('');
+  const [structExamId, setStructExamId] = useState('');
   const [structAmount, setStructAmount] = useState('');
   const [structDueDay, setStructDueDay] = useState('10');
+
+  const selectedStructHead = useMemo(
+    () => feeHeads.find((h) => h.id === structHeadId) ?? null,
+    [feeHeads, structHeadId]
+  );
+
+  const yearExams = useMemo(
+    () =>
+      (ctx?.exams ?? []).filter(
+        (ex) => !activeYearId || ex.academicYearId === activeYearId
+      ),
+    [ctx?.exams, activeYearId]
+  );
 
   // Bulk Invoice Generator form
   const [genStructId, setGenStructId] = useState('');
@@ -97,11 +127,13 @@ export function FeeSetupPage() {
         academicYearId: activeYearId,
         classId: structClassId,
         feeHeadId: structHeadId,
+        examId: selectedStructHead?.frequency === 'PER_EXAM' ? structExamId || undefined : undefined,
         amount: Number(structAmount),
         dueDay: Number(structDueDay) || 10,
       }).unwrap();
       toast.success('শ্রেণিভিত্তিক ফি কাঠামো সংরক্ষিত হয়েছে।');
       setStructAmount('');
+      setStructExamId('');
     } catch (err: any) {
       toast.error(err?.message || 'ফি কাঠামো সংরক্ষণ করা যায়নি।');
     }
@@ -268,7 +300,10 @@ export function FeeSetupPage() {
               <label className="block text-sm font-medium mb-1">{'ফি খাত'}</label>
               <Select
                 value={structHeadId}
-                onChange={(e) => setStructHeadId(e.target.value)}
+                onChange={(e) => {
+                  setStructHeadId(e.target.value);
+                  setStructExamId('');
+                }}
               >
                 <option value="">{'ফি খাত নির্বাচন করুন'}</option>
                 {feeHeads.map((h) => (
@@ -278,6 +313,24 @@ export function FeeSetupPage() {
                 ))}
               </Select>
             </div>
+            {selectedStructHead?.frequency === 'PER_EXAM' && (
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {'সংশ্লিষ্ট পরীক্ষা (ঐচ্ছিক)'}
+                </label>
+                <Select
+                  value={structExamId}
+                  onChange={(e) => setStructExamId(e.target.value)}
+                >
+                  <option value="">{'সকল / সাধারণ পরীক্ষা'}</option>
+                  {yearExams.map((ex) => (
+                    <option key={ex.id} value={ex.id}>
+                      {ex.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium mb-1">{'টাকার পরিমাণ (৳)'}</label>
@@ -309,9 +362,37 @@ export function FeeSetupPage() {
         </Card>
 
         <Card className="p-5 lg:col-span-2">
-          <h2 className="text-base font-semibold text-foreground mb-4">
-            {'নির্ধারিত শ্রেণিভিত্তিক ফি তালিকা'}
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h2 className="text-base font-semibold text-foreground">
+              {'নির্ধারিত শ্রেণিভিত্তিক ফি তালিকা'}
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              <Input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="ফি খাত বা শ্রেণি খুঁজুন..."
+                className="w-44"
+              />
+              <Select
+                value={filterClassId}
+                onChange={(e) => {
+                  setFilterClassId(e.target.value);
+                  setPage(1);
+                }}
+                className="w-40"
+              >
+                <option value="">{'সকল শ্রেণি'}</option>
+                {(ctx?.classes ?? []).map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nameBn || c.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
           {feeStructures.length === 0 ? (
             <EmptyState
               title={'কোনো ফি কাঠামো নির্ধারণ করা হয়নি'}
@@ -335,7 +416,12 @@ export function FeeSetupPage() {
                       <td className="py-2.5 pr-4 font-medium">
                         {s.schoolClass?.nameBn ?? s.schoolClass?.name}
                       </td>
-                      <td className="py-2.5 pr-4">{s.feeHead?.name}</td>
+                      <td className="py-2.5 pr-4">
+                        <div>{s.feeHead?.name}</div>
+                        {s.exam?.name && (
+                          <div className="text-xs text-muted-foreground">{`পরীক্ষা: ${s.exam.name}`}</div>
+                        )}
+                      </td>
                       <td className="py-2.5 pr-4 text-sm text-muted-foreground">
                         {s.feeHead ? FEE_FREQUENCY_LABELS[s.feeHead.frequency] : '—'}
                       </td>
@@ -364,6 +450,7 @@ export function FeeSetupPage() {
               </table>
             </div>
           )}
+          <FinancePaginationBar meta={structMeta} onPageChange={setPage} />
         </Card>
       </div>
 

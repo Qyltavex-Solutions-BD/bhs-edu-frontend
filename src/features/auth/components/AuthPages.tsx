@@ -518,56 +518,113 @@ export function LoginPage() {
 export function AccountantLoginPage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const [step, setStep] = useState<'IDENTIFY' | 'ENTER_PASSWORD' | 'SET_PASSWORD'>('IDENTIFY');
+  const [verifiedIdentifier, setVerifiedIdentifier] = useState('');
+  const [accountName, setAccountName] = useState('');
+  const [maskedTarget, setMaskedTarget] = useState<string | null>(null);
+  const [passwordInput, setPasswordInput] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const [loginApi, { isLoading }] = useLoginUserMutation();
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
 
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { identifier: '', password: '' },
+  const identifyForm = useForm<PortalInitiateFormValues>({
+    resolver: zodResolver(portalInitiateSchema),
+    defaultValues: { identifier: '' },
   });
 
-  const onSubmit = async (values: LoginFormValues) => {
+  const setupForm = useForm<PortalSetupPasswordFormValues>({
+    resolver: zodResolver(portalSetupPasswordSchema),
+    defaultValues: { otp: '', password: '', confirmPassword: '' },
+  });
+
+  const [portalInitiateApi, { isLoading: isInitiating }] = usePortalInitiateMutation();
+  const [portalSetupPasswordApi, { isLoading: isSettingPassword }] = usePortalSetupPasswordMutation();
+  const [loginApi, { isLoading: isLoggingIn }] = useLoginUserMutation();
+
+  const completeAccountantSession = (res: LoginResponseData) => {
+    const roles = res.user?.roles || [];
+    if (!roles.includes('ACCOUNTANT')) {
+      toast.error('এই লগইন শুধুমাত্র অ্যাকাউন্ট্যান্ট রোলের ব্যবহারকারীদের জন্য।');
+      return;
+    }
+
+    dispatch(
+      setCredentials({
+        accessToken: res.accessToken,
+        user: {
+          id: res.user.id,
+          name: res.user.name,
+          email: res.user.email,
+          phone: res.user.phone,
+          role: 'ACCOUNTANT',
+        },
+        role: 'ACCOUNTANT',
+        permissions: res.user.permissions ?? [],
+      })
+    );
+
+    toast.success('অ্যাকাউন্ট্যান্ট পোর্টালে লগইন সফল হয়েছে।');
+    router.push('/accountant/dashboard');
+  };
+
+  const handleInitiateSubmit = async (values: PortalInitiateFormValues) => {
+    try {
+      const res = await portalInitiateApi({ identifier: values.identifier.trim() }).unwrap();
+      setVerifiedIdentifier(res.identifier);
+      setAccountName(res.name);
+      setMaskedTarget(res.maskedPhone || res.maskedEmail || null);
+
+      if (res.nextStep === 'SET_PASSWORD') {
+        setupForm.reset({ otp: '', password: '', confirmPassword: '' });
+        setStep('SET_PASSWORD');
+        toast.info('প্রথমবার লগইনের জন্য কনসোলে (এসএমএস লগে) একটি ওটিপি পাঠানো হয়েছে। পাসওয়ার্ড সেট করুন।');
+      } else {
+        setPasswordInput('');
+        setStep('ENTER_PASSWORD');
+      }
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message ||
+          err?.message ||
+          'অ্যাকাউন্ট যাচাই করা যায়নি। সঠিক ইমেইল বা মোবাইল নম্বর দিন।'
+      );
+    }
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput.length < 6) {
+      toast.error('পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।');
+      return;
+    }
     try {
       const res = await loginApi({
-        email: values.identifier.trim(),
-        password: values.password,
+        email: verifiedIdentifier,
+        password: passwordInput,
       }).unwrap();
-
-      const roles = res.user?.roles || [];
-      const isAccountant =
-        roles.includes('ACCOUNTANT') ||
-        roles.includes('SUPER_ADMIN') ||
-        roles.includes('ADMIN');
-
-      if (!isAccountant) {
-        toast.error('এই লগইন শুধুমাত্র অ্যাকাউন্ট্যান্ট ও অনুমোদিত হিসাব কর্মকর্তাদের জন্য।');
-        return;
-      }
-
-      const assignedRole = roles.includes('ACCOUNTANT') ? 'ACCOUNTANT' : 'SUPER_ADMIN';
-
-      dispatch(
-        setCredentials({
-          accessToken: res.accessToken,
-          user: {
-            id: res.user.id,
-            name: res.user.name,
-            email: res.user.email,
-            phone: res.user.phone,
-            role: assignedRole,
-          },
-          role: assignedRole,
-          permissions: res.user.permissions ?? [],
-        })
-      );
-
-      toast.success('অ্যাকাউন্ট্যান্ট পোর্টালে লগইন সফল হয়েছে।');
-      router.push('/accountant/dashboard');
+      completeAccountantSession(res);
     } catch (err: any) {
       toast.error(
         err?.data?.message ||
           err?.message ||
           'লগইন তথ্য সঠিক নয়। অনুগ্রহ করে আবার চেষ্টা করুন।'
+      );
+    }
+  };
+
+  const handleSetupPasswordSubmit = async (values: PortalSetupPasswordFormValues) => {
+    try {
+      const res = await portalSetupPasswordApi({
+        identifier: verifiedIdentifier,
+        otp: values.otp.trim(),
+        password: values.password,
+        confirmPassword: values.confirmPassword,
+      }).unwrap();
+      completeAccountantSession(res);
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message ||
+          err?.message ||
+          'পাসওয়ার্ড সেট করা যায়নি। ওটিপি ও তথ্য যাচাই করুন।'
       );
     }
   };
@@ -639,47 +696,143 @@ export function AccountantLoginPage() {
             </p>
           </div>
 
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              label={'ইমেইল অথবা মোবাইল নম্বর'}
-              required
-              error={form.formState.errors.identifier?.message}
-            >
-              <Input
-                {...form.register('identifier')}
-                placeholder={'যেমন: accountant@bhs.edu.bd বা 017...'}
-                autoComplete="username"
-              />
-            </FormField>
-
-            <FormField
-              label={'পাসওয়ার্ড'}
-              required
-              error={form.formState.errors.password?.message}
-            >
-              <div className="relative">
+          {step === 'IDENTIFY' && (
+            <form onSubmit={identifyForm.handleSubmit(handleInitiateSubmit)} className="space-y-4">
+              <FormField
+                label={'ইমেইল অথবা মোবাইল নম্বর'}
+                required
+                error={identifyForm.formState.errors.identifier?.message}
+              >
                 <Input
-                  type={showPass ? 'text' : 'password'}
-                  {...form.register('password')}
-                  placeholder={'আপনার পাসওয়ার্ড লিখুন'}
-                  autoComplete="current-password"
-                  className="pr-10"
+                  {...identifyForm.register('identifier')}
+                  placeholder={'যেমন: accountant@bhs.edu.bd বা 017...'}
+                  autoComplete="username"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPass((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
-                  aria-label={'পাসওয়ার্ড দেখুন'}
-                >
-                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </FormField>
+              </FormField>
+              <Button type="submit" variant="primary" className="w-full" disabled={isInitiating}>
+                {isInitiating ? 'যাচাই করা হচ্ছে...' : 'পরবর্তী ধাপে যান'}
+              </Button>
+            </form>
+          )}
 
-            <Button type="submit" variant="primary" className="w-full" disabled={isLoading}>
-              {isLoading ? 'যাচাই করা হচ্ছে...' : 'অ্যাকাউন্ট্যান্ট পোর্টালে প্রবেশ করুন'}
-            </Button>
-          </form>
+          {step === 'ENTER_PASSWORD' && (
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+                <p className="font-semibold text-foreground">{accountName}</p>
+                <p className="text-muted-foreground">{verifiedIdentifier}</p>
+              </div>
+              <FormField label={'পাসওয়ার্ড'} required>
+                <div className="relative">
+                  <Input
+                    type={showPass ? 'text' : 'password'}
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    placeholder={'আপনার পাসওয়ার্ড লিখুন'}
+                    autoComplete="current-password"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    aria-label={'পাসওয়ার্ড দেখুন'}
+                  >
+                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </FormField>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep('IDENTIFY')}
+                >
+                  {'ফিরে যান'}
+                </Button>
+                <Button type="submit" variant="primary" className="flex-1" disabled={isLoggingIn}>
+                  {isLoggingIn ? 'যাচাই করা হচ্ছে...' : 'অ্যাকাউন্ট্যান্ট পোর্টালে প্রবেশ করুন'}
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {step === 'SET_PASSWORD' && (
+            <form onSubmit={setupForm.handleSubmit(handleSetupPasswordSubmit)} className="space-y-4">
+              <div className="rounded-lg border border-primary/25 bg-primary/5 px-3 py-2 text-sm">
+                <p className="font-semibold text-foreground">{accountName}</p>
+                <p className="text-muted-foreground">
+                  {`প্রথম লগইন ওটিপি পাঠানো হয়েছে (${maskedTarget || verifiedIdentifier})`}
+                </p>
+              </div>
+              <FormField
+                label={'৬-সংখ্যার ওটিপি (OTP)'}
+                required
+                error={setupForm.formState.errors.otp?.message}
+              >
+                <Input
+                  {...setupForm.register('otp')}
+                  placeholder={'যেমন: 123456'}
+                  maxLength={6}
+                />
+              </FormField>
+              <FormField
+                label={'নতুন পাসওয়ার্ড'}
+                required
+                error={setupForm.formState.errors.password?.message}
+              >
+                <div className="relative">
+                  <Input
+                    type={showPass ? 'text' : 'password'}
+                    {...setupForm.register('password')}
+                    placeholder={'কমপক্ষে ৬ অক্ষর'}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    aria-label={'পাসওয়ার্ড দেখুন'}
+                  >
+                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </FormField>
+              <FormField
+                label={'পাসওয়ার্ড নিশ্চিত করুন'}
+                required
+                error={setupForm.formState.errors.confirmPassword?.message}
+              >
+                <div className="relative">
+                  <Input
+                    type={showConfirmPass ? 'text' : 'password'}
+                    {...setupForm.register('confirmPassword')}
+                    placeholder={'পুনরায় পাসওয়ার্ড লিখুন'}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPass((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                    aria-label={'পাসওয়ার্ড দেখুন'}
+                  >
+                    {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </FormField>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep('IDENTIFY')}
+                >
+                  {'ফিরে যান'}
+                </Button>
+                <Button type="submit" variant="primary" className="flex-1" disabled={isSettingPassword}>
+                  {isSettingPassword ? 'সংরক্ষণ হচ্ছে...' : 'পাসওয়ার্ড সেট ও প্রবেশ করুন'}
+                </Button>
+              </div>
+            </form>
+          )}
 
           <div className="pt-4 border-t border-border flex items-center justify-between text-sm">
             <Link href="/login" className="text-primary hover:underline font-medium">
