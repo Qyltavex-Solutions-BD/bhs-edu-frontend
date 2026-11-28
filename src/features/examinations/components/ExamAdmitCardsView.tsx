@@ -1,8 +1,17 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { CheckCircle2, IdCard, Printer, Search, Users } from 'lucide-react';
-import { useGetBootstrapQuery } from '@/src/store/api';
+import { Printer, Search } from 'lucide-react';
+import {
+  useGetExamRoutinesByExamQuery,
+  useGetExamSubjectsQuery,
+  useGetExamsQuery,
+} from '@/src/features/examinations/api/examinations.api';
+import { useGetEnrollmentsQuery } from '@/src/features/students/api/students.api';
+import { useGetAcademicYearsQuery } from '@/src/services/academic/year.api';
+import { useGetSchoolClassesQuery } from '@/src/services/academic/class.api';
+import { useGetSectionsQuery } from '@/src/services/academic/section.api';
+import { useGetAcademicGroupsQuery } from '@/src/services/academic/group.api';
 import {
   EmptyState,
   LoadingSkeleton,
@@ -15,17 +24,60 @@ import {
 } from '@/src/components/print/PrintDocuments';
 import { Button, Card, Input, Modal, Select } from '@/src/components/ui/primitives';
 import { formatNumber } from '@/src/lib/formatters';
-import { cn, triggerPrint } from '@/src/lib/utils/cn';
-import { EnrollmentStatus } from '@/src/types/enums';
-import {
-  buildSeatPlanRooms,
-  getExamEnrolledStudents,
-  resolveStudentParents,
-} from './ExamShared';
+import { triggerPrint } from '@/src/lib/utils/cn';
+import { EnrollmentStatus, ExamType, RelationshipType } from '@/src/types/enums';
+import type { SchoolProfile } from '@/src/types/entities';
+
+const DEFAULT_SCHOOL_PROFILE: SchoolProfile = {
+  id: 'school-default',
+  name: 'ভোজেশ্বর উচ্চ বিদ্যালয়',
+  nameEn: 'Vojesshor High School',
+  eiin: '113587',
+  establishedYear: 1965,
+  address: 'ভোজেশ্বর, নড়িয়া, শরীয়তপুর',
+  phone: '',
+  email: '',
+  createdAt: '',
+  updatedAt: '',
+};
+
+interface EnrollmentWithRelations {
+  id: string;
+  studentId: string;
+  academicYearId: string;
+  classId: string;
+  sectionId: string;
+  groupId?: string | null;
+  roll: number;
+  status: string;
+  student?: {
+    id: string;
+    studentId: string;
+    nameEn: string;
+    nameBn?: string | null;
+    photo?: string | null;
+    parents?: Array<{
+      relationship: string;
+      parent?: {
+        name?: string;
+        nameBn?: string | null;
+      };
+    }>;
+  };
+  section?: { id: string; name: string };
+  group?: { id: string; name: string; nameBn?: string | null } | null;
+}
 
 export function ExamAdmitCardsView() {
-  const { data: db, isLoading } = useGetBootstrapQuery();
-  const [selectedExamId, setSelectedExamId] = useState('exam-ann-10');
+  const { data: examsRes, isLoading: loadingExams } = useGetExamsQuery({
+    limit: 100,
+    isDeleted: false,
+  });
+  const { data: academicYears = [] } = useGetAcademicYearsQuery();
+  const { data: allClasses = [] } = useGetSchoolClassesQuery();
+  const { data: academicGroups = [] } = useGetAcademicGroupsQuery();
+
+  const [selectedExamId, setSelectedExamId] = useState('');
   const [sectionFilter, setSectionFilter] = useState('ALL');
   const [groupFilter, setGroupFilter] = useState('ALL');
   const [search, setSearch] = useState('');
@@ -34,8 +86,14 @@ export function ExamAdmitCardsView() {
   const [bulkOpen, setBulkOpen] = useState(false);
 
   const activeExams = useMemo(
-    () => (db ? db.exams.filter((e) => !e.isDeleted) : []),
-    [db]
+    () =>
+      (examsRes?.items ?? [])
+        .filter((e) => !e.isDeleted && e.examType !== ExamType.CONSOLIDATED)
+        .sort(
+          (a, b) =>
+            (a.schoolClass?.numericValue ?? 99) - (b.schoolClass?.numericValue ?? 99)
+        ),
+    [examsRes?.items]
   );
 
   const resolvedExamId =
@@ -45,61 +103,131 @@ export function ExamAdmitCardsView() {
 
   const activeExam = activeExams.find((e) => e.id === resolvedExamId) ?? null;
 
-  const admitCardItems = useMemo(() => {
-    if (!db || !activeExam) return [];
-    const cls = db.classes.find((c) => c.id === activeExam.classId);
-    const year = db.academicYears.find((y) => y.id === activeExam.academicYearId);
-    const { seatLookup } = buildSeatPlanRooms(db, activeExam, 'bn');
-    const examRoutines = db.examRoutines
-      .filter((r) => !r.isDeleted && r.examId === activeExam.id)
-      .sort((a, b) => a.examDate.localeCompare(b.examDate) || a.startTime.localeCompare(b.startTime));
+  const { data: sectionsData = [] } = useGetSectionsQuery(
+    { classId: activeExam?.classId },
+    { skip: !activeExam?.classId }
+  );
 
-    const enrollments = getExamEnrolledStudents(db, activeExam);
+  const { data: routinesRes, isLoading: loadingRoutines } =
+    useGetExamRoutinesByExamQuery(
+      { examId: activeExam?.id ?? '' },
+      { skip: !activeExam?.id }
+    );
+
+  const { data: examSubjects = [], isLoading: loadingSubjects } =
+    useGetExamSubjectsQuery(activeExam?.id ?? '', {
+      skip: !activeExam?.id,
+    });
+
+  const { data: enrollmentsData = [], isLoading: loadingEnrollments } =
+    useGetEnrollmentsQuery(
+      { academicYearId: activeExam?.academicYearId },
+      { skip: !activeExam?.academicYearId }
+    );
+
+  const activeClass = useMemo(
+    () =>
+      activeExam
+        ? allClasses.find((c) => c.id === activeExam.classId) ?? null
+        : null,
+    [allClasses, activeExam]
+  );
+
+  const activeYear = useMemo(
+    () =>
+      activeExam
+        ? academicYears.find((y) => y.id === activeExam.academicYearId) ?? null
+        : null,
+    [academicYears, activeExam]
+  );
+
+  const classSections = useMemo(
+    () =>
+      sectionsData
+        .filter((s) => !activeExam || s.classId === activeExam.classId)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [sectionsData, activeExam]
+  );
+
+  const admitCardItems = useMemo(() => {
+    if (!activeExam) return [];
+
+    const routineList = routinesRes?.schedule ?? [];
+    const sortedRoutines = [...routineList].sort(
+      (a, b) =>
+        String(a.examDate).localeCompare(String(b.examDate)) ||
+        a.startTime.localeCompare(b.startTime)
+    );
+
+    const subjectBySubjectId = new Map(examSubjects.map((es) => [es.subjectId, es]));
+    const classEnrollments = (enrollmentsData as EnrollmentWithRelations[])
+      .filter(
+        (enr) =>
+          enr.classId === activeExam.classId &&
+          enr.status === EnrollmentStatus.ACTIVE
+      )
+      .sort((a, b) => a.roll - b.roll);
+
     const q = search.trim().toLowerCase();
 
-    return enrollments
+    return classEnrollments
       .filter((enr) => {
         if (sectionFilter !== 'ALL' && enr.sectionId !== sectionFilter) return false;
         if (groupFilter !== 'ALL' && (enr.groupId ?? '') !== groupFilter) return false;
         if (q) {
-          const stu = db.students.find((s) => s.id === enr.studentId);
+          const stu = enr.student;
           const hay = `${stu?.nameBn ?? ''} ${stu?.nameEn ?? ''} ${stu?.studentId ?? ''} ${enr.roll}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
       })
       .map((enr) => {
-        const stu = db.students.find((s) => s.id === enr.studentId);
-        const sec = db.sections.find((s) => s.id === enr.sectionId);
-        const grp = enr.groupId ? db.academicGroups.find((g) => g.id === enr.groupId) : null;
-        const { fatherName, motherName } = resolveStudentParents(db, enr.studentId, 'bn');
-        const seatInfo = seatLookup.get(enr.id);
+        const stu = enr.student;
+        const sec =
+          enr.section ?? classSections.find((s) => s.id === enr.sectionId) ?? null;
+        const grp =
+          enr.group ??
+          (enr.groupId
+            ? academicGroups.find((g) => g.id === enr.groupId) ?? null
+            : null);
 
-        const schedule = examRoutines
+        const parents = stu?.parents ?? [];
+        const fatherLink = parents.find(
+          (p) => p.relationship === RelationshipType.FATHER
+        );
+        const motherLink = parents.find(
+          (p) => p.relationship === RelationshipType.MOTHER
+        );
+        const fatherName =
+          fatherLink?.parent?.nameBn || fatherLink?.parent?.name || '—';
+        const motherName =
+          motherLink?.parent?.nameBn || motherLink?.parent?.name || '—';
+
+        const schedule = sortedRoutines
           .filter((rt) => {
             if (rt.sectionId && rt.sectionId !== enr.sectionId) return false;
-            const es = db.examSubjects.find((x) => x.id === rt.examSubjectId);
-            if (!es) return false;
-            if (es.groupId && es.groupId !== enr.groupId) return false;
+            const es = rt.subject?.id ? subjectBySubjectId.get(rt.subject.id) : undefined;
+            if (es?.groupId && es.groupId !== enr.groupId) return false;
             return true;
           })
           .map((rt) => {
-            const es = db.examSubjects.find((x) => x.id === rt.examSubjectId);
-            const sub = es ? db.subjects.find((s) => s.id === es.subjectId) : null;
+            const sub = rt.subject;
             return {
-              examDate: rt.examDate,
+              examDate: String(rt.examDate).slice(0, 10),
               startTime: rt.startTime,
               endTime: rt.endTime,
-              subjectCode: sub?.officialCode ?? '—',
+              subjectCode: sub?.code ?? '—',
               subjectName: sub?.nameBn || sub?.name || '—',
-              roomNo: rt.roomNo ?? seatInfo?.roomNo ?? null,
+              roomNo: rt.roomNo ?? null,
             };
           });
 
+        const primaryRoom = schedule.find((s) => Boolean(s.roomNo))?.roomNo ?? null;
+
         const props: PrintableExamAdmitCardProps = {
-          school: db.schoolProfile,
+          school: DEFAULT_SCHOOL_PROFILE,
           examName: activeExam.name,
-          academicYear: year?.name ?? '2026',
+          academicYear: activeYear?.name ?? formatNumber(2026, 'bn'),
           student: {
             studentId: stu?.studentId ?? enr.studentId,
             nameBn: stu?.nameBn,
@@ -108,33 +236,43 @@ export function ExamAdmitCardsView() {
             motherName,
             photo: stu?.photo ?? null,
             roll: enr.roll,
-            className: cls?.nameBn || cls?.name || '',
+            className: activeClass?.nameBn || activeClass?.name || '',
             sectionName: sec?.name ?? '',
-            groupName: grp ? (grp.nameBn) : null,
-            hallRoom: seatInfo ? `${seatInfo.roomNo}${seatInfo.buildingName ? ` (${seatInfo.buildingName})` : ''}` : null,
-            seatNo: seatInfo?.seatNo ?? null,
+            groupName: grp ? grp.nameBn || grp.name : null,
+            hallRoom: primaryRoom,
+            seatNo: null,
           },
           schedule,
         };
 
         return {
           enrollmentId: enr.id,
-          isEligible: enr.status === EnrollmentStatus.ACTIVE,
           props,
         };
       });
-  }, [db, activeExam, 'bn', sectionFilter, groupFilter, search]);
+  }, [
+    activeExam,
+    routinesRes?.schedule,
+    examSubjects,
+    enrollmentsData,
+    classSections,
+    academicGroups,
+    activeClass,
+    activeYear,
+    sectionFilter,
+    groupFilter,
+    search,
+  ]);
 
-  if (isLoading || !db) return <LoadingSkeleton rows={6} />;
+  if (loadingExams) return <LoadingSkeleton rows={6} />;
 
-  const classSections = activeExam ? db.sections.filter((s) => s.classId === activeExam.classId) : [];
-  const activeClass = activeExam ? db.classes.find((c) => c.id === activeExam.classId) : null;
   const isNineTen = (activeClass?.numericValue ?? 0) >= 9;
+  const isFetchingDetails = loadingRoutines || loadingSubjects || loadingEnrollments;
 
   const selectedItems = admitCardItems.filter((item) => selectedIds[item.enrollmentId]);
   const bulkTargets = selectedItems.length > 0 ? selectedItems : admitCardItems;
-  const assignedSeatsCount = admitCardItems.filter((i) => Boolean(i.props.student.hallRoom)).length;
   const readyCount = admitCardItems.filter((i) => i.props.schedule.length > 0).length;
+  const assignedRoomCount = admitCardItems.filter((i) => Boolean(i.props.student.hallRoom)).length;
   const allFilteredChecked =
     admitCardItems.length > 0 && admitCardItems.every((i) => selectedIds[i.enrollmentId]);
 
@@ -151,10 +289,8 @@ export function ExamAdmitCardsView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        titleBn="পরীক্ষার প্রবেশপত্র (Admit Card)"
-        titleEn="Examination Admit Cards"
-        subtitleBn="শিক্ষার্থীর ছবি, রোল, নির্ধারিত হল রুম ও ব্যক্তিগত পরীক্ষার রুটিনসহ প্রাতিষ্ঠানিক প্রবেশপত্র একক বা একসাথে বাল্ক প্রিন্ট করুন।"
-        subtitleEn="Generate and bulk-print official institutional examination admit cards with room/seat allocations and student timetables."
+        title="পরীক্ষার প্রবেশপত্র"
+        description="শিক্ষার্থীর নাম, রোল, অভিভাবকের তথ্য ও ব্যক্তিগত পরীক্ষার রুটিনসহ প্রাতিষ্ঠানিক প্রবেশপত্র একক বা একসাথে প্রিন্ট করুন।"
         actions={
           <Button
             onClick={() => setBulkOpen(true)}
@@ -172,9 +308,7 @@ export function ExamAdmitCardsView() {
       {/* 4-Column KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {'মোট পরীক্ষার্থী'}
-          </p>
+          <p className="text-base font-bold text-foreground">{'মোট পরীক্ষার্থী'}</p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(admitCardItems.length, 'bn')}
           </p>
@@ -184,9 +318,7 @@ export function ExamAdmitCardsView() {
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {'প্রবেশপত্র প্রস্তুতি স্থিতি'}
-          </p>
+          <p className="text-base font-bold text-foreground">{'প্রবেশপত্র প্রস্তুতি স্থিতি'}</p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-primary">
             {formatNumber(readyCount, 'bn')} / {formatNumber(admitCardItems.length, 'bn')}
           </p>
@@ -196,26 +328,24 @@ export function ExamAdmitCardsView() {
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {'আসন নির্ধারিত শিক্ষার্থী'}
-          </p>
-          <p className={cn('mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums', assignedSeatsCount === admitCardItems.length && admitCardItems.length > 0 ? 'text-success' : 'text-foreground')}>
-            {formatNumber(assignedSeatsCount, 'bn')}
+          <p className="text-base font-bold text-foreground">{'কক্ষ নির্ধারিত শিক্ষার্থী'}</p>
+          <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
+            {formatNumber(assignedRoomCount, 'bn')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {`সিট নির্ধারিত ${formatNumber(assignedSeatsCount, 'bn')} · অনির্ধারিত ${formatNumber(Math.max(0, admitCardItems.length - assignedSeatsCount), 'bn')}`}
+            {`রুটিন অনুযায়ী কক্ষ: ${formatNumber(assignedRoomCount, 'bn')}`}
           </p>
         </Card>
 
         <Card className="p-5 flex flex-col justify-between gap-2">
-          <p className="text-base font-bold text-foreground">
-            {'নির্বাচিত প্রিন্ট তালিকা'}
-          </p>
+          <p className="text-base font-bold text-foreground">{'নির্বাচিত প্রিন্ট তালিকা'}</p>
           <p className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight tabular-nums text-foreground">
             {formatNumber(selectedItems.length || admitCardItems.length, 'bn')}
           </p>
           <p className="mt-1 text-sm text-muted-foreground tabular-nums">
-            {selectedItems.length > 0 ? `${formatNumber(selectedItems.length, 'bn')}টি কার্ড নির্বাচিত` : 'সকল কার্ড প্রিন্টের জন্য প্রস্তুত'}
+            {selectedItems.length > 0
+              ? `${formatNumber(selectedItems.length, 'bn')}টি কার্ড নির্বাচিত`
+              : 'সকল কার্ড প্রিন্টের জন্য প্রস্তুত'}
           </p>
         </Card>
       </div>
@@ -223,7 +353,9 @@ export function ExamAdmitCardsView() {
       {/* Filters */}
       <Card className="p-4 flex flex-wrap items-end gap-3">
         <div className="flex-1 min-w-[230px]">
-          <label className="block text-sm text-muted-foreground mb-1">{'পরীক্ষা নির্বাচন করুন'}</label>
+          <label className="block text-sm text-muted-foreground mb-1">
+            {'পরীক্ষা নির্বাচন করুন'}
+          </label>
           <Select
             value={resolvedExamId}
             onChange={(e) => {
@@ -236,6 +368,9 @@ export function ExamAdmitCardsView() {
             {activeExams.map((ex) => (
               <option key={ex.id} value={ex.id}>
                 {ex.name}
+                {ex.schoolClass?.nameBn || ex.schoolClass?.name
+                  ? ` — ${ex.schoolClass?.nameBn || ex.schoolClass?.name}`
+                  : ''}
               </option>
             ))}
           </Select>
@@ -258,9 +393,9 @@ export function ExamAdmitCardsView() {
             <label className="block text-sm text-muted-foreground mb-1">{'বিভাগ'}</label>
             <Select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value)}>
               <option value="ALL">{'সকল বিভাগ'}</option>
-              {db.academicGroups.map((g) => (
+              {academicGroups.map((g) => (
                 <option key={g.id} value={g.id}>
-                  {g.nameBn}
+                  {g.nameBn || g.name}
                 </option>
               ))}
             </Select>
@@ -279,7 +414,9 @@ export function ExamAdmitCardsView() {
       </Card>
 
       {/* Examinees List */}
-      {admitCardItems.length === 0 ? (
+      {isFetchingDetails ? (
+        <LoadingSkeleton rows={5} />
+      ) : admitCardItems.length === 0 ? (
         <EmptyState
           title={'কোনো পরীক্ষার্থী পাওয়া যায়নি'}
           description={'অনুগ্রহ করে অন্য পরীক্ষা বা শাখা নির্বাচন করুন।'}
@@ -301,7 +438,7 @@ export function ExamAdmitCardsView() {
                   <th className="px-3 py-3 text-center w-16">{'রোল'}</th>
                   <th className="px-4 py-3 text-left">{'শিক্ষার্থী ও আইডি'}</th>
                   <th className="px-3 py-3 text-left">{'শাখা ও বিভাগ'}</th>
-                  <th className="px-3 py-3 text-left">{'নির্ধারিত কক্ষ ও আসন'}</th>
+                  <th className="px-3 py-3 text-left">{'কক্ষ'}</th>
                   <th className="px-3 py-3 text-center">{'রুটিন বিষয়'}</th>
                   <th className="px-4 py-3 text-right">{'প্রবেশপত্র'}</th>
                 </tr>
@@ -316,11 +453,16 @@ export function ExamAdmitCardsView() {
                           type="checkbox"
                           checked={Boolean(selectedIds[item.enrollmentId])}
                           onChange={(e) =>
-                            setSelectedIds((prev) => ({ ...prev, [item.enrollmentId]: e.target.checked }))
+                            setSelectedIds((prev) => ({
+                              ...prev,
+                              [item.enrollmentId]: e.target.checked,
+                            }))
                           }
                         />
                       </td>
-                      <td className="px-3 py-3 text-center font-medium">{formatNumber(st.roll, 'bn')}</td>
+                      <td className="px-3 py-3 text-center font-medium">
+                        {formatNumber(st.roll, 'bn')}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="font-semibold text-foreground">
                           {st.nameBn || st.nameEn}
@@ -339,11 +481,6 @@ export function ExamAdmitCardsView() {
                         <span className="font-medium text-foreground">
                           {st.hallRoom || 'নির্ধারিত হয়নি'}
                         </span>
-                        {st.seatNo && (
-                          <span className="block text-muted-foreground">
-                            {'আসন নং:'} {formatNumber(st.seatNo, 'bn')}
-                          </span>
-                        )}
                       </td>
                       <td className="px-3 py-3 text-center text-sm font-medium">
                         {formatNumber(item.props.schedule.length, 'bn')}

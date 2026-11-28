@@ -16,6 +16,7 @@ export const apiTagTypes = [
   'Admissions',
   'Notifications',
   'Audit',
+  'Finance',
 ] as const;
 
 /** Shared client-side API cache. Feature modules inject their own endpoints. */

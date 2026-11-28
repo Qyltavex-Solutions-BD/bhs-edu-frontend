@@ -10,7 +10,6 @@ import {
   Settings2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useGetBootstrapQuery } from '@/src/store/api';
 import {
   useGetConsolidatedResultQuery,
   useGetExamsQuery,
@@ -63,7 +62,6 @@ function getErrorMessage(err: unknown, fallback: string) {
 }
 
 export function ConsolidatedResultsView() {
-  const { data: db } = useGetBootstrapQuery();
   const { data: examsRes, isLoading: loadingExams } = useGetExamsQuery({
     examType: ExamType.CONSOLIDATED,
     limit: 100,
@@ -194,7 +192,7 @@ export function ConsolidatedResultsView() {
     return { total, passed, gpa5, incomplete, passRate };
   }, [filteredRows, consolidatedData?.examination?.maxGpa]);
 
-  const schoolProfile: SchoolProfile = db?.schoolProfile ?? FALLBACK_SCHOOL_PROFILE;
+  const schoolProfile: SchoolProfile = FALLBACK_SCHOOL_PROFILE;
 
   const openConfigModal = () => {
     if (!selectedExam) return;

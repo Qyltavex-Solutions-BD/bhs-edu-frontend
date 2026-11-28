@@ -4,6 +4,7 @@ export type AppRole =
   | 'SUPER_ADMIN'
   | 'SCHOOL_ADMIN'
   | 'PRINCIPAL'
+  | 'ACCOUNTANT'
   | 'TEACHER'
   | 'PARENT'
   | 'STUDENT';

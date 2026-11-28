@@ -11,7 +11,6 @@ import {
   Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useGetBootstrapQuery } from '@/src/store/api';
 import {
   useGetExamsQuery,
   useGetTabulationSheetQuery,
@@ -58,7 +57,6 @@ const FALLBACK_SCHOOL_PROFILE: SchoolProfile = {
 };
 
 export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: string }) {
-  const { data: db } = useGetBootstrapQuery();
   const { data: examsRes, isLoading: loadingExams } = useGetExamsQuery({
     limit: 100,
     isDeleted: false,
@@ -152,7 +150,7 @@ export function MeritAndMarksheetsView({ initialExamId }: { initialExamId?: stri
     { skip: !activeExam?.id }
   );
 
-  const schoolProfile: SchoolProfile = db?.schoolProfile ?? FALLBACK_SCHOOL_PROFILE;
+  const schoolProfile: SchoolProfile = FALLBACK_SCHOOL_PROFILE;
 
   const sectionOptions = useMemo(() => {
     const fromApi = sectionsData.filter((s) => s.isActive).map((s) => s.name);

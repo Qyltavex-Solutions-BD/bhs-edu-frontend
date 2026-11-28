@@ -23,9 +23,11 @@ import {
 } from 'lucide-react';
 import {
   adminLoginSchema,
+  loginSchema,
   portalInitiateSchema,
   portalSetupPasswordSchema,
   type AdminLoginFormValues,
+  type LoginFormValues,
   type PortalInitiateFormValues,
   type PortalSetupPasswordFormValues,
 } from '../schemas';
@@ -40,7 +42,7 @@ import {
   useResetPasswordMutation,
   type LoginResponseData,
 } from '../api/auth.api';
-import { SchoolEmblem } from '@/src/components/shared/Feedback';
+import { SCHOOL_LOGO_SRC, SchoolEmblem } from '@/src/components/shared/Feedback';
 import { Button, Card, FormField, Input } from '@/src/components/ui/primitives';
 import { DemoLoginCards, type DemoAccount } from './DemoLoginCards';
 
@@ -105,7 +107,7 @@ export function LoginPage() {
     let redirectUrl = '/teacher/dashboard';
     if (role === 'PARENT') redirectUrl = '/parent/dashboard';
     else if (role === 'STUDENT') redirectUrl = '/student/dashboard';
-    else if (role === 'ACCOUNTANT') redirectUrl = '/teacher/dashboard';
+    else if (role === 'ACCOUNTANT') redirectUrl = '/accountant/dashboard';
 
     router.push(redirectUrl);
   };
@@ -508,6 +510,186 @@ export function LoginPage() {
             </p>
           </div>
         </div>
+      </main>
+    </div>
+  );
+}
+
+export function AccountantLoginPage() {
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const [showPass, setShowPass] = useState(false);
+  const [loginApi, { isLoading }] = useLoginUserMutation();
+
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { identifier: '', password: '' },
+  });
+
+  const onSubmit = async (values: LoginFormValues) => {
+    try {
+      const res = await loginApi({
+        email: values.identifier.trim(),
+        password: values.password,
+      }).unwrap();
+
+      const roles = res.user?.roles || [];
+      const isAccountant =
+        roles.includes('ACCOUNTANT') ||
+        roles.includes('SUPER_ADMIN') ||
+        roles.includes('ADMIN');
+
+      if (!isAccountant) {
+        toast.error('এই লগইন শুধুমাত্র অ্যাকাউন্ট্যান্ট ও অনুমোদিত হিসাব কর্মকর্তাদের জন্য।');
+        return;
+      }
+
+      const assignedRole = roles.includes('ACCOUNTANT') ? 'ACCOUNTANT' : 'SUPER_ADMIN';
+
+      dispatch(
+        setCredentials({
+          accessToken: res.accessToken,
+          user: {
+            id: res.user.id,
+            name: res.user.name,
+            email: res.user.email,
+            phone: res.user.phone,
+            role: assignedRole,
+          },
+          role: assignedRole,
+          permissions: res.user.permissions ?? [],
+        })
+      );
+
+      toast.success('অ্যাকাউন্ট্যান্ট পোর্টালে লগইন সফল হয়েছে।');
+      router.push('/accountant/dashboard');
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message ||
+          err?.message ||
+          'লগইন তথ্য সঠিক নয়। অনুগ্রহ করে আবার চেষ্টা করুন।'
+      );
+    }
+  };
+
+  return (
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-background">
+      <aside className="hidden lg:flex lg:col-span-6 xl:col-span-5 relative overflow-hidden bg-[#093B1F] text-white">
+        <img
+          src="/images/hero_campus_heritage_1795136893336.jpg"
+          alt={'ভোজেশ্বর উচ্চ বিদ্যালয় প্রাঙ্গণ'}
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 w-full h-full object-cover object-center"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-t from-[#052412]/95 via-[#08341B]/76 to-[#062915]/68"
+        />
+
+        <div className="relative z-10 flex flex-col justify-between w-full p-10 xl:p-12">
+          <div className="flex items-center justify-between gap-4">
+            <Link href="/" className="inline-flex items-center gap-3 group">
+              <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 overflow-hidden p-1 shadow-md">
+                <img
+                  src={SCHOOL_LOGO_SRC}
+                  alt={'লোগো'}
+                  className="w-full h-full object-cover rounded-xl"
+                />
+              </div>
+              <div>
+                <p className="text-base font-bold text-white leading-tight">
+                  {'ভোজেশ্বর উচ্চ বিদ্যালয়'}
+                </p>
+                <p className="text-sm text-white/80">{'অ্যাকাউন্টস ও হিসাবরক্ষণ বিভাগ'}</p>
+              </div>
+            </Link>
+          </div>
+
+          <div className="space-y-4 max-w-md">
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/25 text-xs font-semibold tracking-wide">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              {'অ্যাকাউন্ট্যান্ট পোর্টাল গেট'}
+            </span>
+            <h1 className="text-3xl xl:text-4xl font-bold leading-tight">
+              {'বিদ্যালয়ের আর্থিক ও ফি ব্যবস্থাপনা পোর্টাল'}
+            </h1>
+            <p className="text-base text-white/85 leading-relaxed">
+              {'৬ষ্ঠ থেকে ১০ম শ্রেণির ভর্তি ফি, মাসিক বেতন, পরীক্ষার ফি গ্রহণ, মানি রিসিপ্ট প্রিন্ট, বকেয়া হিসাব এবং দৈনন্দিন আয়-ব্যয় ভাউচার পরিচালনা করুন।'}
+            </p>
+          </div>
+
+          <p className="text-sm text-white/70">
+            {'ভোজেশ্বর উচ্চ বিদ্যালয় · EIIN: ১১৩৫৮৭'}
+          </p>
+        </div>
+      </aside>
+
+      <main className="lg:col-span-6 xl:col-span-7 flex items-center justify-center p-6 sm:p-10">
+        <Card className="w-full max-w-md p-6 sm:p-8 space-y-6">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+              <Lock className="w-3.5 h-3.5" />
+              {'অ্যাকাউন্ট্যান্ট লগইন'}
+            </div>
+            <h2 className="text-2xl font-bold text-foreground">
+              {'হিসাবরক্ষণ পোর্টালে প্রবেশ করুন'}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {'অ্যাডমিন কর্তৃক প্রদত্ত আপনার ইমেইল বা মোবাইল নম্বর ও পাসওয়ার্ড দিয়ে লগইন করুন।'}
+            </p>
+          </div>
+
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              label={'ইমেইল অথবা মোবাইল নম্বর'}
+              required
+              error={form.formState.errors.identifier?.message}
+            >
+              <Input
+                {...form.register('identifier')}
+                placeholder={'যেমন: accountant@bhs.edu.bd বা 017...'}
+                autoComplete="username"
+              />
+            </FormField>
+
+            <FormField
+              label={'পাসওয়ার্ড'}
+              required
+              error={form.formState.errors.password?.message}
+            >
+              <div className="relative">
+                <Input
+                  type={showPass ? 'text' : 'password'}
+                  {...form.register('password')}
+                  placeholder={'আপনার পাসওয়ার্ড লিখুন'}
+                  autoComplete="current-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+                  aria-label={'পাসওয়ার্ড দেখুন'}
+                >
+                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </FormField>
+
+            <Button type="submit" variant="primary" className="w-full" disabled={isLoading}>
+              {isLoading ? 'যাচাই করা হচ্ছে...' : 'অ্যাকাউন্ট্যান্ট পোর্টালে প্রবেশ করুন'}
+            </Button>
+          </form>
+
+          <div className="pt-4 border-t border-border flex items-center justify-between text-sm">
+            <Link href="/login" className="text-primary hover:underline font-medium">
+              {'সাধারণ পোর্টাল লগইন'}
+            </Link>
+            <Link href="/forgot-password" className="text-muted-foreground hover:text-foreground">
+              {'পাসওয়ার্ড ভুলে গেছেন?'}
+            </Link>
+          </div>
+        </Card>
       </main>
     </div>
   );
